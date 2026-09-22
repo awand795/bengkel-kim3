@@ -1,11 +1,11 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { 
-  Bell, 
   LogOut,
   ShieldCheck,
   User
 } from 'lucide-react';
+import { NotificationDropdown } from './NotificationDropdown';
 
 export const Navbar: React.FC = () => {
   const { currentRole, currentUser, notificationCount, logout } = useAppStore();
@@ -54,19 +54,8 @@ export const Navbar: React.FC = () => {
             <span>{currentRole}</span>
           </div>
 
-          {/* Notifications */}
-          <button 
-            type="button" 
-            className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-            title="Notifikasi"
-          >
-            <Bell className="w-5 h-5" />
-            {notificationCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">
-                {notificationCount}
-              </span>
-            )}
-          </button>
+          {/* Notifications Dropdown */}
+          <NotificationDropdown />
 
           {/* Current User Badge & Logout */}
           <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">

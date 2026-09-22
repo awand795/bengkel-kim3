@@ -22,7 +22,8 @@ import {
   ChevronRight,
   Wrench,
   AlertCircle,
-  XCircle
+  XCircle,
+  X
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
@@ -129,6 +130,96 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       setBookingStep(1);
       setFleetMenu('history');
     },
+  });
+
+  // Tambah Armada State & Mutation
+  const [openTambahArmadaModal, setOpenTambahArmadaModal] = useState(false);
+  const [armadaForm, setArmadaForm] = useState({
+    no_polisi: '',
+    jenis_armada: 'Truk',
+    merk: 'Hino',
+    model: 'Dutro 130HD',
+    tahun: new Date().getFullYear(),
+    nama_pemilik: 'PT. Andi Jaya',
+    no_rangka: '',
+    no_mesin: '',
+    asuransi: 'Asuransi Astra',
+    masa_berlaku_asuransi: '',
+  });
+
+  const tambahArmadaMutation = useMutation({
+    mutationFn: async (data: typeof armadaForm) => {
+      return api.tambahKendaraan({
+        no_polisi: data.no_polisi.trim().toUpperCase(),
+        jenis_armada: data.jenis_armada as any,
+        merk: data.merk,
+        model: data.model,
+        tahun: Number(data.tahun) || new Date().getFullYear(),
+        nama_pemilik: data.nama_pemilik,
+        no_rangka: data.no_rangka,
+        no_mesin: data.no_mesin,
+        asuransi: data.asuransi,
+        masa_berlaku_asuransi: data.masa_berlaku_asuransi || undefined,
+        id_pelanggan: 1,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
+      alert('Unit armada berhasil ditambahkan ke sistem Bengkel KIM 3!');
+      setOpenTambahArmadaModal(false);
+      setArmadaForm({
+        no_polisi: '',
+        jenis_armada: 'Truk',
+        merk: 'Hino',
+        model: 'Dutro 130HD',
+        tahun: new Date().getFullYear(),
+        nama_pemilik: 'PT. Andi Jaya',
+        no_rangka: '',
+        no_mesin: '',
+        asuransi: 'Asuransi Astra',
+        masa_berlaku_asuransi: '',
+      });
+    },
+    onError: (err: any) => alert('Gagal menambahkan unit armada: ' + (err?.message || 'Periksa kembali data Anda.')),
+  });
+
+  // Tambah Dokumen State & Mutation
+  const [openTambahDokumenModal, setOpenTambahDokumenModal] = useState(false);
+  const [dokumenForm, setDokumenForm] = useState({
+    no_polisi: '',
+    nama_dokumen: '',
+    jenis_dokumen: 'STNK',
+    masa_berlaku: '',
+    keterangan: '',
+    file_url: 'https://bengkelkim3.com/dokumen/sample-doc.pdf',
+  });
+
+  const tambahDokumenMutation = useMutation({
+    mutationFn: async (data: typeof dokumenForm) => {
+      return api.tambahDokumen({
+        no_polisi: data.no_polisi,
+        nama_dokumen: data.nama_dokumen,
+        jenis_dokumen: data.jenis_dokumen as any,
+        masa_berlaku: data.masa_berlaku || undefined,
+        keterangan: data.keterangan,
+        file_url: data.file_url,
+        id_pelanggan: 1,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dokumen-list'] });
+      alert('Dokumen digital armada berhasil disimpan!');
+      setOpenTambahDokumenModal(false);
+      setDokumenForm({
+        no_polisi: '',
+        nama_dokumen: '',
+        jenis_dokumen: 'STNK',
+        masa_berlaku: '',
+        keterangan: '',
+        file_url: 'https://bengkelkim3.com/dokumen/sample-doc.pdf',
+      });
+    },
+    onError: (err: any) => alert('Gagal mengunggah dokumen: ' + (err?.message || 'Periksa kembali data Anda.')),
   });
 
   return (
@@ -619,7 +710,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {/* STEP 1: PILIH KENDARAAN */}
           {bookingStep === 1 && (
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-800 block">Pilih armada yang akan diservice:</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800">Pilih armada yang akan diservice:</span>
+                <button
+                  type="button"
+                  onClick={() => setOpenTambahArmadaModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah Kendaraan</span>
+                </button>
+              </div>
               <div className="space-y-2">
                 {kendaraanList?.map((k) => (
                   <label
@@ -812,11 +913,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* MENU 3: KENDARAAN SAYA (image5.png Mockup 4) */}
       {fleetMenu === 'kendaraan' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-slate-900">Armada Kendaraan Perusahaan</h2>
               <p className="text-xs text-slate-500">Daftar unit truk dan kendaraan operasional PT. Andi Jaya</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setOpenTambahArmadaModal(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Unit Armada</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -872,9 +981,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* MENU 4: DOKUMEN SAYA (image5.png Mockup 5) */}
       {fleetMenu === 'dokumen' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="border-b border-slate-100 pb-3 mb-4">
-            <h2 className="text-base font-bold text-slate-900">Dokumen Digital Armada (STNK, BPKB, KIR, Asuransi)</h2>
-            <p className="text-xs text-slate-500">Kelola dan unduh berkas perizinan kendaraan secara terpusat</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Dokumen Digital Armada (STNK, BPKB, KIR, Asuransi)</h2>
+              <p className="text-xs text-slate-500">Kelola dan unduh berkas perizinan kendaraan secara terpusat</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (kendaraanList && kendaraanList.length > 0) {
+                  setDokumenForm(prev => ({ ...prev, no_polisi: kendaraanList[0].no_polisi }));
+                }
+                setOpenTambahDokumenModal(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Unggah Dokumen Baru</span>
+            </button>
           </div>
 
           <div className="hidden md:block overflow-x-auto">
@@ -1070,6 +1194,323 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 1: TAMBAH ARMADA KENDARAAN BARU                                     */}
+      {/* ========================================================================= */}
+      {openTambahArmadaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Tambah Unit Armada Baru</h3>
+                  <p className="text-[11px] text-slate-500">Daftarkan kendaraan operasional ke database Bengkel KIM 3</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenTambahArmadaModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!armadaForm.no_polisi.trim()) {
+                  alert('Nomor Polisi wajib diisi.');
+                  return;
+                }
+                tambahArmadaMutation.mutate(armadaForm);
+              }}
+              className="p-6 overflow-y-auto space-y-4"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    No. Polisi <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: BK 9999 XX"
+                    value={armadaForm.no_polisi}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, no_polisi: e.target.value.toUpperCase() })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Jenis Armada <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={armadaForm.jenis_armada}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, jenis_armada: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
+                  >
+                    <option value="Truk">Truk Engkel / Box</option>
+                    <option value="Tronton">Tronton / Wingbox</option>
+                    <option value="Trailer">Trailer / Kontainer</option>
+                    <option value="Pick Up">Pick Up Operasional</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Merk</label>
+                  <select
+                    value={armadaForm.merk}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
+                  >
+                    <option value="Hino">Hino</option>
+                    <option value="Mitsubishi Fuso">Mitsubishi Fuso</option>
+                    <option value="Isuzu">Isuzu</option>
+                    <option value="Toyota Dyna">Toyota Dyna</option>
+                    <option value="Mercedes-Benz">Mercedes-Benz</option>
+                    <option value="Volvo">Volvo</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Model / Seri</label>
+                  <input
+                    type="text"
+                    placeholder="Dutro 130HD"
+                    value={armadaForm.model}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Tahun Pembuatan</label>
+                  <input
+                    type="number"
+                    min="1995"
+                    max={new Date().getFullYear() + 1}
+                    value={armadaForm.tahun}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, tahun: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Rangka (VIN)</label>
+                  <input
+                    type="text"
+                    placeholder="MHKHINO..."
+                    value={armadaForm.no_rangka}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, no_rangka: e.target.value.toUpperCase() })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Mesin</label>
+                  <input
+                    type="text"
+                    placeholder="J08E-..."
+                    value={armadaForm.no_mesin}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, no_mesin: e.target.value.toUpperCase() })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden uppercase"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Asuransi (Opsional)</label>
+                  <input
+                    type="text"
+                    placeholder="Asuransi Astra / Sinarmas"
+                    value={armadaForm.asuransi}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, asuransi: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Masa Berlaku Asuransi</label>
+                  <input
+                    type="date"
+                    value={armadaForm.masa_berlaku_asuransi}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, masa_berlaku_asuransi: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setOpenTambahArmadaModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={tambahArmadaMutation.isPending}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Armada'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: UNGGAH DOKUMEN DIGITAL ARMADA                                   */}
+      {/* ========================================================================= */}
+      {openTambahDokumenModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Unggah Dokumen Digital Armada</h3>
+                  <p className="text-[11px] text-slate-500">Simpan arsip STNK, KIR, BPKB, atau polis asuransi unit</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenTambahDokumenModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!dokumenForm.no_polisi || !dokumenForm.nama_dokumen.trim()) {
+                  alert('Pilih armada dan isi nama dokumen.');
+                  return;
+                }
+                tambahDokumenMutation.mutate(dokumenForm);
+              }}
+              className="p-6 overflow-y-auto space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Pilih Unit Armada <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={dokumenForm.no_polisi}
+                  onChange={(e) => setDokumenForm({ ...dokumenForm, no_polisi: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
+                >
+                  <option value="">-- Pilih Nomor Polisi --</option>
+                  {kendaraanList?.map((k) => (
+                    <option key={k.id} value={k.no_polisi}>
+                      {k.no_polisi} — {k.merk} {k.model}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Jenis Dokumen <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={dokumenForm.jenis_dokumen}
+                    onChange={(e) => setDokumenForm({ ...dokumenForm, jenis_dokumen: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
+                  >
+                    <option value="STNK">STNK (Pajak Tahunan / 5 Tahunan)</option>
+                    <option value="KIR">KIR (Uji Berkala Dishub)</option>
+                    <option value="BPKB">BPKB Unit</option>
+                    <option value="Asuransi">Polis Asuransi All Risk / TLO</option>
+                    <option value="Izin Usaha">Izin Usaha Angkutan / Dishub</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Masa Berlaku Dokumen</label>
+                  <input
+                    type="date"
+                    value={dokumenForm.masa_berlaku}
+                    onChange={(e) => setDokumenForm({ ...dokumenForm, masa_berlaku: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nama Dokumen / Keterangan Berkas <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: STNK Pajak Berlaku s/d Mei 2027"
+                  value={dokumenForm.nama_dokumen}
+                  onChange={(e) => setDokumenForm({ ...dokumenForm, nama_dokumen: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+                <input
+                  type="text"
+                  placeholder="Catatan nomor seri atau barcode dokumen"
+                  value={dokumenForm.keterangan}
+                  onChange={(e) => setDokumenForm({ ...dokumenForm, keterangan: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setOpenTambahDokumenModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={tambahDokumenMutation.isPending}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{tambahDokumenMutation.isPending ? 'Menyimpan...' : 'Simpan Dokumen'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
