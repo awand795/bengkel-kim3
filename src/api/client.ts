@@ -36,14 +36,16 @@ export const apiClient = axios.create({
   },
 });
 
-// Auto-inject JWT Bearer token or static token for high-security API communication
+// Auto-inject JWT Bearer token for authenticated API communication.
+// If the user is not logged in yet, no Authorization header is attached
+// so the request fails with 401 and LoginPage takes over.
 apiClient.interceptors.request.use((config) => {
   const jwt = localStorage.getItem('bengkel_jwt_token');
   config.headers['x-api-key'] = KIM3_STATIC_TOKEN;
   if (jwt) {
     config.headers['Authorization'] = `Bearer ${jwt}`;
   } else {
-    config.headers['Authorization'] = `Bearer ${KIM3_STATIC_TOKEN}`;
+    delete config.headers['Authorization'];
   }
   return config;
 });
@@ -214,6 +216,10 @@ export const api = {
   },
   checkOutSecurity: async (data: { id: number; barang_dibawa_keluar?: boolean; detail_barang_keluar?: string; foto_kendaraan_keluar?: string; foto_barang?: string; no_memo_keluar?: string }): Promise<any> => {
     const res = await apiClient.post('/bengkel/antrian-checkout', data);
+    return res.data;
+  },
+  konfirmasiKunjunganPic: async (data: { id: number; status_konfirmasi_pic: 'Diterima' | 'Ditolak'; catatan_pic?: string }): Promise<any> => {
+    const res = await apiClient.post('/bengkel/antrian-konfirmasi-pic', data);
     return res.data;
   },
 

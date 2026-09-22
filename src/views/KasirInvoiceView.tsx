@@ -88,7 +88,7 @@ export const KasirInvoiceView: React.FC = () => {
                     <tr
                       key={inv.id}
                       onClick={() => setSelectedInvoice(inv)}
-                      className={`cursor-pointer transition-colors ${
+                      className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${
                         activeInv?.id === inv.id ? 'bg-blue-50/70 font-bold' : 'hover:bg-slate-50'
                       }`}
                     >

@@ -222,7 +222,7 @@ export const ServiceAdvisorView: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
                 <tr>
@@ -283,6 +283,59 @@ export const ServiceAdvisorView: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+          <div className="block md:hidden space-y-2.5">
+            {spkList?.map((spk) => (
+              <div key={spk.id} className="rounded-xl border border-slate-200 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-mono text-[11px] font-bold text-blue-600">{spk.no_spk}</div>
+                    <div className="text-base font-black text-slate-900 mt-0.5">{spk.no_polisi}</div>
+                    <div className="text-xs font-semibold text-slate-600 mt-0.5">{spk.nama_customer || '-'}</div>
+                  </div>
+                  <StatusBadge status={spk.status_spk} size="sm" />
+                </div>
+
+                <p className="mt-2 text-[11px] text-slate-400 line-clamp-2">{spk.keluhan_customer}</p>
+
+                <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-400">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="shrink-0">Mekanik / Foreman</span>
+                    <span className="font-semibold text-slate-600 text-right">
+                      {spk.nama_mekanik ? `${spk.nama_mekanik} (${spk.nama_foreman || 'Foreman'})` : 'Menunggu Foreman'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Estimasi Biaya</span>
+                    <span className="font-bold text-slate-900">
+                      Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+
+                {spk.status_spk === 'QC Passed' && (
+                  <button
+                    type="button"
+                    onClick={() => firClosedMutation.mutate(spk)}
+                    className="mt-3 w-full min-h-[44px] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    <FileCheck className="w-4 h-4" /> FIR Closed
+                  </button>
+                )}
+
+                {spk.status_spk !== 'FIR Closed' && spk.status_spk !== 'Selesai' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPrModal(spk)}
+                    className="mt-2 w-full min-h-[44px] py-2.5 bg-purple-50 active:bg-purple-100 text-purple-700 rounded-xl font-bold text-xs border border-purple-200 flex items-center justify-center gap-1.5"
+                  >
+                    <ShoppingBag className="w-4 h-4" /> Ajukan PR Part
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -555,8 +608,8 @@ export const ServiceAdvisorView: React.FC = () => {
 
       {/* MODAL AJUKAN PR PART */}
       {showPrModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Ajukan Purchase Request (PR)</h3>

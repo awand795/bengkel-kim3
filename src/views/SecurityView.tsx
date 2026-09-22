@@ -136,6 +136,12 @@ export const SecurityView: React.FC = () => {
   const onProgressList = antrianList?.filter(a => a.status_kunjungan !== 'Keluar' && a.status_kunjungan !== 'Selesai') || [];
   const selesaiList = antrianList?.filter(a => a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai') || [];
 
+  // Filter pencarian untuk subtab on progress (dipakai tabel desktop & card mobile)
+  const filteredOnProgressList = onProgressList.filter(item =>
+    item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       
@@ -362,7 +368,7 @@ export const SecurityView: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
                 <tr>
@@ -420,6 +426,59 @@ export const SecurityView: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+          <div className="block md:hidden space-y-2.5">
+            {bookingList && bookingList.length > 0 ? (
+              bookingList.map((b) => (
+                <div key={`card-${b.id}`} className="rounded-xl border border-slate-200 p-3.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-mono text-[11px] font-bold text-blue-600">{b.no_booking}</div>
+                      <div className="text-base font-black text-slate-900 mt-0.5">{b.no_polisi}</div>
+                      <div className="text-xs font-medium text-slate-600 mt-0.5">{b.nama_perusahaan || '-'}</div>
+                    </div>
+                    <StatusBadge status={b.status} size="sm" />
+                  </div>
+
+                  <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-400">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="shrink-0">Layanan</span>
+                      <span className="font-semibold text-slate-600 text-right">{b.jenis_layanan}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Tgl &amp; Jam</span>
+                      <span className="font-semibold text-slate-700">
+                        {b.tanggal_booking} ({b.jam_booking})
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormCheckin({
+                        ...formCheckin,
+                        no_polisi: b.no_polisi,
+                        nama_customer: b.nama_perusahaan || '',
+                        keperluan: b.jenis_layanan,
+                        id_booking: b.id,
+                        tujuan_kedatangan: 'Service',
+                      });
+                      setSubTab('checkin');
+                    }}
+                    className="mt-3 w-full min-h-[44px] py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    Pilih &amp; Isi Otomatis →
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-xs text-slate-400 rounded-xl border border-dashed border-slate-200">
+                Tidak ada daftar booking hari ini.
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -443,7 +502,7 @@ export const SecurityView: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
                 <tr>
@@ -458,10 +517,7 @@ export const SecurityView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {onProgressList.filter(item => 
-                  item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  (item.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())
-                ).map((item) => (
+                {filteredOnProgressList.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3 px-3 font-mono font-semibold text-slate-600">{item.no_tiket}</td>
                     <td className="py-3 px-3 font-bold text-slate-900 text-sm">{item.no_polisi}</td>
@@ -500,6 +556,57 @@ export const SecurityView: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+          <div className="block md:hidden space-y-2.5">
+            {filteredOnProgressList.map((item) => (
+              <div key={`card-${item.id}`} className="rounded-xl border border-slate-200 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-mono text-[11px] font-semibold text-slate-500">{item.no_tiket}</div>
+                    <div className="text-base font-black text-slate-900 mt-0.5">{item.no_polisi}</div>
+                    <div className="text-xs font-semibold text-slate-600 mt-0.5">{item.nama_customer || '-'}</div>
+                    <div className="text-[11px] text-slate-400">{item.jenis_armada}</div>
+                  </div>
+                  <StatusBadge status={item.status_kunjungan} size="sm" />
+                </div>
+
+                <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-400">
+                  <div className="flex items-center justify-between">
+                    <span>Tujuan</span>
+                    <span className="font-semibold text-slate-700">{item.tujuan_kedatangan}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Waktu Masuk</span>
+                    <span className="font-mono font-semibold text-slate-600">
+                      {new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="shrink-0">PIC Terkait</span>
+                    <span className="font-semibold text-slate-600 text-right">{item.pic_tujuan || '-'}</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCheckoutModal(item);
+                    setFormCheckout({
+                      barang_dibawa_keluar: false,
+                      detail_barang_keluar: '',
+                      foto_kendaraan_keluar: '',
+                      foto_barang: '',
+                      no_memo_keluar: '',
+                    });
+                  }}
+                  className="mt-3 w-full min-h-[44px] py-2.5 bg-emerald-600 active:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
+                >
+                  <LogOut className="w-4 h-4" /> Check Out
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -511,7 +618,7 @@ export const SecurityView: React.FC = () => {
             <p className="text-xs text-slate-500">Histori keluar kendaraan beserta memo jalan security</p>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
                 <tr>
@@ -546,6 +653,45 @@ export const SecurityView: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+          <div className="block md:hidden space-y-2.5">
+            {selesaiList.map((item) => (
+              <div key={`card-${item.id}`} className="rounded-xl border border-slate-200 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-mono text-[11px] text-slate-500">{item.no_tiket}</div>
+                    <div className="text-base font-black text-slate-900 mt-0.5">{item.no_polisi}</div>
+                    <div className="text-xs font-medium text-slate-600 mt-0.5">{item.nama_customer}</div>
+                  </div>
+                  <StatusBadge status="Selesai" size="sm" />
+                </div>
+
+                <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-400">
+                  <div className="flex items-center justify-between">
+                    <span>Tujuan</span>
+                    <span className="font-semibold text-slate-600">{item.tujuan_kedatangan}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Waktu Masuk</span>
+                    <span className="font-mono font-semibold text-slate-600">
+                      {new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Waktu Keluar</span>
+                    <span className="font-mono font-semibold text-slate-600">
+                      {item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>No. Memo Keluar</span>
+                    <span className="font-mono font-bold text-blue-600">{item.no_memo_keluar || '-'}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -672,8 +818,8 @@ export const SecurityView: React.FC = () => {
 
       {/* CHECK OUT MODAL */}
       {showCheckoutModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Check Out Kendaraan</h3>

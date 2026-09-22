@@ -114,7 +114,7 @@ export const PurchasingView: React.FC = () => {
                   <div
                     key={item.pr_id}
                     onClick={() => setSelectedPr(item)}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                    className={`p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${
                       selectedPr?.pr_id === item.pr_id
                         ? 'border-purple-600 bg-purple-50/50 shadow-xs'
                         : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/80'

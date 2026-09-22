@@ -182,7 +182,7 @@ export const ForemanView: React.FC = () => {
                 <div
                   key={spk.id}
                   onClick={() => setSelectedSpk(spk)}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                  className={`p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${
                     selectedSpk?.id === spk.id
                       ? 'border-indigo-600 bg-indigo-50/50 shadow-xs'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/80'
