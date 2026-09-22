@@ -24,7 +24,7 @@ const roleList: { role: PeranUser; label: string; icon: any; color: string }[] =
 ];
 
 export const Navbar: React.FC = () => {
-  const { currentRole, currentUser, setRole, notificationCount } = useAppStore();
+  const { currentRole, currentUser, setRole, notificationCount, jwtToken, setLoginModalOpen } = useAppStore();
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
@@ -68,6 +68,19 @@ export const Navbar: React.FC = () => {
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             </div>
           </div>
+
+          {/* Token & Security Badge / Button */}
+          <button
+            type="button"
+            onClick={() => setLoginModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-all shadow-xs"
+            title="Pengaturan Keamanan Token & JWT"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span className="hidden sm:inline">
+              {jwtToken ? 'JWT Aktif' : 'Token Secure'}
+            </span>
+          </button>
 
           {/* Notifications */}
           <button 

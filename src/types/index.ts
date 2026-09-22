@@ -18,6 +18,25 @@ export interface Pengguna {
   status_aktif: boolean;
 }
 
+export interface AuthUser {
+  id: number;
+  username: string;
+  nama_lengkap: string;
+  peran: PeranUser;
+  email?: string;
+  status_aktif?: boolean;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  access_token: string;
+  refresh_token?: string;
+  token_type: string;
+  expires_in: number;
+  user: AuthUser;
+}
+
 export interface Pelanggan {
   id: number;
   nama_perusahaan: string;

@@ -15,19 +15,37 @@ import {
   PekerjaanTambahan,
   TransaksiBeliPart,
   InvoicePembayaran,
-  MemoKeluar
+  MemoKeluar,
+  LoginResponse,
+  AuthUser
 } from '../types';
 
 // In Vite development, requests to /api are proxied to http://94.237.69.119:8081
 // For standalone production builds or direct access, fallback to server IP
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+// Static API token configured on server API Builder
+export const KIM3_STATIC_TOKEN = 'KIM3-SECURE-TOKEN-2026-X998A7B6C';
+
 export const apiClient = axios.create({
   baseURL: `${API_BASE}/api/data`,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
+    'x-api-key': KIM3_STATIC_TOKEN,
   },
+});
+
+// Auto-inject JWT Bearer token or static token for high-security API communication
+apiClient.interceptors.request.use((config) => {
+  const jwt = localStorage.getItem('bengkel_jwt_token');
+  config.headers['x-api-key'] = KIM3_STATIC_TOKEN;
+  if (jwt) {
+    config.headers['Authorization'] = `Bearer ${jwt}`;
+  } else {
+    config.headers['Authorization'] = `Bearer ${KIM3_STATIC_TOKEN}`;
+  }
+  return config;
 });
 
 // Storage upload client (already built into server backend)
@@ -266,5 +284,25 @@ export const api = {
   buatMemoKeluar: async (data: Partial<MemoKeluar>): Promise<any> => {
     const res = await apiClient.post('/bengkel/memo-keluar-buat', data);
     return res.data;
+  },
+
+  // Auth & Token (JWT Authentication)
+  login: async (username: string, password: string = 'password123'): Promise<LoginResponse> => {
+    const res = await apiClient.post<LoginResponse>('/bengkel/auth/login', { username, password });
+    if (res.data?.access_token) {
+      localStorage.setItem('bengkel_jwt_token', res.data.access_token);
+      if (res.data?.refresh_token) {
+        localStorage.setItem('bengkel_refresh_token', res.data.refresh_token);
+      }
+      if (res.data?.user) {
+        localStorage.setItem('bengkel_auth_user', JSON.stringify(res.data.user));
+      }
+    }
+    return res.data;
+  },
+  logout: () => {
+    localStorage.removeItem('bengkel_jwt_token');
+    localStorage.removeItem('bengkel_refresh_token');
+    localStorage.removeItem('bengkel_auth_user');
   },
 };

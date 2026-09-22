@@ -8,11 +8,16 @@ interface AppState {
   selectedSpkId: number | null;
   notificationCount: number;
   mobileMenuOpen: boolean;
+  loginModalOpen: boolean;
+  jwtToken: string | null;
+  isLoggedIn: boolean;
   
   setRole: (role: PeranUser, user?: string) => void;
   setActiveTab: (tab: string) => void;
   setSelectedSpkId: (id: number | null) => void;
   setMobileMenuOpen: (open: boolean) => void;
+  setLoginModalOpen: (open: boolean) => void;
+  setJwtToken: (token: string | null) => void;
   decrementNotification: () => void;
 }
 
@@ -34,6 +39,9 @@ export const useAppStore = create<AppState>((set) => ({
   selectedSpkId: null,
   notificationCount: 3,
   mobileMenuOpen: false,
+  loginModalOpen: false,
+  jwtToken: typeof localStorage !== 'undefined' ? localStorage.getItem('bengkel_jwt_token') : null,
+  isLoggedIn: typeof localStorage !== 'undefined' ? !!localStorage.getItem('bengkel_jwt_token') : false,
 
   setRole: (role: PeranUser, user?: string) => {
     const defaultData = roleDefaults[role] || { user: 'User', defaultTab: 'dashboard' };
@@ -48,5 +56,7 @@ export const useAppStore = create<AppState>((set) => ({
   setActiveTab: (tab: string) => set({ activeTab: tab, mobileMenuOpen: false }),
   setSelectedSpkId: (id: number | null) => set({ selectedSpkId: id }),
   setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),
+  setLoginModalOpen: (open: boolean) => set({ loginModalOpen: open }),
+  setJwtToken: (token: string | null) => set({ jwtToken: token, isLoggedIn: !!token }),
   decrementNotification: () => set((state) => ({ notificationCount: Math.max(0, state.notificationCount - 1) })),
 }));

@@ -3,6 +3,7 @@ import { useAppStore } from './store/useAppStore';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
+import { LoginModal } from './components/common/LoginModal';
 
 // Views
 import { DashboardView } from './views/DashboardView';
@@ -64,6 +65,9 @@ export const App: React.FC = () => {
 
       {/* Floating Bottom Nav for Smartphone Viewport */}
       <MobileBottomNav />
+
+      {/* Security & Token Authentication Modal */}
+      <LoginModal />
     </div>
   );
 };
