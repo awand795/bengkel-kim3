@@ -48,6 +48,72 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Auto-refresh JWT token on 401 Unauthorized
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else if (token) prom.resolve(token);
+  });
+  failedQueue = [];
+};
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
+      const storedRefreshToken = localStorage.getItem('bengkel_refresh_token');
+      if (!storedRefreshToken) {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const refreshRes = await axios.post(
+          `${API_BASE}/api/data/bengkel/auth/refresh-token`,
+          { refresh_token: storedRefreshToken },
+          { headers: { 'x-api-key': KIM3_STATIC_TOKEN } }
+        );
+
+        const newAccessToken = refreshRes.data?.access_token;
+        if (newAccessToken) {
+          localStorage.setItem('bengkel_jwt_token', newAccessToken);
+          if (refreshRes.data?.refresh_token) {
+            localStorage.setItem('bengkel_refresh_token', refreshRes.data.refresh_token);
+          }
+          processQueue(null, newAccessToken);
+          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        localStorage.removeItem('bengkel_jwt_token');
+        localStorage.removeItem('bengkel_refresh_token');
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Storage upload client (already built into server backend)
 export const uploadFileToStorage = async (file: File, bucket: 'foto_kendaraan' | 'foto_barang' | 'dokumen_armada' = 'foto_kendaraan'): Promise<string> => {
   const formData = new FormData();
@@ -300,6 +366,31 @@ export const api = {
     }
     return res.data;
   },
+
+  register: async (userData: {
+    username: string;
+    password: string;
+    nama_lengkap: string;
+    peran: string;
+    no_telepon?: string;
+    email?: string;
+  }): Promise<any> => {
+    const res = await apiClient.post('/bengkel/auth/register', userData);
+    return res.data;
+  },
+
+  refreshToken: async (token?: string): Promise<LoginResponse> => {
+    const rToken = token || localStorage.getItem('bengkel_refresh_token');
+    const res = await apiClient.post<LoginResponse>('/bengkel/auth/refresh-token', { refresh_token: rToken });
+    if (res.data?.access_token) {
+      localStorage.setItem('bengkel_jwt_token', res.data.access_token);
+      if (res.data?.refresh_token) {
+        localStorage.setItem('bengkel_refresh_token', res.data.refresh_token);
+      }
+    }
+    return res.data;
+  },
+
   logout: () => {
     localStorage.removeItem('bengkel_jwt_token');
     localStorage.removeItem('bengkel_refresh_token');

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Camera, UploadCloud, X, CheckCircle, Loader2 } from 'lucide-react';
-import { uploadFileToStorage } from '../../api/client';
+import { Camera, UploadCloud, X, CheckCircle, Loader2, Database } from 'lucide-react';
+import { processPhotoUpload } from '../../utils/storage';
 
 interface PhotoUploaderProps {
   label?: string;
@@ -35,10 +35,11 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     setError(null);
 
     try {
-      const url = await uploadFileToStorage(file, bucket);
+      // Process photo directly into compressed Base64 for Supabase DB (zero server disk storage)
+      const url = await processPhotoUpload(file, bucket);
       onChange(url);
     } catch (err: any) {
-      setError(err?.message || 'Gagal mengunggah foto.');
+      setError(err?.message || 'Gagal memproses foto.');
     } finally {
       setLoading(false);
     }
