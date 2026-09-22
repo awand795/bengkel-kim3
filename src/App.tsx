@@ -3,9 +3,9 @@ import { useAppStore } from './store/useAppStore';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
-import { LoginModal } from './components/common/LoginModal';
 
 // Views
+import { LoginPage } from './views/LoginPage';
 import { DashboardView } from './views/DashboardView';
 import { SecurityView } from './views/SecurityView';
 import { ServiceAdvisorView } from './views/ServiceAdvisorView';
@@ -17,7 +17,12 @@ import { KasirInvoiceView } from './views/KasirInvoiceView';
 import { WebFleetCustomerView } from './views/WebFleetCustomerView';
 
 export const App: React.FC = () => {
-  const { activeTab } = useAppStore();
+  const { activeTab, isLoggedIn } = useAppStore();
+
+  // If user is not logged in, enforce Login Page first
+  if (!isLoggedIn) {
+    return <LoginPage />;
+  }
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -65,9 +70,6 @@ export const App: React.FC = () => {
 
       {/* Floating Bottom Nav for Smartphone Viewport */}
       <MobileBottomNav />
-
-      {/* Security & Token Authentication Modal */}
-      <LoginModal />
     </div>
   );
 };

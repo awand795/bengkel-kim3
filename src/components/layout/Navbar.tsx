@@ -10,7 +10,8 @@ import {
   ShoppingBag, 
   ReceiptText, 
   Users, 
-  ChevronDown 
+  ChevronDown,
+  LogOut
 } from 'lucide-react';
 
 const roleList: { role: PeranUser; label: string; icon: any; color: string }[] = [
@@ -24,7 +25,7 @@ const roleList: { role: PeranUser; label: string; icon: any; color: string }[] =
 ];
 
 export const Navbar: React.FC = () => {
-  const { currentRole, currentUser, setRole, notificationCount, jwtToken, setLoginModalOpen } = useAppStore();
+  const { currentRole, currentUser, setRole, notificationCount, logout } = useAppStore();
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
@@ -69,19 +70,6 @@ export const Navbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Token & Security Badge / Button */}
-          <button
-            type="button"
-            onClick={() => setLoginModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-all shadow-xs"
-            title="Pengaturan Keamanan Token & JWT"
-          >
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span className="hidden sm:inline">
-              {jwtToken ? 'JWT Aktif' : 'Token Secure'}
-            </span>
-          </button>
-
           {/* Notifications */}
           <button 
             type="button" 
@@ -96,7 +84,7 @@ export const Navbar: React.FC = () => {
             )}
           </button>
 
-          {/* Current User Badge */}
+          {/* Current User Badge & Logout */}
           <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
             <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs shadow-inner">
               {currentUser.charAt(0)}
@@ -105,6 +93,14 @@ export const Navbar: React.FC = () => {
               <div className="text-xs font-bold text-slate-800 leading-tight">{currentUser}</div>
               <div className="text-[10px] text-blue-600 font-medium">{currentRole}</div>
             </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ml-1"
+              title="Keluar dari Akun (Logout)"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
 
         </div>

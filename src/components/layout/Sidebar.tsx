@@ -77,8 +77,8 @@ export const Sidebar: React.FC = () => {
           Kawasan Industri KIM 3 Medan
         </p>
         <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-blue-200">
-          <span>Backendless API</span>
-          <span className="font-mono text-emerald-400">Connected</span>
+          <span>Koneksi Sistem</span>
+          <span className="font-mono text-emerald-400">Online</span>
         </div>
       </div>
     </aside>
