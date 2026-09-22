@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
+import { realtimeHub } from '../services/realtimeService';
 import { 
   ClipboardList, 
   Wrench, 
@@ -82,6 +83,14 @@ export const ServiceAdvisorView: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      realtimeHub.publish({
+        type: 'SPK_CREATED',
+        targetRoles: ['Foreman', 'Mekanik', 'Customer Fleet'],
+        title: 'SPK Baru Diterbitkan',
+        message: `SPK untuk unit ${formPenerimaan.no_polisi} (${formPenerimaan.nama_customer || 'Armada'}) siap untuk penugasan & pengerjaan teknisi.`,
+        linkTab: 'foreman',
+        urgency: 'info',
+      });
       alert('SPK Penerimaan Kendaraan berhasil dibuat & dikirim ke Dashboard Foreman!');
       setActiveTab('spk-list');
     },

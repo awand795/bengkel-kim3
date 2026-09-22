@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   ChevronRight,
 } from 'lucide-react';
+import { realtimeHub } from '../../services/realtimeService';
 
 interface NotificationItem {
   id: string;
@@ -28,42 +29,110 @@ export const NotificationDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Real-time backend queries
+  // Fast differential polling queries (3s)
   const { data: antrianList } = useQuery({
     queryKey: ['antrian-list'],
     queryFn: api.getAntrian,
-    refetchInterval: 10000,
+    refetchInterval: 3000,
   });
 
   const { data: spkList } = useQuery({
     queryKey: ['spk-list'],
     queryFn: api.getSpkList,
-    refetchInterval: 10000,
+    refetchInterval: 3000,
   });
 
   const { data: purchasingList } = useQuery({
     queryKey: ['purchasing-list'],
     queryFn: api.getPurchasingList,
-    refetchInterval: 10000,
+    refetchInterval: 3000,
   });
 
   const { data: invoiceList } = useQuery({
     queryKey: ['invoice-list'],
     queryFn: api.getInvoiceList,
-    refetchInterval: 10000,
+    refetchInterval: 3000,
   });
 
   const { data: tambahanList } = useQuery({
     queryKey: ['tambahan-pekerjaan'],
     queryFn: api.getTambahanPekerjaan,
-    refetchInterval: 10000,
+    refetchInterval: 3000,
   });
 
   const { data: bookingList } = useQuery({
     queryKey: ['booking-list'],
     queryFn: api.getBooking,
-    refetchInterval: 10000,
+    refetchInterval: 3000,
   });
+
+  // Track previous items to broadcast real-time delta notifications
+  const prevBookingsRef = useRef<number[]>([]);
+  const prevAntrianRef = useRef<number[]>([]);
+  const isFirstLoad = useRef(true);
+
+  useEffect(() => {
+    if (!bookingList && !antrianList) return;
+
+    if (isFirstLoad.current) {
+      if (bookingList) prevBookingsRef.current = bookingList.map((b) => b.id);
+      if (antrianList) prevAntrianRef.current = antrianList.map((a) => a.id);
+      isFirstLoad.current = false;
+      return;
+    }
+
+    // Check for new bookings
+    if (bookingList && bookingList.length > 0) {
+      const newBookings = bookingList.filter((b) => !prevBookingsRef.current.includes(b.id));
+      newBookings.forEach((b) => {
+        realtimeHub.publish({
+          type: 'BOOKING_CREATED',
+          targetRoles: ['SA', 'Security'],
+          title: 'Booking Baru Diterima',
+          message: `Customer ${b.nama_customer || b.nama_perusahaan} (${b.no_polisi}) memesan service untuk ${b.tanggal_booking} jam ${b.jam_booking}.`,
+          linkTab: 'security-booking',
+          urgency: 'info',
+        });
+      });
+      prevBookingsRef.current = bookingList.map((b) => b.id);
+    }
+
+    // Check for new checkins in antrian
+    if (antrianList && antrianList.length > 0) {
+      const newAntrian = antrianList.filter((a) => !prevAntrianRef.current.includes(a.id));
+      newAntrian.forEach((a) => {
+        if (a.tujuan_kedatangan === 'Kunjungan') {
+          realtimeHub.publish({
+            type: 'KUNJUNGAN_ARRIVED',
+            targetRoles: ['PIC Terkait'],
+            title: 'Tamu Tiba di Pos Security',
+            message: `Tamu ${a.nama_customer || 'Pengunjung'} (${a.no_polisi}) telah tiba menuju ${a.pic_tujuan || 'PIC Bengkel'}.`,
+            linkTab: 'pic-terkait',
+            urgency: 'urgent',
+          });
+        } else if (a.tujuan_kedatangan === 'Beli Part') {
+          realtimeHub.publish({
+            type: 'VEHICLE_CHECKED_IN',
+            targetRoles: ['Admin Invoice', 'Admin Purchasing'],
+            title: 'Customer Beli Part Datang',
+            message: `${a.nama_customer || 'Pelanggan'} (${a.no_polisi}) tiba di pos untuk pembelian part.`,
+            linkTab: 'beli-part',
+            urgency: 'info',
+          });
+        } else {
+          realtimeHub.publish({
+            type: 'VEHICLE_CHECKED_IN',
+            targetRoles: ['SA', 'Customer Fleet'],
+            title: 'Kendaraan Masuk Bengkel',
+            message: `Unit ${a.no_polisi} (${a.nama_customer || 'Customer'}) telah di-check in. Siap diperiksa SA.`,
+            linkTab: 'sa',
+            urgency: 'urgent',
+          });
+        }
+      });
+      prevAntrianRef.current = antrianList.map((a) => a.id);
+    }
+  }, [bookingList, antrianList]);
 
   // Calculate dynamic notifications according to workflow & current role
   const notifications: NotificationItem[] = [];

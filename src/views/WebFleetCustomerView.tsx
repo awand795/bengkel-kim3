@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Kendaraan, BookingService } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { realtimeHub } from '../services/realtimeService';
 import { 
   Truck, 
   Calendar, 
@@ -126,6 +127,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking-list'] });
+      realtimeHub.publish({
+        type: 'BOOKING_CREATED',
+        targetRoles: ['SA', 'Security'],
+        title: 'Booking Baru Diterima',
+        message: `Customer telah membuat booking service nopol ${bookingForm.no_polisi} (${bookingForm.jenis_layanan}) untuk ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking}.`,
+        linkTab: 'security-booking',
+        urgency: 'info',
+      });
       alert('Booking Service Berhasil Dibuat! Jadwal otomatis masuk ke sistem bengkel prioritas.');
       setBookingStep(1);
       setFleetMenu('history');

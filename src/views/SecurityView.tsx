@@ -32,9 +32,10 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 import { AntrianKunjungan, BookingService, MemoKeluar } from '../types';
+import { realtimeHub } from '../services/realtimeService';
 
 interface SecurityViewProps {
-  initialTab?: 'dashboard' | 'booking' | 'onprogress' | 'selesai' | 'memo';
+  initialTab?: 'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo';
 }
 
 // Fallback seed data matching the Excel sheet screenshots
@@ -339,14 +340,21 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   const queryClient = useQueryClient();
   const { activeTab, setActiveTab } = useAppStore();
 
-  // Tab State: dashboard | booking | onprogress | selesai | memo
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'booking' | 'onprogress' | 'selesai' | 'memo'>(initialTab);
+  // Tab State: dashboard | checkin | booking | onprogress | selesai | memo
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo'>(initialTab);
+
+  // Sync tab with props change
+  useEffect(() => {
+    if (initialTab) {
+      setCurrentTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Sync tab with external activeTab if coming from Sidebar
   useEffect(() => {
     if (activeTab.startsWith('security-')) {
       const sub = activeTab.replace('security-', '') as any;
-      if (['dashboard', 'booking', 'onprogress', 'selesai', 'memo'].includes(sub)) {
+      if (['dashboard', 'checkin', 'booking', 'onprogress', 'selesai', 'memo'].includes(sub)) {
         setCurrentTab(sub);
       }
     }
@@ -474,6 +482,37 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      // Publish Realtime Event
+      if (formCheckin.tujuan_kedatangan === 'Kunjungan') {
+        realtimeHub.publish({
+          type: 'KUNJUNGAN_ARRIVED',
+          targetRoles: ['PIC Terkait'],
+          title: 'Tamu Tiba di Pos Security',
+          message: `Tamu ${formCheckin.nama_customer || 'Pengunjung'} (${formCheckin.no_polisi}) telah tiba di Pos Security menuju ${formCheckin.pic_tujuan}.`,
+          linkTab: 'pic-terkait',
+          urgency: 'urgent',
+        });
+      } else if (formCheckin.tujuan_kedatangan === 'Beli Part') {
+        realtimeHub.publish({
+          type: 'VEHICLE_CHECKED_IN',
+          targetRoles: ['Admin Invoice', 'Admin Purchasing'],
+          title: 'Customer Beli Part Datang',
+          message: `${formCheckin.nama_customer || 'Pelanggan'} (${formCheckin.no_polisi}) tiba di pos untuk pembelian part.`,
+          linkTab: 'beli-part',
+          urgency: 'info',
+        });
+      } else {
+        realtimeHub.publish({
+          type: 'VEHICLE_CHECKED_IN',
+          targetRoles: ['SA', 'Customer Fleet'],
+          title: 'Kendaraan Masuk Bengkel',
+          message: `Unit ${formCheckin.no_polisi} (${formCheckin.nama_customer || 'Pelanggan'}) telah di-check in di pos security. Siap untuk inspeksi SA.`,
+          linkTab: 'sa',
+          urgency: 'urgent',
+        });
+      }
+
       alert('Kendaraan berhasil di-Check In oleh Pos Security KIM 3!');
       setShowCheckinModal(false);
       setFormCheckin({
@@ -527,6 +566,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
       queryClient.invalidateQueries({ queryKey: ['memo-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      realtimeHub.publish({
+        type: 'VEHICLE_CHECKED_OUT',
+        targetRoles: ['Customer Fleet', 'SA'],
+        title: 'Kendaraan Telah Keluar Bengkel',
+        message: `Unit ${showCheckoutModal?.no_polisi || 'kendaraan'} telah resmi check-out & keluar melalui pos Security.`,
+        linkTab: 'fleet-status',
+        urgency: 'success',
+      });
+
       alert('Kendaraan berhasil Check Out dan Memo Keluar resmi diterbitkan!');
       setShowCheckoutModal(null);
       changeTab('memo');
@@ -534,7 +583,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     onError: (err: any) => alert('Gagal check out: ' + err?.message),
   });
 
-  const changeTab = (tab: 'dashboard' | 'booking' | 'onprogress' | 'selesai' | 'memo') => {
+  const changeTab = (tab: 'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo') => {
     setCurrentTab(tab);
     setActiveTab(`security-${tab}`);
   };
@@ -578,7 +627,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 catatan_security: '',
                 id_booking: undefined,
               });
-              setShowCheckinModal(true);
+              changeTab('checkin');
             }}
             className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
           >
@@ -588,7 +637,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
         </div>
       </div>
 
-      {/* Sub-navigation Tabs (Identical with Excel flows: Dashboard, Booking, On Progress, Selesai / Keluar, Memo Keluar) */}
+      {/* Sub-navigation Tabs (Identical with Excel flows: Dashboard, Check In, Booking, On Progress, Selesai / Keluar, Memo Keluar) */}
       <div className="flex border-b border-slate-200 bg-white px-2 pt-2 rounded-t-2xl overflow-x-auto gap-1">
         <button
           type="button"
@@ -601,6 +650,22 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
         >
           <LayoutDashboard className="w-4 h-4" />
           Dashboard Pos
+        </button>
+
+        <button
+          type="button"
+          onClick={() => changeTab('checkin')}
+          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all shrink-0 ${
+            currentTab === 'checkin'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
+          }`}
+        >
+          <PlusCircle className="w-4 h-4 text-emerald-600" />
+          Check In Masuk
+          <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+            Input
+          </span>
         </button>
 
         <button
@@ -811,6 +876,316 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       )}
 
       {/* ========================================================= */}
+      {/* CHECK-IN KENDARAAN MASUK (Dedicated Split-View Form & Histori) */}
+      {/* ========================================================= */}
+      {currentTab === 'checkin' && (
+        <div className="space-y-6">
+          {/* Header Bar */}
+          <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 sm:p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-white/20 text-white text-[11px] font-black uppercase tracking-wider backdrop-blur-xs">
+                  POS SECURITY GERBANG
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-xs text-blue-100 font-medium">Live Recording &amp; Realtime Sync</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight">
+                Check In Kendaraan Masuk
+              </h2>
+              <p className="text-xs text-blue-100/90 mt-1 max-w-xl">
+                Catat nomor polisi, jenis armada, tujuan kedatangan, dan dokumentasi fisik saat armada tiba di gerbang KIM 3.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="bg-white/10 backdrop-blur-xs rounded-2xl px-4 py-3 text-center border border-white/10">
+                <div className="text-[10px] text-blue-200 uppercase font-bold">Total Masuk</div>
+                <div className="text-2xl font-black">{antrianData.length}</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-xs rounded-2xl px-4 py-3 text-center border border-white/10">
+                <div className="text-[10px] text-blue-200 uppercase font-bold">On Progress</div>
+                <div className="text-2xl font-black text-orange-300">{onProgressList.length}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Split Layout: Left = Form Check-In, Right = Riwayat Check-In Hari Ini */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* LEFT COLUMN: Input Form (7 cols) */}
+            <div className="lg:col-span-7 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                    <PlusCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Formulir Validasi Gerbang</h3>
+                    <p className="text-xs text-slate-500">Lengkapi data armada sebelum diarahkan ke area bengkel</p>
+                  </div>
+                </div>
+                {formCheckin.id_booking && (
+                  <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold">
+                    Terkait Booking #{formCheckin.id_booking}
+                  </span>
+                )}
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  checkinMutation.mutate(formCheckin);
+                }}
+                className="space-y-4 text-xs"
+              >
+                {/* Plat Nomor & Armada */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">
+                      Nomor Polisi (Plat Nomor) <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: BK 1234 AB"
+                        value={formCheckin.no_polisi}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
+                        className="w-full pl-3.5 pr-10 py-3 rounded-2xl border-2 border-slate-200 text-base font-black uppercase tracking-wider focus:border-blue-600 focus:ring-0 focus:outline-none bg-slate-50/50"
+                      />
+                      <Truck className="w-5 h-5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">Jenis Armada</label>
+                    <select
+                      value={formCheckin.jenis_armada}
+                      onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
+                      className="w-full px-3.5 py-3 rounded-2xl border-2 border-slate-200 font-bold focus:border-blue-600 focus:outline-none bg-white text-xs"
+                    >
+                      <option value="Truk">Truk (Canter / Dutro / Tronton / Fuso)</option>
+                      <option value="Mobil">Mobil Pribadi / Operasional</option>
+                      <option value="Pickup">Pickup / Box Kecil</option>
+                      <option value="Lainnya">Lainnya</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Tujuan Kedatangan */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1.5">
+                    Tujuan Kedatangan <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {[
+                      { id: 'Service', label: '1. Service', desc: 'Perbaikan / Service Truk' },
+                      { id: 'Beli Part', label: '2. Beli Part', desc: 'Pembelian Part (Kasir)' },
+                      { id: 'Kunjungan', label: '3. Kunjungan', desc: 'Tamu Dinas / Kantor' },
+                      { id: 'Lainnya', label: '4. Lainnya', desc: 'Keperluan Lain' },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setFormCheckin({
+                            ...formCheckin,
+                            tujuan_kedatangan: t.id as any,
+                            pic_tujuan: t.id === 'Service' ? 'Budi Santoso (SA)' : t.id === 'Beli Part' ? 'Hisar (Warehouse)' : 'PIC Terkait',
+                          });
+                        }}
+                        className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                          formCheckin.tujuan_kedatangan === t.id
+                            ? 'border-blue-600 bg-blue-50/70 text-blue-900 font-bold shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                        }`}
+                      >
+                        <div className="text-xs font-black">{t.label}</div>
+                        <div className="text-[10px] text-slate-500 mt-1">{t.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Customer & HP */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">Nama Customer / Perusahaan</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: PT. Andi Jaya / CV. Maju"
+                      value={formCheckin.nama_customer}
+                      onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">No. HP Driver / PIC</label>
+                    <input
+                      type="text"
+                      placeholder="0812-xxxx-xxxx"
+                      value={formCheckin.no_hp_customer}
+                      onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* PIC Tujuan & Keperluan */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">PIC / Petugas Tujuan</label>
+                    <input
+                      type="text"
+                      value={formCheckin.pic_tujuan}
+                      onChange={(e) => setFormCheckin({ ...formCheckin, pic_tujuan: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1.5">Keperluan Singkat / Keluhan</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Ganti oli rutin, servis rem, meeting audit"
+                      value={formCheckin.keperluan}
+                      onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Photo Upload */}
+                <PhotoUploader
+                  label="Foto Kendaraan Saat Masuk Gerbang (Opsional)"
+                  value={formCheckin.foto_kendaraan_masuk}
+                  onChange={(url) => setFormCheckin({ ...formCheckin, foto_kendaraan_masuk: url })}
+                  bucket="foto_kendaraan"
+                />
+
+                {/* Catatan Security */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1.5">Catatan Khusus Security</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Catatan kondisi awal fisik, kelengkapan surat atau muatan saat masuk..."
+                    value={formCheckin.catatan_security}
+                    onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormCheckin({
+                        no_polisi: '',
+                        nama_customer: '',
+                        no_hp_customer: '',
+                        jenis_armada: 'Truk',
+                        tujuan_kedatangan: 'Service',
+                        pic_tujuan: 'Budi Santoso (SA)',
+                        keperluan: '',
+                        foto_kendaraan_masuk: '',
+                        catatan_security: '',
+                        id_booking: undefined,
+                      });
+                    }}
+                    className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={checkinMutation.isPending}
+                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    {checkinMutation.isPending ? 'Menyimpan ke Sistem...' : 'SUBMIT CHECK-IN KENDARAAN'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* RIGHT COLUMN: Riwayat Check-In Hari Ini (5 cols) */}
+            <div className="lg:col-span-5 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">Riwayat Check-In Hari Ini</h3>
+                    <p className="text-xs text-slate-500">Daftar unit yang baru masuk gerbang</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black">
+                    {antrianData.length} Unit
+                  </span>
+                </div>
+
+                {/* Quick List */}
+                <div className="divide-y divide-slate-100 max-h-[580px] overflow-y-auto space-y-2 pt-2">
+                  {antrianData.length === 0 ? (
+                    <div className="py-12 text-center text-slate-400">
+                      <Truck className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                      <p className="font-semibold text-xs">Belum ada kendaraan yang di-check in hari ini</p>
+                    </div>
+                  ) : (
+                    antrianData.map((item) => (
+                      <div
+                        key={item.id}
+                        className="py-3 px-3 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-200 flex items-center justify-between gap-3"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono font-black text-xs tracking-wider">
+                              {item.no_polisi}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold">
+                              {item.tujuan_kedatangan}
+                            </span>
+                          </div>
+                          <div className="text-xs font-bold text-slate-800">
+                            {item.nama_customer || 'Customer'}
+                          </div>
+                          <div className="text-[10px] text-slate-400 flex items-center gap-2">
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '08:00 WIB'}
+                            </span>
+                            <span>•</span>
+                            <span className="font-medium text-slate-600">{item.pic_tujuan || 'SA Bengkel'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <StatusBadge status={item.status_kunjungan} />
+                          <button
+                            type="button"
+                            onClick={() => setShowDetailModal(item)}
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-800"
+                          >
+                            Detail →
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Informational Alert Box */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[11px] flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <p>
+                  Setiap kendaraan yang selesai di-check in akan otomatis memicu <strong>notifikasi realtime</strong> ke Service Advisor, Warehouse, atau PIC terkait serta mengupdate antrian bengkel.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
       {/* 1. LIST NOPOL YANG TELAH BOOKING (Excel Screen 1)         */}
       {/* ========================================================= */}
       {currentTab === 'booking' && (
@@ -970,7 +1345,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         catatan_security: `Booking ID: ${selectedBooking.no_booking}`,
                         id_booking: selectedBooking.id,
                       });
-                      setShowCheckinModal(true);
+                      changeTab('checkin');
                     }}
                     className="w-full sm:w-auto px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
                   >

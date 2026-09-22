@@ -6,6 +6,7 @@ import {
   User
 } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
+import { FloatingNotificationToast } from '../common/FloatingNotificationToast';
 
 export const Navbar: React.FC = () => {
   const { currentRole, currentUser, notificationCount, logout } = useAppStore();
@@ -56,6 +57,9 @@ export const Navbar: React.FC = () => {
 
           {/* Notifications Dropdown */}
           <NotificationDropdown />
+
+          {/* Real-time Floating Notification Toasts */}
+          <FloatingNotificationToast />
 
           {/* Current User Badge & Logout */}
           <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">

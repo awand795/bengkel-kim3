@@ -14,6 +14,8 @@ import {
   Car,
   Calendar,
   Building2,
+  PlusCircle,
+  LogOut,
   UserCheck,
   MoreHorizontal,
   X
@@ -33,8 +35,11 @@ export const MobileBottomNav: React.FC = () => {
     switch (currentRole) {
       case 'Security':
         return [
-          { id: 'security', label: 'Pos Gerbang', icon: ShieldCheck },
-          { id: 'kendaraan', label: 'Armada', icon: Car },
+          { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { id: 'security-checkin', label: 'Check In', icon: PlusCircle },
+          { id: 'security-booking', label: 'Booking', icon: Calendar },
+          { id: 'security-onprogress', label: 'On Progress', icon: Clock },
+          { id: 'security-memo', label: 'Memo Keluar', icon: FileText },
         ];
       case 'Mekanik':
         return [
@@ -83,6 +88,14 @@ export const MobileBottomNav: React.FC = () => {
 
   const getMoreTabs = (): NavTab[] => {
     switch (currentRole) {
+      case 'Security':
+        return [
+          { id: 'security-selesai', label: 'Selesai / Keluar', icon: LogOut },
+        ];
+      case 'SA':
+        return [
+          { id: 'dokumen', label: 'Dokumen STNK & KIR', icon: FileText },
+        ];
       case 'Customer Fleet':
         return [
           { id: 'fleet-kendaraan', label: 'Daftar Armada Truk', icon: Car },
