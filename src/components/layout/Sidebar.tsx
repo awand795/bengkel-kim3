@@ -101,21 +101,6 @@ export const Sidebar: React.FC = () => {
           })}
         </nav>
       </div>
-
-      {/* Workshop Location Badge */}
-      <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 text-white shadow-sm">
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
-          <span className="text-[11px] font-bold text-slate-200">KIM 3 Medan Online</span>
-        </div>
-        <p className="text-[10px] text-slate-300 leading-relaxed">
-          Kawasan Industri KIM 3 Medan
-        </p>
-        <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-blue-200">
-          <span>Koneksi Sistem</span>
-          <span className="font-mono text-emerald-400">Online</span>
-        </div>
-      </div>
     </aside>
   );
 };
