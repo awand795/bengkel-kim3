@@ -43,35 +43,37 @@ export const MobileBottomNav: React.FC = () => {
         ];
       case 'Mekanik':
         return [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'mekanik', label: 'Pekerjaan Saya', icon: Clock },
         ];
       case 'PIC Terkait':
         return [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'pic-terkait', label: 'Kunjungan', icon: UserCheck },
         ];
       case 'Foreman':
         return [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'foreman', label: 'QC & Penugasan', icon: Wrench },
           { id: 'mekanik', label: 'Mekanik Live', icon: Clock },
-          { id: 'dashboard', label: 'Ringkasan', icon: LayoutDashboard },
         ];
       case 'Admin Purchasing':
         return [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'purchasing', label: 'PR & PO', icon: ShoppingBag },
-          { id: 'dashboard', label: 'Ringkasan', icon: LayoutDashboard },
         ];
       case 'Admin Invoice':
         return [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'kasir', label: 'Kasir & Inv', icon: Receipt },
           { id: 'beli-part', label: 'Beli Part', icon: Package },
-          { id: 'dashboard', label: 'Ringkasan', icon: LayoutDashboard },
         ];
       case 'SA':
         return [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'sa', label: 'Estimasi & SPK', icon: ClipboardList },
           { id: 'purchasing', label: 'Kotak Merah', icon: ShoppingBag },
           { id: 'beli-part', label: 'Beli Part', icon: Package },
-          { id: 'dashboard', label: 'Ringkasan', icon: LayoutDashboard },
         ];
       case 'Customer Fleet':
       default:

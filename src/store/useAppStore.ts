@@ -22,14 +22,14 @@ interface AppState {
 }
 
 const roleDefaults: Record<PeranUser, { user: string; defaultTab: string }> = {
-  'SA': { user: 'Budi Santoso', defaultTab: 'sa' },
-  'Foreman': { user: 'Joko Susilo', defaultTab: 'foreman' },
-  'Mekanik': { user: 'Andi Wijaya', defaultTab: 'mekanik' },
-  'Admin Purchasing': { user: 'Rina Marlina', defaultTab: 'purchasing' },
-  'Admin Invoice': { user: 'Siti Rahma', defaultTab: 'kasir' },
-  'Security': { user: 'Hisar Pardede', defaultTab: 'security-onprogress' },
+  'SA': { user: 'Budi Santoso', defaultTab: 'dashboard' },
+  'Foreman': { user: 'Joko Susilo', defaultTab: 'dashboard' },
+  'Mekanik': { user: 'Andi Wijaya', defaultTab: 'dashboard' },
+  'Admin Purchasing': { user: 'Rina Marlina', defaultTab: 'dashboard' },
+  'Admin Invoice': { user: 'Siti Rahma', defaultTab: 'dashboard' },
+  'Security': { user: 'Hisar Pardede', defaultTab: 'security-dashboard' },
   'Customer Fleet': { user: 'PT. Andi Jaya', defaultTab: 'fleet-dashboard' },
-  'PIC Terkait': { user: 'PIC Bengkel KIM 3', defaultTab: 'pic-terkait' },
+  'PIC Terkait': { user: 'PIC Bengkel KIM 3', defaultTab: 'dashboard' },
   'Warehouse': { user: 'Hisar', defaultTab: 'beli-part' },
 };
 

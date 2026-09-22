@@ -31,21 +31,26 @@ export const Sidebar: React.FC = () => {
   const { activeTab, setActiveTab, currentRole } = useAppStore();
 
   const allNavigationItems: NavItem[] = [
-    // Dashboard (SA, Foreman, Purchasing, Kasir)
-    { id: 'dashboard', label: 'Ringkasan Bengkel', icon: LayoutDashboard, roles: ['SA', 'Foreman', 'Admin Purchasing', 'Admin Invoice'] },
-    
+    // Dashboards per Peran
+    { id: 'dashboard', label: 'Dashboard SA', icon: LayoutDashboard, roles: ['SA'] },
+    { id: 'dashboard', label: 'Dashboard Foreman', icon: LayoutDashboard, roles: ['Foreman'] },
+    { id: 'dashboard', label: 'Dashboard Mekanik', icon: LayoutDashboard, roles: ['Mekanik'] },
+    { id: 'dashboard', label: 'Dashboard Purchasing', icon: LayoutDashboard, roles: ['Admin Purchasing'] },
+    { id: 'dashboard', label: 'Dashboard Kasir', icon: LayoutDashboard, roles: ['Admin Invoice'] },
+    { id: 'dashboard', label: 'Dashboard Kunjungan', icon: LayoutDashboard, roles: ['PIC Terkait'] },
+
     // Security (6 Menu Resmi: Dashboard, Check In Masuk, Booking, On Progress, Selesai / Keluar, Memo Keluar)
-    { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['Security'] },
+    { id: 'security-dashboard', label: 'Dashboard Pos Gerbang', icon: LayoutDashboard, roles: ['Security'] },
     { id: 'security-checkin', label: 'Check In Masuk', icon: PlusCircle, roles: ['Security'] },
-    { id: 'security-booking', label: 'Booking', icon: Calendar, roles: ['Security'] },
-    { id: 'security-onprogress', label: 'On Progress', icon: Clock, roles: ['Security'] },
-    { id: 'security-selesai', label: 'Selesai / Keluar', icon: LogOut, roles: ['Security'] },
-    { id: 'security-memo', label: 'Memo Keluar', icon: FileText, roles: ['Security'] },
+    { id: 'security-booking', label: 'List Nopol Booking', icon: Calendar, roles: ['Security'] },
+    { id: 'security-onprogress', label: 'Nopol di Bengkel (On Progress)', icon: Clock, roles: ['Security'] },
+    { id: 'security-selesai', label: 'Telah Meninggalkan Bengkel', icon: LogOut, roles: ['Security'] },
+    { id: 'security-memo', label: 'Memo Keluar Resmi', icon: FileText, roles: ['Security'] },
 
     // SA
     { id: 'sa', label: 'Service Advisor (SPK)', icon: ClipboardList, roles: ['SA'] },
-    { id: 'purchasing', label: 'Status Part & PO (Kotak Merah)', icon: ShoppingBag, roles: ['SA', 'Admin Purchasing'] },
-    { id: 'beli-part', label: 'Beli Part (Tanpa Servis)', icon: Package, roles: ['SA', 'Admin Invoice', 'Warehouse'] },
+    { id: 'purchasing', label: 'Status Part & PO (Kotak Merah)', icon: ShoppingBag, roles: ['SA'] },
+    { id: 'beli-part', label: 'Penjualan Part Langsung', icon: Package, roles: ['SA'] },
     { id: 'dokumen', label: 'Dokumen STNK & KIR', icon: FileText, roles: ['SA'] },
     
     // Foreman
@@ -55,11 +60,15 @@ export const Sidebar: React.FC = () => {
     // Mekanik
     { id: 'mekanik', label: 'Pekerjaan Saya (Stopwatch)', icon: Clock, roles: ['Mekanik'] },
 
-    // Kasir
-    { id: 'kasir', label: 'Kasir & Memo Keluar', icon: Receipt, roles: ['Admin Invoice'] },
+    // Purchasing
+    { id: 'purchasing', label: 'PR, PO & Kotak Merah', icon: ShoppingBag, roles: ['Admin Purchasing'] },
+
+    // Kasir / Admin Invoice
+    { id: 'kasir', label: 'Kasir & Faktur Tagihan', icon: Receipt, roles: ['Admin Invoice'] },
+    { id: 'beli-part', label: 'Penjualan Part Langsung', icon: Package, roles: ['Admin Invoice', 'Warehouse'] },
 
     // Customer Fleet (7 Sub-menu Terpisah)
-    { id: 'fleet-dashboard', label: 'Ringkasan Armada', icon: LayoutDashboard, roles: ['Customer Fleet'] },
+    { id: 'fleet-dashboard', label: 'Dashboard Armada', icon: LayoutDashboard, roles: ['Customer Fleet'] },
     { id: 'fleet-booking', label: 'Booking Service Baru', icon: Calendar, roles: ['Customer Fleet'] },
     { id: 'fleet-status', label: 'Status & Pelacakan Unit', icon: Truck, roles: ['Customer Fleet'] },
     { id: 'fleet-history', label: 'Histori Servis & Invoice', icon: Receipt, roles: ['Customer Fleet'] },
@@ -68,7 +77,7 @@ export const Sidebar: React.FC = () => {
     { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2, roles: ['Customer Fleet'] },
 
     // PIC Terkait (Konfirmasi Kunjungan Tamu)
-    { id: 'pic-terkait', label: 'Konfirmasi Kunjungan (PIC)', icon: UserCheck, roles: ['PIC Terkait'] },
+    { id: 'pic-terkait', label: 'Konfirmasi Tamu (PIC)', icon: UserCheck, roles: ['PIC Terkait'] },
   ];
 
   // Strictly filter menus for the active role (no crossover)
