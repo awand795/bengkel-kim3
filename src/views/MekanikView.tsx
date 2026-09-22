@@ -96,6 +96,22 @@ export const MekanikView: React.FC = () => {
     },
   });
 
+  // Pause / Pending Part Mutation (Tahap 9 Excel)
+  const pauseJobMutation = useMutation({
+    mutationFn: async (spk: SpkService) => {
+      return api.updateSpkStatus({
+        id: spk.id,
+        status_spk: 'Waiting Part',
+      });
+    },
+    onSuccess: () => {
+      setTimerRunning(false);
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      alert('Pekerjaan dijeda (Pause)! Status unit dialihkan ke "Waiting Part (Pending)" untuk menunggu suku cadang.');
+    },
+    onError: (err: any) => alert('Gagal menjeda pekerjaan: ' + err?.message),
+  });
+
   // Submit Tambahan Pekerjaan
   const submitTambahanMutation = useMutation({
     mutationFn: async () => {
@@ -178,24 +194,59 @@ export const MekanikView: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Buttons: START JOB vs FINISH JOB (image1.png Tahap 7 & 10) */}
+          {/* Banner Menunggu Part / Pending (Tahap 9 Excel) */}
+          {myJob.status_spk === 'Waiting Part' && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-start gap-3">
+              <Pause className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold text-sm">Pekerjaan Dijeda: Menunggu Sparepart (Pending)</div>
+                <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                  Unit ini sedang menunggu ketersediaan suku cadang dari gudang/purchasing. Klik tombol <strong>RESUME JOB</strong> bila barang telah Anda terima untuk melanjutkan pengerjaan.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons: START / RESUME / PAUSE / FINISH JOB (Tahap 7, 9 & 10) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            {!timerRunning ? (
+            {myJob.status_spk === 'Waiting Part' ? (
               <button
                 type="button"
+                disabled={startJobMutation.isPending}
+                onClick={() => startJobMutation.mutate(myJob)}
+                className="py-3.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-sm shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-2"
+              >
+                <Play className="w-5 h-5 fill-current" /> RESUME JOB (LANJUTKAN PEKERJAAN)
+              </button>
+            ) : !timerRunning ? (
+              <button
+                type="button"
+                disabled={startJobMutation.isPending}
                 onClick={() => startJobMutation.mutate(myJob)}
                 className="py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
               >
                 <Play className="w-5 h-5 fill-current" /> START JOB (MULAI PEKERJAAN)
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => finishJobMutation.mutate(myJob)}
-                className="py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="w-5 h-5" /> FINISH JOB (SELESAI KE QC)
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={finishJobMutation.isPending}
+                  onClick={() => finishJobMutation.mutate(myJob)}
+                  className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <CheckCircle className="w-4 h-4" /> FINISH (QC)
+                </button>
+                <button
+                  type="button"
+                  disabled={pauseJobMutation.isPending}
+                  onClick={() => pauseJobMutation.mutate(myJob)}
+                  className="py-3.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-1"
+                  title="Pause / Pending karena menunggu sparepart"
+                >
+                  <Pause className="w-4 h-4" /> PAUSE PART
+                </button>
+              </div>
             )}
 
             <button

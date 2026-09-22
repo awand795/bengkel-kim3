@@ -83,8 +83,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 10000,
   });
 
+  const { data: purchasingList } = useQuery({
+    queryKey: ['purchasing-list'],
+    queryFn: api.getPurchasingList,
+    refetchInterval: 8000,
+  });
+
   // Active SPK being monitored
   const activeTrackSpk = spkList?.[0];
+
+  // Active PR untuk SPK yang sedang dimonitor
+  const activePr = purchasingList?.find(
+    (p) => p.id_spk === activeTrackSpk?.id || p.no_polisi === activeTrackSpk?.no_polisi
+  );
 
   // Pekerjaan tambahan yang masih menunggu persetujuan customer untuk SPK aktif
   const approvalTambahanList = (tambahanList || []).filter(
@@ -524,6 +535,51 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
 
+            {/* Banner Menunggu Part / Pending (Kotak 6 & 9 Excel, Memo Poin 4 & 5) */}
+            {activeTrackSpk.status_spk === 'Waiting Part' && (
+              <div className="mt-4 p-4 sm:p-5 rounded-2xl border-2 border-purple-300 bg-purple-50/90 text-purple-900 shadow-xs space-y-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-purple-200 text-purple-800 flex items-center justify-center font-bold text-lg shrink-0">
+                    📦
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-black text-purple-950">
+                        Status Kendaraan: Menunggu Ketersediaan Sparepart (Pending)
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 text-[10px] font-black animate-pulse">
+                        Waiting Part
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-purple-700 font-semibold">
+                      Pengadaan suku cadang resmi sedang diproses oleh Tim Purchasing Bengkel KIM 3 (Alur Kotak Merah).
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-purple-900/90 leading-relaxed font-medium">
+                  Pekerjaan perbaikan armada Anda sementara dijeda karena memerlukan suku cadang yang sedang dalam proses pengadaan vendor distributor. Estimasi waktu selesai akan diperbarui secara otomatis saat barang telah ready di bengkel.
+                </p>
+
+                {activePr && (
+                  <div className="mt-2 pt-2 border-t border-purple-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
+                      <span className="text-[10px] text-slate-500 block font-semibold">Suku Cadang Dipesan:</span>
+                      <span className="font-bold text-slate-800">{activePr.catatan_pr || 'Sparepart Indent Khusus'}</span>
+                    </div>
+                    <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
+                      <span className="text-[10px] text-purple-600 block font-semibold">Estimasi Kedatangan Barang (ETA):</span>
+                      <span className="font-mono font-bold text-purple-900">
+                        {activePr.estimasi_tanggal_ready_eta
+                          ? `${activePr.estimasi_tanggal_ready_eta} ${activePr.estimasi_jam_ready_eta ? `(${activePr.estimasi_jam_ready_eta} WIB)` : ''}`
+                          : 'Dalam Konfirmasi Penawaran Vendor'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Approval Pekerjaan Tambahan (di atas stepper) */}
             {approvalTambahanList.length > 0 && (
               <div className="mt-4 space-y-3">
@@ -612,16 +668,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div className="flex items-center justify-between min-w-[650px]">
                 {[
                   { step: 1, title: 'Check In', desc: 'Diterima Security', done: true },
-                  { step: 2, title: 'Proses Pekerjaan', desc: 'Mekanik Aktif', done: true, current: true },
-                  { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: false },
-                  { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: false },
-                  { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: false },
+                  { 
+                    step: 2, 
+                    title: activeTrackSpk.status_spk === 'Waiting Part' ? 'Waiting Part' : 'Proses Pekerjaan', 
+                    desc: activeTrackSpk.status_spk === 'Waiting Part' ? 'Menunggu Part (Pending)' : 'Mekanik Aktif', 
+                    done: activeTrackSpk.status_spk !== 'Waiting Part' && activeTrackSpk.status_spk !== 'Check In' && activeTrackSpk.status_spk !== 'Menunggu Pengecekan Mekanik', 
+                    current: activeTrackSpk.status_spk === 'Waiting Part' || activeTrackSpk.status_spk === 'Dalam Pengerjaan',
+                    isWaitingPart: activeTrackSpk.status_spk === 'Waiting Part'
+                  },
+                  { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai' },
+                  { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai' },
+                  { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: activeTrackSpk.status_spk === 'Selesai' },
                   { step: 6, title: 'Check Out', desc: 'Armada Keluar', done: false },
                 ].map((s, idx) => (
                   <div key={s.step} className="flex-1 flex items-center">
                     <div className="flex flex-col items-center flex-1 text-center">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
-                        s.current 
+                        s.isWaitingPart
+                          ? 'bg-purple-600 text-white ring-4 ring-purple-100 shadow-md scale-110'
+                          : s.current 
                           ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-md scale-110' 
                           : s.done 
                           ? 'bg-emerald-600 text-white' 
@@ -629,7 +694,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       }`}>
                         {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
                       </div>
-                      <div className={`text-xs font-bold ${s.current ? 'text-blue-600' : 'text-slate-800'}`}>
+                      <div className={`text-xs font-bold ${s.isWaitingPart ? 'text-purple-700' : s.current ? 'text-blue-600' : 'text-slate-800'}`}>
                         {s.title}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-0.5">{s.desc}</div>

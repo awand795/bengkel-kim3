@@ -14,8 +14,10 @@ import {
   AlertCircle, 
   Plus,
   Send,
-  Truck
+  Truck,
+  PackageCheck
 } from 'lucide-react';
+import { realtimeHub } from '../services/realtimeService';
 
 export const PurchasingView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -69,6 +71,33 @@ export const PurchasingView: React.FC = () => {
       setSelectedPr(null);
     },
     onError: (err: any) => alert('Gagal membuat PO: ' + err?.message),
+  });
+
+  // Konfirmasi Barang Ready / Tiba di Bengkel
+  const barangReadyMutation = useMutation({
+    mutationFn: async (pr: PurchaseRequestPart) => {
+      // Update SPK status to Dalam Pengerjaan
+      await api.updateSpkStatus({
+        id: pr.id_spk,
+        status_spk: 'Dalam Pengerjaan',
+      });
+      return true;
+    },
+    onSuccess: (_, pr) => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      realtimeHub.publish({
+        type: 'SPK_STATUS_CHANGED',
+        targetRoles: ['Mekanik', 'Foreman', 'SA', 'Customer Fleet'],
+        title: 'Barang Ready di Bengkel KIM3',
+        message: `Sparepart untuk armada ${pr.no_polisi} telah ready di bengkel. Status SPK beralih ke 'Dalam Pengerjaan'.`,
+        linkTab: 'mekanik',
+        urgency: 'success',
+      });
+      alert(`Barang untuk ${pr.no_polisi} telah dikonfirmasi READY! Status SPK dikembalikan ke "Dalam Pengerjaan" untuk pengerjaan teknisi.`);
+    },
+    onError: (err: any) => alert('Gagal konfirmasi barang ready: ' + err?.message),
   });
 
   return (
@@ -144,12 +173,34 @@ export const PurchasingView: React.FC = () => {
 
                     {/* Jika sudah ada PO & ETA */}
                     {item.no_po && (
-                      <div className="mt-2 pt-2 border-t border-purple-200/60 flex flex-wrap items-center justify-between text-xs text-purple-900 font-semibold gap-2">
-                        <span>PO: {item.no_po} ({item.vendor_terpilih})</span>
-                        <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md font-mono">
-                          ETA: {item.estimasi_tanggal_ready_eta} {item.estimasi_jam_ready_eta}
-                        </span>
-                        <span>Konfirmasi SA: <strong>{item.status_konfirmasi_sa}</strong></span>
+                      <div className="mt-2 pt-2 border-t border-purple-200/60 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between text-xs text-purple-900 font-semibold gap-2">
+                          <span>PO: {item.no_po} ({item.vendor_terpilih})</span>
+                          <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md font-mono">
+                            ETA: {item.estimasi_tanggal_ready_eta} {item.estimasi_jam_ready_eta}
+                          </span>
+                          <span>Konfirmasi SA: <strong className={item.status_konfirmasi_sa === 'Disetujui SA' ? 'text-emerald-700' : 'text-amber-700'}>{item.status_konfirmasi_sa || 'Menunggu'}</strong></span>
+                        </div>
+
+                        {/* Tombol Konfirmasi Barang Ready jika sudah disetujui SA */}
+                        {item.status_konfirmasi_sa === 'Disetujui SA' && (
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" /> Disetujui SA
+                            </span>
+                            <button
+                              type="button"
+                              disabled={barangReadyMutation.isPending}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                barangReadyMutation.mutate(item);
+                              }}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all"
+                            >
+                              <PackageCheck className="w-4 h-4" /> KONFIRMASI BARANG READY
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
