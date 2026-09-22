@@ -11,7 +11,10 @@ import {
   Truck, 
   FileText, 
   Clock, 
-  Car 
+  Car,
+  Calendar,
+  Building2,
+  UserCheck
 } from 'lucide-react';
 import { PeranUser } from '../../types';
 
@@ -31,12 +34,13 @@ export const Sidebar: React.FC = () => {
     
     // Security
     { id: 'security', label: 'Pos Security (Gerbang)', icon: ShieldCheck, roles: ['Security'] },
-    { id: 'kendaraan', label: 'Armada Terdaftar', icon: Car, roles: ['Security', 'Customer Fleet'] },
+    { id: 'kendaraan', label: 'Armada Terdaftar', icon: Car, roles: ['Security'] },
 
     // SA
     { id: 'sa', label: 'Service Advisor (SPK)', icon: ClipboardList, roles: ['SA'] },
     { id: 'purchasing', label: 'Status Part & PO (Kotak Merah)', icon: ShoppingBag, roles: ['SA', 'Admin Purchasing'] },
     { id: 'beli-part', label: 'Beli Part (Tanpa Servis)', icon: Package, roles: ['SA', 'Admin Invoice', 'Warehouse'] },
+    { id: 'dokumen', label: 'Dokumen STNK & KIR', icon: FileText, roles: ['SA'] },
     
     // Foreman
     { id: 'foreman', label: 'Foreman (QC & Penugasan)', icon: Wrench, roles: ['Foreman'] },
@@ -48,9 +52,17 @@ export const Sidebar: React.FC = () => {
     // Kasir
     { id: 'kasir', label: 'Kasir & Memo Keluar', icon: Receipt, roles: ['Admin Invoice'] },
 
-    // Customer Fleet
-    { id: 'fleet', label: 'Web Fleet (Booking & Status)', icon: Truck, roles: ['Customer Fleet'] },
-    { id: 'dokumen', label: 'Dokumen STNK & KIR', icon: FileText, roles: ['Customer Fleet', 'SA'] },
+    // Customer Fleet (7 Sub-menu Terpisah)
+    { id: 'fleet-dashboard', label: 'Ringkasan Armada', icon: LayoutDashboard, roles: ['Customer Fleet'] },
+    { id: 'fleet-booking', label: 'Booking Service Baru', icon: Calendar, roles: ['Customer Fleet'] },
+    { id: 'fleet-status', label: 'Status & Pelacakan Unit', icon: Truck, roles: ['Customer Fleet'] },
+    { id: 'fleet-history', label: 'Histori Servis & Invoice', icon: Receipt, roles: ['Customer Fleet'] },
+    { id: 'fleet-kendaraan', label: 'Daftar Armada Truk', icon: Car, roles: ['Customer Fleet'] },
+    { id: 'fleet-dokumen', label: 'Dokumen STNK & KIR', icon: FileText, roles: ['Customer Fleet'] },
+    { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2, roles: ['Customer Fleet'] },
+
+    // PIC Terkait (Konfirmasi Kunjungan Tamu)
+    { id: 'pic-terkait', label: 'Konfirmasi Kunjungan (PIC)', icon: UserCheck, roles: ['PIC Terkait'] },
   ];
 
   // Strictly filter menus for the active role (no crossover)

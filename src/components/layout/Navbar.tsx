@@ -24,6 +24,8 @@ export const Navbar: React.FC = () => {
         return 'bg-purple-50 text-purple-800 border-purple-200';
       case 'Admin Invoice':
         return 'bg-teal-50 text-teal-800 border-teal-200';
+      case 'PIC Terkait':
+        return 'bg-cyan-50 text-cyan-800 border-cyan-200';
       case 'Customer Fleet':
       default:
         return 'bg-sky-50 text-sky-800 border-sky-200';

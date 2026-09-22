@@ -15,6 +15,7 @@ import { PurchasingView } from './views/PurchasingView';
 import { BeliPartView } from './views/BeliPartView';
 import { KasirInvoiceView } from './views/KasirInvoiceView';
 import { WebFleetCustomerView } from './views/WebFleetCustomerView';
+import { PicTerkaitView } from './views/PicTerkaitView';
 
 export const App: React.FC = () => {
   const { activeTab, isLoggedIn } = useAppStore();
@@ -42,8 +43,29 @@ export const App: React.FC = () => {
         return <BeliPartView />;
       case 'kasir':
         return <KasirInvoiceView />;
-      case 'fleet':
+      // Customer Fleet Sub-menus
+      case 'fleet-dashboard':
+        return <WebFleetCustomerView initialMenu="dashboard" />;
+      case 'fleet-booking':
+        return <WebFleetCustomerView initialMenu="booking" />;
+      case 'fleet-status':
         return <WebFleetCustomerView initialMenu="status" />;
+      case 'fleet-history':
+        return <WebFleetCustomerView initialMenu="history" />;
+      case 'fleet-kendaraan':
+        return <WebFleetCustomerView initialMenu="kendaraan" />;
+      case 'fleet-dokumen':
+        return <WebFleetCustomerView initialMenu="dokumen" />;
+      case 'fleet-profil':
+        return <WebFleetCustomerView initialMenu="profil" />;
+
+      // PIC Terkait (Konfirmasi kunjungan tamu dari Pos Security)
+      case 'pic-terkait':
+        return <PicTerkaitView />;
+
+      // Fallbacks
+      case 'fleet':
+        return <WebFleetCustomerView initialMenu="dashboard" />;
       case 'dokumen':
         return <WebFleetCustomerView initialMenu="dokumen" />;
       case 'kendaraan':

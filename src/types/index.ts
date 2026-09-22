@@ -6,6 +6,7 @@ export type PeranUser =
   | 'Admin Invoice' 
   | 'Security' 
   | 'Customer Fleet'
+  | 'PIC Terkait'
   | 'Warehouse';
 
 export interface Pengguna {
@@ -119,6 +120,9 @@ export interface AntrianKunjungan {
   no_memo_keluar?: string;
   catatan_security?: string;
   id_booking?: number;
+  status_konfirmasi_pic?: 'Menunggu Konfirmasi' | 'Diterima' | 'Ditolak';
+  waktu_konfirmasi_pic?: string;
+  catatan_pic?: string;
 }
 
 export interface SpkService {
