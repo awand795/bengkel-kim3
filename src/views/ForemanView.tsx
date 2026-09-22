@@ -13,13 +13,16 @@ import {
   AlertTriangle, 
   Send,
   Check,
-  X
+  X,
+  Printer
 } from 'lucide-react';
+import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
 export const ForemanView: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'hasil-pengecekan' | 'qc-fir'>('dashboard');
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
+  const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
 
   // Assign Mekanik State
   const [selectedMekanik, setSelectedMekanik] = useState('Andi Wijaya');
@@ -286,6 +289,13 @@ export const ForemanView: React.FC = () => {
                       Buka Form Quality Control (QC) →
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintSpk(selectedSpk)}
+                    className="w-full py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-xl font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Cetak Lembar SPK (A4)
+                  </button>
                 </div>
               </div>
             ) : (
@@ -471,6 +481,14 @@ export const ForemanView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Printable SPK A4 Modal */}
+      {showPrintSpk && (
+        <PrintSpkModal
+          spk={showPrintSpk}
+          onClose={() => setShowPrintSpk(null)}
+        />
       )}
 
     </div>

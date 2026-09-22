@@ -14,8 +14,10 @@ import {
   AlertCircle,
   CheckCircle,
   Check,
-  X
+  X,
+  Printer
 } from 'lucide-react';
+import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
 export const MekanikView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -23,6 +25,7 @@ export const MekanikView: React.FC = () => {
   const [jobTimerSeconds, setJobTimerSeconds] = useState(3600); // 1 hour simulated
   const [timerRunning, setTimerRunning] = useState(false);
   const [showTambahanModal, setShowTambahanModal] = useState(false);
+  const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
 
   // Form Tambahan Pekerjaan State (image1.png Mockup 6)
   const [tambahanForm, setTambahanForm] = useState({
@@ -150,6 +153,14 @@ export const MekanikView: React.FC = () => {
               <div className="text-xs text-slate-300 font-semibold">{myJob.no_polisi} - {myJob.nama_customer}</div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPrintSpk(myJob)}
+                className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                title="Cetak SPK / Lembar Kerja A4"
+              >
+                <Printer className="w-3.5 h-3.5" /> Cetak SPK (A4)
+              </button>
               <StatusBadge status={myJob.status_spk} size="md" />
             </div>
           </div>
@@ -331,6 +342,14 @@ export const MekanikView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Printable SPK A4 Modal */}
+      {showPrintSpk && (
+        <PrintSpkModal
+          spk={showPrintSpk}
+          onClose={() => setShowPrintSpk(null)}
+        />
       )}
 
     </div>

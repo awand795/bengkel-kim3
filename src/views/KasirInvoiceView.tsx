@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { InvoicePembayaran } from '../types';
+import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { 
   Receipt, 
   CreditCard, 
@@ -19,6 +20,7 @@ export const KasirInvoiceView: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedInvoice, setSelectedInvoice] = useState<InvoicePembayaran | null>(null);
   const [metodeBayar, setMetodeBayar] = useState<'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC'>('Transfer Bank');
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Queries
   const { data: invoiceList, isLoading } = useQuery({
@@ -200,10 +202,10 @@ export const KasirInvoiceView: React.FC = () => {
                   <div className="text-sm font-bold text-emerald-900">FAKTUR SUDAH LUNAS (PAID)</div>
                   <div className="text-xs text-emerald-700">Metode: {activeInv.metode_pembayaran} | Kasir: {activeInv.kasir_pic || 'Siti Rahma'}</div>
                   <button
-                    onClick={() => window.print()}
-                    className="w-full mt-2 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs"
+                    onClick={() => setShowPrintModal(true)}
+                    className="w-full mt-2 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
                   >
-                    <Printer className="w-3.5 h-3.5" /> Cetak Kwitansi / Struk
+                    <Printer className="w-3.5 h-3.5" /> Cetak Struk Thermal (80mm)
                   </button>
                 </div>
               )}
@@ -217,6 +219,14 @@ export const KasirInvoiceView: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Printable Thermal Receipt Modal */}
+      {showPrintModal && activeInv && (
+        <PrintThermalInvoiceModal
+          invoice={activeInv}
+          onClose={() => setShowPrintModal(false)}
+        />
+      )}
 
     </div>
   );

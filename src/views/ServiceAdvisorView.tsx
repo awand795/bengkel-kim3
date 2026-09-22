@@ -17,14 +17,17 @@ import {
   X, 
   ShoppingBag,
   Eye,
-  FileCheck
+  FileCheck,
+  Printer
 } from 'lucide-react';
+import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
 export const ServiceAdvisorView: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed'>('spk-list');
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrModal, setShowPrModal] = useState<SpkService | null>(null);
+  const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
 
   // Form Penerimaan SA State
   const [formPenerimaan, setFormPenerimaan] = useState({
@@ -286,6 +289,16 @@ export const ServiceAdvisorView: React.FC = () => {
                             <ShoppingBag className="w-3.5 h-3.5" /> PR Part
                           </button>
                         )}
+
+                        {/* Cetak SPK A4 */}
+                        <button
+                          type="button"
+                          onClick={() => setShowPrintSpk(spk)}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border border-slate-300 flex items-center gap-1 transition-colors"
+                          title="Cetak Surat Perintah Kerja (SPK) A4"
+                        >
+                          <Printer className="w-3.5 h-3.5" /> Cetak SPK
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -343,6 +356,14 @@ export const ServiceAdvisorView: React.FC = () => {
                     <ShoppingBag className="w-4 h-4" /> Ajukan PR Part
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowPrintSpk(spk)}
+                  className="mt-2 w-full min-h-[44px] py-2.5 bg-slate-100 active:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs border border-slate-300 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Printer className="w-4 h-4" /> Cetak SPK (HVS A4)
+                </button>
               </div>
             ))}
           </div>
@@ -670,6 +691,14 @@ export const ServiceAdvisorView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Printable SPK A4 Modal */}
+      {showPrintSpk && (
+        <PrintSpkModal
+          spk={showPrintSpk}
+          onClose={() => setShowPrintSpk(null)}
+        />
       )}
 
     </div>

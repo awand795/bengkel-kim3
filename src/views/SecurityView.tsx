@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { AntrianKunjungan, BookingService, MemoKeluar } from '../types';
 import { realtimeHub } from '../services/realtimeService';
+import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
 
 interface SecurityViewProps {
   initialTab?: 'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo';
@@ -371,6 +372,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   const [showCheckinModal, setShowCheckinModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState<AntrianKunjungan | null>(null);
   const [showDetailModal, setShowDetailModal] = useState<AntrianKunjungan | null>(null);
+  const [showPrintMemo, setShowPrintMemo] = useState<MemoKeluar | null>(null);
 
   // Check In Form State
   const [formCheckin, setFormCheckin] = useState({
@@ -1670,11 +1672,11 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                               </button>
                               <button
                                 type="button"
-                                title="Cetak Memo"
+                                title="Cetak Memo A4"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedMemo(m);
-                                  setTimeout(() => window.print(), 100);
+                                  setShowPrintMemo(m);
                                 }}
                                 className="p-1 hover:text-slate-900 rounded transition-colors"
                               >
@@ -1816,18 +1818,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <div className="flex items-center justify-end gap-3 pt-2">
                     <button
                       type="button"
-                      onClick={() => window.print()}
+                      onClick={() => setShowPrintMemo(selectedMemo)}
                       className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-2 transition-colors"
                     >
                       <Printer className="w-4 h-4" />
-                      CETAK
+                      CETAK MEMO (A4)
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => {
-                        window.print();
-                      }}
+                      onClick={() => setShowPrintMemo(selectedMemo)}
                       className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-2 transition-colors"
                     >
                       <Download className="w-4 h-4" />
@@ -2221,6 +2221,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
           </div>
         </div>
+      )}
+
+      {/* Printable Memo Keluar A4 Modal */}
+      {showPrintMemo && (
+        <PrintMemoKeluarModal
+          memo={showPrintMemo}
+          onClose={() => setShowPrintMemo(null)}
+        />
       )}
 
     </div>
