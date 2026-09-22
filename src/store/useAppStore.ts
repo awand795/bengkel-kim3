@@ -27,7 +27,7 @@ const roleDefaults: Record<PeranUser, { user: string; defaultTab: string }> = {
   'Mekanik': { user: 'Andi Wijaya', defaultTab: 'mekanik' },
   'Admin Purchasing': { user: 'Rina Marlina', defaultTab: 'purchasing' },
   'Admin Invoice': { user: 'Siti Rahma', defaultTab: 'kasir' },
-  'Security': { user: 'Hisar Pardede', defaultTab: 'security' },
+  'Security': { user: 'Hisar Pardede', defaultTab: 'security-onprogress' },
   'Customer Fleet': { user: 'PT. Andi Jaya', defaultTab: 'fleet-dashboard' },
   'PIC Terkait': { user: 'PIC Bengkel KIM 3', defaultTab: 'pic-terkait' },
   'Warehouse': { user: 'Hisar', defaultTab: 'beli-part' },

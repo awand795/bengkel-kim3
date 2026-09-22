@@ -14,7 +14,8 @@ import {
   Car,
   Calendar,
   Building2,
-  UserCheck
+  UserCheck,
+  LogOut
 } from 'lucide-react';
 import { PeranUser } from '../../types';
 
@@ -32,9 +33,12 @@ export const Sidebar: React.FC = () => {
     // Dashboard (SA, Foreman, Purchasing, Kasir)
     { id: 'dashboard', label: 'Ringkasan Bengkel', icon: LayoutDashboard, roles: ['SA', 'Foreman', 'Admin Purchasing', 'Admin Invoice'] },
     
-    // Security
-    { id: 'security', label: 'Pos Security (Gerbang)', icon: ShieldCheck, roles: ['Security'] },
-    { id: 'kendaraan', label: 'Armada Terdaftar', icon: Car, roles: ['Security'] },
+    // Security (5 Menu Resmi sesuai Excel: Dashboard, Booking, On Progress, Selesai / Keluar, Memo Keluar)
+    { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['Security'] },
+    { id: 'security-booking', label: 'Booking', icon: Calendar, roles: ['Security'] },
+    { id: 'security-onprogress', label: 'On Progress', icon: Clock, roles: ['Security'] },
+    { id: 'security-selesai', label: 'Selesai / Keluar', icon: LogOut, roles: ['Security'] },
+    { id: 'security-memo', label: 'Memo Keluar', icon: FileText, roles: ['Security'] },
 
     // SA
     { id: 'sa', label: 'Service Advisor (SPK)', icon: ClipboardList, roles: ['SA'] },

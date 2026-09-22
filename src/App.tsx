@@ -30,7 +30,16 @@ export const App: React.FC = () => {
       case 'dashboard':
         return <DashboardView />;
       case 'security':
-        return <SecurityView />;
+      case 'security-dashboard':
+        return <SecurityView initialTab="dashboard" />;
+      case 'security-booking':
+        return <SecurityView initialTab="booking" />;
+      case 'security-onprogress':
+        return <SecurityView initialTab="onprogress" />;
+      case 'security-selesai':
+        return <SecurityView initialTab="selesai" />;
+      case 'security-memo':
+        return <SecurityView initialTab="memo" />;
       case 'sa':
         return <ServiceAdvisorView />;
       case 'foreman':
