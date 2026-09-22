@@ -36,18 +36,11 @@ export const Navbar: React.FC = () => {
         
         {/* Brand Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-blue-500/20">
-            K3
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900">BENGKEL KIM 3</span>
-              <span className="hidden sm:inline-flex text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                Operasional
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 hidden sm:block">Sistem Manajemen Bengkel & Armada</p>
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="KIM3 Bengkel" 
+            className="h-10 sm:h-11 w-auto object-contain"
+          />
         </div>
 
         {/* Right Side: Role Badge, Notifications & Profile */}

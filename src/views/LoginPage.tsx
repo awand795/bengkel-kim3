@@ -117,18 +117,12 @@ export const LoginPage: React.FC = () => {
 
           <div className="relative z-10">
             {/* Logo Badge */}
-            <div className="flex items-center gap-3.5 mb-8">
-              <div className="w-12 h-12 rounded-2xl bg-white text-blue-800 flex items-center justify-center font-black text-2xl shadow-xl shadow-blue-900/40">
-                K3
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none text-white">
-                  BENGKEL KIM 3
-                </h1>
-                <p className="text-[11px] text-blue-200 tracking-wider uppercase font-semibold mt-1">
-                  Kawasan Industri Modern Medan
-                </p>
-              </div>
+            <div className="mb-8 p-3.5 rounded-2xl bg-white/95 backdrop-blur-md shadow-lg shadow-blue-950/20 inline-block">
+              <img 
+                src="/logo.png" 
+                alt="KIM3 Bengkel" 
+                className="h-10 sm:h-12 w-auto object-contain"
+              />
             </div>
 
             {/* Title & Tagline */}
@@ -182,6 +176,15 @@ export const LoginPage: React.FC = () => {
         <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-center bg-white">
           <div className="max-w-md w-full mx-auto space-y-6">
             
+            {/* Mobile Header Logo */}
+            <div className="flex lg:hidden justify-center mb-2">
+              <img 
+                src="/logo.png" 
+                alt="KIM3 Bengkel" 
+                className="h-11 w-auto object-contain"
+              />
+            </div>
+
             {/* Form Top Title */}
             <div>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">
