@@ -9,39 +9,65 @@ import {
   Receipt, 
   Package, 
   Truck, 
-  FileText,
-  Clock,
-  Car
+  FileText, 
+  Clock, 
+  Car 
 } from 'lucide-react';
+import { PeranUser } from '../../types';
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: any;
+  roles: PeranUser[];
+}
 
 export const Sidebar: React.FC = () => {
   const { activeTab, setActiveTab, currentRole } = useAppStore();
 
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard Ringkasan', icon: LayoutDashboard },
-    { id: 'security', label: 'Pos Security', icon: ShieldCheck, roles: ['Security', 'SA', 'Customer Fleet'] },
-    { id: 'sa', label: 'Service Advisor (SA)', icon: ClipboardList, roles: ['SA', 'Foreman'] },
-    { id: 'foreman', label: 'Foreman (QC & SPK)', icon: Wrench, roles: ['Foreman', 'SA', 'Mekanik'] },
-    { id: 'mekanik', label: 'Mekanik (Tablet/HP)', icon: Clock, roles: ['Mekanik', 'Foreman'] },
-    { id: 'purchasing', label: 'Admin Purchasing (PO & ETA)', icon: ShoppingBag, roles: ['Admin Purchasing', 'SA'] },
-    { id: 'beli-part', label: 'Beli Part (Tanpa Service)', icon: Package, roles: ['SA', 'Admin Invoice', 'Warehouse'] },
-    { id: 'kasir', label: 'Invoice & Pembayaran', icon: Receipt, roles: ['Admin Invoice', 'SA'] },
-    { id: 'fleet', label: 'Web Fleet Customer', icon: Truck, roles: ['Customer Fleet', 'SA'] },
-    { id: 'dokumen', label: 'Dokumen Armada (STNK/KIR)', icon: FileText, roles: ['Customer Fleet', 'SA'] },
-    { id: 'kendaraan', label: 'Armada Kendaraan', icon: Car, roles: ['Customer Fleet', 'SA', 'Security'] },
+  const allNavigationItems: NavItem[] = [
+    // Dashboard (SA, Foreman, Purchasing, Kasir)
+    { id: 'dashboard', label: 'Ringkasan Bengkel', icon: LayoutDashboard, roles: ['SA', 'Foreman', 'Admin Purchasing', 'Admin Invoice'] },
+    
+    // Security
+    { id: 'security', label: 'Pos Security (Gerbang)', icon: ShieldCheck, roles: ['Security'] },
+    { id: 'kendaraan', label: 'Armada Terdaftar', icon: Car, roles: ['Security', 'Customer Fleet'] },
+
+    // SA
+    { id: 'sa', label: 'Service Advisor (SPK)', icon: ClipboardList, roles: ['SA'] },
+    { id: 'purchasing', label: 'Status Part & PO (Kotak Merah)', icon: ShoppingBag, roles: ['SA', 'Admin Purchasing'] },
+    { id: 'beli-part', label: 'Beli Part (Tanpa Servis)', icon: Package, roles: ['SA', 'Admin Invoice', 'Warehouse'] },
+    
+    // Foreman
+    { id: 'foreman', label: 'Foreman (QC & Penugasan)', icon: Wrench, roles: ['Foreman'] },
+    { id: 'mekanik', label: 'Live Monitoring Mekanik', icon: Clock, roles: ['Foreman'] },
+
+    // Mekanik
+    { id: 'mekanik', label: 'Pekerjaan Saya (Stopwatch)', icon: Clock, roles: ['Mekanik'] },
+
+    // Kasir
+    { id: 'kasir', label: 'Kasir & Memo Keluar', icon: Receipt, roles: ['Admin Invoice'] },
+
+    // Customer Fleet
+    { id: 'fleet', label: 'Web Fleet (Booking & Status)', icon: Truck, roles: ['Customer Fleet'] },
+    { id: 'dokumen', label: 'Dokumen STNK & KIR', icon: FileText, roles: ['Customer Fleet', 'SA'] },
   ];
+
+  // Strictly filter menus for the active role (no crossover)
+  const roleMenus = allNavigationItems.filter((item) => item.roles.includes(currentRole));
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] p-4">
       <div>
         <div className="px-3 mb-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Modul Operasional</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Menu {currentRole}
+          </p>
         </div>
         <nav className="space-y-1">
-          {navigationItems.map((item) => {
+          {roleMenus.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-            const isRoleRecommended = item.roles?.includes(currentRole);
 
             return (
               <button
@@ -50,17 +76,14 @@ export const Sidebar: React.FC = () => {
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 font-bold'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                 </div>
-                {isRoleRecommended && !isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                )}
               </button>
             );
           })}
@@ -84,3 +107,5 @@ export const Sidebar: React.FC = () => {
     </aside>
   );
 };
+
+export default Sidebar;
