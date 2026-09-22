@@ -1,0 +1,37 @@
+/* ==========================================================================
+   KIM3 Bengkel - Design Tokens & Mobile-safe Utilities
+   Di-import dari src/index.css
+   ========================================================================== */
+
+/*
+  Safe-area untuk perangkat iOS (notch / home indicator).
+  Aktif hanya bila index.html memakai viewport-fit=cover.
+  Ditempatkan di @layer utilities supaya urutannya setelah utility Tailwind
+  (mis. py-1.5) sehingga padding-bottom safe-area tidak tertimpa.
+*/
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/*
+  Transisi fade halus saat ganti tab / panel
+  (mis. Masuk <-> Daftar di LoginPage).
+*/
+@keyframes kim3-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in-tab {
+  animation: kim3-fade-in 200ms ease-out;
+}
