@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Kendaraan, BookingService } from '../types';
+import { useAppStore } from '../store/useAppStore';
 import { 
   Truck, 
   Calendar, 
@@ -19,7 +20,9 @@ import {
   ArrowRight,
   Search,
   ChevronRight,
-  Wrench
+  Wrench,
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
@@ -28,8 +31,9 @@ interface WebFleetCustomerViewProps {
 
 export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ initialMenu }) => {
   const queryClient = useQueryClient();
+  const { setActiveTab } = useAppStore();
   const [fleetMenu, setFleetMenu] = useState<'dashboard' | 'booking' | 'status' | 'history' | 'kendaraan' | 'dokumen' | 'profil'>(
-    initialMenu || 'status'
+    initialMenu || 'dashboard'
   );
 
   React.useEffect(() => {
@@ -71,8 +75,37 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryFn: api.getDokumen,
   });
 
+  const { data: tambahanList } = useQuery({
+    queryKey: ['tambahan-pekerjaan'],
+    queryFn: api.getTambahanPekerjaan,
+    refetchInterval: 10000,
+  });
+
   // Active SPK being monitored
   const activeTrackSpk = spkList?.[0];
+
+  // Pekerjaan tambahan yang masih menunggu persetujuan customer untuk SPK aktif
+  const approvalTambahanList = (tambahanList || []).filter(
+    (t) =>
+      t.status_approval_customer === 'Menunggu Approval' &&
+      (!activeTrackSpk || t.id_spk === activeTrackSpk.id)
+  );
+
+  // Approval Mutation (Setujui / Tolak pekerjaan tambahan)
+  const approvalTambahanMutation = useMutation({
+    mutationFn: (payload: { id: number; status_approval_customer: 'Disetujui' | 'Ditolak' }) =>
+      api.approvalCustomer(payload),
+    onSuccess: (_res, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tambahan-pekerjaan'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      alert(
+        variables.status_approval_customer === 'Disetujui'
+          ? 'Pekerjaan tambahan DISETUJUI. Mekanik akan melanjutkan pengerjaan.'
+          : 'Pekerjaan tambahan DITOLAK. Bengkel akan melanjutkan sesuai SPK awal.'
+      );
+    },
+    onError: (err: any) => alert('Gagal mengirim keputusan approval: ' + (err?.message || 'Coba lagi.')),
+  });
 
   // Booking Mutation
   const createBookingMutation = useMutation({
@@ -101,40 +134,259 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   return (
     <div className="space-y-6">
       
-      {/* Top Header Fleet */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
-            <Truck className="w-6 h-6" />
+      {/* MENU 0: DASHBOARD RINGKASAN ARMADA */}
+      {fleetMenu === 'dashboard' && (
+        <div className="space-y-6">
+          {/* Welcome Banner */}
+          <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-200 text-xs font-semibold mb-2">
+                <Truck className="w-3.5 h-3.5 text-blue-300" />
+                Portal Monitoring Fleet KIM 3 Medan
+              </div>
+              <h1 className="text-xl md:text-2xl font-black tracking-tight">Selamat Datang, PT. Andi Jaya</h1>
+              <p className="text-xs text-blue-200 mt-1 max-w-xl leading-relaxed">
+                Pantau status perbaikan armada, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK & KIR secara realtime.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setFleetMenu('booking');
+                  setActiveTab('fleet-booking');
+                }}
+                className="px-4 py-2.5 bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Booking Service
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Total Armada Truk</span>
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Truck className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <span className="text-2xl font-black text-slate-900">{kendaraanList?.length || 0}</span>
+                <span className="text-[11px] text-slate-400 ml-2 font-medium">Unit Terdaftar</span>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Sedang Diservis</span>
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Wrench className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <span className="text-2xl font-black text-amber-600">
+                  {spkList?.filter(s => s.status_spk !== 'Selesai').length || 0}
+                </span>
+                <span className="text-[11px] text-slate-400 ml-2 font-medium">Di Bengkel KIM 3</span>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Booking Terjadwal</span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Calendar className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <span className="text-2xl font-black text-emerald-600">
+                  {bookingList?.length || 0}
+                </span>
+                <span className="text-[11px] text-slate-400 ml-2 font-medium">Antrian Masuk</span>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-500">Dokumen Digital</span>
+                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <FileText className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <span className="text-2xl font-black text-slate-900">{dokumenList?.length || 0}</span>
+                <span className="text-[11px] text-slate-400 ml-2 font-medium">STNK & KIR</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Unit Live Tracker Highlight */}
+          {activeTrackSpk ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-black text-slate-900">{activeTrackSpk.no_polisi}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold animate-pulse">
+                        Sedang Dikerjakan
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-semibold">{activeTrackSpk.no_spk} • {activeTrackSpk.keluhan_customer}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFleetMenu('status');
+                    setActiveTab('fleet-status');
+                  }}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 self-start sm:self-auto"
+                >
+                  Lihat Detail Tracker <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 rounded-xl">
+                  <span className="text-slate-400 text-[10px] block">Status SPK:</span>
+                  <span className="font-bold text-slate-800">{activeTrackSpk.status_spk}</span>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl">
+                  <span className="text-slate-400 text-[10px] block">Estimasi Lead Time:</span>
+                  <span className="font-bold text-blue-700">{activeTrackSpk.lead_time_jam || 6} Jam Pengerjaan</span>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl">
+                  <span className="text-slate-400 text-[10px] block">Estimasi Biaya:</span>
+                  <span className="font-bold text-emerald-700">Rp {Number(activeTrackSpk.estimasi_biaya || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">Semua Unit Armada Beroperasi Prima</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                Saat ini tidak ada unit armada Anda yang sedang menginap atau diservis di bengkel KIM 3.
+              </p>
+            </div>
+          )}
+
+          {/* Quick Previews: Jadwal Booking & Unit Terdaftar */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Upcoming Bookings */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600" /> Jadwal Booking Terdekat
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFleetMenu('booking');
+                    setActiveTab('fleet-booking');
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                >
+                  + Buat Baru
+                </button>
+              </div>
+
+              {bookingList && bookingList.length > 0 ? (
+                <div className="space-y-2.5">
+                  {bookingList.slice(0, 3).map((b) => (
+                    <div key={b.id} className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-slate-900 text-xs">{b.no_polisi}</span>
+                        <p className="text-[11px] text-slate-500">{b.jenis_layanan}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-xs font-semibold text-blue-700 block">
+                          {b.tanggal_booking} {b.jam_booking}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
+                          {b.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 py-4 text-center">Belum ada booking service terjadwal.</p>
+              )}
+            </div>
+
+            {/* Quick Fleet Units */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-blue-600" /> Armada Truk Anda
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFleetMenu('kendaraan');
+                    setActiveTab('fleet-kendaraan');
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                >
+                  Lihat Semua
+                </button>
+              </div>
+
+              {kendaraanList && kendaraanList.length > 0 ? (
+                <div className="space-y-2.5">
+                  {kendaraanList.slice(0, 3).map((k) => (
+                    <div key={k.id} className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-slate-900 text-xs">{k.no_polisi}</span>
+                        <p className="text-[11px] text-slate-500">{k.merk} {k.model} • {k.jenis_armada}</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">
+                        Aktif
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 py-4 text-center">Belum ada armada terdaftar.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State for Status if no active SPK */}
+      {fleetMenu === 'status' && !activeTrackSpk && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-xs max-w-lg mx-auto space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+            <Truck className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-slate-900">Web Fleet Customer - PT. Andi Jaya</h1>
-            <p className="text-xs text-slate-500">Monitoring Realtime Armada Bengkel KIM 3 Medan</p>
+            <h2 className="text-base font-bold text-slate-900">Tidak Ada Servis Berjalan</h2>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Saat ini tidak ada unit armada PT. Andi Jaya yang sedang dalam proses pengerjaan di Bengkel KIM 3 Medan.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setFleetMenu('booking');
+              setActiveTab('fleet-booking');
+            }}
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all inline-flex items-center gap-2"
+          >
+            <Calendar className="w-4 h-4" /> Jadwalkan Booking Service
+          </button>
         </div>
-
-        {/* Fleet Submenu Tabs (image5.png Sidebar Items) */}
-        <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
-          {[
-            { id: 'status', label: 'Status Service (Live)' },
-            { id: 'booking', label: 'Booking Service' },
-            { id: 'history', label: 'History Service' },
-            { id: 'kendaraan', label: 'Kendaraan Saya' },
-            { id: 'dokumen', label: 'Dokumen Saya' },
-            { id: 'profil', label: 'Profil Perusahaan' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setFleetMenu(item.id as any)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                fleetMenu === item.id ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* MENU 1: STATUS SERVICE REALTIME TRACKER (image5.png Mockup 2) */}
       {fleetMenu === 'status' && activeTrackSpk && (
@@ -171,6 +423,89 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
               </div>
             </div>
+
+            {/* Approval Pekerjaan Tambahan (di atas stepper) */}
+            {approvalTambahanList.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {approvalTambahanList.map((t) => (
+                  <div
+                    key={t.id}
+                    className="rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-4 sm:p-5"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <AlertCircle className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-sm font-black text-amber-900">
+                            Ada Pekerjaan Tambahan Perlu Persetujuan
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold animate-pulse">
+                            Menunggu Approval
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-amber-900/90 mt-1.5 leading-relaxed font-medium">
+                          {t.deskripsi_tambahan}
+                        </p>
+                        {t.rekomendasi_perbaikan && (
+                          <p className="text-[11px] text-amber-700 mt-1 italic">
+                            Rekomendasi: {t.rekomendasi_perbaikan}
+                          </p>
+                        )}
+
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-white/80 rounded-xl border border-amber-200 p-2.5">
+                            <span className="text-amber-600/80 text-[10px] block">Estimasi Biaya Tambahan</span>
+                            <span className="font-black text-amber-900">
+                              Rp {Number(t.estimasi_biaya_tambahan || 0).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                          <div className="bg-white/80 rounded-xl border border-amber-200 p-2.5">
+                            <span className="text-amber-600/80 text-[10px] block">Estimasi Waktu Tambahan</span>
+                            <span className="font-black text-amber-900">
+                              {t.estimasi_waktu_tambahan_jam || 0} Jam
+                            </span>
+                          </div>
+                        </div>
+
+                        {(t.diajukan_oleh_mekanik || t.diverifikasi_foreman) && (
+                          <p className="text-[10px] text-amber-600 mt-2">
+                            {t.diajukan_oleh_mekanik ? `Diajukan mekanik: ${t.diajukan_oleh_mekanik}` : ''}
+                            {t.diajukan_oleh_mekanik && t.diverifikasi_foreman ? ' • ' : ''}
+                            {t.diverifikasi_foreman ? `Diverifikasi foreman: ${t.diverifikasi_foreman}` : ''}
+                          </p>
+                        )}
+
+                        <div className="mt-3.5 flex flex-col sm:flex-row gap-2">
+                          <button
+                            type="button"
+                            disabled={approvalTambahanMutation.isPending}
+                            onClick={() =>
+                              approvalTambahanMutation.mutate({ id: t.id, status_approval_customer: 'Disetujui' })
+                            }
+                            className="flex-1 min-h-[44px] py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <CheckCircle2 className="w-4 h-4" /> Setujui Pekerjaan Tambahan
+                          </button>
+                          <button
+                            type="button"
+                            disabled={approvalTambahanMutation.isPending}
+                            onClick={() =>
+                              approvalTambahanMutation.mutate({ id: t.id, status_approval_customer: 'Ditolak' })
+                            }
+                            className="flex-1 min-h-[44px] py-2.5 px-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <XCircle className="w-4 h-4" /> Tolak
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Stepper Progress Bar (image5.png Mockup 2 Stepper) */}
             <div className="py-6 px-2 overflow-x-auto">
@@ -542,7 +877,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <p className="text-xs text-slate-500">Kelola dan unduh berkas perizinan kendaraan secara terpusat</p>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
                 <tr>
@@ -580,6 +915,39 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+          <div className="block md:hidden space-y-2.5">
+            {dokumenList?.map((doc) => (
+              <div key={doc.id} className="rounded-xl border border-slate-200 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-slate-900 leading-snug">{doc.nama_dokumen}</div>
+                    <div className="font-mono text-[11px] font-bold text-slate-500 mt-0.5">{doc.no_polisi}</div>
+                  </div>
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold shrink-0">
+                    {doc.jenis_dokumen}
+                  </span>
+                </div>
+
+                <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Masa Berlaku</span>
+                  <span className="font-mono font-semibold text-slate-600">
+                    {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
+                  </span>
+                </div>
+
+                <a
+                  href={doc.file_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-700 active:bg-blue-100 rounded-xl text-xs font-bold transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" /> Unduh Dokumen
+                </a>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -644,7 +1012,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <p className="text-xs text-slate-500">Histori lengkap pengerjaan service dan penggantian part armada Anda</p>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
                 <tr>
@@ -671,6 +1039,37 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+          <div className="block md:hidden space-y-2.5">
+            {spkList?.map((spk) => (
+              <div key={spk.id} className="rounded-xl border border-slate-200 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-mono text-[11px] font-bold text-blue-600">{spk.no_spk}</div>
+                    <div className="text-base font-black text-slate-900 mt-0.5">{spk.no_polisi}</div>
+                  </div>
+                  <StatusBadge status={spk.status_spk} size="sm" />
+                </div>
+
+                <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5">
+                  <p className="text-xs text-slate-700 leading-relaxed">{spk.keluhan_customer}</p>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Tanggal Masuk</span>
+                    <span className="font-mono font-semibold text-slate-600">
+                      {new Date(spk.created_at).toLocaleDateString('id-ID')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Biaya</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
