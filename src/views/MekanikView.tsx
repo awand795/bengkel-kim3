@@ -222,7 +222,7 @@ export const MekanikView: React.FC = () => {
             </p>
             <div className="pt-2 border-t border-slate-200 flex flex-wrap gap-4 text-slate-600">
               <span>Odometer: <strong>{myJob.odometer_km?.toLocaleString()} KM</strong></span>
-              <span>Foreman: <strong>{myJob.nama_foreman || 'Joko Susilo'}</strong></span>
+              <span>Foreman: <strong>{myJob.nama_foreman || 'Foreman'}</strong></span>
               <span>Lead Time: <strong>{myJob.lead_time_jam} Jam</strong></span>
             </div>
           </div>

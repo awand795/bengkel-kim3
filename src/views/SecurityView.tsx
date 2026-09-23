@@ -29,7 +29,9 @@ import {
   Phone,
   User,
   ArrowRight,
-  LayoutDashboard
+  LayoutDashboard,
+  MapPin,
+  Camera
 } from 'lucide-react';
 import { AntrianKunjungan, BookingService, MemoKeluar } from '../types';
 import { realtimeHub } from '../services/realtimeService';
@@ -834,147 +836,170 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   e.preventDefault();
                   checkinMutation.mutate(formCheckin);
                 }}
-                className="space-y-4 text-xs"
+                className="space-y-6 text-xs"
               >
-                {/* Plat Nomor & Armada */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">
-                      Nomor Polisi (Plat Nomor) <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
+                {/* Bagian 1: Identitas Kendaraan */}
+                <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200">
+                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-slate-500" /> Identitas Kendaraan
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">
+                        Nomor Polisi (Plat Nomor) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Contoh: BK 1234 AB"
+                          value={formCheckin.no_polisi}
+                          onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm sm:text-base font-black uppercase tracking-wider focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">Jenis Armada</label>
+                      <select
+                        value={formCheckin.jenis_armada}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                      >
+                        <option value="Truk">Truk (Canter / Dutro / Tronton / Fuso)</option>
+                        <option value="Mobil">Mobil Pribadi / Operasional</option>
+                        <option value="Pickup">Pickup / Box Kecil</option>
+                        <option value="Lainnya">Lainnya</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bagian 2: Detail Kedatangan */}
+                <div className="bg-blue-50/40 p-4 sm:p-5 rounded-2xl border border-blue-100">
+                  <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-blue-600" /> Detail Kedatangan
+                  </h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-2">Tujuan Kedatangan <span className="text-rose-500">*</span></label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        {[
+                          { id: 'Service', label: '1. Service', desc: 'Perbaikan / Service Truk' },
+                          { id: 'Beli Part', label: '2. Beli Part', desc: 'Pembelian Part (Kasir)' },
+                          { id: 'Kunjungan', label: '3. Kunjungan', desc: 'Tamu Dinas / Kantor' },
+                          { id: 'Lainnya', label: '4. Lainnya', desc: 'Keperluan Lain' },
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              setFormCheckin({
+                                ...formCheckin,
+                                tujuan_kedatangan: t.id as any,
+                                pic_tujuan: t.id === 'Service' ? 'Budi Santoso (SA)' : t.id === 'Beli Part' ? 'Hisar (Warehouse)' : 'PIC Terkait',
+                              });
+                            }}
+                            className={`p-3 rounded-xl border-2 text-left transition-all ${
+                              formCheckin.tujuan_kedatangan === t.id
+                                ? 'border-blue-600 bg-white text-blue-900 shadow-md ring-2 ring-blue-600/20'
+                                : 'border-transparent bg-white hover:border-blue-200 text-slate-700 shadow-xs'
+                            }`}
+                          >
+                            <div className="text-xs font-black">{t.label}</div>
+                            <div className="text-[10px] text-slate-500 mt-1">{t.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1.5">PIC / Petugas Tujuan</label>
+                        <select
+                          value={formCheckin.pic_tujuan}
+                          onChange={(e) => setFormCheckin({ ...formCheckin, pic_tujuan: e.target.value })}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                        >
+                          <option value="Budi Santoso (SA)">Budi Santoso (SA)</option>
+                          <option value="Joko Susilo (Foreman)">Joko Susilo (Foreman)</option>
+                          <option value="Hisar (Warehouse)">Hisar (Warehouse)</option>
+                          <option value="Rina Marlina (Purchasing)">Rina Marlina (Purchasing)</option>
+                          <option value="Siti Rahma (Kasir)">Siti Rahma (Kasir)</option>
+                          <option value="Admin Office">Admin Office</option>
+                          <option value="Management">Management</option>
+                          <option value="PIC Terkait">Lainnya / PIC Terkait</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1.5">Keperluan Singkat / Keluhan</label>
+                        <input
+                          type="text"
+                          placeholder="Contoh: Ganti oli rutin, servis rem, meeting"
+                          value={formCheckin.keperluan}
+                          onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bagian 3: Data Customer & Dokumentasi */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-4">
+                    <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                      <User className="w-4 h-4 text-slate-500" /> Data Pengemudi / PIC
+                    </h4>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">Nama Customer / Perusahaan</label>
                       <input
                         type="text"
-                        required
-                        placeholder="Contoh: BK 1234 AB"
-                        value={formCheckin.no_polisi}
-                        onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
-                        className="w-full pl-3.5 pr-10 py-3 rounded-2xl border-2 border-slate-200 text-base font-black uppercase tracking-wider focus:border-blue-600 focus:ring-0 focus:outline-none bg-slate-50/50"
+                        placeholder="Contoh: PT. Andi Jaya"
+                        value={formCheckin.nama_customer}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
                       />
-                      <Truck className="w-5 h-5 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">No. HP Driver / PIC</label>
+                      <input
+                        type="text"
+                        placeholder="0812-xxxx-xxxx"
+                        value={formCheckin.no_hp_customer}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                      />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">Jenis Armada</label>
-                    <select
-                      value={formCheckin.jenis_armada}
-                      onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
-                      className="w-full px-3.5 py-3 rounded-2xl border-2 border-slate-200 font-bold focus:border-blue-600 focus:outline-none bg-white text-xs"
-                    >
-                      <option value="Truk">Truk (Canter / Dutro / Tronton / Fuso)</option>
-                      <option value="Mobil">Mobil Pribadi / Operasional</option>
-                      <option value="Pickup">Pickup / Box Kecil</option>
-                      <option value="Lainnya">Lainnya</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Tujuan Kedatangan */}
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">
-                    Tujuan Kedatangan <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {[
-                      { id: 'Service', label: '1. Service', desc: 'Perbaikan / Service Truk' },
-                      { id: 'Beli Part', label: '2. Beli Part', desc: 'Pembelian Part (Kasir)' },
-                      { id: 'Kunjungan', label: '3. Kunjungan', desc: 'Tamu Dinas / Kantor' },
-                      { id: 'Lainnya', label: '4. Lainnya', desc: 'Keperluan Lain' },
-                    ].map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => {
-                          setFormCheckin({
-                            ...formCheckin,
-                            tujuan_kedatangan: t.id as any,
-                            pic_tujuan: t.id === 'Service' ? 'Budi Santoso (SA)' : t.id === 'Beli Part' ? 'Hisar (Warehouse)' : 'PIC Terkait',
-                          });
-                        }}
-                        className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                          formCheckin.tujuan_kedatangan === t.id
-                            ? 'border-blue-600 bg-blue-50/70 text-blue-900 font-bold shadow-xs'
-                            : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
-                        }`}
-                      >
-                        <div className="text-xs font-black">{t.label}</div>
-                        <div className="text-[10px] text-slate-500 mt-1">{t.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Customer & HP */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">Nama Customer / Perusahaan</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: PT. Andi Jaya / CV. Maju"
-                      value={formCheckin.nama_customer}
-                      onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-4">
+                    <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-slate-500" /> Dokumentasi & Catatan
+                    </h4>
+                    <PhotoUploader
+                      label="Foto Kendaraan Saat Masuk Gerbang"
+                      value={formCheckin.foto_kendaraan_masuk}
+                      onChange={(url) => setFormCheckin({ ...formCheckin, foto_kendaraan_masuk: url })}
+                      bucket="foto_kendaraan"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">No. HP Driver / PIC</label>
-                    <input
-                      type="text"
-                      placeholder="0812-xxxx-xxxx"
-                      value={formCheckin.no_hp_customer}
-                      onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* PIC Tujuan & Keperluan */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">PIC / Petugas Tujuan</label>
-                    <input
-                      type="text"
-                      value={formCheckin.pic_tujuan}
-                      onChange={(e) => setFormCheckin({ ...formCheckin, pic_tujuan: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">Keperluan Singkat / Keluhan</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Ganti oli rutin, servis rem, meeting audit"
-                      value={formCheckin.keperluan}
-                      onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1.5">Catatan Security</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Catatan kondisi awal fisik atau kelengkapan armada..."
+                        value={formCheckin.catatan_security}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Photo Upload */}
-                <PhotoUploader
-                  label="Foto Kendaraan Saat Masuk Gerbang (Opsional)"
-                  value={formCheckin.foto_kendaraan_masuk}
-                  onChange={(url) => setFormCheckin({ ...formCheckin, foto_kendaraan_masuk: url })}
-                  bucket="foto_kendaraan"
-                />
-
-                {/* Catatan Security */}
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1.5">Catatan Khusus Security</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Catatan kondisi awal fisik, kelengkapan surat atau muatan saat masuk..."
-                    value={formCheckin.catatan_security}
-                    onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => {
@@ -991,16 +1016,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         id_booking: undefined,
                       });
                     }}
-                    className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all"
+                    className="px-6 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all"
                   >
-                    Reset
+                    Reset Form
                   </button>
                   <button
                     type="submit"
                     disabled={checkinMutation.isPending}
-                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 text-sm"
                   >
-                    <PlusCircle className="w-4 h-4" />
+                    <PlusCircle className="w-5 h-5" />
                     {checkinMutation.isPending ? 'Menyimpan ke Sistem...' : 'SUBMIT CHECK-IN KENDARAAN'}
                   </button>
                 </div>
@@ -1963,12 +1988,20 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">PIC / Petugas Tujuan</label>
-                  <input
-                    type="text"
+                  <select
                     value={formCheckin.pic_tujuan}
                     onChange={(e) => setFormCheckin({ ...formCheckin, pic_tujuan: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                  >
+                    <option value="Budi Santoso (SA)">Budi Santoso (SA)</option>
+                    <option value="Joko Susilo (Foreman)">Joko Susilo (Foreman)</option>
+                    <option value="Hisar (Warehouse)">Hisar (Warehouse)</option>
+                    <option value="Rina Marlina (Purchasing)">Rina Marlina (Purchasing)</option>
+                    <option value="Siti Rahma (Kasir)">Siti Rahma (Kasir)</option>
+                    <option value="Admin Office">Admin Office</option>
+                    <option value="Management">Management</option>
+                    <option value="PIC Terkait">Lainnya / PIC Terkait</option>
+                  </select>
                 </div>
 
                 <div>
