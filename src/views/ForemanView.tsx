@@ -81,8 +81,6 @@ export const ForemanView: React.FC = () => {
       return api.updateSpkStatus({
         id: spk.id,
         status_spk: 'Estimasi Dibuat',
-        estimasi_biaya: hasilPengecekan.estimasi_biaya,
-        estimasi_waktu_jam: hasilPengecekan.estimasi_waktu_jam,
         catatan_foreman: hasilPengecekan.rekomendasi + '\n' + hasilPengecekan.catatan_tambahan,
       });
     },
@@ -504,25 +502,7 @@ export const ForemanView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Estimasi Biaya Part & Jasa (Rp)</label>
-                <input
-                  type="number"
-                  value={hasilPengecekan.estimasi_biaya}
-                  onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, estimasi_biaya: Number(e.target.value) })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Estimasi Waktu Pengerjaan (Jam)</label>
-                <input
-                  type="number"
-                  value={hasilPengecekan.estimasi_waktu_jam}
-                  onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, estimasi_waktu_jam: Number(e.target.value) })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
+              {/* Removed Estimasi Biaya and Waktu Jam, this is SA's job */}
             </div>
 
             <div>
