@@ -44,7 +44,7 @@ export const ServiceAdvisorView: React.FC = () => {
     kebersihan: false,
     tes_jalan: false,
     kelengkapan_surat: false,
-    catatan_final: 'Kondisi kendaraan bersih, uji fungsi normal, berkas surat lengkap siap diserahkan.',
+    catatan_final: '',
   });
 
   const handleOpenFinalCheck = (spk: SpkService) => {
@@ -53,7 +53,7 @@ export const ServiceAdvisorView: React.FC = () => {
       kebersihan: false,
       tes_jalan: false,
       kelengkapan_surat: false,
-      catatan_final: 'Kondisi kendaraan bersih, uji fungsi normal, berkas surat lengkap siap diserahkan.',
+      catatan_final: '',
     });
   };
 
@@ -66,12 +66,15 @@ export const ServiceAdvisorView: React.FC = () => {
   const [saSearchQuery, setSaSearchQuery] = useState('');
   const [saStatusFilter, setSaStatusFilter] = useState<'Semua' | 'Dalam Pengerjaan' | 'Waiting Part' | 'QC Passed' | 'FIR Closed'>('Semua');
 
-  // Form Penerimaan SA State
+  // Form Penerimaan State (Create SPK awal)
   const [formPenerimaan, setFormPenerimaan] = useState({
     id_antrian: undefined as number | undefined,
     no_polisi: '',
     nama_customer: '',
-    odometer_km: '' as number | '',
+    no_hp_customer: '',
+    jenis_layanan: 'Service Truk / Berkala',
+    odometer_km: 0,
+    foto_kendaraan_masuk: '',
     foto_odometer: '',
     foto_stnk: '',
     foto_kir: '',
@@ -80,7 +83,7 @@ export const ServiceAdvisorView: React.FC = () => {
     cek_mesin: 'OK',
     cek_kelistrikan: 'OK',
     cek_kaki_kaki: 'OK',
-    catatan_kondisi_awal: 'Bodi mulus, mesin kering, kelistrikan normal',
+    catatan_kondisi_awal: '',
     estimasi_waktu_jam: 6,
     lead_time_jam: 6,
     catatan_sa: '',
@@ -220,7 +223,10 @@ export const ServiceAdvisorView: React.FC = () => {
         id_antrian: undefined,
         no_polisi: '',
         nama_customer: '',
-        odometer_km: '',
+        no_hp_customer: '',
+        jenis_layanan: 'Service Truk / Berkala',
+        odometer_km: 0,
+        foto_kendaraan_masuk: '',
         foto_odometer: '',
         foto_stnk: '',
         foto_kir: '',
@@ -229,7 +235,7 @@ export const ServiceAdvisorView: React.FC = () => {
         cek_mesin: 'OK',
         cek_kelistrikan: 'OK',
         cek_kaki_kaki: 'OK',
-        catatan_kondisi_awal: 'Bodi mulus, mesin kering, kelistrikan normal',
+        catatan_kondisi_awal: '',
         estimasi_waktu_jam: 6,
         lead_time_jam: 6,
         catatan_sa: '',
@@ -302,20 +308,40 @@ export const ServiceAdvisorView: React.FC = () => {
       }
       setShowEstimasiModal(null);
       setSelectedParts([]);
-    }
+    },
+    onError: (err: any) => alert('Gagal submit estimasi: ' + err?.message),
   });
 
-  // Submit PR (Purchase Request ke Purchasing)
+  // Kirim Estimasi ke Customer (Waiting Approval)
+  const kirimEstimasiMutation = useMutation({
+    mutationFn: async (spk: SpkService) => {
+      return api.updateSpkStatus({
+        id: spk.id,
+        status_spk: 'Waiting Approval',
+      });
+    },
+    onSuccess: (_, spk) => {
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+
+      // Publish Realtime Event
+      realtimeHub.publish({
+        type: 'SPK_STATUS_CHANGED',
+        targetRoles: ['Customer Fleet'],
+        title: 'Estimasi Biaya Service Tersedia',
+        message: `Estimasi biaya untuk unit ${spk.no_polisi} (SPK: ${spk.no_spk}) telah siap. Mohon persetujuan Anda.`,
+        linkTab: 'web-fleet',
+        urgency: 'urgent',
+      });
+
+      alert(`Estimasi SPK ${spk.no_spk} berhasil dikirim ke Pelanggan Fleet!\nStatus sekarang: Waiting Approval.`);
+    },
+    onError: (err: any) => alert('Gagal mengirim estimasi: ' + err?.message),
+  });
+
+  // Buat PR (Purchase Request) jika Sparepart tidak Ready
   const prMutation = useMutation({
     mutationFn: async (spk: SpkService) => {
       const prNo = `PR-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
-      
-      // Update SPK status to Waiting Part
-      await api.updateSpkStatus({
-        id: spk.id,
-        status_spk: 'Waiting Part',
-      });
-
       return api.ajukanPR({
         no_pr: prNo,
         id_spk: spk.id,
@@ -358,14 +384,15 @@ export const ServiceAdvisorView: React.FC = () => {
       return true;
     },
     onSuccess: (_, pr) => {
-      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+
+      // Publish Realtime Event
       realtimeHub.publish({
-        type: 'SPK_STATUS_CHANGED',
+        type: 'PART_READY',
         targetRoles: ['Mekanik', 'Foreman', 'Customer Fleet'],
-        title: 'Barang Ready di Bengkel',
-        message: `Sparepart untuk SPK ${pr.no_spk || ''} (${pr.no_polisi || ''}) telah tiba di bengkel. Status SPK beralih ke 'Dalam Pengerjaan'.`,
+        title: 'Sparepart Tiba / Ready Stock',
+        message: `Part untuk unit telah tiba di bengkel. Pekerjaan dapat dilanjutkan kembali.`,
         linkTab: 'mekanik',
         urgency: 'success',
       });
@@ -386,7 +413,7 @@ export const ServiceAdvisorView: React.FC = () => {
 
       // 2. Buat Invoice otomatis
       const invNo = `INV-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
-      const subtotal = Number(spk.estimasi_biaya || 1110000);
+      const subtotal = Number(spk.estimasi_biaya || 0);
       const ppn = subtotal * 0.11;
       const grandTotal = subtotal + ppn;
 
@@ -400,7 +427,7 @@ export const ServiceAdvisorView: React.FC = () => {
         diskon: 0,
         grand_total: grandTotal,
         metode_pembayaran: 'Transfer Bank',
-        kasir_pic: 'Siti Rahma',
+        kasir_pic: 'Kasir',
       });
     },
     onSuccess: () => {
@@ -627,7 +654,7 @@ export const ServiceAdvisorView: React.FC = () => {
                         <StatusBadge status={spk.status_spk} size="sm" />
                       </td>
                       <td className="py-3 px-3 text-slate-600">
-                        {spk.nama_mekanik ? `${spk.nama_mekanik} (${spk.nama_foreman || 'Foreman'})` : 'Menunggu Foreman'}
+                        {spk.nama_mekanik ? `${spk.nama_mekanik}${spk.nama_foreman ? ` (${spk.nama_foreman})` : ''}` : 'Belum Ditugaskan'}
                       </td>
                       <td className="py-3 px-3 font-bold text-slate-800">
                         Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
@@ -712,7 +739,7 @@ export const ServiceAdvisorView: React.FC = () => {
                   <div className="flex items-start justify-between gap-3">
                     <span className="shrink-0">Mekanik / Foreman</span>
                     <span className="font-semibold text-slate-600 text-right">
-                      {spk.nama_mekanik ? `${spk.nama_mekanik} (${spk.nama_foreman || 'Foreman'})` : 'Menunggu Foreman'}
+                      {spk.nama_mekanik ? `${spk.nama_mekanik}${spk.nama_foreman ? ` (${spk.nama_foreman})` : ''}` : 'Belum Ditugaskan'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1087,7 +1114,7 @@ export const ServiceAdvisorView: React.FC = () => {
             <div className="sticky top-0 bg-white/90 backdrop-blur px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
               <div>
                 <h3 className="text-lg font-black text-slate-900">Buat Estimasi Biaya & Waktu</h3>
-                <p className="text-xs text-slate-500">Berdasarkan hasil pengecekan {showEstimasiModal.nama_foreman || 'Foreman'} untuk {showEstimasiModal.no_polisi}</p>
+                <p className="text-xs text-slate-500">Berdasarkan hasil pengecekan {showEstimasiModal.nama_foreman ? `Foreman (${showEstimasiModal.nama_foreman})` : 'Foreman'} untuk {showEstimasiModal.no_polisi}</p>
               </div>
               <button 
                 onClick={() => { setShowEstimasiModal(null); setSelectedParts([]); }} 
@@ -1321,7 +1348,7 @@ export const ServiceAdvisorView: React.FC = () => {
                 </div>
                 <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 flex items-center justify-between">
                   <span>Mekanik: <strong>{showFinalCheckModal.nama_mekanik || '-'}</strong></span>
-                  <span>Foreman: <strong>{showFinalCheckModal.nama_foreman || 'Foreman'}</strong></span>
+                  <span>Foreman: <strong>{showFinalCheckModal.nama_foreman || '-'}</strong></span>
                 </div>
               </div>
 

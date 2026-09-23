@@ -38,7 +38,7 @@ interface WebFleetCustomerViewProps {
 
 export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ initialMenu }) => {
   const queryClient = useQueryClient();
-  const { setActiveTab } = useAppStore();
+  const { setActiveTab, currentUser } = useAppStore();
   const [fleetMenu, setFleetMenu] = useState<'dashboard' | 'booking' | 'status' | 'history' | 'kendaraan' | 'dokumen' | 'profil'>(
     initialMenu || 'dashboard'
   );
@@ -52,12 +52,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Booking Wizard Step (image5.png Mockup 1)
   const [bookingStep, setBookingStep] = useState<number>(1);
   const [bookingForm, setBookingForm] = useState({
-    no_polisi: 'BK 5678 CD',
-    jenis_layanan: 'Service Berkala (Ganti Oli & Filter)',
+    no_polisi: '',
+    jenis_layanan: 'Service Berkala',
     tanggal_booking: new Date().toISOString().slice(0, 10),
     jam_booking: '09:00',
-    keluhan: 'Rem bunyi saat pengereman dan tarikan mesin agak berat.',
-    catatan: 'Harap dicek juga filter solar dan tekanan angin ban.',
+    keluhan: '',
+    catatan: '',
   });
 
   // Queries
@@ -180,13 +180,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [armadaForm, setArmadaForm] = useState({
     no_polisi: '',
     jenis_armada: 'Truk',
-    merk: 'Hino',
-    model: 'Dutro 130HD',
+    merk: '',
+    model: '',
     tahun: new Date().getFullYear(),
-    nama_pemilik: 'PT. Andi Jaya',
+    nama_pemilik: currentUser || '',
     no_rangka: '',
     no_mesin: '',
-    asuransi: 'Asuransi Astra',
+    asuransi: '',
     masa_berlaku_asuransi: '',
   });
 
@@ -213,13 +213,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       setArmadaForm({
         no_polisi: '',
         jenis_armada: 'Truk',
-        merk: 'Hino',
-        model: 'Dutro 130HD',
+        merk: '',
+        model: '',
         tahun: new Date().getFullYear(),
-        nama_pemilik: 'PT. Andi Jaya',
+        nama_pemilik: currentUser || '',
         no_rangka: '',
         no_mesin: '',
-        asuransi: 'Asuransi Astra',
+        asuransi: '',
         masa_berlaku_asuransi: '',
       });
     },
@@ -278,7 +278,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <Truck className="w-3.5 h-3.5 text-blue-300" />
                 Portal Monitoring Fleet KIM 3 Medan
               </div>
-              <h1 className="text-xl md:text-2xl font-black tracking-tight">Selamat Datang, PT. Andi Jaya</h1>
+              <h1 className="text-xl md:text-2xl font-black tracking-tight">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
               <p className="text-xs text-blue-200 mt-1 max-w-xl leading-relaxed">
                 Pantau status perbaikan armada, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK & KIR secara realtime.
               </p>
@@ -506,7 +506,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           <div>
             <h2 className="text-base font-bold text-slate-900">Tidak Ada Servis Berjalan</h2>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              Saat ini tidak ada unit armada PT. Andi Jaya yang sedang dalam proses pengerjaan di Bengkel KIM 3 Medan.
+              Saat ini tidak ada unit armada Anda yang sedang dalam proses pengerjaan di Bengkel KIM 3 Medan.
             </p>
           </div>
           <button
@@ -538,22 +538,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <h2 className="text-lg font-black text-slate-900">{activeTrackSpk.no_polisi}</h2>
                     <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">Service Berjalan</span>
                   </div>
-                  <p className="text-xs text-slate-500 font-semibold">{activeTrackSpk.nama_customer || 'PT. Andi Jaya'} | {activeTrackSpk.no_spk}</p>
+                  <p className="text-xs text-slate-500 font-semibold">{activeTrackSpk.nama_customer || '-'} | {activeTrackSpk.no_spk}</p>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-4 text-xs font-semibold">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Layanan:</span>
-                  <span className="text-slate-800">Service Berkala & Rem</span>
+                  <span className="text-slate-800">{activeTrackSpk.jenis_layanan || 'Service Kendaraan'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Waktu Check In:</span>
-                  <span className="text-slate-800">09:00 WIB</span>
+                  <span className="text-slate-800">{activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Estimasi Selesai (ETA):</span>
-                  <span className="text-blue-700 font-bold">15:00 WIB ({activeTrackSpk.lead_time_jam || 6} Jam)</span>
+                  <span className="text-blue-700 font-bold">{activeTrackSpk.estimasi_waktu_jam ? `${activeTrackSpk.estimasi_waktu_jam} Jam` : `${activeTrackSpk.lead_time_jam || '-'} Jam`}</span>
                 </div>
               </div>
             </div>
@@ -806,12 +806,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <div className="relative">
                         <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-white"></div>
                         <div className="font-semibold text-slate-900">Kendaraan Masuk di Pos Security</div>
-                        <div className="text-[11px] text-slate-500">Pukul 09:00 WIB | Petugas Security: Gate KIM3</div>
+                        <div className="text-[11px] text-slate-500">Pukul {activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | Pos Security KIM 3</div>
                       </div>
                       <div className="relative">
                         <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-white"></div>
                         <div className="font-semibold text-slate-900">Penerimaan & Cek Awal oleh SA</div>
-                        <div className="text-[11px] text-slate-500">Pukul 09:15 WIB | SA: {activeTrackSpk.nama_sa || 'Budi Santoso'} | Odometer: {activeTrackSpk.odometer_km ? `${activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM` : '125,680 KM'}</div>
+                        <div className="text-[11px] text-slate-500">Pukul {activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | SA: {activeTrackSpk.nama_sa || '-'} | Odometer: {activeTrackSpk.odometer_km ? `${activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</div>
                       </div>
                       <div className="relative">
                         <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${activeTrackSpk.status_spk === 'Waiting Part' ? 'bg-purple-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`}></div>
@@ -823,7 +823,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             : 'Pengerjaan Sedang Dilakukan oleh Mekanik'}
                         </div>
                         <div className="text-[11px] text-slate-500">
-                          Mekanik: {activeTrackSpk.nama_mekanik || 'Teknisi KIM3'} | Status SPK: <span className="font-medium text-slate-800">{activeTrackSpk.status_spk}</span>
+                          Mekanik: {activeTrackSpk.nama_mekanik || 'Belum Ditugaskan'} | Status SPK: <span className="font-medium text-slate-800">{activeTrackSpk.status_spk}</span>
                         </div>
                       </div>
                       {(activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai') && (
@@ -881,28 +881,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </div>
                         ))
                       ) : (
-                        <>
-                          <div className="p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold text-slate-800">Service Berkala & Tune Up Mesin</div>
-                              <div className="text-[11px] text-slate-400">Pembersihan filter, busi, dan kalibrasi mesin</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-slate-900">Rp 350.000</div>
-                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Disetujui</span>
-                            </div>
-                          </div>
-                          <div className="p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold text-slate-800">Pengecekan & Servis Sistem Rem</div>
-                              <div className="text-[11px] text-slate-400">Pembersihan tromol dan bleed minyak rem</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-slate-900">Rp 150.000</div>
-                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Disetujui</span>
-                            </div>
-                          </div>
-                        </>
+                        <div className="p-4 text-center text-xs text-slate-400">
+                          Belum ada rincian jasa pengerjaan untuk unit ini.
+                        </div>
                       )}
                     </div>
                   </div>
@@ -912,7 +893,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="bg-slate-100 px-4 py-2.5 font-bold text-slate-800 flex justify-between items-center">
                       <span>Daftar Sparepart & Material</span>
                       <span className="text-[11px] text-slate-500 font-normal">
-                        {activeParts.length > 0 ? `${activeParts.length} Item Part` : 'Estimasi Material'}
+                        {activeParts.length > 0 ? `${activeParts.length} Item Part` : '0 Item Part'}
                       </span>
                     </div>
                     <div className="divide-y divide-slate-100 bg-white">
@@ -930,38 +911,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </div>
                         ))
                       ) : (
-                        <>
-                          <div className="p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold text-slate-800">Filter Oli Genuine Hino Dutro</div>
-                              <div className="text-[11px] text-slate-400">Qty: 1 pcs @ Rp 85.000</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-slate-900">Rp 85.000</div>
-                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Ready Stock</span>
-                            </div>
-                          </div>
-                          <div className="p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold text-slate-800">Oli Mesin Meditran SX 15W-40</div>
-                              <div className="text-[11px] text-slate-400">Qty: 8 Liter @ Rp 60.000</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-slate-900">Rp 480.000</div>
-                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Ready Stock</span>
-                            </div>
-                          </div>
-                          <div className="p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold text-slate-800">Brake Pad Depan Genuine</div>
-                              <div className="text-[11px] text-slate-400">Qty: 1 set @ Rp 420.000</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-slate-900">Rp 420.000</div>
-                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Ready Stock</span>
-                            </div>
-                          </div>
-                        </>
+                        <div className="p-4 text-center text-xs text-slate-400">
+                          Belum ada rincian sparepart untuk unit ini.
+                        </div>
                       )}
                     </div>
                   </div>
@@ -977,7 +929,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       Keluhan Awal Customer (Driver / PIC Armada):
                     </div>
                     <p className="text-slate-800 font-medium italic pl-6">
-                      "{activeTrackSpk.keluhan_customer || 'Tarikan mesin terasa berat dan rem bergetar saat muatan penuh.'}"
+                      "{activeTrackSpk.keluhan_customer || '-'}"
                     </p>
                   </div>
 
@@ -987,25 +939,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <FileCheck className="w-4 h-4 text-blue-600" />
                         Catatan Service Advisor (SA):
                       </div>
-                      <ul className="space-y-1.5 text-slate-600 pl-4 list-disc">
-                        <li>Kondisi fisik body luar: wajar pemakaian armada logistik.</li>
-                        <li>Odometer masuk tercatat: {activeTrackSpk.odometer_km ? `${activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM` : '125,680 KM'}.</li>
-                        <li>Kelengkapan: Ban serep, dongkrak, dan tool kit lengkap.</li>
-                        <li>Tingkat urgensi: Reguler Service sesuai jadwal operasional.</li>
-                      </ul>
+                      <div className="text-slate-700 text-xs">
+                        {activeTrackSpk.catatan_sa || activeTrackSpk.catatan_kondisi_awal || 'Belum ada catatan dari Service Advisor.'}
+                      </div>
+                      {activeTrackSpk.odometer_km ? (
+                        <div className="text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/60">
+                          Odometer tercatat: <strong>{activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM</strong>
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                       <div className="font-bold text-slate-800 flex items-center gap-2">
                         <Wrench className="w-4 h-4 text-slate-700" />
-                        Catatan & Temuan Mekanik:
+                        Catatan & Temuan Teknisi / Foreman:
                       </div>
-                      <ul className="space-y-1.5 text-slate-600 pl-4 list-disc">
-                        <li>Filter udara masih dalam toleransi bersih (telah disemprot kompresor).</li>
-                        <li>Tebal kampas rem depan sisa 25%, direkomendasikan penggantian segera.</li>
-                        <li>Kebocoran oli mesin tidak terdeteksi pada baut karter.</li>
-                        <li>Tekanan angin ban telah disesuaikan standar pabrikan (45 PSI).</li>
-                      </ul>
+                      <div className="text-slate-700 text-xs">
+                        {activeTrackSpk.catatan_foreman || 'Belum ada catatan temuan teknisi untuk unit ini.'}
+                      </div>
                     </div>
                   </div>
 
@@ -1256,6 +1207,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   rows={2}
                   value={bookingForm.keluhan}
                   onChange={(e) => setBookingForm({ ...bookingForm, keluhan: e.target.value })}
+                  placeholder="Contoh: Rem bunyi saat pengereman dan tarikan mesin agak berat..."
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
@@ -1377,7 +1329,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-slate-900">Armada Kendaraan Perusahaan</h2>
-              <p className="text-xs text-slate-500">Daftar unit truk dan kendaraan operasional PT. Andi Jaya</p>
+              <p className="text-xs text-slate-500">Daftar unit truk dan kendaraan operasional armada Anda</p>
             </div>
             <button
               type="button"
@@ -1550,38 +1502,38 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <span className="font-bold text-slate-900 block text-sm">Informasi Perusahaan:</span>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Nama Perusahaan:</span>
-                  <span className="font-bold text-slate-800">PT. Andi Jaya</span>
+                  <span className="text-slate-400 block text-[10px]">Nama Perusahaan / Entitas:</span>
+                  <span className="font-bold text-slate-800">{currentUser || 'Customer Fleet'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">NPWP:</span>
-                  <span className="font-mono font-semibold text-slate-800">01.234.567.8-901.000</span>
+                  <span className="text-slate-400 block text-[10px]">Tipe Kemitraan:</span>
+                  <span className="font-semibold text-slate-800">Prioritas Bengkel Mitra KIM 3</span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-slate-400 block text-[10px]">Alamat Workshop / Kantor:</span>
-                  <span className="font-semibold text-slate-800">Jl. Industri Raya No. 88, Medan, Sumatera Utara 20152</span>
+                  <span className="text-slate-400 block text-[10px]">Area Operasional:</span>
+                  <span className="font-semibold text-slate-800">Kawasan Industri Medan (KIM 1, 2, 3) & Sekitarnya</span>
                 </div>
               </div>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <span className="font-bold text-slate-900 block text-sm">Kontak PIC Utama:</span>
+              <span className="font-bold text-slate-900 block text-sm">Kontak PIC / Penanggung Jawab:</span>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Nama PIC:</span>
-                  <span className="font-bold text-slate-800">Hisar</span>
+                  <span className="text-slate-400 block text-[10px]">Nama Akun:</span>
+                  <span className="font-bold text-slate-800">{currentUser || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Jabatan:</span>
-                  <span className="font-semibold text-slate-800">Warehouse & Fleet Manager</span>
+                  <span className="text-slate-400 block text-[10px]">Peran Pengguna:</span>
+                  <span className="font-semibold text-slate-800">Customer Fleet</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">No. Telepon / WhatsApp:</span>
-                  <span className="font-semibold text-slate-800">0812-3456-7890</span>
+                  <span className="text-slate-400 block text-[10px]">Status Akun:</span>
+                  <span className="font-semibold text-emerald-700">Aktif Terverifikasi</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Email:</span>
-                  <span className="font-semibold text-slate-800">hisar@andijaya.com</span>
+                  <span className="text-slate-400 block text-[10px]">Notifikasi Terhubung:</span>
+                  <span className="font-semibold text-slate-800">Web Portal & Realtime Push</span>
                 </div>
               </div>
             </div>
@@ -1738,6 +1690,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
                   >
+                    <option value="">-- Pilih Merk --</option>
                     <option value="Hino">Hino</option>
                     <option value="Mitsubishi Fuso">Mitsubishi Fuso</option>
                     <option value="Isuzu">Isuzu</option>
@@ -1752,7 +1705,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <label className="block text-xs font-bold text-slate-700 mb-1">Model / Seri</label>
                   <input
                     type="text"
-                    placeholder="Dutro 130HD"
+                    placeholder="Contoh: Dutro 130HD"
                     value={armadaForm.model}
                     onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"

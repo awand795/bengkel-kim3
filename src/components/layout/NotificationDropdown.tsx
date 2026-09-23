@@ -228,7 +228,7 @@ export const NotificationDropdown: React.FC = () => {
     const activeJobs = (spkList || []).filter(
       (s) =>
         s.status_spk === 'Dalam Pengerjaan' &&
-        (!s.nama_mekanik || s.nama_mekanik.includes('Andi') || s.nama_mekanik === currentUser)
+        (!s.nama_mekanik || s.nama_mekanik === currentUser)
     );
     activeJobs.forEach((s) => {
       notifications.push({

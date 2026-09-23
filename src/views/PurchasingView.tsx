@@ -33,15 +33,15 @@ export const PurchasingView: React.FC = () => {
 
   // Form Input Penawaran 2 Vendor & ETA State (image1.png Kotak Merah)
   const [poForm, setPoForm] = useState({
-    vendor_1_nama: 'PT. Sumber Sparepart Utama',
-    vendor_1_harga: 820000,
-    vendor_2_nama: 'CV. Berkah Motor KIM',
-    vendor_2_harga: 800000,
-    vendor_terpilih: 'CV. Berkah Motor KIM',
-    harga_kesepakatan: 800000,
+    vendor_1_nama: '',
+    vendor_1_harga: 0,
+    vendor_2_nama: '',
+    vendor_2_harga: 0,
+    vendor_terpilih: '',
+    harga_kesepakatan: 0,
     estimasi_tanggal_ready_eta: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-    estimasi_jam_ready_eta: '14:00',
-    catatan_purchasing: 'Barang dikirim dari distributor besok siang, estimasi sampai jam 14:00 WIB.',
+    estimasi_jam_ready_eta: '',
+    catatan_purchasing: '',
   });
 
   // Queries
@@ -412,6 +412,7 @@ export const PurchasingView: React.FC = () => {
                     <label className="block text-[10px] font-bold text-slate-700 mb-1">Vendor Terpilih</label>
                     <input
                       type="text"
+                      placeholder="Contoh: CV. Berkah Motor KIM"
                       value={poForm.vendor_terpilih}
                       onChange={(e) => setPoForm({ ...poForm, vendor_terpilih: e.target.value })}
                       className="w-full px-2.5 py-1.5 rounded-lg border border-purple-300 text-xs font-semibold focus:outline-none"
@@ -421,7 +422,8 @@ export const PurchasingView: React.FC = () => {
                     <label className="block text-[10px] font-bold text-slate-700 mb-1">Harga Deal (Rp)</label>
                     <input
                       type="number"
-                      value={poForm.harga_kesepakatan}
+                      placeholder="Contoh: 800000"
+                      value={poForm.harga_kesepakatan || ''}
                       onChange={(e) => setPoForm({ ...poForm, harga_kesepakatan: Number(e.target.value) })}
                       className="w-full px-2.5 py-1.5 rounded-lg border border-purple-300 font-mono font-bold text-xs focus:outline-none"
                     />
@@ -457,6 +459,7 @@ export const PurchasingView: React.FC = () => {
                   <label className="block text-[10px] font-bold text-slate-700 mb-1">Catatan Purchasing untuk SA</label>
                   <textarea
                     rows={2}
+                    placeholder="Contoh: Barang dikirim dari distributor besok siang, estimasi sampai jam 14:00 WIB."
                     value={poForm.catatan_purchasing}
                     onChange={(e) => setPoForm({ ...poForm, catatan_purchasing: e.target.value })}
                     className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-none"

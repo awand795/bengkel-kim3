@@ -107,7 +107,7 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
                 </div>
                 <div className="flex">
                   <span className="w-32 text-slate-500">Petugas Security</span>
-                  <span className="font-semibold text-slate-800">: {memo.petugas_security || 'Hisar Pardede'}</span>
+                  <span className="font-semibold text-slate-800">: {memo.petugas_security || '( Petugas Security )'}</span>
                 </div>
               </div>
 
@@ -173,7 +173,7 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
             <div className="grid grid-cols-2 gap-8 text-center text-[11px] pt-4 border-t border-slate-300 avoid-break">
               <div>
                 <div className="text-slate-500 font-semibold mb-14">Petugas Security Pos Utama</div>
-                <div className="font-bold text-slate-900 underline">{memo.petugas_security || 'Hisar Pardede'}</div>
+                <div className="font-bold text-slate-900 underline">{memo.petugas_security || '( Petugas Security )'}</div>
                 <div className="text-[10px] text-slate-400">Security Gate Control KIM 3</div>
               </div>
 

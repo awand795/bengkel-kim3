@@ -103,7 +103,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                 </div>
                 <div className="flex">
                   <span className="w-28 text-slate-500">Service Advisor</span>
-                  <span className="font-semibold text-slate-800">: {spk.nama_sa || 'Budi Santoso'}</span>
+                  <span className="font-semibold text-slate-800">: {spk.nama_sa || '-'}</span>
                 </div>
               </div>
 
@@ -122,7 +122,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                 </div>
                 <div className="flex">
                   <span className="w-28 text-slate-500">Mekanik Ditugaskan</span>
-                  <span className="font-bold text-blue-700">: {spk.nama_mekanik || 'Andi Wijaya'}</span>
+                  <span className="font-bold text-blue-700">: {spk.nama_mekanik || 'Belum Ditugaskan'}</span>
                 </div>
               </div>
             </div>
@@ -251,19 +251,19 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
             <div className="grid grid-cols-4 gap-2 text-center text-[11px] pt-2 border-t border-slate-300 avoid-break">
               <div>
                 <div className="text-slate-500 font-semibold mb-12">Service Advisor (SA)</div>
-                <div className="font-bold text-slate-900 underline">{spk.nama_sa || 'Budi Santoso'}</div>
+                <div className="font-bold text-slate-900 underline">{spk.nama_sa || '( Service Advisor )'}</div>
                 <div className="text-[10px] text-slate-400">Penerima &amp; Estimator</div>
               </div>
 
               <div>
                 <div className="text-slate-500 font-semibold mb-12">Foreman / QC</div>
-                <div className="font-bold text-slate-900 underline">{spk.nama_foreman || 'Joko Susilo'}</div>
+                <div className="font-bold text-slate-900 underline">{spk.nama_foreman || '( Foreman )'}</div>
                 <div className="text-[10px] text-slate-400">Supervisor &amp; Pengawas</div>
               </div>
 
               <div>
                 <div className="text-slate-500 font-semibold mb-12">Mekanik Pelaksana</div>
-                <div className="font-bold text-slate-900 underline">{spk.nama_mekanik || 'Andi Wijaya'}</div>
+                <div className="font-bold text-slate-900 underline">{spk.nama_mekanik || '( Mekanik )'}</div>
                 <div className="text-[10px] text-slate-400">Teknisi Pengerjaan</div>
               </div>
 

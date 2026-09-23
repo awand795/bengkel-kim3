@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
@@ -39,7 +39,7 @@ export const ForemanView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'Semua' | 'Perlu Ditugaskan' | 'Dalam Pengerjaan' | 'Waiting QC'>('Semua');
 
   // Assign Mekanik State
-  const [selectedMekanik, setSelectedMekanik] = useState('Andi Wijaya');
+  const [selectedMekanik, setSelectedMekanik] = useState('');
 
   // Input Perbaikan Hasil Pengecekan State (image1.png Mockup 5)
   const [hasilPengecekan, setHasilPengecekan] = useState({
@@ -75,6 +75,22 @@ export const ForemanView: React.FC = () => {
     refetchInterval: 10000,
   });
 
+  // Query pengguna dinamis untuk list mekanik
+  const { data: penggunaList } = useQuery({
+    queryKey: ['pengguna-list'],
+    queryFn: api.getPengguna,
+  });
+
+  const mekanikList = (penggunaList || []).filter(
+    (u) => u.peran === 'Mekanik' && u.status_aktif !== false
+  );
+
+  useEffect(() => {
+    if (!selectedMekanik && mekanikList.length > 0) {
+      setSelectedMekanik(mekanikList[0].nama_lengkap);
+    }
+  }, [mekanikList, selectedMekanik]);
+
   const todayFormatted = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
     day: 'numeric',
@@ -82,66 +98,8 @@ export const ForemanView: React.FC = () => {
     year: 'numeric'
   });
 
-  const DEFAULT_BOOKING_FOREMAN: BookingService[] = [
-    {
-      id: 101,
-      no_booking: 'BK250503-001',
-      no_polisi: 'BK 1234 AB',
-      nama_customer: 'PT. Andi Jaya',
-      nama_perusahaan: 'PT. Andi Jaya',
-      tujuan_kunjungan: 'Service',
-      jenis_layanan: 'Service Berkala 20.000 KM',
-      jenis_armada: 'Truk',
-      tanggal_booking: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
-      jam_booking: '08:00',
-      no_telepon: '0812-3456-7890',
-      pic_driver: 'Slamet Riyadi',
-      keterangan: 'Keluhan: Rem bergetar & ganti oli rutin',
-      status: 'Check In',
-      prioritas: 'Prioritas Booking',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 102,
-      no_booking: 'BK250503-002',
-      no_polisi: 'BK 5678 CD',
-      nama_customer: 'CV. Sinar Abadi',
-      nama_perusahaan: 'CV. Sinar Abadi',
-      tujuan_kunjungan: 'Service',
-      jenis_layanan: 'Perbaikan Kaki-kaki & Bearing',
-      jenis_armada: 'Truk',
-      tanggal_booking: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
-      jam_booking: '09:30',
-      no_telepon: '0813-9876-5432',
-      pic_driver: 'Hendra Gunawan',
-      keterangan: 'Pengecekan bearing roda depan & bushing arm',
-      status: 'Booked',
-      prioritas: 'Prioritas Booking',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 104,
-      no_booking: 'BK250503-004',
-      no_polisi: 'BK 2468 GH',
-      nama_customer: 'PT. Sejahtera',
-      nama_perusahaan: 'PT. Sejahtera',
-      tujuan_kunjungan: 'Service',
-      jenis_layanan: 'Tune Up & Filter Udara',
-      jenis_armada: 'Truk',
-      tanggal_booking: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
-      jam_booking: '11:00',
-      no_telepon: '0852-7788-9900',
-      pic_driver: 'Rudi Hartono',
-      keterangan: 'Tarikan mesin berat saat muatan penuh',
-      status: 'Booked',
-      prioritas: 'Prioritas Booking',
-      created_at: new Date().toISOString(),
-    },
-  ];
-
-  const bookingList: BookingService[] = rawBookingList && rawBookingList.length > 0
-    ? rawBookingList
-    : DEFAULT_BOOKING_FOREMAN;
+  // Murni hasil fetch API booking tanpa mock data
+  const bookingList: BookingService[] = rawBookingList || [];
 
   // Filter booking khusus service hari ini
   const todayBookings = bookingList.filter(
@@ -633,10 +591,15 @@ export const ForemanView: React.FC = () => {
                     onChange={(e) => setSelectedMekanik(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   >
-                    <option value="Andi Wijaya">Andi Wijaya (Spesialis Rem & Kaki-kaki)</option>
-                    <option value="Dedi Kurniawan">Dedi Kurniawan (Spesialis Mesin & Transmisi)</option>
-                    <option value="Budi Santoso">Budi Santoso (Mekanik Umum)</option>
-                    <option value="Riki Prayoga">Riki Prayoga (Mekanik Kelistrikan)</option>
+                    {mekanikList.length === 0 ? (
+                      <option value="">Memuat daftar mekanik...</option>
+                    ) : (
+                      mekanikList.map((m) => (
+                        <option key={m.id} value={m.nama_lengkap}>
+                          {m.nama_lengkap} (Teknisi Mekanik)
+                        </option>
+                      ))
+                    )}
                   </select>
 
                   <button

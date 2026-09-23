@@ -27,20 +27,20 @@ export const MekanikView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'tugas' | 'riwayat'>('tugas');
   const [activeJob, setActiveJob] = useState<SpkService | null>(null);
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
-  const [jobTimerSeconds, setJobTimerSeconds] = useState(3600); // 1 hour simulated
+  const [jobTimerSeconds, setJobTimerSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isManualPaused, setIsManualPaused] = useState(false);
   const [autoPausedReason, setAutoPausedReason] = useState<string | null>(null);
   const [showTambahanModal, setShowTambahanModal] = useState(false);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
 
-  // Form Tambahan Pekerjaan State (image1.png Mockup 6)
+  // Form Tambahan Pekerjaan State
   const [tambahanForm, setTambahanForm] = useState({
-    deskripsi_tambahan: 'Ditemukan kebocoran oli pada seal power steering & as roda',
-    rekomendasi_perbaikan: '1. Ganti Seal Oli Power Steering\n2. Kuras & Tambah Oli Power Steering',
-    estimasi_biaya_tambahan: 290000,
-    estimasi_waktu_tambahan_jam: 1,
-    catatan: 'Perlu diganti agar tidak merembes ke belt alternator.',
+    deskripsi_tambahan: '',
+    rekomendasi_perbaikan: '',
+    estimasi_biaya_tambahan: 0,
+    estimasi_waktu_tambahan_jam: 0,
+    catatan: '',
   });
 
   // Queries
@@ -190,7 +190,7 @@ export const MekanikView: React.FC = () => {
         estimasi_biaya_tambahan: tambahanForm.estimasi_biaya_tambahan,
         estimasi_waktu_tambahan_jam: tambahanForm.estimasi_waktu_tambahan_jam,
         diajukan_oleh_mekanik: currentUser,
-        diverifikasi_foreman: myJob?.nama_foreman || 'Foreman',
+        diverifikasi_foreman: myJob?.nama_foreman || undefined,
         catatan: tambahanForm.catatan,
       });
     },
@@ -311,7 +311,7 @@ export const MekanikView: React.FC = () => {
             </p>
             <div className="pt-2 border-t border-slate-200 flex flex-wrap gap-4 text-slate-600">
               <span>Odometer: <strong>{myJob.odometer_km?.toLocaleString()} KM</strong></span>
-              <span>Foreman: <strong>{myJob.nama_foreman || 'Foreman'}</strong></span>
+              <span>Foreman: <strong>{myJob.nama_foreman || 'Belum Ditugaskan'}</strong></span>
               <span>Lead Time: <strong>{myJob.lead_time_jam} Jam</strong></span>
             </div>
           </div>
@@ -476,6 +476,7 @@ export const MekanikView: React.FC = () => {
                 </label>
                 <textarea
                   rows={2}
+                  placeholder="Contoh: Ditemukan kebocoran oli pada seal power steering & as roda"
                   value={tambahanForm.deskripsi_tambahan}
                   onChange={(e) => setTambahanForm({ ...tambahanForm, deskripsi_tambahan: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
@@ -488,6 +489,7 @@ export const MekanikView: React.FC = () => {
                 </label>
                 <textarea
                   rows={2}
+                  placeholder="Contoh: 1. Ganti Seal Oli Power Steering&#10;2. Kuras & Tambah Oli Power Steering"
                   value={tambahanForm.rekomendasi_perbaikan}
                   onChange={(e) => setTambahanForm({ ...tambahanForm, rekomendasi_perbaikan: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
@@ -499,7 +501,8 @@ export const MekanikView: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Estimasi Biaya Tambahan (Rp)</label>
                   <input
                     type="number"
-                    value={tambahanForm.estimasi_biaya_tambahan}
+                    placeholder="Contoh: 290000"
+                    value={tambahanForm.estimasi_biaya_tambahan || ''}
                     onChange={(e) => setTambahanForm({ ...tambahanForm, estimasi_biaya_tambahan: Number(e.target.value) })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-xs focus:outline-none"
                   />
@@ -508,7 +511,8 @@ export const MekanikView: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Waktu Tambahan (Jam)</label>
                   <input
                     type="number"
-                    value={tambahanForm.estimasi_waktu_tambahan_jam}
+                    placeholder="Contoh: 1"
+                    value={tambahanForm.estimasi_waktu_tambahan_jam || ''}
                     onChange={(e) => setTambahanForm({ ...tambahanForm, estimasi_waktu_tambahan_jam: Number(e.target.value) })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-xs focus:outline-none"
                   />
@@ -519,6 +523,7 @@ export const MekanikView: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan untuk Customer & SA</label>
                 <input
                   type="text"
+                  placeholder="Contoh: Perlu diganti agar tidak merembes ke belt alternator."
                   value={tambahanForm.catatan}
                   onChange={(e) => setTambahanForm({ ...tambahanForm, catatan: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none"

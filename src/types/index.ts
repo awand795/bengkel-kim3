@@ -177,6 +177,7 @@ export interface SpkService {
   waktu_fir_closed?: string;
   waktu_check_out?: string;
   lead_time_jam?: number;
+  jenis_layanan?: string;
   catatan_sa?: string;
   catatan_foreman?: string;
   created_at: string;
@@ -305,6 +306,8 @@ export interface TransaksiBeliPart {
   lokasi_rak?: string;
   foto_penyerahan?: string;
   catatan?: string;
+  sa_pic?: string;
+  kasir_pic?: string;
   created_at: string;
 }
 

@@ -21,21 +21,21 @@ interface AppState {
   decrementNotification: () => void;
 }
 
-const roleDefaults: Record<PeranUser, { user: string; defaultTab: string }> = {
-  'SA': { user: 'Budi Santoso', defaultTab: 'dashboard' },
-  'Foreman': { user: 'Joko Susilo', defaultTab: 'dashboard' },
-  'Mekanik': { user: 'Andi Wijaya', defaultTab: 'dashboard' },
-  'Admin Purchasing': { user: 'Rina Marlina', defaultTab: 'dashboard' },
-  'Admin Invoice': { user: 'Siti Rahma', defaultTab: 'dashboard' },
-  'Security': { user: 'Hisar Pardede', defaultTab: 'security-dashboard' },
-  'Customer Fleet': { user: 'PT. Andi Jaya', defaultTab: 'fleet-dashboard' },
-  'PIC Terkait': { user: 'PIC Bengkel KIM 3', defaultTab: 'dashboard' },
-  'Warehouse': { user: 'Hisar', defaultTab: 'beli-part' },
+const roleDefaultTabs: Record<PeranUser, string> = {
+  'SA': 'dashboard',
+  'Foreman': 'dashboard',
+  'Mekanik': 'dashboard',
+  'Admin Purchasing': 'dashboard',
+  'Admin Invoice': 'dashboard',
+  'Security': 'security-dashboard',
+  'Customer Fleet': 'fleet-dashboard',
+  'PIC Terkait': 'dashboard',
+  'Warehouse': 'beli-part',
 };
 
 // Initial state from localStorage
 const savedToken = typeof localStorage !== 'undefined' ? localStorage.getItem('bengkel_jwt_token') : null;
-let initialUser = 'Budi Santoso';
+let initialUser = '';
 let initialRole: PeranUser = 'SA';
 
 try {
@@ -49,31 +49,29 @@ try {
   console.error('Failed to parse saved auth user:', e);
 }
 
-const initialDefault = roleDefaults[initialRole] || { user: 'User', defaultTab: 'sa' };
-
 export const useAppStore = create<AppState>((set) => ({
   currentRole: initialRole,
-  currentUser: initialUser || initialDefault.user,
-  activeTab: initialDefault.defaultTab,
+  currentUser: initialUser,
+  activeTab: roleDefaultTabs[initialRole] || 'dashboard',
   selectedSpkId: null,
-  notificationCount: 3,
+  notificationCount: 0,
   mobileMenuOpen: false,
   jwtToken: savedToken,
-  isLoggedIn: !!savedToken,
+  isLoggedIn: !!savedToken && !!initialUser,
 
   setRole: (role: PeranUser, user?: string) => {
-    const defaultData = roleDefaults[role] || { user: 'User', defaultTab: 'dashboard' };
+    const defaultTab = roleDefaultTabs[role] || 'dashboard';
     set({
       currentRole: role,
-      currentUser: user || defaultData.user,
-      activeTab: defaultData.defaultTab,
+      currentUser: user || '',
+      activeTab: defaultTab,
       mobileMenuOpen: false,
     });
   },
 
   loginUser: (user: Partial<AuthUser>, token: string, refreshToken?: string) => {
     const role = (user.peran as PeranUser) || 'SA';
-    const defaultData = roleDefaults[role] || { user: user.nama_lengkap || 'User', defaultTab: 'dashboard' };
+    const defaultTab = roleDefaultTabs[role] || 'dashboard';
     
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('bengkel_jwt_token', token);
@@ -84,9 +82,9 @@ export const useAppStore = create<AppState>((set) => ({
     set({
       jwtToken: token,
       isLoggedIn: true,
-      currentUser: user.nama_lengkap || defaultData.user,
+      currentUser: user.nama_lengkap || '',
       currentRole: role,
-      activeTab: defaultData.defaultTab,
+      activeTab: defaultTab,
     });
   },
 
@@ -99,6 +97,7 @@ export const useAppStore = create<AppState>((set) => ({
     set({
       jwtToken: null,
       isLoggedIn: false,
+      currentUser: '',
     });
   },
 

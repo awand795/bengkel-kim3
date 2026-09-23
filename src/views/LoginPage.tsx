@@ -466,42 +466,6 @@ export const LoginPage: React.FC = () => {
                   )}
                 </button>
               </div>
-
-              {/* Quick Demo Accounts Selector */}
-              <div className="mt-5 pt-4 border-t border-slate-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                    Pilih Akun Demo (Klik untuk Isi)
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">pass: password123</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    { role: 'Security', user: 'security_hisar', name: 'Hisar (Security Gerbang)', color: 'bg-amber-50/80 text-amber-800 border-amber-200 hover:bg-amber-100' },
-                    { role: 'SA', user: 'sa_budi', name: 'Budi (Service Advisor)', color: 'bg-blue-50/80 text-blue-800 border-blue-200 hover:bg-blue-100' },
-                    { role: 'Customer Fleet', user: 'fleet_andijaya', name: 'PT. Andi Jaya (Customer)', color: 'bg-sky-50/80 text-sky-800 border-sky-200 hover:bg-sky-100' },
-                    { role: 'Foreman', user: 'foreman_joko', name: 'Joko (Foreman QC)', color: 'bg-indigo-50/80 text-indigo-800 border-indigo-200 hover:bg-indigo-100' },
-                    { role: 'Mekanik', user: 'mekanik_andi', name: 'Andi (Mekanik)', color: 'bg-emerald-50/80 text-emerald-800 border-emerald-200 hover:bg-emerald-100' },
-                    { role: 'Admin Purchasing', user: 'purchasing_rina', name: 'Rina (Purchasing)', color: 'bg-purple-50/80 text-purple-800 border-purple-200 hover:bg-purple-100' },
-                    { role: 'Admin Invoice', user: 'kasir_siti', name: 'Siti (Kasir / Inv)', color: 'bg-teal-50/80 text-teal-800 border-teal-200 hover:bg-teal-100' },
-                    { role: 'PIC Terkait', user: 'pic_rudy', name: 'Rudy (PIC Tamu)', color: 'bg-cyan-50/80 text-cyan-800 border-cyan-200 hover:bg-cyan-100' },
-                  ].map((acc) => (
-                    <button
-                      key={acc.user}
-                      type="button"
-                      onClick={() => {
-                        setUsername(acc.user);
-                        setPassword('password123');
-                      }}
-                      className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${acc.color}`}
-                    >
-                      <div className="font-bold text-[11px] truncate leading-tight">{acc.name}</div>
-                      <div className="text-[10px] opacity-70 font-mono truncate mt-0.5">user: {acc.user}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </form>
           )}
 
@@ -525,7 +489,7 @@ export const LoginPage: React.FC = () => {
                     required
                     value={regForm.nama_lengkap}
                     onChange={(e) => setRegForm({ ...regForm, nama_lengkap: e.target.value })}
-                    placeholder="Contoh: Andi Wijaya, S.T."
+                    placeholder="Masukkan nama lengkap..."
                     className="block w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-300 text-slate-900 focus:ring-2 focus:ring-blue-800 focus:border-blue-800 placeholder-slate-400 bg-white transition-all outline-hidden"
                   />
                 </div>

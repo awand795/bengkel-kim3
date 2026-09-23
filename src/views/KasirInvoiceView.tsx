@@ -375,7 +375,7 @@ export const KasirInvoiceView: React.FC = () => {
                 <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
                   <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
                   <div className="text-sm font-bold text-emerald-900">FAKTUR SUDAH LUNAS (PAID)</div>
-                  <div className="text-xs text-emerald-700">Metode: {activeInv.metode_pembayaran} | Kasir: {activeInv.kasir_pic || 'Siti Rahma'}</div>
+                  <div className="text-xs text-emerald-700">Metode: {activeInv.metode_pembayaran} | Kasir: {activeInv.kasir_pic || 'Kasir'}</div>
                   <button
                     onClick={() => setShowPrintModal(true)}
                     className="w-full mt-2 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"

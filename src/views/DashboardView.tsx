@@ -91,7 +91,7 @@ export const DashboardView: React.FC = () => {
               <span>📋 Dashboard Operasional Service Advisor</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Budi Santoso'} (SA)
+              Halo, {currentUser || 'Service Advisor'}
             </h1>
             <p className="text-xs sm:text-sm text-blue-100 mt-1 max-w-2xl leading-relaxed">
               Pantau antrian unit yang baru check-in dari Pos Security, buat estimasi &amp; SPK, kelola kotak merah sparepart, dan lakukan serah terima kendaraan selesai.
@@ -323,7 +323,7 @@ export const DashboardView: React.FC = () => {
               <span>🔧 Dashboard Foreman &amp; Quality Control (QC)</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Joko Susilo'} (Foreman)
+              Halo, {currentUser || 'Foreman'}
             </h1>
             <p className="text-xs sm:text-sm text-amber-100 mt-1 max-w-2xl leading-relaxed">
               Atur alokasi pengerjaan mekanik di stall, monitor waktu pengerjaan live stopwatch, verifikasi pekerjaan tambahan, dan lakukan inspeksi Final Inspection Report (FIR).
@@ -544,7 +544,7 @@ export const DashboardView: React.FC = () => {
               <span>⏱️ Dashboard Mekanik Bengkel</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Andi Wijaya'} (Mekanik)
+              Halo, {currentUser || 'Mekanik'}
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100 mt-1 max-w-2xl leading-relaxed">
               Lihat perintah kerja SPK yang ditugaskan ke Anda, jalankan timer stopwatch pengerjaan, dan laporkan temuan kerusakan tambahan bila ditemukan saat servis.
@@ -832,7 +832,7 @@ export const DashboardView: React.FC = () => {
                           <div className="font-bold text-slate-900">{item.no_polisi}</div>
                           <div className="text-[11px] text-slate-500">{item.nama_customer || '-'}</div>
                         </td>
-                        <td className="py-3 px-3 text-slate-700">{item.nama_sa_pemohon || 'Budi SA'}</td>
+                        <td className="py-3 px-3 text-slate-700">{item.nama_sa_pemohon || '-'}</td>
                         <td className="py-3 px-3">
                           <StatusBadge status={item.status_pr} size="sm" />
                         </td>
@@ -910,7 +910,7 @@ export const DashboardView: React.FC = () => {
               <span>💳 Dashboard Kasir &amp; Faktur Tagihan</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Siti Rahma'} (Kasir)
+              Halo, {currentUser || 'Kasir'}
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100 mt-1 max-w-2xl leading-relaxed">
               Terbitkan faktur tagihan untuk SPK yang telah FIR Closed, catat pelunasan kas masuk, kelola transaksi beli part langsung, dan terbitkan memo keluar resmi.

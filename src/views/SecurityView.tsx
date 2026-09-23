@@ -41,307 +41,9 @@ interface SecurityViewProps {
   initialTab?: 'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo';
 }
 
-// Fallback seed data matching the Excel sheet screenshots
-const DEFAULT_BOOKING_MOCK: BookingService[] = [
-  {
-    id: 101,
-    no_booking: 'BK250503-001',
-    no_polisi: 'BK 1234 AB',
-    nama_customer: 'PT. Andi Jaya',
-    nama_perusahaan: 'PT. Andi Jaya',
-    tujuan_kunjungan: 'Service',
-    jenis_layanan: 'Service Berkala',
-    jenis_armada: 'Truk',
-    tanggal_booking: '03 Mei 2025',
-    jam_booking: '08:00',
-    no_telepon: '0812-3456-7890',
-    pic_driver: 'Slamet Riyadi',
-    keterangan: 'Keluhan: Rem bergetar & ganti oli rutin',
-    status: 'Booked',
-    prioritas: 'Prioritas Booking',
-    created_at: '2025-05-02T10:00:00Z',
-  },
-  {
-    id: 102,
-    no_booking: 'BK250503-002',
-    no_polisi: 'BK 5678 CD',
-    nama_customer: 'CV. Sinar Abadi',
-    nama_perusahaan: 'CV. Sinar Abadi',
-    tujuan_kunjungan: 'Service',
-    jenis_layanan: 'Perbaikan Kaki-kaki',
-    jenis_armada: 'Truk',
-    tanggal_booking: '03 Mei 2025',
-    jam_booking: '09:00',
-    no_telepon: '0813-9876-5432',
-    pic_driver: 'Hendra Gunawan',
-    keterangan: 'Pengecekan bearing roda depan',
-    status: 'Booked',
-    prioritas: 'Prioritas Booking',
-    created_at: '2025-05-02T11:00:00Z',
-  },
-  {
-    id: 103,
-    no_booking: 'BK250503-003',
-    no_polisi: 'BK 9101 EF',
-    nama_customer: 'PT. Maju Bersama',
-    nama_perusahaan: 'PT. Maju Bersama',
-    tujuan_kunjungan: 'Kunjungan',
-    jenis_layanan: 'Kunjungan Dinas',
-    jenis_armada: 'Mobil',
-    tanggal_booking: '03 Mei 2025',
-    jam_booking: '10:30',
-    no_telepon: '0821-1122-3344',
-    pic_driver: 'Bambang Sudiro',
-    keterangan: 'Bertemu PIC Warehouse untuk audit stok',
-    status: 'Booked',
-    prioritas: 'Normal',
-    created_at: '2025-05-02T12:00:00Z',
-  },
-  {
-    id: 104,
-    no_booking: 'BK250503-004',
-    no_polisi: 'BK 2468 GH',
-    nama_customer: 'PT. Sejahtera',
-    nama_perusahaan: 'PT. Sejahtera',
-    tujuan_kunjungan: 'Service',
-    jenis_layanan: 'Tune Up & Filter Udara',
-    jenis_armada: 'Truk',
-    tanggal_booking: '03 Mei 2025',
-    jam_booking: '11:00',
-    no_telepon: '0852-7788-9900',
-    pic_driver: 'Rudi Hartono',
-    keterangan: 'Tarikan mesin berat saat muatan penuh',
-    status: 'Booked',
-    prioritas: 'Prioritas Booking',
-    created_at: '2025-05-02T14:00:00Z',
-  },
-  {
-    id: 105,
-    no_booking: 'BK250503-005',
-    no_polisi: 'BK 1357 IJ',
-    nama_customer: 'CV. Lintas Karya',
-    nama_perusahaan: 'CV. Lintas Karya',
-    tujuan_kunjungan: 'Lainnya',
-    jenis_layanan: 'Antar Dokumen PO',
-    jenis_armada: 'Pickup',
-    tanggal_booking: '03 Mei 2025',
-    jam_booking: '13:30',
-    no_telepon: '0819-3344-5566',
-    pic_driver: 'Dedi Kurniawan',
-    keterangan: 'Pengantaran surat faktur penagihan',
-    status: 'Booked',
-    prioritas: 'Normal',
-    created_at: '2025-05-02T15:00:00Z',
-  },
-];
-
-const DEFAULT_ONPROGRESS_MOCK: AntrianKunjungan[] = [
-  {
-    id: 201,
-    no_tiket: 'ANT-250503-001',
-    no_polisi: 'BK 1234 AB',
-    nama_customer: 'PT. Andi Jaya',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_masuk: '2025-05-03T08:15:00Z',
-    status_kunjungan: 'Sedang Dikerjakan',
-    nama_mekanik: 'M02 - Andi Wijaya',
-    pic_tujuan: 'Budi Santoso (SA)',
-    keperluan: 'Ganti Brake Pad & Oli Mesin',
-  },
-  {
-    id: 202,
-    no_tiket: 'ANT-250503-002',
-    no_polisi: 'BK 5678 CD',
-    nama_customer: 'CV. Sinar Abadi',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_masuk: '2025-05-03T09:05:00Z',
-    status_kunjungan: 'Menunggu Part',
-    nama_mekanik: 'M03 - Dedi Kurniawan',
-    pic_tujuan: 'Budi Santoso (SA)',
-    keperluan: 'Menunggu Bushing Arm dari Purchasing',
-  },
-  {
-    id: 203,
-    no_tiket: 'ANT-250503-003',
-    no_polisi: 'BK 9101 EF',
-    nama_customer: 'PT. Maju Bersama',
-    jenis_armada: 'Mobil',
-    tujuan_kedatangan: 'Kunjungan',
-    waktu_masuk: '2025-05-03T10:40:00Z',
-    status_kunjungan: 'Sedang Dikerjakan',
-    nama_mekanik: 'M01 - Budi Santoso',
-    pic_tujuan: 'Hisar (Warehouse)',
-    keperluan: 'Koordinasi Penyerahan Dokumen',
-  },
-  {
-    id: 204,
-    no_tiket: 'ANT-250503-004',
-    no_polisi: 'BK 2468 GH',
-    nama_customer: 'PT. Sejahtera',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_masuk: '2025-05-03T11:20:00Z',
-    status_kunjungan: 'Menunggu QC',
-    nama_mekanik: 'M02 - Andi Wijaya',
-    pic_tujuan: 'Joko Susilo (Foreman)',
-    keperluan: 'Selesai pengerjaan - Siap Final Inspection',
-  },
-  {
-    id: 205,
-    no_tiket: 'ANT-250503-005',
-    no_polisi: 'BK 1357 IJ',
-    nama_customer: 'CV. Lintas Karya',
-    jenis_armada: 'Pickup',
-    tujuan_kedatangan: 'Lainnya',
-    waktu_masuk: '2025-05-03T13:45:00Z',
-    status_kunjungan: 'Sedang Dikerjakan',
-    nama_mekanik: 'M04 - Riki Prayoga',
-    pic_tujuan: 'Security',
-    keperluan: 'Bongkar muat material ringan',
-  },
-];
-
-const DEFAULT_SELESAI_MOCK: AntrianKunjungan[] = [
-  {
-    id: 301,
-    no_tiket: 'ANT-250502-001',
-    no_polisi: 'BK 1111 AA',
-    nama_customer: 'PT. Sukses Mandiri',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_masuk: '2025-05-02T08:10:00Z',
-    waktu_keluar: '2025-05-02T12:30:00Z',
-    durasi: '4 Jam 20 Menit',
-    status_kunjungan: 'Selesai',
-    no_memo_keluar: 'MK-250502-001',
-    detail_barang_keluar: 'Filter oli bekas & dus sparepart kosong',
-  },
-  {
-    id: 302,
-    no_tiket: 'ANT-250502-002',
-    no_polisi: 'BK 2222 BB',
-    nama_customer: 'CV. Karya Abadi',
-    jenis_armada: 'Mobil',
-    tujuan_kedatangan: 'Service',
-    waktu_masuk: '2025-05-02T09:00:00Z',
-    waktu_keluar: '2025-05-02T13:15:00Z',
-    durasi: '4 Jam 15 Menit',
-    status_kunjungan: 'Selesai',
-    no_memo_keluar: 'MK-250502-002',
-    detail_barang_keluar: '-',
-  },
-  {
-    id: 303,
-    no_tiket: 'ANT-250502-003',
-    no_polisi: 'BK 3333 CC',
-    nama_customer: 'PT. Berkah Jaya',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_masuk: '2025-05-02T10:25:00Z',
-    waktu_keluar: '2025-05-02T14:20:00Z',
-    durasi: '3 Jam 55 Menit',
-    status_kunjungan: 'Selesai',
-    no_memo_keluar: 'MK-250502-003',
-    detail_barang_keluar: 'Kampas rem bekas',
-  },
-  {
-    id: 304,
-    no_tiket: 'ANT-250502-004',
-    no_polisi: 'BK 4444 DD',
-    nama_customer: 'CV. Prima Sentosa',
-    jenis_armada: 'Pickup',
-    tujuan_kedatangan: 'Lainnya',
-    waktu_masuk: '2025-05-02T11:30:00Z',
-    waktu_keluar: '2025-05-02T11:50:00Z',
-    durasi: '20 Menit',
-    status_kunjungan: 'Selesai',
-    no_memo_keluar: 'MK-250502-004',
-    detail_barang_keluar: 'Dokumen faktur penagihan',
-  },
-  {
-    id: 305,
-    no_tiket: 'ANT-250502-005',
-    no_polisi: 'BK 5555 EE',
-    nama_customer: 'PT. Maju Bersama',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_masuk: '2025-05-02T13:00:00Z',
-    waktu_keluar: '2025-05-02T16:10:00Z',
-    durasi: '3 Jam 10 Menit',
-    status_kunjungan: 'Selesai',
-    no_memo_keluar: 'MK-250502-005',
-    detail_barang_keluar: '-',
-  },
-];
-
-const DEFAULT_MEMO_MOCK: MemoKeluar[] = [
-  {
-    id: 401,
-    no_memo: 'MK-250503-001',
-    no_polisi: 'BK 1234 AB',
-    nama_customer: 'PT. Andi Jaya',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_keluar: '2025-05-03T12:45:00Z',
-    status: 'Selesai',
-    catatan: 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.',
-    petugas_security: 'Hisar Security',
-  },
-  {
-    id: 402,
-    no_memo: 'MK-250503-002',
-    no_polisi: 'BK 5678 CD',
-    nama_customer: 'CV. Sinar Abadi',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_keluar: '2025-05-03T13:20:00Z',
-    status: 'Selesai',
-    catatan: 'Perbaikan selesai, sparepart lama disimpan customer.',
-    petugas_security: 'Hisar Security',
-  },
-  {
-    id: 403,
-    no_memo: 'MK-250503-003',
-    no_polisi: 'BK 9101 EF',
-    nama_customer: 'PT. Maju Bersama',
-    jenis_armada: 'Mobil',
-    tujuan_kedatangan: 'Kunjungan',
-    waktu_keluar: '2025-05-03T14:00:00Z',
-    status: 'Selesai',
-    catatan: 'Kunjungan telah selesai, berkas dokumen dibawa lengkap.',
-    petugas_security: 'Hisar Security',
-  },
-  {
-    id: 404,
-    no_memo: 'MK-250503-004',
-    no_polisi: 'BK 2468 GH',
-    nama_customer: 'PT. Sejahtera',
-    jenis_armada: 'Truk',
-    tujuan_kedatangan: 'Service',
-    waktu_keluar: '2025-05-03T15:10:00Z',
-    status: 'Selesai',
-    catatan: 'Pekerjaan telah selesai, kendaraan lulus uji QC jalan.',
-    petugas_security: 'Hisar Security',
-  },
-  {
-    id: 405,
-    no_memo: 'MK-250503-005',
-    no_polisi: 'BK 1357 IJ',
-    nama_customer: 'CV. Lintas Karya',
-    jenis_armada: 'Pickup',
-    tujuan_kedatangan: 'Lainnya',
-    waktu_keluar: '2025-05-03T16:25:00Z',
-    status: 'Selesai',
-    catatan: 'Pengantaran barang selesai, keluar pos security dalam kondisi baik.',
-    petugas_security: 'Hisar Security',
-  },
-];
-
 export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprogress' }) => {
   const queryClient = useQueryClient();
-  const { activeTab, setActiveTab } = useAppStore();
+  const { activeTab, setActiveTab, currentUser } = useAppStore();
 
   // Tab State: dashboard | checkin | booking | onprogress | selesai | memo
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo'>(initialTab);
@@ -389,7 +91,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     no_hp_customer: '',
     jenis_armada: 'Truk',
     tujuan_kedatangan: 'Service' as 'Service' | 'Beli Part' | 'Kunjungan' | 'Lainnya',
-    pic_tujuan: 'Budi Santoso (SA)',
+    pic_tujuan: '',
     keperluan: '',
     foto_kendaraan_masuk: '',
     catatan_security: '',
@@ -422,18 +124,20 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     queryFn: api.getMemoKeluarList,
   });
 
-  // Merge live API data with rich mock data so the exact UI from Excel is always fully populated
-  const bookingList: BookingService[] = rawBookingList && rawBookingList.length > 0 
-    ? rawBookingList 
-    : DEFAULT_BOOKING_MOCK;
+  // Query dynamic user/officer list for PIC Tujuan
+  const { data: penggunaList } = useQuery({
+    queryKey: ['pengguna-list'],
+    queryFn: api.getPengguna,
+  });
 
-  const antrianData: AntrianKunjungan[] = rawAntrianList && rawAntrianList.length > 0
-    ? rawAntrianList
-    : [...DEFAULT_ONPROGRESS_MOCK, ...DEFAULT_SELESAI_MOCK];
+  const picPetugasList = (penggunaList || []).filter(
+    (u) => u.peran !== 'Customer Fleet' && u.status_aktif !== false
+  );
 
-  const memoList: MemoKeluar[] = rawMemoList && rawMemoList.length > 0
-    ? rawMemoList
-    : DEFAULT_MEMO_MOCK;
+  // Murni data dari API server Darkosync
+  const bookingList: BookingService[] = rawBookingList || [];
+  const antrianData: AntrianKunjungan[] = rawAntrianList || [];
+  const memoList: MemoKeluar[] = rawMemoList || [];
 
   // Initialize selected items
   useEffect(() => {
@@ -531,7 +235,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
         no_hp_customer: '',
         jenis_armada: 'Truk',
         tujuan_kedatangan: 'Service',
-        pic_tujuan: 'Budi Santoso (SA)',
+        pic_tujuan: '',
         keperluan: '',
         foto_kendaraan_masuk: '',
         catatan_security: '',
@@ -574,7 +278,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
         catatan: formCheckout.barang_dibawa_keluar 
           ? `Pekerjaan selesai. Barang dibawa keluar: ${formCheckout.detail_barang_keluar}` 
           : 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.',
-        petugas_security: 'Hisar Security',
+        petugas_security: currentUser || 'Petugas Security',
       });
     },
     onSuccess: () => {
@@ -636,7 +340,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 no_hp_customer: '',
                 jenis_armada: 'Truk',
                 tujuan_kedatangan: 'Service',
-                pic_tujuan: 'Budi Santoso (SA)',
+                pic_tujuan: '',
                 keperluan: '',
                 foto_kendaraan_masuk: '',
                 catatan_security: '',
@@ -907,10 +611,18 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             key={t.id}
                             type="button"
                             onClick={() => {
+                              let defaultPic = '';
+                              if (t.id === 'Service') {
+                                const saUser = picPetugasList.find((p) => p.peran === 'SA');
+                                defaultPic = saUser ? `${saUser.nama_lengkap} (SA)` : '';
+                              } else if (t.id === 'Beli Part') {
+                                const partUser = picPetugasList.find((p) => p.peran === 'Admin Purchasing' || p.peran === 'Admin Invoice');
+                                defaultPic = partUser ? `${partUser.nama_lengkap} (${partUser.peran})` : '';
+                              }
                               setFormCheckin({
                                 ...formCheckin,
                                 tujuan_kedatangan: t.id as any,
-                                pic_tujuan: t.id === 'Service' ? 'Budi Santoso (SA)' : t.id === 'Beli Part' ? 'Hisar (Warehouse)' : 'PIC Terkait',
+                                pic_tujuan: defaultPic || formCheckin.pic_tujuan,
                               });
                             }}
                             className={`p-3 rounded-xl border-2 text-left transition-all ${
@@ -934,11 +646,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           onChange={(e) => setFormCheckin({ ...formCheckin, pic_tujuan: e.target.value })}
                           className="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
                         >
-                          <option value="Budi Santoso (SA)">Budi Santoso (SA)</option>
-                          <option value="Joko Susilo (Foreman)">Joko Susilo (Foreman)</option>
-                          <option value="Hisar (Warehouse)">Hisar (Warehouse)</option>
-                          <option value="Rina Marlina (Purchasing)">Rina Marlina (Purchasing)</option>
-                          <option value="Siti Rahma (Kasir)">Siti Rahma (Kasir)</option>
+                          <option value="">-- Pilih PIC / Petugas Tujuan --</option>
+                          {picPetugasList.map((p) => (
+                            <option key={p.id} value={`${p.nama_lengkap} (${p.peran})`}>
+                              {p.nama_lengkap} ({p.peran})
+                            </option>
+                          ))}
                           <option value="Admin Office">Admin Office</option>
                           <option value="Management">Management</option>
                           <option value="PIC Terkait">Lainnya / PIC Terkait</option>
@@ -1020,7 +733,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         no_hp_customer: '',
                         jenis_armada: 'Truk',
                         tujuan_kedatangan: 'Service',
-                        pic_tujuan: 'Budi Santoso (SA)',
+                        pic_tujuan: '',
                         keperluan: '',
                         foto_kendaraan_masuk: '',
                         catatan_security: '',
@@ -1079,15 +792,15 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             </span>
                           </div>
                           <div className="text-xs font-bold text-slate-800">
-                            {item.nama_customer || 'Customer'}
+                            {item.nama_customer || '-'}
                           </div>
                           <div className="text-[10px] text-slate-400 flex items-center gap-2">
                             <Clock className="w-3 h-3" />
                             <span>
-                              {item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '08:00 WIB'}
+                              {item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}
                             </span>
                             <span>•</span>
-                            <span className="font-medium text-slate-600">{item.pic_tujuan || 'SA Bengkel'}</span>
+                            <span className="font-medium text-slate-600">{item.pic_tujuan || '-'}</span>
                           </div>
                         </div>
 
@@ -1182,38 +895,46 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredBookingList.map((b, idx) => {
-                    const isSelected = selectedBooking?.id === b.id;
-                    return (
-                      <tr 
-                        key={b.id}
-                        onClick={() => setSelectedBooking(b)}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected ? 'bg-blue-50/90 font-medium' : 'hover:bg-slate-50/70'
-                        }`}
-                      >
-                        <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
-                        <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{b.no_polisi}</td>
-                        <td className="py-3 px-3 text-slate-800 font-medium">{b.nama_customer || b.nama_perusahaan}</td>
-                        <td className="py-3 px-3 text-slate-600">{b.tujuan_kunjungan || b.jenis_layanan}</td>
-                        <td className="py-3 px-3 text-slate-600">{b.jenis_armada || 'Truk'}</td>
-                        <td className="py-3 px-3 text-slate-700 font-medium">{b.tanggal_booking}</td>
-                        <td className="py-3 px-3 font-bold text-slate-800 font-mono">{b.jam_booking}</td>
-                        <td className="py-3 px-3 text-center">
-                          <span className="inline-block px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-700 font-bold text-[11px]">
-                            {b.status}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredBookingList.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-slate-400 font-medium">
+                        Tidak ada data booking kendaraan.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredBookingList.map((b, idx) => {
+                      const isSelected = selectedBooking?.id === b.id;
+                      return (
+                        <tr 
+                          key={b.id}
+                          onClick={() => setSelectedBooking(b)}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected ? 'bg-blue-50/90 font-medium' : 'hover:bg-slate-50/70'
+                          }`}
+                        >
+                          <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
+                          <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{b.no_polisi}</td>
+                          <td className="py-3 px-3 text-slate-800 font-medium">{b.nama_customer || b.nama_perusahaan}</td>
+                          <td className="py-3 px-3 text-slate-600">{b.tujuan_kunjungan || b.jenis_layanan}</td>
+                          <td className="py-3 px-3 text-slate-600">{b.jenis_armada || 'Truk'}</td>
+                          <td className="py-3 px-3 text-slate-700 font-medium">{b.tanggal_booking}</td>
+                          <td className="py-3 px-3 font-bold text-slate-800 font-mono">{b.jam_booking}</td>
+                          <td className="py-3 px-3 text-center">
+                            <span className="inline-block px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-700 font-bold text-[11px]">
+                              {b.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
 
             {/* Pagination Controls */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
-              <div>Menampilkan 1 - {filteredBookingList.length} dari {bookingList.length} data</div>
+              <div>Menampilkan {filteredBookingList.length > 0 ? `1 - ${filteredBookingList.length}` : '0'} dari {bookingList.length} data</div>
               <div className="flex items-center gap-1">
                 <button className="px-2 py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&lt;</button>
                 <button className="px-2.5 py-1 rounded bg-blue-600 text-white font-bold">1</button>
@@ -1245,11 +966,11 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                     <div>
                       <div className="text-slate-400 text-[10px]">Nama Customer</div>
-                      <div className="font-bold text-slate-900 mt-0.5">{selectedBooking.nama_customer || selectedBooking.nama_perusahaan}</div>
+                      <div className="font-bold text-slate-900 mt-0.5">{selectedBooking.nama_customer || selectedBooking.nama_perusahaan || '-'}</div>
                       <div className="text-slate-400 text-[10px] mt-1.5">No. Telepon</div>
-                      <div className="font-mono text-slate-700 font-semibold">{selectedBooking.no_telepon || '0812-3456-7890'}</div>
+                      <div className="font-mono text-slate-700 font-semibold">{selectedBooking.no_telepon || '-'}</div>
                       <div className="text-slate-400 text-[10px] mt-1.5">PIC / Driver</div>
-                      <div className="font-semibold text-slate-800">{selectedBooking.pic_driver || 'Slamet Riyadi'}</div>
+                      <div className="font-semibold text-slate-800">{selectedBooking.pic_driver || '-'}</div>
                     </div>
 
                     <div>
@@ -1267,13 +988,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <button
                     type="button"
                     onClick={() => {
+                      const saUser = picPetugasList.find((p) => p.peran === 'SA');
                       setFormCheckin({
                         no_polisi: selectedBooking.no_polisi,
                         nama_customer: selectedBooking.nama_customer || selectedBooking.nama_perusahaan || '',
                         no_hp_customer: selectedBooking.no_telepon || '',
                         jenis_armada: selectedBooking.jenis_armada || 'Truk',
                         tujuan_kedatangan: (selectedBooking.tujuan_kunjungan as any) || 'Service',
-                        pic_tujuan: 'Budi Santoso (SA)',
+                        pic_tujuan: saUser ? `${saUser.nama_lengkap} (SA)` : '',
                         keperluan: selectedBooking.keterangan || selectedBooking.jenis_layanan || '',
                         foto_kendaraan_masuk: '',
                         catatan_security: `Booking ID: ${selectedBooking.no_booking}`,
@@ -1407,53 +1129,61 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredOnProgressList.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
-                      <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{item.no_polisi}</td>
-                      <td className="py-3 px-3 text-slate-800 font-medium">{item.nama_customer}</td>
-                      <td className="py-3 px-3 text-slate-600">{item.jenis_armada}</td>
-                      <td className="py-3 px-3 text-slate-700 font-medium">{item.tujuan_kedatangan}</td>
-                      <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
-                        <div>{new Date(item.waktu_masuk || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                        <div className="text-slate-400 font-medium">{new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <StatusBadge status={item.status_kunjungan} size="sm" />
-                      </td>
-                      <td className="py-3 px-3 font-medium text-slate-700">
-                        {item.nama_mekanik || item.pic_tujuan || '-'}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        {/* Tombol Detail dan Check Out berdampingan sesuai instruksi user */}
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setShowDetailModal(item)}
-                            className="px-2.5 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors"
-                          >
-                            Detail
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowCheckoutModal(item);
-                              setFormCheckout({
-                                barang_dibawa_keluar: false,
-                                detail_barang_keluar: '',
-                                foto_kendaraan_keluar: '',
-                                foto_barang: '',
-                                no_memo_keluar: '',
-                              });
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1"
-                          >
-                            <LogOut className="w-3 h-3" /> Check Out
-                          </button>
-                        </div>
+                  {filteredOnProgressList.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
+                        Tidak ada kendaraan yang sedang diproses.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredOnProgressList.map((item, idx) => (
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
+                        <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{item.no_polisi}</td>
+                        <td className="py-3 px-3 text-slate-800 font-medium">{item.nama_customer}</td>
+                        <td className="py-3 px-3 text-slate-600">{item.jenis_armada}</td>
+                        <td className="py-3 px-3 text-slate-700 font-medium">{item.tujuan_kedatangan}</td>
+                        <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
+                          <div>{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
+                          <div className="text-slate-400 font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <StatusBadge status={item.status_kunjungan} size="sm" />
+                        </td>
+                        <td className="py-3 px-3 font-medium text-slate-700">
+                          {item.nama_mekanik || item.pic_tujuan || '-'}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          {/* Tombol Detail dan Check Out berdampingan sesuai instruksi user */}
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setShowDetailModal(item)}
+                              className="px-2.5 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors"
+                            >
+                              Detail
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowCheckoutModal(item);
+                                setFormCheckout({
+                                  barang_dibawa_keluar: false,
+                                  detail_barang_keluar: '',
+                                  foto_kendaraan_keluar: '',
+                                  foto_barang: '',
+                                  no_memo_keluar: '',
+                                });
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1"
+                            >
+                              <LogOut className="w-3 h-3" /> Check Out
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1556,37 +1286,45 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredSelesaiList.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
-                      <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{item.no_polisi}</td>
-                      <td className="py-3 px-3 text-slate-800 font-medium">{item.nama_customer}</td>
-                      <td className="py-3 px-3 text-slate-600">{item.jenis_armada}</td>
-                      <td className="py-3 px-3 text-slate-700 font-medium">{item.tujuan_kedatangan}</td>
-                      <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
-                        <div>02 Mei 2025</div>
-                        <div className="text-slate-400 font-medium">{new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                      </td>
-                      <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
-                        <div>02 Mei 2025</div>
-                        <div className="text-slate-400 font-medium">{item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:30'}</div>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[11px]">
-                          Selesai
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => setShowDetailModal(item)}
-                          className="px-3 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors"
-                        >
-                          Detail
-                        </button>
+                  {filteredSelesaiList.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
+                        Tidak ada riwayat kendaraan selesai.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredSelesaiList.map((item, idx) => (
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
+                        <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{item.no_polisi}</td>
+                        <td className="py-3 px-3 text-slate-800 font-medium">{item.nama_customer}</td>
+                        <td className="py-3 px-3 text-slate-600">{item.jenis_armada}</td>
+                        <td className="py-3 px-3 text-slate-700 font-medium">{item.tujuan_kedatangan}</td>
+                        <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
+                          <div>{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
+                          <div className="text-slate-400 font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                        </td>
+                        <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
+                          <div>{item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
+                          <div className="text-slate-400 font-medium">{item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span className="inline-block px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                            Selesai
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setShowDetailModal(item)}
+                            className="px-3 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors"
+                          >
+                            Detail
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1675,26 +1413,33 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredMemoList.map((m, idx) => {
-                      const isSelected = selectedMemo?.id === m.id;
-                      return (
-                        <tr 
-                          key={m.id}
-                          onClick={() => setSelectedMemo(m)}
-                          className={`cursor-pointer transition-colors ${
-                            isSelected ? 'bg-blue-50/90 font-medium' : 'hover:bg-slate-50/70'
-                          }`}
-                        >
-                          <td className="py-2.5 px-2.5 text-slate-500 font-semibold">{idx + 1}</td>
-                          <td className="py-2.5 px-2.5 font-mono font-bold text-blue-700">{m.no_memo}</td>
-                          <td className="py-2.5 px-2.5 font-bold text-slate-900">{m.no_polisi}</td>
-                          <td className="py-2.5 px-2.5 text-slate-800">{m.nama_customer}</td>
-                          <td className="py-2.5 px-2.5 text-slate-600 font-mono text-[11px]">
-                            <div>{new Date(m.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                            <div className="text-slate-400 font-medium">{new Date(m.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                          </td>
-                          <td className="py-2.5 px-2.5 text-center">
-                            <div className="flex items-center justify-center gap-1.5 text-slate-500">
+                    {filteredMemoList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                          Tidak ada data memo keluar.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredMemoList.map((m, idx) => {
+                        const isSelected = selectedMemo?.id === m.id;
+                        return (
+                          <tr 
+                            key={m.id}
+                            onClick={() => setSelectedMemo(m)}
+                            className={`cursor-pointer transition-colors ${
+                              isSelected ? 'bg-blue-50/90 font-medium' : 'hover:bg-slate-50/70'
+                            }`}
+                          >
+                            <td className="py-2.5 px-2.5 text-slate-500 font-semibold">{idx + 1}</td>
+                            <td className="py-2.5 px-2.5 font-mono font-bold text-blue-700">{m.no_memo}</td>
+                            <td className="py-2.5 px-2.5 font-bold text-slate-900">{m.no_polisi}</td>
+                            <td className="py-2.5 px-2.5 text-slate-800">{m.nama_customer}</td>
+                            <td className="py-2.5 px-2.5 text-slate-600 font-mono text-[11px]">
+                              <div>{new Date(m.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                              <div className="text-slate-400 font-medium">{new Date(m.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            </td>
+                            <td className="py-2.5 px-2.5 text-center">
+                              <div className="flex items-center justify-center gap-1.5 text-slate-500">
                               <button
                                 type="button"
                                 title="Lihat Preview"
@@ -1722,7 +1467,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           </td>
                         </tr>
                       );
-                    })}
+                    }))}
                   </tbody>
                 </table>
               </div>
@@ -1840,11 +1585,11 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         
                         {/* Signature graphic/stamp simulation */}
                         <div className="w-20 h-10 border border-blue-400 rounded-lg bg-blue-50/50 flex items-center justify-center text-[10px] text-blue-700 font-serif italic mb-1 transform -rotate-3">
-                          Hisar
+                          Security
                         </div>
 
                         <div className="font-black text-slate-900 text-xs">
-                          {selectedMemo.petugas_security || 'Hisar Security'}
+                          {selectedMemo.petugas_security || '( Petugas Security )'}
                         </div>
                         <div className="text-[10px] text-slate-400">Security Bengkel KIM 3</div>
                       </div>
@@ -1865,8 +1610,10 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                     <button
                       type="button"
-                      onClick={() => setShowPrintMemo(selectedMemo)}
-                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-2 transition-colors"
+                      onClick={() => {
+                        window.print();
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
                     >
                       <Download className="w-4 h-4" />
                       EXPORT PDF
@@ -1888,28 +1635,27 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* MODAL: CHECK-IN KENDARAAN MASUK                            */}
       {/* ========================================================= */}
       {showCheckinModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl border border-slate-200 space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-black text-slate-900">Form Check-In Kendaraan Masuk</h3>
-                <p className="text-xs text-slate-500">Validasi fisik plat nomor dan tujuan kedatangan di Pos Security</p>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-100 rounded-xl text-blue-600">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base">Check-In Kendaraan Masuk</h3>
+                  <p className="text-xs text-slate-500">Pencatatan gerbang pos security Bengkel KIM 3</p>
+                </div>
               </div>
-              <button
+              <button 
                 onClick={() => setShowCheckinModal(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
               >
-                <X className="w-5 h-5" />
+                ✕
               </button>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                checkinMutation.mutate(formCheckin);
-              }}
-              className="space-y-3.5 text-xs"
-            >
+            <form onSubmit={(e) => { e.preventDefault(); checkinMutation.mutate(formCheckin); }} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
@@ -1946,8 +1692,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { id: 'Service', label: '1. Service', desc: 'Perbaikan / Service' },
-                    { id: 'Beli Part', label: '2. Beli Part', desc: 'Hanya beli sparepart' },
+                    { id: 'Service', label: '1. Service', desc: 'Perbaikan unit' },
+                    { id: 'Beli Part', label: '2. Beli Part', desc: 'Pembelian part' },
                     { id: 'Kunjungan', label: '3. Kunjungan', desc: 'Tamu / Dinas' },
                     { id: 'Lainnya', label: '4. Lainnya', desc: 'Keperluan lain' },
                   ].map((t) => (
@@ -1955,10 +1701,18 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       key={t.id}
                       type="button"
                       onClick={() => {
+                        let defaultPic = '';
+                        if (t.id === 'Service') {
+                          const saUser = picPetugasList.find((p) => p.peran === 'SA');
+                          defaultPic = saUser ? `${saUser.nama_lengkap} (SA)` : '';
+                        } else if (t.id === 'Beli Part') {
+                          const partUser = picPetugasList.find((p) => p.peran === 'Admin Purchasing' || p.peran === 'Admin Invoice');
+                          defaultPic = partUser ? `${partUser.nama_lengkap} (${partUser.peran})` : '';
+                        }
                         setFormCheckin({
                           ...formCheckin,
                           tujuan_kedatangan: t.id as any,
-                          pic_tujuan: t.id === 'Service' ? 'Budi Santoso (SA)' : 'Hisar (Warehouse)',
+                          pic_tujuan: defaultPic || formCheckin.pic_tujuan,
                         });
                       }}
                       className={`p-2 rounded-xl border text-left transition-all ${
@@ -2006,11 +1760,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     onChange={(e) => setFormCheckin({ ...formCheckin, pic_tujuan: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                   >
-                    <option value="Budi Santoso (SA)">Budi Santoso (SA)</option>
-                    <option value="Joko Susilo (Foreman)">Joko Susilo (Foreman)</option>
-                    <option value="Hisar (Warehouse)">Hisar (Warehouse)</option>
-                    <option value="Rina Marlina (Purchasing)">Rina Marlina (Purchasing)</option>
-                    <option value="Siti Rahma (Kasir)">Siti Rahma (Kasir)</option>
+                    <option value="">-- Pilih PIC / Petugas Tujuan --</option>
+                    {picPetugasList.map((p) => (
+                      <option key={p.id} value={`${p.nama_lengkap} (${p.peran})`}>
+                        {p.nama_lengkap} ({p.peran})
+                      </option>
+                    ))}
                     <option value="Admin Office">Admin Office</option>
                     <option value="Management">Management</option>
                     <option value="PIC Terkait">Lainnya / PIC Terkait</option>

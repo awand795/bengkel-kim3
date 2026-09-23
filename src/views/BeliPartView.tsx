@@ -204,7 +204,7 @@ export const BeliPartView: React.FC = () => {
         grand_total: Number(item.total_biaya),
         metode_pembayaran: metode,
         status_pembayaran: 'Paid',
-        kasir_pic: currentUser || 'Siti Rahma (Kasir)',
+        kasir_pic: currentUser || 'Kasir',
       });
 
       // 2. Update status transaksi beli part
@@ -336,7 +336,7 @@ export const BeliPartView: React.FC = () => {
       grand_total: item.total_biaya,
       metode_pembayaran: metodeBayarKasir,
       status_pembayaran: 'Paid',
-      kasir_pic: currentUser || 'Siti Rahma (Kasir)',
+      kasir_pic: currentUser || 'Kasir',
     };
     setPrintThermalInvoice(invoiceObj);
   };
@@ -362,7 +362,7 @@ export const BeliPartView: React.FC = () => {
       waktu_keluar: now.toISOString(),
       status: 'Selesai',
       catatan: `Barang bawaan suku cadang telah diserahkan dan lunas (${item.catatan || 'Sparepart Resmi'}).`,
-      petugas_security: 'Hisar Pardede (Pos Gerbang)',
+      petugas_security: '( Petugas Security )',
     };
     setPrintMemoModal(memoObj);
   };
@@ -969,7 +969,7 @@ export const BeliPartView: React.FC = () => {
                 <p className="text-xs text-slate-500">Pengambilan barang sesuai rak penyimpanan</p>
               </div>
               <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 font-bold text-[11px] border border-amber-200">
-                PR-250503-001
+                {activeTransaksi?.no_picking_request || activeTransaksi?.no_transaksi || '-'}
               </span>
             </div>
 
@@ -977,11 +977,13 @@ export const BeliPartView: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
                 <div>
                   <span className="text-slate-400 block text-[10px]">SA Pemohon:</span>
-                  <span className="font-bold text-slate-800">Budi Santoso (SA)</span>
+                  <span className="font-bold text-slate-800">{activeTransaksi?.sa_pic || currentUser || '-'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Customer / Nopol:</span>
-                  <span className="font-bold text-slate-800">Hisar (BK 5678 CD)</span>
+                  <span className="font-bold text-slate-800">
+                    {activeTransaksi ? `${activeTransaksi.nama_customer || '-'} (${activeTransaksi.no_polisi})` : '-'}
+                  </span>
                 </div>
               </div>
 
@@ -989,7 +991,7 @@ export const BeliPartView: React.FC = () => {
               <div>
                 <span className="font-bold text-slate-700 block mb-1.5">Lokasi Rak Pengambilan:</span>
                 <div className="p-3 bg-amber-50/60 rounded-2xl border border-amber-200 font-mono font-bold text-amber-900">
-                  Rak A-02, Rak B-01, Rak C-03
+                  {activeTransaksi?.lokasi_rak || 'Rak Utama Bengkel'}
                 </div>
               </div>
 
@@ -997,19 +999,10 @@ export const BeliPartView: React.FC = () => {
               <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100">
                 <div className="p-2.5 bg-slate-50 font-semibold text-slate-600 flex justify-between">
                   <span>Nama Barang</span>
-                  <span>Qty</span>
+                  <span>Catatan / Status</span>
                 </div>
-                <div className="p-2.5 flex justify-between bg-white">
-                  <span>SP-001 Brake Pad Hino Dutro</span>
-                  <span className="font-mono font-bold">2 Pcs</span>
-                </div>
-                <div className="p-2.5 flex justify-between bg-white">
-                  <span>SP-045 Oli Rimula R4 10W-40 (4L)</span>
-                  <span className="font-mono font-bold">4 Galon</span>
-                </div>
-                <div className="p-2.5 flex justify-between bg-white">
-                  <span>SP-078 Filter Oli Canter</span>
-                  <span className="font-mono font-bold">1 Pcs</span>
+                <div className="p-3 bg-white text-slate-700">
+                  {activeTransaksi?.catatan || 'Pesanan suku cadang langsung siap diserahkan ke pelanggan.'}
                 </div>
               </div>
 
@@ -1115,21 +1108,21 @@ export const BeliPartView: React.FC = () => {
         <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs space-y-3">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
             <Clock className="w-4 h-4 text-blue-600" />
-            <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">Notifikasi Sistem</h4>
+            <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">Status Aktivitas</h4>
           </div>
           <div className="space-y-2 text-[11px]">
-            <div className="flex justify-between text-slate-600">
-              <span>09:28 • Request picking PR-250503-001 dari SA</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>09:45 • Barang PR-250503-001 siap diambil</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>09:50 • Barang telah diserahkan ke Customer</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>09:55 • Pembayaran INV-250503-001 lunas</span>
-            </div>
+            {activeTransaksi ? (
+              <>
+                <div className="flex justify-between text-slate-600">
+                  <span>{activeTransaksi.created_at ? new Date(activeTransaksi.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'} • Transaksi {activeTransaksi.no_transaksi} dibuat</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Status saat ini: <strong className="text-slate-800">{activeTransaksi.status_transaksi}</strong></span>
+                </div>
+              </>
+            ) : (
+              <div className="text-slate-400 text-center py-2">Belum ada aktivitas transaksi</div>
+            )}
           </div>
         </div>
 
@@ -1141,20 +1134,16 @@ export const BeliPartView: React.FC = () => {
           </div>
           <div className="space-y-1.5 text-xs">
             <div className="flex justify-between">
-              <span className="text-slate-400">PIC Warehouse:</span>
-              <span className="font-bold text-slate-800">Hisar (Gudang)</span>
+              <span className="text-slate-400">PIC Kasir / Invoice:</span>
+              <span className="font-bold text-slate-800">{activeTransaksi?.kasir_pic || 'Kasir'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">PIC Admin Invoice:</span>
-              <span className="font-bold text-slate-800">Siti Rahma (Kasir)</span>
+              <span className="text-slate-400">PIC Penyerahan:</span>
+              <span className="font-bold text-slate-800">{activeTransaksi?.sa_pic || 'Service Advisor'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">PIC Security:</span>
-              <span className="font-bold text-slate-800">Hisar Pardede (Gerbang)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">PIC SA:</span>
-              <span className="font-bold text-slate-800">Budi Santoso (SA)</span>
+              <span className="text-slate-400">Status Gerbang:</span>
+              <span className="font-bold text-slate-800">{activeTransaksi?.status_transaksi === 'Selesai' ? 'Memo Terbit (Siap Keluar)' : 'Di Area Bengkel'}</span>
             </div>
           </div>
         </div>
@@ -1168,19 +1157,19 @@ export const BeliPartView: React.FC = () => {
           <div className="space-y-1.5 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-400">No. Polisi:</span>
-              <span className="font-black text-slate-900 font-mono">BK 5678 CD</span>
+              <span className="font-black text-slate-900 font-mono">{activeTransaksi?.no_polisi || '-'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Jenis Armada:</span>
-              <span className="font-bold text-slate-800">Truk Box (Canter)</span>
+              <span className="text-slate-400">Nama Customer:</span>
+              <span className="font-bold text-slate-800">{activeTransaksi?.nama_customer || '-'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Merk / Model:</span>
-              <span className="font-bold text-slate-800">Mitsubishi FE74HD</span>
+              <span className="text-slate-400">No. Telepon:</span>
+              <span className="font-bold text-slate-800">{activeTransaksi?.no_telepon || '-'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Warna Unit:</span>
-              <span className="font-bold text-slate-800">Kuning / Putih</span>
+              <span className="text-slate-400">Status Pembelian:</span>
+              <span className="font-bold text-emerald-700">{activeTransaksi?.status_transaksi || '-'}</span>
             </div>
           </div>
         </div>

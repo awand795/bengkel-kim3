@@ -23,78 +23,6 @@ import {
   FileText
 } from 'lucide-react';
 
-// Fallback seed data matching Kunjungan workflow if backend table is empty
-const DEFAULT_KUNJUNGAN_MOCK: AntrianKunjungan[] = [
-  {
-    id: 901,
-    no_tiket: 'ANT-250503-091',
-    no_polisi: 'BK 9101 EF',
-    nama_customer: 'PT. Maju Bersama (Bpk. Hendra)',
-    no_hp_customer: '0812-8877-6655',
-    jenis_armada: 'Mobil',
-    tujuan_kedatangan: 'Kunjungan',
-    waktu_masuk: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    status_kunjungan: 'Check In',
-    pic_tujuan: 'Budi Santoso (SA)',
-    keperluan: 'Koordinasi Penyerahan Dokumen Kontrak Service',
-    catatan_security: 'Kendaraan dinas tamu kantor, parkir di lobi depan.',
-    status_konfirmasi_pic: 'Menunggu Konfirmasi',
-  },
-  {
-    id: 902,
-    no_tiket: 'ANT-250503-092',
-    no_polisi: 'BK 4455 XY',
-    nama_customer: 'CV. Sentosa Abadi (Bpk. Ridwan)',
-    no_hp_customer: '0813-1122-3344',
-    jenis_armada: 'Mobil',
-    tujuan_kedatangan: 'Kunjungan',
-    waktu_masuk: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-    status_kunjungan: 'Sedang Dikerjakan',
-    pic_tujuan: 'Hisar (Warehouse)',
-    keperluan: 'Audit Stok & Pertemuan Logistik',
-    catatan_security: 'Tamu sudah menukarkan ID card di gerbang.',
-    status_konfirmasi_pic: 'Diterima',
-    waktu_konfirmasi_pic: new Date(Date.now() - 85 * 60 * 1000).toISOString(),
-    catatan_pic: 'Diterima di ruang meeting Warehouse lt. 2',
-  },
-  {
-    id: 903,
-    no_tiket: 'ANT-250503-093',
-    no_polisi: 'BK 7788 ZZ',
-    nama_customer: 'PT. Vendor Prima (Ibu Lisa)',
-    no_hp_customer: '0811-9988-7766',
-    jenis_armada: 'Pickup',
-    tujuan_kedatangan: 'Kunjungan',
-    waktu_masuk: new Date(Date.now() - 180 * 60 * 1000).toISOString(),
-    waktu_keluar: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    durasi: '2 Jam 30 Menit',
-    status_kunjungan: 'Keluar',
-    pic_tujuan: 'Admin Purchasing',
-    keperluan: 'Kunjungan Vendor & Presentasi Sparepart',
-    status_konfirmasi_pic: 'Diterima',
-    waktu_konfirmasi_pic: new Date(Date.now() - 175 * 60 * 1000).toISOString(),
-    no_memo_keluar: 'MK-250503-0058',
-    catatan_security: 'Kendaraan telah keluar gerbang, memo MK-250503-0058 terverifikasi.',
-  },
-  {
-    id: 904,
-    no_tiket: 'ANT-250503-094',
-    no_polisi: 'BK 3322 JK',
-    nama_customer: 'Sales Alat Berat (Bpk. Joko)',
-    no_hp_customer: '0852-3344-5566',
-    jenis_armada: 'Mobil',
-    tujuan_kedatangan: 'Kunjungan',
-    waktu_masuk: new Date(Date.now() - 240 * 60 * 1000).toISOString(),
-    waktu_keluar: new Date(Date.now() - 220 * 60 * 1000).toISOString(),
-    durasi: '20 Menit',
-    status_kunjungan: 'Keluar',
-    pic_tujuan: 'Joko Susilo (Foreman)',
-    keperluan: 'Menawarkan penawaran kompresor baru',
-    status_konfirmasi_pic: 'Ditolak',
-    catatan_pic: 'PIC sedang pimpin briefing mekanik di workshop, belum bisa ditemui.',
-  },
-];
-
 type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Sudah Keluar';
 
 export const PicTerkaitView: React.FC = () => {
@@ -126,9 +54,10 @@ export const PicTerkaitView: React.FC = () => {
     return () => unsub();
   }, [queryClient]);
 
-  // Use API data if available, fallback to mock seed if empty
-  const rawKunjungan = (antrianList || []).filter((a) => a.tujuan_kedatangan === 'Kunjungan');
-  const allKunjungan: AntrianKunjungan[] = rawKunjungan.length > 0 ? rawKunjungan : DEFAULT_KUNJUNGAN_MOCK;
+  // Murni hasil fetch API antrian Kunjungan tanpa mock data
+  const allKunjungan: AntrianKunjungan[] = (antrianList || []).filter(
+    (a) => a.tujuan_kedatangan === 'Kunjungan'
+  );
 
   // Notifikasi kunjungan masuk: tamu / dinas yang masih Check In & belum selesai konfirmasi
   const kunjunganMasuk = allKunjungan.filter(

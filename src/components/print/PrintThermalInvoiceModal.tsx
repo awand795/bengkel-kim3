@@ -68,7 +68,7 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
               </div>
               <div className="flex justify-between">
                 <span>Kasir   :</span>
-                <span>{invoice.kasir_pic || 'Siti Rahma'}</span>
+                <span>{invoice.kasir_pic || 'Kasir'}</span>
               </div>
               <div className="flex justify-between">
                 <span>No. Pol :</span>
@@ -87,11 +87,11 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
               <div className="font-bold text-[10px] mb-1">RINCIAN PEMBAYARAN:</div>
               <div className="flex justify-between">
                 <span>Jasa Servis &amp; Perbaikan</span>
-                <span>Rp {(invoice.subtotal ? invoice.subtotal * 0.4 : 600000).toLocaleString('id-ID')}</span>
+                <span>Rp {(invoice.subtotal ? invoice.subtotal * 0.4 : 0).toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between">
                 <span>Sparepart &amp; Material</span>
-                <span>Rp {(invoice.subtotal ? invoice.subtotal * 0.6 : 900000).toLocaleString('id-ID')}</span>
+                <span>Rp {(invoice.subtotal ? invoice.subtotal * 0.6 : 0).toLocaleString('id-ID')}</span>
               </div>
 
               {invoice.diskon ? (
