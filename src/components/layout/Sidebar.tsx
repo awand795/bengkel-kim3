@@ -51,7 +51,6 @@ export const Sidebar: React.FC = () => {
     { id: 'sa', label: 'Service Advisor (SPK)', icon: ClipboardList, roles: ['SA'] },
     { id: 'purchasing', label: 'Status Part & PO (Kotak Merah)', icon: ShoppingBag, roles: ['SA'] },
     { id: 'beli-part', label: 'Penjualan Part Langsung', icon: Package, roles: ['SA'] },
-    { id: 'dokumen', label: 'Dokumen STNK & KIR', icon: FileText, roles: ['SA'] },
     
     // Foreman
     { id: 'foreman', label: 'Foreman (QC & Penugasan)', icon: Wrench, roles: ['Foreman'] },
