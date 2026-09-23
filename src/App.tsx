@@ -66,10 +66,10 @@ export const App: React.FC = () => {
   // Jika sedang memverifikasi sesi pada reload, cegah flash antarmuka internal
   if (isVerifyingSession) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-surface-dark flex flex-col items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-9 h-9 border-3 border-sky-400/20 border-t-sky-400 rounded-full animate-spin" />
-          <div className="text-xs font-semibold text-slate-300 tracking-wide">
+          <div className="w-9 h-9 border-3 border-accent/20 border-t-accent rounded-full animate-spin" />
+          <div className="text-xs font-semibold text-teal-100/80 tracking-wide">
             Memverifikasi Sesi Bengkel KIM 3...
           </div>
         </div>
@@ -146,7 +146,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F4F5] flex flex-col font-sans text-[#1B2126] pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+    <div className="min-h-screen bg-surface flex flex-col font-sans text-ink pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
       {/* Top App Header */}
       <Navbar />
 

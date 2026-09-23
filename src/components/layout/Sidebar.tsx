@@ -95,10 +95,10 @@ export const Sidebar: React.FC = () => {
   const roleMenus = allNavigationItems.filter((item) => item.roles.includes(currentRole));
 
   return (
-    <aside className="w-64 bg-white border-r border-[#D8DCDF] hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] p-3 font-sans">
+    <aside className="w-64 bg-surface-raised border-r border-border hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] p-3 font-sans">
       <div>
         <div className="px-2 mb-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#79838C]">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-subtle">
             Menu {currentRole}
           </p>
         </div>
@@ -112,14 +112,14 @@ export const Sidebar: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-[6px] text-xs transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs transition-all ${
                   isActive
-                    ? 'bg-[#0F6674] text-white font-semibold shadow-2xs'
-                    : 'text-[#525C65] hover:text-[#1B2126] hover:bg-[#E6F3F5]/60 font-medium'
+                    ? 'bg-accent text-white font-semibold shadow-2xs'
+                    : 'text-ink-muted hover:text-ink hover:bg-accent-subtle/60 font-medium'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-[#79838C]'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-ink-subtle'}`} />
                   <span className="truncate">{item.label}</span>
                 </div>
               </button>
@@ -129,9 +129,9 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Workshop System Indicator Footer */}
-      <div className="border-t border-[#D8DCDF] pt-3 px-2">
-        <div className="flex items-center gap-2 text-[10px] text-[#79838C] font-mono">
-          <Activity className="w-3.5 h-3.5 text-[#0F6674] shrink-0" />
+      <div className="border-t border-border pt-3 px-2">
+        <div className="flex items-center gap-2 text-[10px] text-ink-subtle font-mono">
+          <Activity className="w-3.5 h-3.5 text-accent shrink-0" />
           <span className="truncate">KIM3 Workshop Shell</span>
         </div>
       </div>

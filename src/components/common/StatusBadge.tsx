@@ -8,6 +8,7 @@ interface StatusBadgeProps {
 /**
  * StatusBadge - KIM3 Bengkel Design System (Stage 8 & 9)
  * Tokens: IBM Plex Sans, border-radius 4-6px, hairline border,
+ * Semantic Tokens: text-accent, text-status-*, bg-status-*-bg, etc.
  * Prinsip: Satu elemen solid penuh (warna semantik), sisanya redup (tint lembut).
  */
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' }) => {
@@ -17,7 +18,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'check in':
       case 'estimasi dibuat':
       case 'estimasi disetujui':
-        return 'bg-[#E6F3F5] text-[#0F6674] border-[#B2D8DC]';
+        return 'bg-accent-subtle text-accent border-accent/30';
 
       // Blue (Proses / Pengerjaan Mekanik)
       case 'dalam pengerjaan':
@@ -25,7 +26,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'dikerjakan':
       case 'pengecekan mekanik':
       case 'menunggu pengecekan mekanik':
-        return 'bg-[#EFF6FF] text-[#2563EB] border-[#BFDBFE]';
+        return 'bg-status-blue-bg text-status-blue border-status-blue/20';
 
       // Amber (Waiting / Pending / Approval / Part)
       case 'booked':
@@ -37,7 +38,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'diproses purchasing':
       case 'waiting qc':
       case 'menunggu qc':
-        return 'bg-[#FEF3C7] text-[#D97706] border-[#FDE68A]';
+        return 'bg-status-amber-bg text-status-amber border-status-amber/20';
 
       // Green (Selesai / QC Passed / Ready / Paid)
       case 'qc passed':
@@ -47,26 +48,26 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'paid':
       case 'selesai':
       case 'fir closed':
-        return 'bg-[#DCFCE7] text-[#16A34A] border-[#BBF7D0]';
+        return 'bg-status-green-bg text-status-green border-status-green/20';
 
       // Red (Ditolak / Dibatalkan / Error / Unpaid)
       case 'unpaid':
       case 'ditolak':
       case 'dibatalkan':
       case 'tidak sesuai':
-        return 'bg-[#FEE2E2] text-[#DC2626] border-[#FECACA]';
+        return 'bg-status-red-bg text-status-red border-status-red/20';
 
       // Neutral / Muted (Keluar / Lainnya)
       case 'keluar':
       default:
-        return 'bg-[#F2F4F5] text-[#525C65] border-[#D8DCDF]';
+        return 'bg-surface text-ink-muted border-border';
     }
   };
 
   const sizeClasses = {
-    sm: 'px-2 py-0.5 text-[10px] rounded-[4px]',
-    md: 'px-2.5 py-0.5 text-xs rounded-[4px]',
-    lg: 'px-3 py-1 text-xs rounded-[6px]',
+    sm: 'px-2 py-0.5 text-[10px] rounded',
+    md: 'px-2.5 py-0.5 text-xs rounded',
+    lg: 'px-3 py-1 text-xs rounded-md',
   };
 
   return (

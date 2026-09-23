@@ -189,7 +189,7 @@ export const MobileBottomNav: React.FC = () => {
       {/* Mobile Fixed Bottom Navigation Bar (< 768px) */}
       <nav
         aria-label="Navigasi Bawah Seluler"
-        className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-[#D8DCDF] md:hidden z-40 px-1 py-1 safe-bottom flex items-center justify-around shadow-md font-sans"
+        className="fixed bottom-0 inset-x-0 bg-surface-raised/95 backdrop-blur-md border-t border-border md:hidden z-40 px-1 py-1 safe-bottom flex items-center justify-around shadow-md font-sans"
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -200,20 +200,20 @@ export const MobileBottomNav: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => handleNavigate(tab.id)}
-              className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-[6px] active:scale-95 ${
-                isActive ? 'text-[#0F6674]' : 'text-[#79838C] hover:text-[#1B2126]'
+              className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-md active:scale-95 ${
+                isActive ? 'text-accent' : 'text-ink-subtle hover:text-ink'
               }`}
             >
               <div
-                className={`p-1.5 rounded-[6px] transition-colors ${
-                  isActive ? 'bg-[#E6F3F5] text-[#0F6674]' : 'bg-transparent text-[#79838C]'
+                className={`p-1.5 rounded-md transition-colors ${
+                  isActive ? 'bg-accent-subtle text-accent' : 'bg-transparent text-ink-subtle'
                 }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
               </div>
               <span
                 className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
-                  isActive ? 'font-bold text-[#0F6674]' : 'font-medium text-[#79838C]'
+                  isActive ? 'font-bold text-accent' : 'font-medium text-ink-subtle'
                 }`}
               >
                 {tab.label}
@@ -227,20 +227,20 @@ export const MobileBottomNav: React.FC = () => {
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-[6px] active:scale-95 ${
-              isMoreActive ? 'text-[#0F6674]' : 'text-[#79838C] hover:text-[#1B2126]'
+            className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-md active:scale-95 ${
+              isMoreActive ? 'text-accent' : 'text-ink-subtle hover:text-ink'
             }`}
           >
             <div
-              className={`p-1.5 rounded-[6px] transition-colors ${
-                isMoreActive ? 'bg-[#E6F3F5] text-[#0F6674]' : 'bg-transparent text-[#79838C]'
+              className={`p-1.5 rounded-md transition-colors ${
+                isMoreActive ? 'bg-accent-subtle text-accent' : 'bg-transparent text-ink-subtle'
               }`}
             >
               <MoreHorizontal className="w-5 h-5 shrink-0" />
             </div>
             <span
               className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
-                isMoreActive ? 'font-bold text-[#0F6674]' : 'font-medium text-[#79838C]'
+                isMoreActive ? 'font-bold text-accent' : 'font-medium text-ink-subtle'
               }`}
             >
               Lainnya
@@ -254,28 +254,28 @@ export const MobileBottomNav: React.FC = () => {
         <div className="md:hidden fixed inset-0 z-50 flex items-end">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-[#08282E]/50 backdrop-blur-xs transition-opacity"
+            className="absolute inset-0 bg-surface-dark/50 backdrop-blur-xs transition-opacity"
             onClick={() => setMoreOpen(false)}
             aria-hidden="true"
           />
 
           {/* Sheet Container */}
-          <div className="relative w-full bg-white rounded-t-[12px] shadow-2xl border-t border-[#D8DCDF] max-h-[80vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] font-sans animate-in slide-in-from-bottom duration-200">
+          <div className="relative w-full bg-surface-raised rounded-t-xl shadow-2xl border-t border-border max-h-[80vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] font-sans animate-in slide-in-from-bottom duration-200">
             {/* Grab Handle */}
             <div className="pt-2.5 pb-1 flex justify-center">
-              <span className="w-10 h-1 rounded-full bg-[#D8DCDF]" />
+              <span className="w-10 h-1 rounded-full bg-border" />
             </div>
 
             {/* Header */}
-            <div className="px-4 pb-3 pt-1 flex items-center justify-between border-b border-[#D8DCDF]">
+            <div className="px-4 pb-3 pt-1 flex items-center justify-between border-b border-border">
               <div>
-                <h3 className="text-sm font-bold text-[#1B2126]">Menu Lainnya</h3>
-                <p className="text-[11px] text-[#79838C]">Menu khusus {currentRole}</p>
+                <h3 className="text-sm font-bold text-ink">Menu Lainnya</h3>
+                <p className="text-[11px] text-ink-subtle">Menu khusus {currentRole}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-[6px] text-[#79838C] hover:text-[#1B2126] hover:bg-[#F2F4F5] active:bg-[#E6F3F5] transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink-subtle hover:text-ink hover:bg-surface active:bg-accent-subtle transition-colors"
                 aria-label="Tutup menu lainnya"
               >
                 <X className="w-5 h-5" />
@@ -293,17 +293,17 @@ export const MobileBottomNav: React.FC = () => {
                     key={tab.id}
                     type="button"
                     onClick={() => handleNavigate(tab.id)}
-                    className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-[6px] border text-left transition-all ${
+                    className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-md border text-left transition-all ${
                       isActive
-                        ? 'bg-[#0F6674] text-white border-[#0F6674] font-semibold shadow-xs'
-                        : 'bg-[#F2F4F5] text-[#1B2126] border-[#D8DCDF] hover:bg-[#E6F3F5] hover:text-[#0F6674] font-medium'
+                        ? 'bg-accent text-white border-accent font-semibold shadow-xs'
+                        : 'bg-surface text-ink border-border hover:bg-accent-subtle hover:text-accent font-medium'
                     }`}
                   >
                     <div
-                      className={`w-8 h-8 rounded-[4px] flex items-center justify-center shrink-0 ${
+                      className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${
                         isActive
                           ? 'bg-white/20 text-white'
-                          : 'bg-white text-[#0F6674] border border-[#D8DCDF]'
+                          : 'bg-surface-raised text-accent border border-border'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
