@@ -8,6 +8,38 @@ export default {
   theme: {
     extend: {
       colors: {
+        // KIM 3 Workshop Design Tokens (Stage 8)
+        ink: {
+          DEFAULT: 'var(--color-ink)',
+          muted: 'var(--color-ink-muted)',
+          subtle: 'var(--color-ink-subtle)',
+        },
+        surface: {
+          DEFAULT: 'var(--color-surface)',
+          raised: 'var(--color-surface-raised)',
+          dark: 'var(--color-surface-dark)',
+        },
+        accent: {
+          DEFAULT: 'var(--color-accent)',
+          hover: 'var(--color-accent-hover)',
+          active: 'var(--color-accent-active)',
+          subtle: 'var(--color-accent-subtle)',
+        },
+        border: {
+          DEFAULT: 'var(--color-border)',
+          dark: 'var(--color-border-dark)',
+        },
+        status: {
+          amber: 'var(--color-status-amber)',
+          'amber-bg': 'var(--color-status-amber-bg)',
+          blue: 'var(--color-status-blue)',
+          'blue-bg': 'var(--color-status-blue-bg)',
+          green: 'var(--color-status-green)',
+          'green-bg': 'var(--color-status-green-bg)',
+          red: 'var(--color-status-red)',
+          'red-bg': 'var(--color-status-red-bg)',
+        },
+        // Backward-compatible primary colors
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',
@@ -21,6 +53,20 @@ export default {
           900: '#1e3a8a',
           950: '#172554',
         },
+      },
+      fontFamily: {
+        sans: ['var(--font-sans)'],
+        mono: ['var(--font-mono)'],
+      },
+      borderRadius: {
+        DEFAULT: '4px',
+        sm: '2px',
+        md: '6px',
+        lg: '8px',
+      },
+      boxShadow: {
+        hairline: '0 0 0 1px var(--color-border)',
+        'hairline-dark': '0 0 0 1px var(--color-border-dark)',
       },
     },
   },
