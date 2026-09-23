@@ -41,10 +41,13 @@ export const ServiceAdvisorView: React.FC = () => {
 
   // Form Penerimaan SA State
   const [formPenerimaan, setFormPenerimaan] = useState({
+    id_antrian: undefined as number | undefined,
     no_polisi: '',
-    nama_customer: 'PT. Andi Jaya',
-    odometer_km: 125680,
+    nama_customer: '',
+    odometer_km: '' as number | '',
     foto_odometer: '',
+    foto_stnk: '',
+    foto_kir: '',
     keluhan_customer: '',
     cek_body: 'OK',
     cek_mesin: 'OK',
@@ -83,6 +86,16 @@ export const ServiceAdvisorView: React.FC = () => {
     queryKey: ['stok-part'],
     queryFn: api.getStokPart,
   });
+
+  const { data: antrianList } = useQuery({
+    queryKey: ['antrian-list'],
+    queryFn: api.getAntrian,
+    refetchInterval: 8000,
+  });
+
+  const antrianMenungguSA = (antrianList || []).filter(
+    a => a.status_kunjungan === 'Check In' && a.tujuan_kedatangan === 'Service'
+  );
 
   const { data: purchasingList } = useQuery({
     queryKey: ['purchasing-list'],
@@ -129,10 +142,13 @@ export const ServiceAdvisorView: React.FC = () => {
 
       const spkRes = await api.buatSpk({
         no_spk: spkNo,
+        id_antrian: data.id_antrian,
         no_polisi: data.no_polisi,
         nama_customer: data.nama_customer,
-        odometer_km: data.odometer_km,
+        odometer_km: Number(data.odometer_km),
         foto_odometer: data.foto_odometer,
+        foto_stnk: data.foto_stnk,
+        foto_kir: data.foto_kir,
         keluhan_customer: data.keluhan_customer,
         cek_body: data.cek_body,
         cek_mesin: data.cek_mesin,
@@ -217,10 +233,13 @@ export const ServiceAdvisorView: React.FC = () => {
 
       setSelectedParts([]);
       setFormPenerimaan({
+        id_antrian: undefined,
         no_polisi: '',
-        nama_customer: 'PT. Andi Jaya',
-        odometer_km: 125680,
+        nama_customer: '',
+        odometer_km: '',
         foto_odometer: '',
+        foto_stnk: '',
+        foto_kir: '',
         keluhan_customer: '',
         cek_body: 'OK',
         cek_mesin: 'OK',
@@ -698,27 +717,39 @@ export const ServiceAdvisorView: React.FC = () => {
               className="space-y-4"
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Polisi</label>
-                  <input
-                    type="text"
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Pilih Antrian Kendaraan Masuk (Dari Gate Security)</label>
+                  <select
                     required
-                    placeholder="Contoh: BK 5678 CD"
-                    value={formPenerimaan.no_polisi}
-                    onChange={(e) => setFormPenerimaan({ ...formPenerimaan, no_polisi: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-bold uppercase text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Customer / Perusahaan</label>
-                  <input
-                    type="text"
-                    required
-                    value={formPenerimaan.nama_customer}
-                    onChange={(e) => setFormPenerimaan({ ...formPenerimaan, nama_customer: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
+                    value={formPenerimaan.id_antrian || ''}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      const antrian = antrianMenungguSA.find(a => a.id === id);
+                      if (antrian) {
+                        setFormPenerimaan({
+                          ...formPenerimaan,
+                          id_antrian: id,
+                          no_polisi: antrian.no_polisi,
+                          nama_customer: antrian.nama_customer || '',
+                        });
+                      } else {
+                        setFormPenerimaan({
+                          ...formPenerimaan,
+                          id_antrian: undefined,
+                          no_polisi: '',
+                          nama_customer: '',
+                        });
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="">-- Pilih Kendaraan Menunggu SA --</option>
+                    {antrianMenungguSA.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.no_polisi} - {a.nama_customer || 'Tanpa Nama'} ({a.jenis_armada || 'Truk'})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -745,13 +776,27 @@ export const ServiceAdvisorView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Foto Odometer (Kamera / File) */}
-              <PhotoUploader
-                label="Foto Odometer (Cek Fisik KM)"
-                value={formPenerimaan.foto_odometer}
-                onChange={(url) => setFormPenerimaan({ ...formPenerimaan, foto_odometer: url })}
-                bucket="foto_kendaraan"
-              />
+              {/* Foto Dokumen (Odometer, STNK, KIR) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <PhotoUploader
+                  label="Foto Odometer (Cek Fisik KM)"
+                  value={formPenerimaan.foto_odometer}
+                  onChange={(url) => setFormPenerimaan({ ...formPenerimaan, foto_odometer: url })}
+                  bucket="foto_kendaraan"
+                />
+                <PhotoUploader
+                  label="Foto STNK"
+                  value={formPenerimaan.foto_stnk}
+                  onChange={(url) => setFormPenerimaan({ ...formPenerimaan, foto_stnk: url })}
+                  bucket="dokumen_armada"
+                />
+                <PhotoUploader
+                  label="Foto BUKU KIR"
+                  value={formPenerimaan.foto_kir}
+                  onChange={(url) => setFormPenerimaan({ ...formPenerimaan, foto_kir: url })}
+                  bucket="dokumen_armada"
+                />
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Catat Keluhan Customer</label>

@@ -142,6 +142,8 @@ export interface SpkService {
   nama_customer?: string;
   odometer_km: number;
   foto_odometer?: string;
+  foto_stnk?: string;
+  foto_kir?: string;
   keluhan_customer?: string;
   cek_body?: string;
   cek_mesin?: string;
