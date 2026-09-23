@@ -468,39 +468,39 @@ export const ServiceAdvisorView: React.FC = () => {
     <div className="space-y-6">
       
       {/* Top Header */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold">
             <ClipboardList className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-slate-900">Service Advisor (SA)</h1>
-            <p className="text-xs text-slate-500">Penerimaan Kendaraan, Estimasi Biaya &amp; Waktu, Pengadaan Part, dan FIR Closed</p>
+            <h1 className="text-lg font-black text-ink">Service Advisor (SA)</h1>
+            <p className="text-xs text-ink-muted">Penerimaan Kendaraan, Estimasi Biaya &amp; Waktu, Pengadaan Part, dan FIR Closed</p>
           </div>
         </div>
 
         {/* Subtabs */}
-        <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
+        <div className="flex flex-wrap gap-1 bg-surface p-1 rounded-md">
           <button
             onClick={() => setActiveTab('spk-list')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'spk-list' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'spk-list' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
             Daftar SPK Aktif
           </button>
           <button
             onClick={() => setActiveTab('penerimaan')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'penerimaan' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'penerimaan' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
             + Buat SPK Penerimaan
           </button>
           <button
             onClick={() => setActiveTab('estimasi-pr')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'estimasi-pr' ? 'bg-white text-purple-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'estimasi-pr' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
             Kotak Merah (PR &amp; PO)
@@ -512,78 +512,79 @@ export const ServiceAdvisorView: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div 
           onClick={() => setSaStatusFilter('Semua')}
-          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-            saStatusFilter === 'Semua' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            saStatusFilter === 'Semua' ? 'bg-accent-subtle border-accent/30 ring-2 ring-accent/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Total SPK Aktif</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-ink-muted">Total SPK Aktif</span>
+            <div className="w-7 h-7 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
               <ClipboardList className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalSpkCount}</div>
-          <span className="text-[10px] text-slate-400">Seluruh antrian bengkel</span>
+          <div className="text-xl sm:text-2xl font-black text-accent mt-1">{totalSpkCount}</div>
+          <span className="text-[10px] text-ink-subtle">Seluruh antrian bengkel</span>
         </div>
 
         <div 
           onClick={() => setSaStatusFilter('Dalam Pengerjaan')}
-          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-            saStatusFilter === 'Dalam Pengerjaan' ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            saStatusFilter === 'Dalam Pengerjaan' ? 'bg-status-blue-bg border-status-blue/30 ring-2 ring-status-blue/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-indigo-700">Dalam Pengerjaan</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-status-blue">Dalam Pengerjaan</span>
+            <div className="w-7 h-7 rounded-md bg-status-blue-bg text-status-blue flex items-center justify-center">
               <Wrench className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-indigo-900 mt-1">{inProgressCount}</div>
-          <span className="text-[10px] text-indigo-600">Sedang diservis teknisi</span>
+          <div className="text-xl sm:text-2xl font-black text-status-blue mt-1">{inProgressCount}</div>
+          <span className="text-[10px] text-status-blue">Sedang diservis teknisi</span>
         </div>
 
         <div 
           onClick={() => setSaStatusFilter('Waiting Part')}
-          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-            saStatusFilter === 'Waiting Part' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            saStatusFilter === 'Waiting Part' ? 'bg-status-amber-bg border-status-amber/30 ring-2 ring-status-amber/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-700">Menunggu Part (PR)</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-status-amber">Menunggu Part (PR)</span>
+            <div className="w-7 h-7 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
               <ShoppingBag className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-900 mt-1">{waitingPartCount}</div>
-          <span className="text-[10px] text-amber-700">Proses purchasing</span>
+          <div className="text-xl sm:text-2xl font-black text-status-amber mt-1">{waitingPartCount}</div>
+          <span className="text-[10px] text-status-amber">Proses purchasing</span>
         </div>
 
         <div 
           onClick={() => setSaStatusFilter('QC Passed')}
-          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-            saStatusFilter === 'QC Passed' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            saStatusFilter === 'QC Passed' ? 'bg-status-green-bg border-status-green/30 ring-2 ring-status-green/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-700">Siap FIR Closed</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-status-green">Siap FIR Closed</span>
+            <div className="w-7 h-7 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
               <FileCheck className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-900 mt-1">{qcPassedCount}</div>
-          <span className="text-[10px] text-emerald-600">QC Passed siap invoice</span>
+          <div className="text-xl sm:text-2xl font-black text-status-green mt-1">{qcPassedCount}</div>
+          <span className="text-[10px] text-status-green">QC Passed siap invoice</span>
         </div>
       </div>
 
+
       {/* TAB 1: DAFTAR SPK AKTIF */}
       {activeTab === 'spk-list' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Semua Work Order SPK Bengkel</h2>
-              <p className="text-xs text-slate-500">Pantau progres pekerjaan, status approval customer, dan FIR closed</p>
+              <h2 className="text-base font-bold text-ink">Semua Work Order SPK Bengkel</h2>
+              <p className="text-xs text-ink-muted">Pantau progres pekerjaan, status approval customer, dan FIR closed</p>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 self-start sm:self-auto">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-surface text-ink-muted self-start sm:self-auto">
               {filteredSpkList.length} SPK Ditemukan
             </span>
           </div>
@@ -591,18 +592,18 @@ export const ServiceAdvisorView: React.FC = () => {
           {/* Live Search & Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-2.5">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Cari No. SPK, No. Polisi, Customer, Mekanik, atau Keluhan..."
                 value={saSearchQuery}
                 onChange={(e) => setSaSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                className="w-full pl-9 pr-8 py-2 rounded-md border border-border text-xs bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none transition-all"
               />
               {saSearchQuery && (
                 <button
                   onClick={() => setSaSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-1"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-ink text-xs font-bold p-1"
                 >
                   ✕
                 </button>
@@ -615,10 +616,10 @@ export const ServiceAdvisorView: React.FC = () => {
                 <button
                   key={st}
                   onClick={() => setSaStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-all ${
                     saStatusFilter === st
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-ink text-surface shadow-xs'
+                      : 'bg-surface text-ink-muted hover:bg-surface-raised'
                   }`}
                 >
                   {st}
@@ -629,7 +630,7 @@ export const ServiceAdvisorView: React.FC = () => {
 
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
+              <thead className="bg-surface text-ink-muted border-y border-border">
                 <tr>
                   <th className="py-2.5 px-3 font-semibold">No. SPK</th>
                   <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
@@ -640,23 +641,23 @@ export const ServiceAdvisorView: React.FC = () => {
                   <th className="py-2.5 px-3 font-semibold text-right">Aksi SA</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {filteredSpkList.length > 0 ? (
                   filteredSpkList.map((spk) => (
-                    <tr key={spk.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-3 font-mono font-bold text-blue-600">{spk.no_spk}</td>
-                      <td className="py-3 px-3 font-bold text-slate-900">{spk.no_polisi}</td>
+                    <tr key={spk.id} className="hover:bg-surface/60 transition-colors">
+                      <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
+                      <td className="py-3 px-3 font-bold text-ink">{spk.no_polisi}</td>
                       <td className="py-3 px-3">
-                        <div className="font-semibold text-slate-800">{spk.nama_customer || '-'}</div>
-                        <div className="text-[11px] text-slate-400 line-clamp-1">{spk.keluhan_customer}</div>
+                        <div className="font-semibold text-ink">{spk.nama_customer || '-'}</div>
+                        <div className="text-[11px] text-ink-subtle line-clamp-1">{spk.keluhan_customer}</div>
                       </td>
                       <td className="py-3 px-3">
                         <StatusBadge status={spk.status_spk} size="sm" />
                       </td>
-                      <td className="py-3 px-3 text-slate-600">
+                      <td className="py-3 px-3 text-ink-muted">
                         {spk.nama_mekanik ? `${spk.nama_mekanik}${spk.nama_foreman ? ` (${spk.nama_foreman})` : ''}` : 'Belum Ditugaskan'}
                       </td>
-                      <td className="py-3 px-3 font-bold text-slate-800">
+                      <td className="py-3 px-3 font-bold text-ink">
                         Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
                       </td>
                       <td className="py-3 px-3 text-right">
@@ -665,7 +666,7 @@ export const ServiceAdvisorView: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setShowEstimasiModal(spk)}
-                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1"
+                              className="px-2.5 py-1 bg-accent hover:bg-accent-hover text-white rounded-md font-bold text-xs shadow-xs flex items-center gap-1"
                             >
                               <CheckCircle className="w-3.5 h-3.5" /> Buat Estimasi Biaya
                             </button>
@@ -676,7 +677,7 @@ export const ServiceAdvisorView: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleOpenFinalCheck(spk)}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1 transition-all"
+                              className="px-2.5 py-1 bg-status-green hover:bg-status-green/90 text-white rounded-md font-bold text-xs shadow-xs flex items-center gap-1 transition-all"
                               title="Pemeriksaan Akhir (Final Check SA) sebelum menutup FIR"
                             >
                               <FileCheck className="w-3.5 h-3.5" /> Final Check (FIR Closed)
@@ -688,7 +689,7 @@ export const ServiceAdvisorView: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setShowPrModal(spk)}
-                              className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-bold text-xs border border-purple-200 flex items-center gap-1"
+                              className="px-2.5 py-1 bg-status-red-bg hover:bg-status-red/10 text-status-red rounded-md font-bold text-xs border border-status-red/30 flex items-center gap-1"
                               title="Ajukan PR ke Purchasing jika part tidak ready"
                             >
                               <ShoppingBag className="w-3.5 h-3.5" /> PR Part
@@ -699,7 +700,7 @@ export const ServiceAdvisorView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setShowPrintSpk(spk)}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border border-slate-300 flex items-center gap-1 transition-colors"
+                            className="px-2.5 py-1 bg-surface hover:bg-surface-raised text-ink-muted rounded-md font-bold text-xs border border-border flex items-center gap-1 transition-colors"
                             title="Cetak Surat Perintah Kerja (SPK) A4"
                           >
                             <Printer className="w-3.5 h-3.5" /> Cetak SPK
@@ -710,7 +711,7 @@ export const ServiceAdvisorView: React.FC = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                    <td colSpan={7} className="py-8 text-center text-ink-subtle">
                       Tidak ditemukan SPK yang sesuai dengan filter atau pencarian.
                     </td>
                   </tr>
@@ -723,28 +724,28 @@ export const ServiceAdvisorView: React.FC = () => {
           <div className="block md:hidden space-y-2.5">
             {filteredSpkList.length > 0 ? (
               filteredSpkList.map((spk) => (
-              <div key={spk.id} className="rounded-xl border border-slate-200 p-3.5">
+              <div key={spk.id} className="rounded-md border border-border p-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-mono text-[11px] font-bold text-blue-600">{spk.no_spk}</div>
-                    <div className="text-base font-black text-slate-900 mt-0.5">{spk.no_polisi}</div>
-                    <div className="text-xs font-semibold text-slate-600 mt-0.5">{spk.nama_customer || '-'}</div>
+                    <div className="font-mono text-[11px] font-bold text-accent">{spk.no_spk}</div>
+                    <div className="text-base font-black text-ink mt-0.5">{spk.no_polisi}</div>
+                    <div className="text-xs font-semibold text-ink-muted mt-0.5">{spk.nama_customer || '-'}</div>
                   </div>
                   <StatusBadge status={spk.status_spk} size="sm" />
                 </div>
 
-                <p className="mt-2 text-[11px] text-slate-400 line-clamp-2">{spk.keluhan_customer}</p>
+                <p className="mt-2 text-[11px] text-ink-subtle line-clamp-2">{spk.keluhan_customer}</p>
 
-                <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5 text-[11px] text-slate-400">
+                <div className="mt-2.5 pt-2.5 border-t border-border space-y-1.5 text-[11px] text-ink-subtle">
                   <div className="flex items-start justify-between gap-3">
                     <span className="shrink-0">Mekanik / Foreman</span>
-                    <span className="font-semibold text-slate-600 text-right">
+                    <span className="font-semibold text-ink-muted text-right">
                       {spk.nama_mekanik ? `${spk.nama_mekanik}${spk.nama_foreman ? ` (${spk.nama_foreman})` : ''}` : 'Belum Ditugaskan'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Estimasi Biaya</span>
-                    <span className="font-bold text-slate-900">
+                    <span className="font-bold text-ink">
                       Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
                     </span>
                   </div>
@@ -754,7 +755,7 @@ export const ServiceAdvisorView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowEstimasiModal(spk)}
-                    className="mt-3 w-full min-h-[44px] py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-xs flex items-center justify-center gap-1.5"
+                    className="mt-3 w-full min-h-[44px] py-2.5 bg-accent hover:bg-accent-hover text-white rounded-md font-bold text-xs shadow-xs flex items-center justify-center gap-1.5"
                   >
                     <CheckCircle className="w-4 h-4" /> Buat Estimasi Biaya
                   </button>
@@ -764,7 +765,7 @@ export const ServiceAdvisorView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleOpenFinalCheck(spk)}
-                    className="mt-3 w-full min-h-[44px] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all"
+                    className="mt-3 w-full min-h-[44px] py-2.5 bg-status-green hover:bg-status-green/90 text-white rounded-md font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all"
                   >
                     <FileCheck className="w-4 h-4" /> Final Check (FIR Closed)
                   </button>
@@ -774,7 +775,7 @@ export const ServiceAdvisorView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowPrModal(spk)}
-                    className="mt-2 w-full min-h-[44px] py-2.5 bg-purple-50 active:bg-purple-100 text-purple-700 rounded-xl font-bold text-xs border border-purple-200 flex items-center justify-center gap-1.5"
+                    className="mt-2 w-full min-h-[44px] py-2.5 bg-status-red-bg active:bg-status-red/10 text-status-red rounded-md font-bold text-xs border border-status-red/30 flex items-center justify-center gap-1.5"
                   >
                     <ShoppingBag className="w-4 h-4" /> Ajukan PR Part
                   </button>
@@ -783,14 +784,14 @@ export const ServiceAdvisorView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPrintSpk(spk)}
-                  className="mt-2 w-full min-h-[44px] py-2.5 bg-slate-100 active:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs border border-slate-300 flex items-center justify-center gap-1.5 transition-colors"
+                  className="mt-2 w-full min-h-[44px] py-2.5 bg-surface active:bg-surface-raised text-ink-muted rounded-md font-bold text-xs border border-border flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <Printer className="w-4 h-4" /> Cetak SPK (HVS A4)
                 </button>
               </div>
             ))
             ) : (
-              <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <div className="p-8 text-center text-ink-subtle text-xs bg-surface rounded-md border border-dashed border-border">
                 Tidak ditemukan SPK yang sesuai dengan filter atau pencarian.
               </div>
             )}
@@ -798,15 +799,17 @@ export const ServiceAdvisorView: React.FC = () => {
         </div>
       )}
 
+
+
       {/* TAB 2: FORM PENERIMAAN KENDARAAN (image1.png Mockup 2 & 3) */}
       {activeTab === 'penerimaan' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Form Input Penerimaan (2 Cols) */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <div className="border-b border-slate-100 pb-3 mb-4">
-              <h2 className="text-base font-bold text-slate-900">Penerimaan Kendaraan oleh Service Advisor</h2>
-              <p className="text-xs text-slate-500">Cek awal, odometer, keluhan, dan kondisi fisik kendaraan</p>
+          <div className="lg:col-span-2 bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+            <div className="border-b border-border pb-3 mb-4">
+              <h2 className="text-base font-bold text-ink">Penerimaan Kendaraan oleh Service Advisor</h2>
+              <p className="text-xs text-ink-muted">Cek awal, odometer, keluhan, dan kondisi fisik kendaraan</p>
             </div>
 
             <form
@@ -818,7 +821,7 @@ export const ServiceAdvisorView: React.FC = () => {
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Pilih Antrian Kendaraan Masuk (Dari Gate Security)</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Pilih Antrian Kendaraan Masuk (Dari Gate Security)</label>
                   <select
                     required
                     value={formPenerimaan.id_antrian || ''}
@@ -841,7 +844,7 @@ export const ServiceAdvisorView: React.FC = () => {
                         });
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-md border border-border font-bold text-sm focus:ring-2 focus:ring-accent focus:outline-none"
                   >
                     <option value="">-- Pilih Kendaraan Menunggu SA --</option>
                     {antrianMenungguSA.map(a => (
@@ -855,23 +858,23 @@ export const ServiceAdvisorView: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Odometer (KM)</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Odometer (KM)</label>
                   <input
                     type="number"
                     required
                     value={formPenerimaan.odometer_km}
                     onChange={(e) => setFormPenerimaan({ ...formPenerimaan, odometer_km: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-md border border-border font-mono text-sm font-bold focus:ring-2 focus:ring-accent focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Lead Time Estimasi (Jam)</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Lead Time Estimasi (Jam)</label>
                   <input
                     type="number"
                     value={formPenerimaan.lead_time_jam}
                     onChange={(e) => setFormPenerimaan({ ...formPenerimaan, lead_time_jam: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-md border border-border font-mono text-sm font-bold focus:ring-2 focus:ring-accent focus:outline-none"
                   />
                 </div>
               </div>
@@ -899,20 +902,20 @@ export const ServiceAdvisorView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Catat Keluhan Customer</label>
+                <label className="block text-xs font-bold text-ink-muted mb-1">Catat Keluhan Customer</label>
                 <textarea
                   rows={2}
                   required
                   placeholder="Contoh: Rem bunyi saat pengereman dan tarikan mesin agak berat..."
                   value={formPenerimaan.keluhan_customer}
                   onChange={(e) => setFormPenerimaan({ ...formPenerimaan, keluhan_customer: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
 
               {/* Checklist Kondisi Awal (image1.png Mockup SA) */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <span className="block text-xs font-bold text-slate-800 mb-2">Checklist Awal Kondisi Armada:</span>
+              <div className="bg-surface p-4 rounded-md border border-border">
+                <span className="block text-xs font-bold text-ink mb-2">Checklist Awal Kondisi Armada:</span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { key: 'cek_body', label: 'Bodi Kendaraan' },
@@ -920,12 +923,12 @@ export const ServiceAdvisorView: React.FC = () => {
                     { key: 'cek_kelistrikan', label: 'Kelistrikan' },
                     { key: 'cek_kaki_kaki', label: 'Kaki-kaki / Rem' },
                   ].map((item) => (
-                    <div key={item.key} className="bg-white p-2.5 rounded-lg border border-slate-200">
-                      <span className="text-[11px] font-semibold text-slate-600 block mb-1">{item.label}</span>
+                    <div key={item.key} className="bg-surface-raised p-2.5 rounded-md border border-border">
+                      <span className="text-[11px] font-semibold text-ink-muted block mb-1">{item.label}</span>
                       <select
                         value={(formPenerimaan as any)[item.key]}
                         onChange={(e) => setFormPenerimaan({ ...formPenerimaan, [item.key]: e.target.value })}
-                        className="w-full text-xs font-bold px-2 py-1 rounded border border-slate-200 focus:outline-none"
+                        className="w-full text-xs font-bold px-2 py-1 rounded border border-border focus:outline-none"
                       >
                         <option value="OK">OK (Baik)</option>
                         <option value="Perlu Dicek">Perlu Dicek</option>
@@ -936,11 +939,11 @@ export const ServiceAdvisorView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex justify-end">
+              <div className="pt-4 border-t border-border flex justify-end">
                 <button
                   type="submit"
                   disabled={createSpkMutation.isPending || !formPenerimaan.id_antrian}
-                  className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-sm shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
+                  className="px-6 py-3 rounded-md bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-black text-sm shadow-md shadow-accent/20 transition-all flex items-center gap-2"
                 >
                   {createSpkMutation.isPending ? 'Menyimpan...' : 'Submit Penerimaan Kendaraan'}
                   {!createSpkMutation.isPending && <CheckCircle className="w-5 h-5" />}
@@ -950,47 +953,47 @@ export const ServiceAdvisorView: React.FC = () => {
           </div>
 
           {/* Ringkasan Penerimaan Preview (1 Col) - image1.png Ringkasan */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs flex flex-col justify-between">
             <div>
-              <div className="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900">Ringkasan Penerimaan</h3>
-                <span className="text-[11px] font-mono text-slate-500">{new Date().toLocaleTimeString()} WIB</span>
+              <div className="border-b border-border pb-3 mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-ink">Ringkasan Penerimaan</h3>
+                <span className="text-[11px] font-mono text-ink-muted">{new Date().toLocaleTimeString()} WIB</span>
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <div className="text-[10px] text-slate-400 uppercase font-bold">Armada / No. Polisi</div>
-                  <div className="text-base font-black text-slate-900">{formPenerimaan.no_polisi || 'BK -'}</div>
-                  <div className="text-xs text-slate-600 font-semibold">{formPenerimaan.nama_customer}</div>
+                <div className="bg-surface p-3 rounded-md border border-border">
+                  <div className="text-[10px] text-ink-subtle uppercase font-bold">Armada / No. Polisi</div>
+                  <div className="text-base font-black text-ink">{formPenerimaan.no_polisi || 'BK -'}</div>
+                  <div className="text-xs text-ink-muted font-semibold">{formPenerimaan.nama_customer}</div>
                 </div>
 
-                <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">Odometer KM:</span>
-                  <span className="font-mono font-bold text-slate-800">{formPenerimaan.odometer_km.toLocaleString()} KM</span>
+                <div className="flex justify-between items-center py-1.5 border-b border-border">
+                  <span className="text-ink-muted">Odometer KM:</span>
+                  <span className="font-mono font-bold text-ink">{formPenerimaan.odometer_km.toLocaleString()} KM</span>
                 </div>
 
-                <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">Status Alur Awal:</span>
-                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px]">
+                <div className="flex justify-between items-center py-1.5 border-b border-border">
+                  <span className="text-ink-muted">Status Alur Awal:</span>
+                  <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent font-bold text-[10px]">
                     Menunggu Pengecekan Mekanik
                   </span>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 font-semibold block mb-1">Keluhan Customer:</span>
-                  <p className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-slate-700 italic">
+                  <span className="text-ink-muted font-semibold block mb-1">Keluhan Customer:</span>
+                  <p className="p-2.5 bg-surface rounded-md border border-border text-ink-muted italic">
                     "{formPenerimaan.keluhan_customer || 'Belum diisi...'}"
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 p-3 rounded-xl border text-[11px] space-y-1 bg-blue-50 border-blue-200 text-blue-900">
+            <div className="mt-6 p-3 rounded-md border text-[11px] space-y-1 bg-accent-subtle border-accent/30 text-accent">
               <div className="font-bold">Alur Selanjutnya:</div>
-              <div>1. SPK diterbitkan & muncul di Dashboard Foreman (Check In).</div>
+              <div>1. SPK diterbitkan &amp; muncul di Dashboard Foreman (Check In).</div>
               <div>2. Foreman menugaskan mekanik untuk Pengecekan Kendaraan.</div>
               <div>3. Foreman submit Rekomendasi Perbaikan ke SA.</div>
-              <div>4. SA menyusun Estimasi Biaya & Waktu (Kotak Merah jika Part Kosong).</div>
+              <div>4. SA menyusun Estimasi Biaya &amp; Waktu (Kotak Merah jika Part Kosong).</div>
             </div>
           </div>
 
@@ -999,14 +1002,15 @@ export const ServiceAdvisorView: React.FC = () => {
 
       {/* TAB 3: KOTAK MERAH PURCHASING INTEGRASI (image1.png Kotak Merah) */}
       {activeTab === 'estimasi-pr' && (
+
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-purple-900 text-white shadow-md flex items-center justify-between">
+          <div className="p-4 rounded-md bg-status-red text-white shadow-md flex items-center justify-between">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-800 text-purple-200 text-[10px] font-bold uppercase tracking-wider mb-1">
-                Tahap 6: Integrasi Estimasi Part & Purchasing
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-status-red/80 text-white/80 text-[10px] font-bold uppercase tracking-wider mb-1">
+                Tahap 6: Integrasi Estimasi Part &amp; Purchasing
               </div>
-              <h2 className="text-lg font-black">Status Part Tidak Ready di Stock & PO Purchasing</h2>
-              <p className="text-xs text-purple-200">
+              <h2 className="text-lg font-black">Status Part Tidak Ready di Stock &amp; PO Purchasing</h2>
+              <p className="text-xs text-white/80">
                 SA mengajukan PR → Purchasing proses penawaran harga min. 2 vendor → SA setuju → Purchasing input ETA ketersediaan barang.
               </p>
             </div>
@@ -1014,62 +1018,62 @@ export const ServiceAdvisorView: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {purchasingList?.map((pr) => (
-              <div key={pr.pr_id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+              <div key={pr.pr_id} className="bg-surface-raised rounded-md border border-status-red/30 p-5 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-blue-700">{pr.no_pr}</span>
+                  <span className="font-mono text-xs font-bold text-status-red">{pr.no_pr}</span>
                   <StatusBadge status={pr.status_pr} size="sm" />
                 </div>
 
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <div className="font-black text-slate-900 text-sm">{pr.no_polisi} - {pr.nama_customer}</div>
-                  <div className="text-xs text-slate-600 mt-1">{pr.catatan_pr}</div>
+                <div className="bg-surface p-3 rounded-md border border-border">
+                  <div className="font-black text-ink text-sm">{pr.no_polisi} - {pr.nama_customer}</div>
+                  <div className="text-xs text-ink-muted mt-1">{pr.catatan_pr}</div>
                 </div>
 
                 {/* Info Penawaran PO dari Purchasing */}
                 {pr.no_po ? (
-                  <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200 text-xs space-y-2">
-                    <div className="flex items-center justify-between font-bold text-purple-900">
+                  <div className="p-3 bg-status-red-bg rounded-md border border-status-red/30 text-xs space-y-2">
+                    <div className="flex items-center justify-between font-bold text-status-red">
                       <span>No. PO: {pr.no_po}</span>
                       <span>Admin: {pr.nama_admin_purchasing}</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                      <div className="p-2 bg-white rounded border border-purple-100">
-                        <span className="text-slate-400 block font-semibold">Vendor 1:</span>
-                        <div className="font-bold text-slate-800">{pr.vendor_1_nama}</div>
-                        <div className="text-slate-600">Rp {Number(pr.vendor_1_harga || 0).toLocaleString()}</div>
+                      <div className="p-2 bg-surface-raised rounded border border-border">
+                        <span className="text-ink-subtle block font-semibold">Vendor 1:</span>
+                        <div className="font-bold text-ink">{pr.vendor_1_nama}</div>
+                        <div className="text-ink-muted">Rp {Number(pr.vendor_1_harga || 0).toLocaleString()}</div>
                       </div>
-                      <div className="p-2 bg-white rounded border border-purple-100">
-                        <span className="text-slate-400 block font-semibold">Vendor 2:</span>
-                        <div className="font-bold text-slate-800">{pr.vendor_2_nama}</div>
-                        <div className="text-slate-600">Rp {Number(pr.vendor_2_harga || 0).toLocaleString()}</div>
+                      <div className="p-2 bg-surface-raised rounded border border-border">
+                        <span className="text-ink-subtle block font-semibold">Vendor 2:</span>
+                        <div className="font-bold text-ink">{pr.vendor_2_nama}</div>
+                        <div className="text-ink-muted">Rp {Number(pr.vendor_2_harga || 0).toLocaleString()}</div>
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-purple-200 flex items-center justify-between">
+                    <div className="pt-2 border-t border-status-red/20 flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] text-slate-500 font-semibold block">Vendor Terpilih & Harga:</span>
-                        <span className="font-bold text-purple-900">{pr.vendor_terpilih} (Rp {Number(pr.harga_kesepakatan || 0).toLocaleString()})</span>
+                        <span className="text-[10px] text-ink-muted font-semibold block">Vendor Terpilih &amp; Harga:</span>
+                        <span className="font-bold text-status-red">{pr.vendor_terpilih} (Rp {Number(pr.harga_kesepakatan || 0).toLocaleString()})</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] text-slate-500 font-semibold block">Estimasi ETA Ready:</span>
-                        <span className="font-mono font-bold text-purple-900">{pr.estimasi_tanggal_ready_eta} ({pr.estimasi_jam_ready_eta})</span>
+                        <span className="text-[10px] text-ink-muted font-semibold block">Estimasi ETA Ready:</span>
+                        <span className="font-mono font-bold text-status-red">{pr.estimasi_tanggal_ready_eta} ({pr.estimasi_jam_ready_eta})</span>
                       </div>
                     </div>
 
                     {/* SA Konfirmasi Button */}
                     <div className="pt-2 flex items-center justify-between">
-                      <span className="font-semibold text-slate-700">Konfirmasi SA:</span>
+                      <span className="font-semibold text-ink-muted">Konfirmasi SA:</span>
                       {pr.status_konfirmasi_sa === 'Disetujui SA' ? (
                         <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-xs flex items-center gap-1">
+                          <span className="px-2.5 py-1 bg-status-green-bg text-status-green font-bold rounded-md text-xs flex items-center gap-1">
                             <Check className="w-3.5 h-3.5" /> Disetujui SA
                           </span>
                           <button
                             type="button"
                             disabled={barangReadyMutation.isPending}
                             onClick={() => barangReadyMutation.mutate(pr)}
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all"
+                            className="px-3 py-1 bg-status-green hover:bg-status-green/90 text-white rounded-md font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all"
                             title="Konfirmasi barang fisik telah tiba di bengkel dan kembalikan status SPK ke Dalam Pengerjaan"
                           >
                             <Package className="w-3.5 h-3.5" /> Konfirmasi Barang Sampai
@@ -1080,14 +1084,14 @@ export const ServiceAdvisorView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => konfirmasiPoMutation.mutate({ poId: pr.po_id!, setuju: true })}
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs"
+                            className="px-3 py-1 bg-status-green hover:bg-status-green/90 text-white rounded-md font-bold text-xs shadow-xs"
                           >
                             Setujui PO
                           </button>
                           <button
                             type="button"
                             onClick={() => konfirmasiPoMutation.mutate({ poId: pr.po_id!, setuju: false })}
-                            className="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg font-bold text-xs"
+                            className="px-3 py-1 bg-status-red-bg hover:bg-status-red/10 text-status-red rounded-md font-bold text-xs border border-status-red/30"
                           >
                             Tolak
                           </button>
@@ -1096,7 +1100,7 @@ export const ServiceAdvisorView: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
+                  <div className="p-3 bg-status-amber-bg rounded-md border border-status-amber/30 text-xs text-status-amber flex items-center gap-2">
                     <Clock className="w-4 h-4 animate-spin" />
                     <span>Menunggu Admin Purchasing menginput penawaran vendor dan estimasi ETA...</span>
                   </div>
@@ -1107,18 +1111,19 @@ export const ServiceAdvisorView: React.FC = () => {
         </div>
       )}
 
+
       {/* MODAL BUAT ESTIMASI BIAYA */}
       {showEstimasiModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl border border-slate-200">
-            <div className="sticky top-0 bg-white/90 backdrop-blur px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
+          <div className="bg-surface-raised rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl border border-border">
+            <div className="sticky top-0 bg-surface-raised/90 backdrop-blur px-6 py-4 border-b border-border flex items-center justify-between z-10">
               <div>
-                <h3 className="text-lg font-black text-slate-900">Buat Estimasi Biaya & Waktu</h3>
-                <p className="text-xs text-slate-500">Berdasarkan hasil pengecekan {showEstimasiModal.nama_foreman ? `Foreman (${showEstimasiModal.nama_foreman})` : 'Foreman'} untuk {showEstimasiModal.no_polisi}</p>
+                <h3 className="text-lg font-black text-ink">Buat Estimasi Biaya &amp; Waktu</h3>
+                <p className="text-xs text-ink-muted">Berdasarkan hasil pengecekan {showEstimasiModal.nama_foreman ? `Foreman (${showEstimasiModal.nama_foreman})` : 'Foreman'} untuk {showEstimasiModal.no_polisi}</p>
               </div>
               <button 
                 onClick={() => { setShowEstimasiModal(null); setSelectedParts([]); }} 
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                className="w-8 h-8 rounded-full bg-surface text-ink-subtle flex items-center justify-center hover:bg-status-red-bg hover:text-status-red transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1127,20 +1132,20 @@ export const ServiceAdvisorView: React.FC = () => {
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Kolom Kiri: Info Pengecekan Mekanik & Input Part */}
               <div className="space-y-4">
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                  <h4 className="text-xs font-bold text-slate-900 mb-2 flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-slate-500"/> Hasil Pengecekan Foreman/Mekanik</h4>
-                  <div className="text-xs text-slate-700 whitespace-pre-line leading-relaxed">
+                <div className="bg-surface rounded-md p-4 border border-border">
+                  <h4 className="text-xs font-bold text-ink mb-2 flex items-center gap-1.5"><ClipboardList className="w-4 h-4 text-ink-subtle"/> Hasil Pengecekan Foreman/Mekanik</h4>
+                  <div className="text-xs text-ink-muted whitespace-pre-line leading-relaxed">
                     {showEstimasiModal.catatan_foreman || 'Belum ada catatan dari Foreman.'}
                   </div>
                 </div>
 
-                <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
-                  <h4 className="text-xs font-bold text-slate-900 mb-3 flex items-center gap-1.5"><Package className="w-4 h-4 text-blue-600"/> Tambah Sparepart / Jasa Tambahan</h4>
+                <div className="bg-accent-subtle rounded-md p-4 border border-accent/20">
+                  <h4 className="text-xs font-bold text-ink mb-3 flex items-center gap-1.5"><Package className="w-4 h-4 text-accent"/> Tambah Sparepart / Jasa Tambahan</h4>
                   <div className="flex gap-2">
                     <select
                       value={partPickerId}
                       onChange={(e) => setPartPickerId(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="flex-1 px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
                     >
                       <option value="">-- Pilih Sparepart --</option>
                       {masterStokPart?.map(p => (
@@ -1154,13 +1159,13 @@ export const ServiceAdvisorView: React.FC = () => {
                       min="1"
                       value={partPickerQty}
                       onChange={(e) => setPartPickerQty(Number(e.target.value))}
-                      className="w-16 px-2 py-2 rounded-xl border border-slate-300 text-xs text-center focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-16 px-2 py-2 rounded-md border border-border text-xs text-center focus:ring-2 focus:ring-accent focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleAddPartToEstimasi}
                       disabled={!partPickerId}
-                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs flex items-center justify-center transition-all"
+                      className="px-3 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center transition-all"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -1169,23 +1174,23 @@ export const ServiceAdvisorView: React.FC = () => {
                   {/* List Part Terpilih */}
                   <div className="mt-3 space-y-2">
                     {selectedParts.map((p, idx) => (
-                      <div key={idx} className="p-2.5 bg-white border border-slate-200 rounded-lg flex items-center justify-between">
+                      <div key={idx} className="p-2.5 bg-surface-raised border border-border rounded-md flex items-center justify-between">
                         <div>
-                          <div className="text-xs font-bold text-slate-800">{p.nama_part}</div>
-                          <div className="text-[10px] text-slate-500 flex gap-2 mt-0.5">
+                          <div className="text-xs font-bold text-ink">{p.nama_part}</div>
+                          <div className="text-[10px] text-ink-muted flex gap-2 mt-0.5">
                             <span>{p.jumlah} {p.satuan} x Rp {p.harga_satuan.toLocaleString()}</span>
                             {p.stok === 0 || p.jumlah > p.stok ? (
-                              <span className="text-rose-600 font-bold flex items-center gap-0.5"><AlertCircle className="w-3 h-3" /> INDENT</span>
+                              <span className="text-status-red font-bold flex items-center gap-0.5"><AlertCircle className="w-3 h-3" /> INDENT</span>
                             ) : (
-                              <span className="text-emerald-600 font-bold flex items-center gap-0.5"><Check className="w-3 h-3" /> Ready</span>
+                              <span className="text-status-green font-bold flex items-center gap-0.5"><Check className="w-3 h-3" /> Ready</span>
                             )}
                           </div>
                         </div>
-                        <button type="button" onClick={() => handleRemovePartFromEstimasi(p.kode_part)} className="text-slate-400 hover:text-rose-600"><Trash2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => handleRemovePartFromEstimasi(p.kode_part)} className="text-ink-subtle hover:text-status-red"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     ))}
                     {selectedParts.length === 0 && (
-                      <p className="text-[10px] text-slate-500 italic text-center p-2 bg-white/50 rounded-lg">Belum ada part ditambahkan.</p>
+                      <p className="text-[10px] text-ink-subtle italic text-center p-2 bg-surface-raised/50 rounded-md">Belum ada part ditambahkan.</p>
                     )}
                   </div>
                 </div>
@@ -1193,35 +1198,35 @@ export const ServiceAdvisorView: React.FC = () => {
 
               {/* Kolom Kanan: Ringkasan Estimasi & Action */}
               <div className="space-y-4">
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-900 border-b border-slate-200 pb-2">Ringkasan Estimasi Customer</h4>
+                <div className="bg-surface rounded-md p-4 border border-border space-y-3">
+                  <h4 className="text-xs font-bold text-ink border-b border-border pb-2">Ringkasan Estimasi Customer</h4>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Jasa Servis Dasar:</span>
-                    <span className="font-semibold text-slate-700">Rp 250.000</span>
+                    <span className="text-ink-muted">Jasa Servis Dasar:</span>
+                    <span className="font-semibold text-ink-muted">Rp 250.000</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Total Sparepart ({selectedParts.length} item):</span>
-                    <span className="font-semibold text-slate-700">Rp {partsSubtotal.toLocaleString('id-ID')}</span>
+                    <span className="text-ink-muted">Total Sparepart ({selectedParts.length} item):</span>
+                    <span className="font-semibold text-ink-muted">Rp {partsSubtotal.toLocaleString('id-ID')}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-200">
-                    <span className="font-bold text-slate-900">Total Estimasi Biaya:</span>
-                    <span className="font-black text-emerald-600">Rp {totalEstimasiBiaya.toLocaleString('id-ID')}</span>
+                  <div className="flex justify-between items-center text-sm pt-2 border-t border-border">
+                    <span className="font-bold text-ink">Total Estimasi Biaya:</span>
+                    <span className="font-black text-status-green">Rp {totalEstimasiBiaya.toLocaleString('id-ID')}</span>
                   </div>
 
                   <div className="pt-3">
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Estimasi Waktu Pengerjaan (Jam)</label>
+                    <label className="block text-xs font-bold text-ink-muted mb-1">Estimasi Waktu Pengerjaan (Jam)</label>
                     <input
                       type="number"
                       value={estimasiWaktu}
                       onChange={(e) => setEstimasiWaktu(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-md border border-border font-mono text-sm font-bold focus:ring-2 focus:ring-accent focus:outline-none"
                     />
                   </div>
                 </div>
 
                 {hasEmptyStock && (
-                  <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 text-purple-900 text-[10px] flex gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-purple-700" />
+                  <div className="p-3 bg-status-red-bg rounded-md border border-status-red/30 text-status-red text-[10px] flex gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
                     <p><strong>Part Indent Terdeteksi!</strong> Menyetujui estimasi ini akan otomatis membuat PR Kotak Merah dan menahan status menjadi Waiting Part.</p>
                   </div>
                 )}
@@ -1230,7 +1235,7 @@ export const ServiceAdvisorView: React.FC = () => {
                   type="button"
                   onClick={() => submitEstimasiMutation.mutate(showEstimasiModal)}
                   disabled={submitEstimasiMutation.isPending}
-                  className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-md bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white font-black text-sm shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-2"
                 >
                   {submitEstimasiMutation.isPending ? 'Memproses...' : 'Submit Estimasi ke Customer'}
                   <CheckCircle className="w-5 h-5" />
@@ -1241,38 +1246,39 @@ export const ServiceAdvisorView: React.FC = () => {
         </div>
       )}
 
+
       {/* MODAL AJUKAN PR PART */}
       {showPrModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-surface-raised rounded-t-md sm:rounded-md p-5 sm:p-6 max-w-md w-full shadow-xl border border-border space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Ajukan Purchase Request (PR)</h3>
-                <p className="text-xs text-slate-500">Kirim permintaan pengadaan sparepart ke Admin Purchasing</p>
+                <h3 className="text-base font-bold text-ink">Ajukan Purchase Request (PR)</h3>
+                <p className="text-xs text-ink-muted">Kirim permintaan pengadaan sparepart ke Admin Purchasing</p>
               </div>
               <button
                 onClick={() => setShowPrModal(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="font-bold text-slate-800">{showPrModal.no_spk} - {showPrModal.no_polisi}</div>
-                <div className="text-slate-600 mt-0.5">{showPrModal.nama_customer}</div>
+              <div className="p-3 rounded-md bg-surface border border-border">
+                <div className="font-bold text-ink">{showPrModal.no_spk} - {showPrModal.no_polisi}</div>
+                <div className="text-ink-muted mt-0.5">{showPrModal.nama_customer}</div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Rincian Kebutuhan Sparepart / Catatan</label>
+                <label className="block text-xs font-bold text-ink-muted mb-1">Rincian Kebutuhan Sparepart / Catatan</label>
                 <textarea
                   rows={3}
                   required
                   placeholder="Sebutkan jenis part, jumlah, spesifikasi, dan estimasi waktu..."
                   value={prNote}
                   onChange={(e) => setPrNote(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
             </div>
@@ -1281,7 +1287,7 @@ export const ServiceAdvisorView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPrModal(null)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                className="flex-1 py-2.5 bg-surface hover:bg-surface-raised text-ink-muted font-bold text-xs rounded-md border border-border"
               >
                 Batal
               </button>
@@ -1289,7 +1295,7 @@ export const ServiceAdvisorView: React.FC = () => {
                 type="button"
                 disabled={prMutation.isPending}
                 onClick={() => prMutation.mutate(showPrModal)}
-                className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-600/20"
+                className="flex-1 py-2.5 bg-status-red hover:bg-status-red/90 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20"
               >
                 {prMutation.isPending ? 'Mengirim...' : 'KIRIM KE PURCHASING'}
               </button>
@@ -1298,19 +1304,20 @@ export const ServiceAdvisorView: React.FC = () => {
         </div>
       )}
 
+
       {/* MODAL PEMERIKSAAN AKHIR (FINAL CHECK SA) SEBELUM FIR CLOSED */}
       {showFinalCheckModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in duration-150">
+          <div className="bg-surface-raised rounded-md max-w-lg w-full shadow-2xl border border-border overflow-hidden my-auto animate-in fade-in zoom-in duration-150">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between">
+            <div className="bg-accent p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold shrink-0">
+                <div className="w-10 h-10 rounded-md bg-white/20 backdrop-blur-md flex items-center justify-center font-bold shrink-0">
                   <ShieldCheck className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold">Pemeriksaan Akhir (Final Check SA)</h3>
-                  <p className="text-xs text-emerald-100">
+                  <p className="text-xs text-white/80">
                     Verifikasi fisik &amp; dokumen sebelum penutupan FIR dan penerbitan Invoice
                   </p>
                 </div>
@@ -1318,7 +1325,7 @@ export const ServiceAdvisorView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowFinalCheckModal(null)}
-                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1327,26 +1334,26 @@ export const ServiceAdvisorView: React.FC = () => {
             {/* Modal Body */}
             <div className="p-5 space-y-4 text-xs">
               {/* Info SPK & Hasil QC Foreman */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="p-3.5 rounded-md bg-surface border border-border space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-blue-700">{showFinalCheckModal.no_spk}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px] flex items-center gap-1">
+                  <span className="font-mono text-xs font-bold text-accent">{showFinalCheckModal.no_spk}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-status-green-bg text-status-green font-bold text-[10px] flex items-center gap-1">
                     <CheckCircle className="w-3 h-3" /> QC Passed (Foreman)
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between">
                   <div>
-                    <div className="text-base font-black text-slate-900">{showFinalCheckModal.no_polisi}</div>
-                    <div className="text-xs text-slate-600 font-semibold">{showFinalCheckModal.nama_customer}</div>
+                    <div className="text-base font-black text-ink">{showFinalCheckModal.no_polisi}</div>
+                    <div className="text-xs text-ink-muted font-semibold">{showFinalCheckModal.nama_customer}</div>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block">Total Biaya SPK:</span>
-                    <span className="font-bold text-slate-900 text-xs">
+                    <span className="text-[10px] text-ink-subtle block">Total Biaya SPK:</span>
+                    <span className="font-bold text-ink text-xs">
                       Rp {Number(showFinalCheckModal.estimasi_biaya || 0).toLocaleString('id-ID')}
                     </span>
                   </div>
                 </div>
-                <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 flex items-center justify-between">
+                <div className="text-[11px] text-ink-muted pt-1 border-t border-border/60 flex items-center justify-between">
                   <span>Mekanik: <strong>{showFinalCheckModal.nama_mekanik || '-'}</strong></span>
                   <span>Foreman: <strong>{showFinalCheckModal.nama_foreman || '-'}</strong></span>
                 </div>
@@ -1355,10 +1362,10 @@ export const ServiceAdvisorView: React.FC = () => {
               {/* Checklist Section */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-800 uppercase tracking-wider text-[11px] block">
+                  <label className="font-bold text-ink uppercase tracking-wider text-[11px] block">
                     Checklist Pemeriksaan Wajib SA:
                   </label>
-                  <span className="text-[10px] font-semibold text-slate-500">
+                  <span className="text-[10px] font-semibold text-ink-muted">
                     {[finalCheckForm.kebersihan, finalCheckForm.tes_jalan, finalCheckForm.kelengkapan_surat].filter(Boolean).length} / 3 Terverifikasi
                   </span>
                 </div>
@@ -1366,10 +1373,10 @@ export const ServiceAdvisorView: React.FC = () => {
                 {/* Item 1: Kebersihan Kendaraan */}
                 <div
                   onClick={() => setFinalCheckForm({ ...finalCheckForm, kebersihan: !finalCheckForm.kebersihan })}
-                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-all ${
                     finalCheckForm.kebersihan
-                      ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-xs'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-status-green bg-status-green-bg text-ink shadow-xs'
+                      : 'border-border bg-surface-raised hover:border-border'
                   }`}
                 >
                   <input
@@ -1379,14 +1386,14 @@ export const ServiceAdvisorView: React.FC = () => {
                       e.stopPropagation();
                       setFinalCheckForm({ ...finalCheckForm, kebersihan: e.target.checked });
                     }}
-                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 shrink-0 cursor-pointer"
+                    className="mt-0.5 rounded text-status-green focus:ring-status-green h-4 w-4 shrink-0 cursor-pointer"
                   />
                   <div>
-                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <div className="font-bold text-ink flex items-center gap-1.5">
                       <span>1. Kebersihan Kendaraan</span>
-                      {finalCheckForm.kebersihan && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                      {finalCheckForm.kebersihan && <Check className="w-3.5 h-3.5 text-status-green" />}
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-ink-muted mt-0.5 leading-relaxed">
                       Kabin pengemudi dan bodi luar bersih dari ceceran oli, sisa gemuk/kotoran, serta tidak ada alat teknisi yang tertinggal di unit.
                     </p>
                   </div>
@@ -1395,10 +1402,10 @@ export const ServiceAdvisorView: React.FC = () => {
                 {/* Item 2: Tes Jalan / Fisik */}
                 <div
                   onClick={() => setFinalCheckForm({ ...finalCheckForm, tes_jalan: !finalCheckForm.tes_jalan })}
-                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-all ${
                     finalCheckForm.tes_jalan
-                      ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-xs'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-status-green bg-status-green-bg text-ink shadow-xs'
+                      : 'border-border bg-surface-raised hover:border-border'
                   }`}
                 >
                   <input
@@ -1408,14 +1415,14 @@ export const ServiceAdvisorView: React.FC = () => {
                       e.stopPropagation();
                       setFinalCheckForm({ ...finalCheckForm, tes_jalan: e.target.checked });
                     }}
-                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 shrink-0 cursor-pointer"
+                    className="mt-0.5 rounded text-status-green focus:ring-status-green h-4 w-4 shrink-0 cursor-pointer"
                   />
                   <div>
-                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <div className="font-bold text-ink flex items-center gap-1.5">
                       <span>2. Uji Tes Jalan &amp; Fungsi Fisik</span>
-                      {finalCheckForm.tes_jalan && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                      {finalCheckForm.tes_jalan && <Check className="w-3.5 h-3.5 text-status-green" />}
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-ink-muted mt-0.5 leading-relaxed">
                       Sistem pengereman responsif, lampu/kelistrikan menyala normal, mesin langsam stabil, dan keluhan awal customer telah teratasi.
                     </p>
                   </div>
@@ -1424,10 +1431,10 @@ export const ServiceAdvisorView: React.FC = () => {
                 {/* Item 3: Kelengkapan Surat */}
                 <div
                   onClick={() => setFinalCheckForm({ ...finalCheckForm, kelengkapan_surat: !finalCheckForm.kelengkapan_surat })}
-                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-all ${
                     finalCheckForm.kelengkapan_surat
-                      ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-xs'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-status-green bg-status-green-bg text-ink shadow-xs'
+                      : 'border-border bg-surface-raised hover:border-border'
                   }`}
                 >
                   <input
@@ -1437,14 +1444,14 @@ export const ServiceAdvisorView: React.FC = () => {
                       e.stopPropagation();
                       setFinalCheckForm({ ...finalCheckForm, kelengkapan_surat: e.target.checked });
                     }}
-                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 shrink-0 cursor-pointer"
+                    className="mt-0.5 rounded text-status-green focus:ring-status-green h-4 w-4 shrink-0 cursor-pointer"
                   />
                   <div>
-                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <div className="font-bold text-ink flex items-center gap-1.5">
                       <span>3. Kelengkapan Dokumen &amp; Barang Armada</span>
-                      {finalCheckForm.kelengkapan_surat && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                      {finalCheckForm.kelengkapan_surat && <Check className="w-3.5 h-3.5 text-status-green" />}
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-ink-muted mt-0.5 leading-relaxed">
                       STNK / KIR asli, buku riwayat servis, kunci kontak, ban serep, dan tool kit lengkap dalam kondisi siap serah terima ke driver.
                     </p>
                   </div>
@@ -1453,7 +1460,7 @@ export const ServiceAdvisorView: React.FC = () => {
 
               {/* Catatan Akhir SA */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1 text-[11px]">
+                <label className="block text-ink-muted font-bold mb-1 text-[11px]">
                   Catatan Tambahan Pemeriksaan Akhir SA:
                 </label>
                 <textarea
@@ -1461,21 +1468,21 @@ export const ServiceAdvisorView: React.FC = () => {
                   value={finalCheckForm.catatan_final}
                   onChange={(e) => setFinalCheckForm({ ...finalCheckForm, catatan_final: e.target.value })}
                   placeholder="Catatan kondisi fisik saat serah terima..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
 
               {/* Notice Warning if not checked */}
               {!isFinalCheckValid ? (
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <div className="p-3 bg-status-amber-bg rounded-md border border-status-amber/30 text-status-amber text-[11px] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>
                     Centang <strong>semua 3 checklist di atas</strong> untuk mengaktifkan tombol penutupan FIR dan penerbitan Invoice.
                   </span>
                 </div>
               ) : (
-                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-[11px] flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="p-3 bg-status-green-bg rounded-md border border-status-green/30 text-status-green text-[11px] flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 shrink-0" />
                   <span>
                     Pemeriksaan akhir lengkap. Tombol <strong>FIR Closed &amp; Terbitkan Invoice</strong> siap dieksekusi.
                   </span>
@@ -1484,11 +1491,11 @@ export const ServiceAdvisorView: React.FC = () => {
             </div>
 
             {/* Modal Actions */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex gap-3">
+            <div className="p-4 bg-surface border-t border-border flex gap-3">
               <button
                 type="button"
                 onClick={() => setShowFinalCheckModal(null)}
-                className="flex-1 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition-colors"
+                className="flex-1 py-2.5 bg-surface-raised border border-border hover:bg-surface text-ink-muted font-bold text-xs rounded-md transition-colors"
               >
                 Batal
               </button>
@@ -1496,7 +1503,7 @@ export const ServiceAdvisorView: React.FC = () => {
                 type="button"
                 disabled={!isFinalCheckValid || firClosedMutation.isPending}
                 onClick={() => firClosedMutation.mutate(showFinalCheckModal)}
-                className="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all"
+                className="flex-2 py-2.5 bg-status-green hover:bg-status-green/90 disabled:bg-surface disabled:border disabled:border-border disabled:cursor-not-allowed text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 flex items-center justify-center gap-1.5 transition-all"
               >
                 {firClosedMutation.isPending ? (
                   <>
@@ -1514,6 +1521,7 @@ export const ServiceAdvisorView: React.FC = () => {
           </div>
         </div>
       )}
+
 
       {/* Printable SPK A4 Modal */}
       {showPrintSpk && (
