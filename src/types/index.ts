@@ -320,7 +320,7 @@ export interface InvoicePembayaran {
   diskon: number;
   grand_total: number;
   metode_pembayaran: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC';
-  status_pembayaran: 'Unpaid' | 'Paid' | 'Batal';
+  status_pembayaran: 'Unpaid' | 'Paid' | 'Batal' | 'Lunas' | 'Menunggu Pembayaran';
   tanggal_bayar?: string;
   kasir_pic?: string;
   bukti_pembayaran?: string;

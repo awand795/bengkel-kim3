@@ -22,6 +22,10 @@ export const KasirInvoiceView: React.FC = () => {
   const [metodeBayar, setMetodeBayar] = useState<'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC'>('Transfer Bank');
   const [showPrintModal, setShowPrintModal] = useState(false);
 
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'Semua' | 'Belum Lunas' | 'Lunas'>('Semua');
+
   // Queries
   const { data: invoiceList, isLoading } = useQuery({
     queryKey: ['invoice-list'],
@@ -45,7 +49,30 @@ export const KasirInvoiceView: React.FC = () => {
     },
   });
 
-  const activeInv = selectedInvoice || invoiceList?.[0];
+  // Derived KPI and filtering
+  const allInvoices = invoiceList || [];
+  const totalCount = allInvoices.length;
+  const unpaidCount = allInvoices.filter(i => i.status_pembayaran !== 'Paid' && i.status_pembayaran !== 'Lunas').length;
+  const paidCount = allInvoices.filter(i => i.status_pembayaran === 'Paid' || i.status_pembayaran === 'Lunas').length;
+  const totalPaidRevenue = allInvoices
+    .filter(i => i.status_pembayaran === 'Paid' || i.status_pembayaran === 'Lunas')
+    .reduce((acc, curr) => acc + Number(curr.grand_total || 0), 0);
+
+  const filteredInvoices = allInvoices.filter((inv) => {
+    const query = searchQuery.toLowerCase().trim();
+    const matchSearch = !query ||
+      inv.no_invoice?.toLowerCase().includes(query) ||
+      inv.no_polisi?.toLowerCase().includes(query) ||
+      inv.nama_customer?.toLowerCase().includes(query);
+
+    if (!matchSearch) return false;
+    const isPaid = inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas';
+    if (statusFilter === 'Belum Lunas') return !isPaid;
+    if (statusFilter === 'Lunas') return isPaid;
+    return true;
+  });
+
+  const activeInv = selectedInvoice || filteredInvoices[0] || allInvoices[0];
 
   return (
     <div className="space-y-6">
@@ -57,9 +84,73 @@ export const KasirInvoiceView: React.FC = () => {
             <Receipt className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-slate-900">Admin Invoice & Pembayaran (Kasir)</h1>
+            <h1 className="text-lg font-black text-slate-900">Admin Invoice &amp; Pembayaran (Kasir)</h1>
             <p className="text-xs text-slate-500">Penerbitan Faktur, Perhitungan PPN 11%, dan Konfirmasi Pelunasan</p>
           </div>
+        </div>
+      </div>
+
+      {/* Mini KPI Banners for Kasir */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div 
+          onClick={() => setStatusFilter('Semua')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Semua' ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Total Faktur</span>
+            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+              <Receipt className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalCount}</div>
+          <span className="text-[10px] text-slate-400">Seluruh dokumen</span>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('Belum Lunas')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Belum Lunas' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-amber-700">Belum Lunas</span>
+            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+              <CreditCard className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-amber-900 mt-1">{unpaidCount}</div>
+          <span className="text-[10px] text-amber-700">Menunggu pembayaran</span>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('Lunas')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Lunas' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-700">Faktur Lunas</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-900 mt-1">{paidCount}</div>
+          <span className="text-[10px] text-emerald-600">Terverifikasi kasir</span>
+        </div>
+
+        <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200 bg-white">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Omset Lunas</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <Banknote className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-base sm:text-lg font-black text-emerald-700 font-mono mt-1">
+            Rp {totalPaidRevenue.toLocaleString('id-ID')}
+          </div>
+          <span className="text-[10px] text-slate-400">Total penerimaan</span>
         </div>
       </div>
 
@@ -67,11 +158,58 @@ export const KasirInvoiceView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Column: Daftar Invoice (2 Cols) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <h2 className="text-base font-bold text-slate-900 mb-1">Daftar Faktur & Invoice Masuk</h2>
-          <p className="text-xs text-slate-500 mb-4">Tagihan resmi pekerjaan service dan pembelian sparepart</p>
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Daftar Faktur &amp; Invoice Masuk</h2>
+              <p className="text-xs text-slate-500">Tagihan resmi pekerjaan service dan pembelian sparepart</p>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 self-start sm:self-auto">
+              {filteredInvoices.length} Faktur Ditemukan
+            </span>
+          </div>
 
-          <div className="overflow-x-auto">
+          {/* Live Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Cari No. Invoice, No. Polisi, atau Customer..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-1"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Status Chips */}
+            <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
+              {(['Semua', 'Belum Lunas', 'Lunas'] as const).map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    statusFilter === st
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
                 <tr>
@@ -85,8 +223,8 @@ export const KasirInvoiceView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {invoiceList && invoiceList.length > 0 ? (
-                  invoiceList.map((inv) => (
+                {filteredInvoices.length > 0 ? (
+                  filteredInvoices.map((inv) => (
                     <tr
                       key={inv.id}
                       onClick={() => setSelectedInvoice(inv)}
@@ -119,12 +257,46 @@ export const KasirInvoiceView: React.FC = () => {
                 ) : (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-slate-400">
-                      Belum ada invoice saat ini.
+                      Tidak ditemukan invoice yang cocok.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card List View */}
+          <div className="sm:hidden space-y-2.5">
+            {filteredInvoices.length > 0 ? (
+              filteredInvoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  onClick={() => setSelectedInvoice(inv)}
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    activeInv?.id === inv.id ? 'border-emerald-600 bg-emerald-50/40 ring-1 ring-emerald-500' : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-blue-600">{inv.no_invoice}</span>
+                    <StatusBadge status={inv.status_pembayaran} size="sm" />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-sm font-black text-slate-900">{inv.no_polisi}</span>
+                    <span className="text-xs font-bold text-emerald-700 font-mono">
+                      Rp {Number(inv.grand_total).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500 flex items-center justify-between">
+                    <span>{inv.nama_customer || '-'}</span>
+                    <span>{new Date(inv.tanggal_invoice).toLocaleDateString('id-ID')}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                Tidak ditemukan invoice yang cocok.
+              </div>
+            )}
           </div>
         </div>
 
@@ -158,7 +330,7 @@ export const KasirInvoiceView: React.FC = () => {
               </div>
 
               {/* Pilihan Metode Pembayaran (image1.png & image2.png) */}
-              {activeInv.status_pembayaran !== 'Paid' ? (
+              {activeInv.status_pembayaran !== 'Paid' && activeInv.status_pembayaran !== 'Lunas' ? (
                 <div className="space-y-2">
                   <span className="text-xs font-bold text-slate-800 block">Pilih Metode Pembayaran:</span>
                   <div className="grid grid-cols-2 gap-2 text-xs">

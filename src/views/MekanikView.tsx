@@ -158,6 +158,38 @@ export const MekanikView: React.FC = () => {
         </div>
       </div>
 
+      {/* Quick Job Switcher (Chips Carousel) */}
+      {spkList && spkList.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Pilih Pekerjaan:</span>
+          {spkList.map((job) => {
+            const isSelected = (activeJob?.id || myJob?.id) === job.id;
+            return (
+              <button
+                key={job.id}
+                type="button"
+                onClick={() => {
+                  setActiveJob(job);
+                  setTimerRunning(job.status_spk === 'Dalam Pengerjaan');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <span>{job.no_polisi}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                  job.status_spk === 'Dalam Pengerjaan' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-800'
+                }`}>
+                  {job.status_spk}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {myJob ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-5">
           

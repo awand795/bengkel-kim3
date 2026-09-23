@@ -15,7 +15,11 @@ import {
   Building2,
   ArrowRight,
   ClipboardList,
-  DollarSign
+  DollarSign,
+  Truck,
+  Wrench,
+  Clock,
+  Package
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -145,60 +149,131 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Hero Headline & Context */}
-          <div className="mt-8 lg:mt-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30 text-xs font-semibold uppercase tracking-wider mb-4 backdrop-blur-xs">
+          <div className="mt-6 lg:mt-8 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30 text-xs font-semibold uppercase tracking-wider mb-3 backdrop-blur-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Sistem Komputasi Fleet B2B Terpadu
+              Sistem Komputasi Fleet B2B Terpadu • Kawasan Industri KIM 3 Medan
             </div>
             
-            <h1 className="text-3xl lg:text-4xl xl:text-5xl font-extrabold tracking-tight text-white leading-tight">
+            <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight">
               Platform Monitoring &amp; Manajemen Servis Armada Terintegrasi
             </h1>
             
-            <p className="mt-4 text-slate-200 text-sm sm:text-base lg:text-lg leading-relaxed font-normal max-w-xl">
+            <p className="mt-3 text-slate-200 text-xs sm:text-sm lg:text-base leading-relaxed font-normal max-w-xl">
               Pantau pengerjaan servis berkala, estimasi biaya real-time, approval digital, hingga pelacakan lead time armada B2B perusahaan Anda secara transparan dan akurat.
             </p>
           </div>
 
-          {/* Enterprise Feature Highlights */}
-          <div className="mt-8 space-y-3.5 max-w-xl">
-            {/* Feature 1 */}
-            <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 transition backdrop-blur-md">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/30 flex items-center justify-center text-blue-200 shrink-0">
-                <ClipboardList className="w-5 h-5" />
+          {/* Interactive Glassmorphism Workshop Simulation & Live Telemetry Card */}
+          <div className="mt-6 p-5 rounded-2xl bg-slate-900/60 border border-white/20 shadow-2xl backdrop-blur-xl space-y-4 max-w-xl">
+            {/* Header: Unit & Live Status */}
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/30 flex items-center justify-center text-blue-300">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-white tracking-wider text-base bg-white/10 px-2 py-0.5 rounded border border-white/20">
+                      BK 1234 AB
+                    </span>
+                    <span className="text-xs text-blue-200 font-medium">Hino 500 FL 260 JW</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">PT Nusantara Logistik Express • Bay Servis #03</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Real-Time Workshop Tracking</h3>
-                <p className="text-xs text-slate-200 mt-0.5 leading-relaxed">
-                  Dari Check-In, Inspeksi 40-titik, estimasi mekanik, hingga Gate Pass Barcode terbit otomatis.
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 transition backdrop-blur-md">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/30 flex items-center justify-center text-blue-200 shrink-0">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Transparansi Biaya &amp; Estimasi</h3>
-                <p className="text-xs text-slate-200 mt-0.5 leading-relaxed">
-                  Review rincian suku cadang OEM, tier pricing kontrak korporasi, serta sistem e-approval WO sekali klik.
-                </p>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                Sedang Dikerjakan
               </div>
             </div>
 
-            {/* Feature 3 */}
-            <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 transition backdrop-blur-md">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/30 flex items-center justify-center text-blue-200 shrink-0">
-                <ShieldCheck className="w-5 h-5" />
+            {/* 5-Step Workflow Stepper */}
+            <div>
+              <p className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-2.5">
+                Progres Servis Real-Time (5 Tahap)
+              </p>
+              <div className="grid grid-cols-5 gap-1.5 text-center text-[10px]">
+                {/* Step 1: Security Check-In */}
+                <div className="flex flex-col items-center">
+                  <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-emerald-500/30">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <span className="text-emerald-300 font-medium mt-1">Check In</span>
+                  <span className="text-[9px] text-slate-400">Security</span>
+                </div>
+
+                {/* Step 2: SPK & Estimasi */}
+                <div className="flex flex-col items-center">
+                  <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-emerald-500/30">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <span className="text-emerald-300 font-medium mt-1">SPK &amp; PR</span>
+                  <span className="text-[9px] text-slate-400">SA Bengkel</span>
+                </div>
+
+                {/* Step 3: Mekanik Pengerjaan (Active) */}
+                <div className="flex flex-col items-center">
+                  <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs ring-4 ring-blue-400/30 animate-pulse">
+                    <Wrench className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-blue-300 font-bold mt-1">Mekanik</span>
+                  <span className="text-[9px] text-blue-200">Sedang Kerja</span>
+                </div>
+
+                {/* Step 4: Foreman QC */}
+                <div className="flex flex-col items-center opacity-60">
+                  <div className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 border border-slate-700 flex items-center justify-center font-bold text-xs">
+                    <Clock className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-slate-300 font-medium mt-1">QC FIR</span>
+                  <span className="text-[9px] text-slate-400">Foreman</span>
+                </div>
+
+                {/* Step 5: Gate Pass */}
+                <div className="flex flex-col items-center opacity-60">
+                  <div className="w-7 h-7 rounded-full bg-slate-800 text-slate-400 border border-slate-700 flex items-center justify-center font-bold text-xs">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-slate-300 font-medium mt-1">Gate Out</span>
+                  <span className="text-[9px] text-slate-400">Pass QR</span>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Jaminan SLA &amp; Kepatuhan Regulasi</h3>
-                <p className="text-xs text-slate-200 mt-0.5 leading-relaxed">
-                  Jaminan turnaround time armada logistik dan histori berkala siap audit untuk kepatuhan uji KIR Dishub.
-                </p>
+            </div>
+
+            {/* Micro Telemetry Telemetry 3-col */}
+            <div className="grid grid-cols-3 gap-2.5 pt-1">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center">
+                <span className="text-[10px] text-slate-300 block">Lead Time ETA</span>
+                <span className="text-sm font-bold text-emerald-300 font-mono">14:30 WIB</span>
+                <span className="text-[9px] text-slate-400 block mt-0.5">Tepat Waktu</span>
               </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center">
+                <span className="text-[10px] text-slate-300 block">Sparepart Picked</span>
+                <span className="text-sm font-bold text-white font-mono">3 / 3 Item</span>
+                <span className="text-[9px] text-blue-200 block mt-0.5">Rak A-02 Siap</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center">
+                <span className="text-[10px] text-slate-300 block">Inspeksi 40 Titik</span>
+                <span className="text-sm font-bold text-emerald-300 font-mono">100% Lolos</span>
+                <span className="text-[9px] text-slate-400 block mt-0.5">QC Standar ISO</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom KPI Metrics Highlights */}
+          <div className="mt-5 grid grid-cols-3 gap-3 max-w-xl">
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200">
+              <Clock className="w-4 h-4 text-blue-300 shrink-0" />
+              <span>&lt; 15 Mnt Check-In</span>
+            </div>
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200">
+              <ClipboardList className="w-4 h-4 text-emerald-300 shrink-0" />
+              <span>100% Paperless</span>
+            </div>
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-200">
+              <ShieldCheck className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>24/7 Gate Pass QR</span>
             </div>
           </div>
         </div>

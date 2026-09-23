@@ -15,13 +15,19 @@ import {
   Plus,
   Send,
   Truck,
-  PackageCheck
+  PackageCheck,
+  Search,
+  Filter
 } from 'lucide-react';
 import { realtimeHub } from '../services/realtimeService';
 
 export const PurchasingView: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedPr, setSelectedPr] = useState<PurchaseRequestPart | null>(null);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'Semua' | 'Belum Ada PO' | 'PO Diterbitkan' | 'Barang Ready'>('Semua');
 
   // Form Input Penawaran 2 Vendor & ETA State (image1.png Kotak Merah)
   const [poForm, setPoForm] = useState({
@@ -100,6 +106,29 @@ export const PurchasingView: React.FC = () => {
     onError: (err: any) => alert('Gagal konfirmasi barang ready: ' + err?.message),
   });
 
+  // Derived statistics and filtering
+  const allPr = purchasingList || [];
+  const totalPrCount = allPr.length;
+  const pendingPoCount = allPr.filter(p => !p.no_po).length;
+  const poActiveCount = allPr.filter(p => p.no_po && p.status_pr !== 'Barang Ready').length;
+  const barangReadyCount = allPr.filter(p => p.status_pr === 'Barang Ready').length;
+
+  const filteredPrList = allPr.filter((item) => {
+    const query = searchQuery.toLowerCase().trim();
+    const matchSearch = !query ||
+      item.no_pr?.toLowerCase().includes(query) ||
+      item.no_polisi?.toLowerCase().includes(query) ||
+      item.nama_customer?.toLowerCase().includes(query) ||
+      item.catatan_pr?.toLowerCase().includes(query) ||
+      item.vendor_terpilih?.toLowerCase().includes(query);
+
+    if (!matchSearch) return false;
+    if (statusFilter === 'Belum Ada PO') return !item.no_po;
+    if (statusFilter === 'PO Diterbitkan') return !!item.no_po && item.status_pr !== 'Barang Ready';
+    if (statusFilter === 'Barang Ready') return item.status_pr === 'Barang Ready';
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       
@@ -121,25 +150,131 @@ export const PurchasingView: React.FC = () => {
         </div>
       </div>
 
+      {/* Mini KPI Banners for Purchasing */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div 
+          onClick={() => setStatusFilter('Semua')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Semua' ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Total PR Masuk</span>
+            <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+              <ShoppingBag className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalPrCount}</div>
+          <span className="text-[10px] text-slate-400">Seluruh permintaan</span>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('Belum Ada PO')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Belum Ada PO' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-amber-700">Perlu Proses 2 Vendor</span>
+            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-amber-900 mt-1">{pendingPoCount}</div>
+          <span className="text-[10px] text-amber-700">Belum ada PO</span>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('PO Diterbitkan')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'PO Diterbitkan' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-blue-700">PO Aktif / Menunggu ETA</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-blue-900 mt-1">{poActiveCount}</div>
+          <span className="text-[10px] text-blue-600">Dalam pengiriman vendor</span>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('Barang Ready')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Barang Ready' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-700">Barang Ready</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <PackageCheck className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-900 mt-1">{barangReadyCount}</div>
+          <span className="text-[10px] text-emerald-600">Tiba di bengkel</span>
+        </div>
+      </div>
+
       {/* Main Grid: PR List & Form Input PO Vendor */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Column: List Purchase Request dari SA (2 Cols) */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-bold text-slate-900">Daftar Purchase Request (PR) Masuk</h2>
                 <p className="text-xs text-slate-500">Part yang tidak ready di stock dari SPK Bengkel</p>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
-                {purchasingList?.length || 0} Permintaan
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 self-start sm:self-auto">
+                {filteredPrList.length} Permintaan Ditemukan
               </span>
             </div>
 
+            {/* Live Search & Filter Bar */}
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Cari No. PR, No. Polisi, Customer, atau Vendor..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-1"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Status Chips */}
+              <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
+                {(['Semua', 'Belum Ada PO', 'PO Diterbitkan', 'Barang Ready'] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setStatusFilter(st)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                      statusFilter === st
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-3">
-              {purchasingList && purchasingList.length > 0 ? (
-                purchasingList.map((item) => (
+              {filteredPrList.length > 0 ? (
+                filteredPrList.map((item) => (
                   <div
                     key={item.pr_id}
                     onClick={() => setSelectedPr(item)}
@@ -206,8 +341,8 @@ export const PurchasingView: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <div className="p-8 text-center text-slate-400 text-xs">
-                  Tidak ada permintaan sparepart pending saat ini.
+                <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  Tidak ditemukan permintaan sparepart yang sesuai dengan pencarian atau filter "{statusFilter}".
                 </div>
               )}
             </div>

@@ -22,7 +22,9 @@ import {
   Package,
   AlertCircle,
   Trash2,
-  Plus
+  Plus,
+  Search,
+  Filter
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
@@ -32,6 +34,10 @@ export const ServiceAdvisorView: React.FC = () => {
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrModal, setShowPrModal] = useState<SpkService | null>(null);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
+
+  // Search & Filter State for SPK List
+  const [saSearchQuery, setSaSearchQuery] = useState('');
+  const [saStatusFilter, setSaStatusFilter] = useState<'Semua' | 'Dalam Pengerjaan' | 'Waiting Part' | 'QC Passed' | 'FIR Closed'>('Semua');
 
   // Form Penerimaan SA State
   const [formPenerimaan, setFormPenerimaan] = useState({
@@ -336,6 +342,30 @@ export const ServiceAdvisorView: React.FC = () => {
     onError: (err: any) => alert('Gagal menutup FIR: ' + err?.message),
   });
 
+  // Derived statistics and filtering for SA
+  const allSpks = spkList || [];
+  const totalSpkCount = allSpks.length;
+  const inProgressCount = allSpks.filter(s => s.status_spk === 'Dalam Pengerjaan').length;
+  const waitingPartCount = allSpks.filter(s => s.status_spk === 'Waiting Part').length;
+  const qcPassedCount = allSpks.filter(s => s.status_spk === 'QC Passed').length;
+
+  const filteredSpkList = allSpks.filter((spk) => {
+    const query = saSearchQuery.toLowerCase().trim();
+    const matchSearch = !query ||
+      spk.no_spk?.toLowerCase().includes(query) ||
+      spk.no_polisi?.toLowerCase().includes(query) ||
+      spk.nama_customer?.toLowerCase().includes(query) ||
+      spk.keluhan_customer?.toLowerCase().includes(query) ||
+      spk.nama_mekanik?.toLowerCase().includes(query);
+
+    if (!matchSearch) return false;
+    if (saStatusFilter === 'Dalam Pengerjaan') return spk.status_spk === 'Dalam Pengerjaan';
+    if (saStatusFilter === 'Waiting Part') return spk.status_spk === 'Waiting Part';
+    if (saStatusFilter === 'QC Passed') return spk.status_spk === 'QC Passed';
+    if (saStatusFilter === 'FIR Closed') return spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai';
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       
@@ -347,7 +377,7 @@ export const ServiceAdvisorView: React.FC = () => {
           </div>
           <div>
             <h1 className="text-lg font-black text-slate-900">Service Advisor (SA)</h1>
-            <p className="text-xs text-slate-500">Penerimaan Kendaraan, Estimasi Biaya & Waktu, Pengadaan Part, dan FIR Closed</p>
+            <p className="text-xs text-slate-500">Penerimaan Kendaraan, Estimasi Biaya &amp; Waktu, Pengadaan Part, dan FIR Closed</p>
           </div>
         </div>
 
@@ -375,18 +405,127 @@ export const ServiceAdvisorView: React.FC = () => {
               activeTab === 'estimasi-pr' ? 'bg-white text-purple-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Kotak Merah (PR & PO)
+            Kotak Merah (PR &amp; PO)
           </button>
+        </div>
+      </div>
+
+      {/* Mini KPI Banners for SA */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div 
+          onClick={() => setSaStatusFilter('Semua')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            saStatusFilter === 'Semua' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Total SPK Aktif</span>
+            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+              <ClipboardList className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalSpkCount}</div>
+          <span className="text-[10px] text-slate-400">Seluruh antrian bengkel</span>
+        </div>
+
+        <div 
+          onClick={() => setSaStatusFilter('Dalam Pengerjaan')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            saStatusFilter === 'Dalam Pengerjaan' ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-indigo-700">Dalam Pengerjaan</span>
+            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+              <Wrench className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-indigo-900 mt-1">{inProgressCount}</div>
+          <span className="text-[10px] text-indigo-600">Sedang diservis teknisi</span>
+        </div>
+
+        <div 
+          onClick={() => setSaStatusFilter('Waiting Part')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            saStatusFilter === 'Waiting Part' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-amber-700">Menunggu Part (PR)</span>
+            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+              <ShoppingBag className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-amber-900 mt-1">{waitingPartCount}</div>
+          <span className="text-[10px] text-amber-700">Proses purchasing</span>
+        </div>
+
+        <div 
+          onClick={() => setSaStatusFilter('QC Passed')}
+          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+            saStatusFilter === 'QC Passed' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-700">Siap FIR Closed</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <FileCheck className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-900 mt-1">{qcPassedCount}</div>
+          <span className="text-[10px] text-emerald-600">QC Passed siap invoice</span>
         </div>
       </div>
 
       {/* TAB 1: DAFTAR SPK AKTIF */}
       {activeTab === 'spk-list' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-slate-900">Semua Work Order SPK Bengkel</h2>
               <p className="text-xs text-slate-500">Pantau progres pekerjaan, status approval customer, dan FIR closed</p>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 self-start sm:self-auto">
+              {filteredSpkList.length} SPK Ditemukan
+            </span>
+          </div>
+
+          {/* Live Search & Filter Bar */}
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Cari No. SPK, No. Polisi, Customer, Mekanik, atau Keluhan..."
+                value={saSearchQuery}
+                onChange={(e) => setSaSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              />
+              {saSearchQuery && (
+                <button
+                  onClick={() => setSaSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-1"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Status Chips */}
+            <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
+              {(['Semua', 'Dalam Pengerjaan', 'Waiting Part', 'QC Passed', 'FIR Closed'] as const).map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setSaStatusFilter(st)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    saStatusFilter === st
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -404,68 +543,77 @@ export const ServiceAdvisorView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {spkList?.map((spk) => (
-                  <tr key={spk.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-3 font-mono font-bold text-blue-600">{spk.no_spk}</td>
-                    <td className="py-3 px-3 font-bold text-slate-900">{spk.no_polisi}</td>
-                    <td className="py-3 px-3">
-                      <div className="font-semibold text-slate-800">{spk.nama_customer || '-'}</div>
-                      <div className="text-[11px] text-slate-400 line-clamp-1">{spk.keluhan_customer}</div>
-                    </td>
-                    <td className="py-3 px-3">
-                      <StatusBadge status={spk.status_spk} size="sm" />
-                    </td>
-                    <td className="py-3 px-3 text-slate-600">
-                      {spk.nama_mekanik ? `${spk.nama_mekanik} (${spk.nama_foreman || 'Foreman'})` : 'Menunggu Foreman'}
-                    </td>
-                    <td className="py-3 px-3 font-bold text-slate-800">
-                      Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Jika QC Passed -> SA Tombol FIR Closed */}
-                        {spk.status_spk === 'QC Passed' && (
+                {filteredSpkList.length > 0 ? (
+                  filteredSpkList.map((spk) => (
+                    <tr key={spk.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3 px-3 font-mono font-bold text-blue-600">{spk.no_spk}</td>
+                      <td className="py-3 px-3 font-bold text-slate-900">{spk.no_polisi}</td>
+                      <td className="py-3 px-3">
+                        <div className="font-semibold text-slate-800">{spk.nama_customer || '-'}</div>
+                        <div className="text-[11px] text-slate-400 line-clamp-1">{spk.keluhan_customer}</div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <StatusBadge status={spk.status_spk} size="sm" />
+                      </td>
+                      <td className="py-3 px-3 text-slate-600">
+                        {spk.nama_mekanik ? `${spk.nama_mekanik} (${spk.nama_foreman || 'Foreman'})` : 'Menunggu Foreman'}
+                      </td>
+                      <td className="py-3 px-3 font-bold text-slate-800">
+                        Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Jika QC Passed -> SA Tombol FIR Closed */}
+                          {spk.status_spk === 'QC Passed' && (
+                            <button
+                              type="button"
+                              onClick={() => firClosedMutation.mutate(spk)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1"
+                            >
+                              <FileCheck className="w-3.5 h-3.5" /> FIR Closed
+                            </button>
+                          )}
+
+                          {/* Ajukan PR jika part tidak ready */}
+                          {spk.status_spk !== 'FIR Closed' && spk.status_spk !== 'Selesai' && (
+                            <button
+                              type="button"
+                              onClick={() => setShowPrModal(spk)}
+                              className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-bold text-xs border border-purple-200 flex items-center gap-1"
+                              title="Ajukan PR ke Purchasing jika part tidak ready"
+                            >
+                              <ShoppingBag className="w-3.5 h-3.5" /> PR Part
+                            </button>
+                          )}
+
+                          {/* Cetak SPK A4 */}
                           <button
                             type="button"
-                            onClick={() => firClosedMutation.mutate(spk)}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1"
+                            onClick={() => setShowPrintSpk(spk)}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border border-slate-300 flex items-center gap-1 transition-colors"
+                            title="Cetak Surat Perintah Kerja (SPK) A4"
                           >
-                            <FileCheck className="w-3.5 h-3.5" /> FIR Closed
+                            <Printer className="w-3.5 h-3.5" /> Cetak SPK
                           </button>
-                        )}
-
-                        {/* Ajukan PR jika part tidak ready */}
-                        {spk.status_spk !== 'FIR Closed' && spk.status_spk !== 'Selesai' && (
-                          <button
-                            type="button"
-                            onClick={() => setShowPrModal(spk)}
-                            className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-bold text-xs border border-purple-200 flex items-center gap-1"
-                            title="Ajukan PR ke Purchasing jika part tidak ready"
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5" /> PR Part
-                          </button>
-                        )}
-
-                        {/* Cetak SPK A4 */}
-                        <button
-                          type="button"
-                          onClick={() => setShowPrintSpk(spk)}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-xs border border-slate-300 flex items-center gap-1 transition-colors"
-                          title="Cetak Surat Perintah Kerja (SPK) A4"
-                        >
-                          <Printer className="w-3.5 h-3.5" /> Cetak SPK
-                        </button>
-                      </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                      Tidak ditemukan SPK yang sesuai dengan filter atau pencarian.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
 
           {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
           <div className="block md:hidden space-y-2.5">
-            {spkList?.map((spk) => (
+            {filteredSpkList.length > 0 ? (
+              filteredSpkList.map((spk) => (
               <div key={spk.id} className="rounded-xl border border-slate-200 p-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -521,7 +669,12 @@ export const ServiceAdvisorView: React.FC = () => {
                   <Printer className="w-4 h-4" /> Cetak SPK (HVS A4)
                 </button>
               </div>
-            ))}
+            ))
+            ) : (
+              <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                Tidak ditemukan SPK yang sesuai dengan filter atau pencarian.
+              </div>
+            )}
           </div>
         </div>
       )}
