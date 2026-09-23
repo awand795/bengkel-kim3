@@ -365,8 +365,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
   // Global filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterDate, setFilterDate] = useState('2025-05-03');
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 10));
   const [selesaiTimeRange, setSelesaiTimeRange] = useState<'Semua' | 'Hari Ini' | 'Kemarin' | 'Minggu Ini' | 'Bulan Ini'>('Semua');
+
+  const todayFormatted = new Date().toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
 
   // Modals and selection state
   const [selectedBooking, setSelectedBooking] = useState<BookingService | null>(null);
@@ -539,7 +545,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   // Check-Out Mutation
   const checkoutMutation = useMutation({
     mutationFn: async (item: AntrianKunjungan) => {
-      const memoNo = `MK-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const seq = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0');
+      const memoNo = `MK-${yy}${mm}${dd}-${seq}`;
       
       // Update antrian checkout
       await api.checkOutSecurity({
@@ -1141,7 +1152,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                 <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-700">
                   <span className="text-slate-400 font-medium">Tanggal</span>
-                  <span className="font-bold text-slate-800">03 Mei 2025</span>
+                  <span className="font-bold text-slate-800">{todayFormatted}</span>
                   <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1" />
                 </div>
 
@@ -1365,7 +1376,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                 <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-700">
                   <span className="text-slate-400 font-medium">Tanggal</span>
-                  <span className="font-bold text-slate-800">03 Mei 2025</span>
+                  <span className="font-bold text-slate-800">{todayFormatted}</span>
                   <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1" />
                 </div>
 
@@ -1404,7 +1415,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       <td className="py-3 px-3 text-slate-600">{item.jenis_armada}</td>
                       <td className="py-3 px-3 text-slate-700 font-medium">{item.tujuan_kedatangan}</td>
                       <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
-                        <div>03 Mei 2025</div>
+                        <div>{new Date(item.waktu_masuk || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                         <div className="text-slate-400 font-medium">{new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                       </td>
                       <td className="py-3 px-3 text-center">
@@ -1496,7 +1507,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                 <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-700">
                   <span className="text-slate-400 font-medium">Tanggal</span>
-                  <span className="font-bold text-slate-800">03 Mei 2025</span>
+                  <span className="font-bold text-slate-800">{todayFormatted}</span>
                   <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1" />
                 </div>
 
@@ -1637,7 +1648,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                 <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2 py-1.5 text-[11px] text-slate-700">
                   <span className="text-slate-400 font-medium">Tanggal</span>
-                  <span className="font-bold text-slate-800">03 Mei 2025</span>
+                  <span className="font-bold text-slate-800">{todayFormatted}</span>
                   <Calendar className="w-3 h-3 text-slate-400 ml-0.5" />
                 </div>
 
@@ -1679,7 +1690,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           <td className="py-2.5 px-2.5 font-bold text-slate-900">{m.no_polisi}</td>
                           <td className="py-2.5 px-2.5 text-slate-800">{m.nama_customer}</td>
                           <td className="py-2.5 px-2.5 text-slate-600 font-mono text-[11px]">
-                            <div>03 Mei 2025</div>
+                            <div>{new Date(m.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                             <div className="text-slate-400 font-medium">{new Date(m.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                           </td>
                           <td className="py-2.5 px-2.5 text-center">
@@ -1761,7 +1772,9 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <div className="grid grid-cols-2 gap-4 text-xs pb-1 border-b border-slate-100">
                       <div>
                         <span className="text-slate-400 text-[10px] block">Tanggal Keluar:</span>
-                        <span className="font-bold text-slate-800">03 Mei 2025</span>
+                        <span className="font-bold text-slate-800">
+                          {new Date(selectedMemo.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        </span>
                       </div>
                       <div className="text-right sm:text-left">
                         <span className="text-slate-400 text-[10px] block">Jam Keluar:</span>

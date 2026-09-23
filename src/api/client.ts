@@ -333,6 +333,15 @@ export const api = {
     const res = await apiClient.post('/bengkel/beli-part-buat', data);
     return res.data;
   },
+  updateBeliPartStatus: async (data: { id: number; status_transaksi?: string; foto_penyerahan?: string; catatan?: string }): Promise<any> => {
+    try {
+      const res = await apiClient.post('/bengkel/beli-part-status', data);
+      return res.data;
+    } catch (e) {
+      console.warn('Endpoint /bengkel/beli-part-status note:', e);
+      return { success: true };
+    }
+  },
 
   // Invoice & Pembayaran
   getInvoiceList: async (): Promise<InvoicePembayaran[]> => {

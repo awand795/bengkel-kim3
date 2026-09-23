@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useAppStore } from '../store/useAppStore';
+import { realtimeHub } from '../services/realtimeService';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
-import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar } from '../types';
+import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar, AntrianKunjungan } from '../types';
 import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
 import { 
@@ -44,10 +46,12 @@ interface CartItem {
 
 export const BeliPartView: React.FC = () => {
   const queryClient = useQueryClient();
+  const { currentUser } = useAppStore();
   const [activeTab, setActiveTab] = useState<'transaksi' | 'estimasi' | 'picking'>('transaksi');
   const [selectedTransaksi, setSelectedTransaksi] = useState<TransaksiBeliPart | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [partSearchQuery, setPartSearchQuery] = useState('');
+  const [metodeBayarKasir, setMetodeBayarKasir] = useState<'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC'>('Cash');
 
   // Modals for Printing
   const [printThermalInvoice, setPrintThermalInvoice] = useState<InvoicePembayaran | null>(null);
@@ -55,9 +59,10 @@ export const BeliPartView: React.FC = () => {
 
   // Form State Estimasi Baru (SA POS)
   const [formCustomer, setFormCustomer] = useState({
-    nama_customer: 'PT. Andi Jaya',
-    no_polisi: 'BK 5678 CD',
-    no_telepon: '0812-3456-7890',
+    id_antrian: undefined as number | undefined,
+    nama_customer: '',
+    no_polisi: '',
+    no_telepon: '',
     lokasi_rak: 'Rak A-02, Rak B-01, Rak C-03',
     catatan: 'Permintaan pembelian suku cadang langsung tanpa servis.',
   });
@@ -79,6 +84,16 @@ export const BeliPartView: React.FC = () => {
     queryFn: api.getBeliPartList,
     refetchInterval: 8000,
   });
+
+  const { data: antrianList } = useQuery({
+    queryKey: ['antrian-list'],
+    queryFn: api.getAntrian,
+    refetchInterval: 8000,
+  });
+
+  const antrianBeliPart = (antrianList || []).filter(
+    (a) => a.tujuan_kedatangan === 'Beli Part' && a.status_kunjungan !== 'Selesai'
+  );
 
   const { data: stokList } = useQuery({
     queryKey: ['stok-part'],
@@ -143,15 +158,18 @@ export const BeliPartView: React.FC = () => {
   // Mutation: Buat Transaksi Beli Part Baru
   const buatTransaksiMutation = useMutation({
     mutationFn: async () => {
-      const estNo = `EST-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
-      const prPick = `PR-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
+      const now = new Date();
+      const estNo = `EST-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(100 + Math.random() * 900))}`;
+      const prPick = `PR-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(100 + Math.random() * 900))}`;
 
       return api.buatBeliPart({
         no_transaksi: estNo,
-        nama_customer: formCustomer.nama_customer,
+        id_antrian: formCustomer.id_antrian,
+        nama_customer: formCustomer.nama_customer || 'Pelanggan Walk-In',
         no_polisi: formCustomer.no_polisi.toUpperCase().trim(),
         no_telepon: formCustomer.no_telepon,
         no_picking_request: prPick,
+        status_transaksi: 'Picking Warehouse',
         subtotal: subtotal,
         ppn_11: ppn11,
         total_biaya: grandTotal,
@@ -165,6 +183,124 @@ export const BeliPartView: React.FC = () => {
       setActiveTab('transaksi');
     },
     onError: (err: any) => alert('Gagal membuat transaksi: ' + (err?.message || 'Coba lagi.')),
+  });
+
+  // Mutation: Selesaikan Pembayaran Kasir & Terbitkan Invoice Resmi
+  const selesaikanPembayaranMutation = useMutation({
+    mutationFn: async ({ item, metode }: { item: TransaksiBeliPart; metode: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC' }) => {
+      const now = new Date();
+      const invNo = `INV-PART-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+
+      // 1. Panggil api.buatInvoice agar masuk rekap kasir & keuangan
+      await api.buatInvoice({
+        no_invoice: invNo,
+        id_transaksi_beli_part: item.id,
+        no_polisi: item.no_polisi,
+        nama_customer: item.nama_customer,
+        tanggal_invoice: now.toISOString(),
+        subtotal: Number(item.subtotal || item.total_biaya * 0.89),
+        ppn_nominal: Number(item.ppn_11 || item.total_biaya * 0.11),
+        diskon: 0,
+        grand_total: Number(item.total_biaya),
+        metode_pembayaran: metode,
+        status_pembayaran: 'Paid',
+        kasir_pic: currentUser || 'Siti Rahma (Kasir)',
+      });
+
+      // 2. Update status transaksi beli part
+      await api.updateBeliPartStatus({
+        id: item.id,
+        status_transaksi: 'Selesai',
+      });
+
+      return { invNo, item, metode };
+    },
+    onSuccess: ({ invNo, item }) => {
+      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      realtimeHub.publish({
+        type: 'INVOICE_PAID',
+        targetRoles: ['Admin Invoice', 'SA', 'Customer Fleet'],
+        title: 'Pembayaran Part Lunas',
+        message: `Faktur ${invNo} untuk pembelian part armada ${item.no_polisi} (${item.nama_customer}) telah lunas dan masuk rekap kasir.`,
+        linkTab: 'kasir',
+        urgency: 'success',
+      });
+
+      alert(`Pembayaran berhasil dicatat!\n\nInvoice resmi ${invNo} telah diterbitkan dan tercatat di Kasir & Keuangan.`);
+    },
+    onError: (err: any) => alert('Gagal memproses invoice kasir: ' + (err?.message || 'Coba lagi.')),
+  });
+
+  // Mutation: Serahkan Barang ke Customer & Terbitkan Memo Keluar Security
+  const serahkanBarangMutation = useMutation({
+    mutationFn: async (trx: TransaksiBeliPart) => {
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const seq = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0');
+      const memoNo = `MK-${yy}${mm}${dd}-${seq}`;
+
+      // 1. Buat Memo Keluar resmi
+      await api.buatMemoKeluar({
+        no_memo: memoNo,
+        id_antrian: trx.id_antrian,
+        id_transaksi_beli_part: trx.id,
+        no_polisi: trx.no_polisi,
+        jenis_armada: 'Truk / Mobil',
+        nama_customer: trx.nama_customer,
+        tujuan_kedatangan: 'Beli Part',
+        waktu_keluar: now.toISOString(),
+        status: 'Selesai',
+        foto_keluar: fotoPenyerahan,
+        catatan: `Barang suku cadang telah diserahkan dan lunas. ${catatanPenyerahan || ''}`,
+        petugas_security: 'Pos Gerbang KIM 3',
+      });
+
+      // 2. Check out antrian di security jika ada id_antrian
+      if (trx.id_antrian) {
+        await api.checkOutSecurity({
+          id: trx.id_antrian,
+          barang_dibawa_keluar: true,
+          detail_barang_keluar: `Sparepart pembelian langsung (${trx.no_transaksi}): ${catatanPenyerahan || 'Suku Cadang'}`,
+          foto_kendaraan_keluar: fotoPenyerahan,
+          foto_barang: fotoPenyerahan,
+          no_memo_keluar: memoNo,
+        });
+      }
+
+      // 3. Update status transaksi beli part
+      await api.updateBeliPartStatus({
+        id: trx.id,
+        status_transaksi: 'Barang Diserahkan',
+        foto_penyerahan: fotoPenyerahan,
+        catatan: catatanPenyerahan,
+      });
+
+      return { memoNo, trx };
+    },
+    onSuccess: ({ memoNo, trx }) => {
+      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
+      queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
+      queryClient.invalidateQueries({ queryKey: ['memo-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      realtimeHub.publish({
+        type: 'VEHICLE_CHECKED_OUT',
+        targetRoles: ['Security', 'SA', 'Customer Fleet'],
+        title: 'Memo Keluar Part Terbit',
+        message: `Barang untuk ${trx.no_polisi} telah diserahkan. Memo Keluar ${memoNo} otomatis dikirim ke Pos Security.`,
+        linkTab: 'security-memo',
+        urgency: 'success',
+      });
+
+      alert(`Barang resmi diserahkan ke Customer!\n\nMemo Keluar resmi ${memoNo} telah diterbitkan dan dikirimkan ke Pos Security untuk validasi gerbang.`);
+      setActiveTab('transaksi');
+    },
+    onError: (err: any) => alert('Gagal memproses penyerahan barang: ' + (err?.message || 'Coba lagi.')),
   });
 
   // Filtered Transaksi List
@@ -198,23 +334,32 @@ export const BeliPartView: React.FC = () => {
       ppn_nominal: item.ppn_11 || item.total_biaya * 0.11,
       diskon: 0,
       grand_total: item.total_biaya,
-      metode_pembayaran: 'Cash',
+      metode_pembayaran: metodeBayarKasir,
       status_pembayaran: 'Paid',
-      kasir_pic: 'Siti Rahma (Kasir)',
+      kasir_pic: currentUser || 'Siti Rahma (Kasir)',
     };
     setPrintThermalInvoice(invoiceObj);
   };
 
   // Helper function to create gate pass memo keluar on the fly for printing
   const handlePrintMemo = (item: TransaksiBeliPart) => {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const seq = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0');
+    const memoNo = `MK-${yy}${mm}${dd}-${seq}`;
+
     const memoObj: MemoKeluar = {
       id: item.id,
-      no_memo: `MK-PART-${item.no_transaksi}`,
+      no_memo: memoNo,
+      id_antrian: item.id_antrian,
+      id_transaksi_beli_part: item.id,
       no_polisi: item.no_polisi,
       nama_customer: item.nama_customer,
       jenis_armada: 'Truk / Mobil',
       tujuan_kedatangan: 'Pembelian Barang (Beli Part)',
-      waktu_keluar: new Date().toISOString(),
+      waktu_keluar: now.toISOString(),
       status: 'Selesai',
       catatan: `Barang bawaan suku cadang telah diserahkan dan lunas (${item.catatan || 'Sparepart Resmi'}).`,
       petugas_security: 'Hisar Pardede (Pos Gerbang)',
@@ -439,6 +584,67 @@ export const BeliPartView: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Pembayaran Kasir & Penerbitan Invoice Resmi */}
+                <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Receipt className="w-4 h-4 text-emerald-600" />
+                      Status Pembayaran &amp; Faktur Kasir
+                    </span>
+                    {activeTransaksi.status_transaksi === 'Selesai' ? (
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                        LUNAS (INVOICE TERBIT)
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black">
+                        MENUNGGU PEMBAYARAN KASIR
+                      </span>
+                    )}
+                  </div>
+
+                  {activeTransaksi.status_transaksi !== 'Selesai' ? (
+                    <div className="space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Pilih Metode Pembayaran:</label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(['Cash', 'Transfer Bank', 'QRIS', 'EDC'] as const).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => setMetodeBayarKasir(m)}
+                              className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                                metodeBayarKasir === m
+                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                              }`}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={selesaikanPembayaranMutation.isPending}
+                        onClick={() => selesaikanPembayaranMutation.mutate({ item: activeTransaksi, metode: metodeBayarKasir })}
+                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>{selesaikanPembayaranMutation.isPending ? 'Menerbitkan Invoice Kasir...' : 'BAYAR & TERBITKAN INVOICE KASIR'}</span>
+                      </button>
+                      <p className="text-[10px] text-slate-400 text-center">
+                        Tagihan otomatis masuk ke rekap keuangan di menu Kasir &amp; Faktur.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+                      <CheckCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Faktur pembelian part resmi telah lunas dan terdaftar di Kasir.</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Action Buttons: Cetak Struk Thermal & Surat Jalan */}
                 <div className="pt-2 space-y-2">
                   <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block">
@@ -488,20 +694,72 @@ export const BeliPartView: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="text-base font-black text-slate-900">1. Data Pelanggan & Unit Kendaraan</h3>
-                  <p className="text-xs text-slate-500">Pilih armada atau input nama pembeli sparepart langsung</p>
+                  <p className="text-xs text-slate-500">Pilih armada dari gerbang atau input nama pembeli sparepart langsung</p>
                 </div>
                 <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 font-bold text-xs border border-blue-200">
                   Langkah 2: Service Advisor
                 </span>
               </div>
 
+              {/* Dropdown Antrean Gerbang Security */}
+              <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-blue-600" />
+                    Pilih Armada dari Antrean Gerbang (Security Check-in):
+                  </label>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-200 text-blue-800">
+                    {antrianBeliPart.length} Menunggu di Gerbang
+                  </span>
+                </div>
+                <select
+                  value={formCustomer.id_antrian || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) {
+                      setFormCustomer(prev => ({
+                        ...prev,
+                        id_antrian: undefined,
+                        no_polisi: '',
+                        nama_customer: '',
+                        no_telepon: '',
+                      }));
+                      return;
+                    }
+                    const selected = antrianBeliPart.find(a => a.id === Number(val));
+                    if (selected) {
+                      setFormCustomer(prev => ({
+                        ...prev,
+                        id_antrian: selected.id,
+                        no_polisi: selected.no_polisi,
+                        nama_customer: selected.nama_customer || '',
+                        no_telepon: selected.no_hp_customer || '',
+                      }));
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-blue-300 font-bold text-xs bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="">-- Pilih Armada Antrean Gerbang atau Ketik Manual di Bawah --</option>
+                  {antrianBeliPart.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.no_polisi} - {a.nama_customer || 'Pelanggan'} ({new Date(a.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB) - {a.keperluan || 'Beli Part'}
+                    </option>
+                  ))}
+                </select>
+                {antrianBeliPart.length === 0 && (
+                  <p className="text-[11px] text-blue-700/80 italic">
+                    Belum ada armada berstatus "Beli Part" di pos gerbang saat ini. Anda dapat menginput plat nomor secara manual di bawah.
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Polisi</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Polisi <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
                     required
-                    placeholder="BK 5678 CD"
+                    placeholder="Contoh: BK 5678 CD"
                     value={formCustomer.no_polisi}
                     onChange={(e) => setFormCustomer({ ...formCustomer, no_polisi: e.target.value.toUpperCase() })}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-bold uppercase text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -509,11 +767,11 @@ export const BeliPartView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Customer / Perusahaan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Customer / Perusahaan <span className="text-rose-500">*</span></label>
                   <input
                     type="text"
                     required
-                    placeholder="PT. Andi Jaya"
+                    placeholder="Contoh: PT. Sumber Makmur"
                     value={formCustomer.nama_customer}
                     onChange={(e) => setFormCustomer({ ...formCustomer, nama_customer: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -806,17 +1064,42 @@ export const BeliPartView: React.FC = () => {
                 />
               </div>
 
+              {/* Info Armada yang Diserahkan */}
+              {activeTransaksi && (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Armada / Customer:</span>
+                    <span className="font-bold text-slate-800">{activeTransaksi.no_polisi} - {activeTransaksi.nama_customer}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">No. Transaksi:</span>
+                    <span className="font-mono font-bold text-blue-700">{activeTransaksi.no_transaksi}</span>
+                  </div>
+                </div>
+              )}
+
               <button
                 type="button"
+                disabled={serahkanBarangMutation.isPending || !activeTransaksi}
                 onClick={() => {
-                  alert('Barang resmi diserahkan ke Customer! Status otomatis lanjut ke Admin Kasir untuk Faktur & Pembayaran.');
-                  setActiveTab('transaksi');
+                  if (!activeTransaksi) {
+                    alert('Pilih transaksi yang akan diserahkan terlebih dahulu dari daftar transaksi.');
+                    return;
+                  }
+                  serahkanBarangMutation.mutate(activeTransaksi);
                 }}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
               >
                 <Check className="w-4 h-4" />
-                <span>KONFIRMASI BARANG TELAH DISERAHKAN</span>
+                <span>
+                  {serahkanBarangMutation.isPending 
+                    ? 'Menerbitkan Memo Keluar & Checkout Gerbang...' 
+                    : 'KONFIRMASI BARANG TELAH DISERAHKAN (TERBITKAN MEMO KELUAR)'}
+                </span>
               </button>
+              <p className="text-[10px] text-slate-400 text-center">
+                Otomatis menerbitkan Memo Keluar resmi (format MK-YYMMDD-XXXX) dan memvalidasi checkout Security di gerbang.
+              </p>
             </div>
           </div>
 
