@@ -9,13 +9,14 @@ import {
   CheckCircle2, 
   Eye, 
   EyeOff,
+  Building2,
   Phone,
   Mail,
-  Building2,
-  Truck,
+  ShieldCheck,
+  ClipboardList,
   Wrench,
-  Clock,
-  ShieldCheck
+  CheckCircle,
+  Truck
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -24,7 +25,9 @@ export const LoginPage: React.FC = () => {
     typeof window !== 'undefined' && window.location.hash === '#register' ? 'register' : 'login'
   );
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  
+  // Checkbox default unchecked
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Login Form State
   const [username, setUsername] = useState('');
@@ -127,15 +130,28 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen flex flex-col lg:flex-row bg-surface text-ink antialiased font-sans">
+    <main className="min-h-screen flex flex-col lg:flex-row bg-surface text-ink antialiased font-sans relative">
       
+      {/* Top Bar Aksen Tipis (#E85D04) */}
+      <div className="h-[2px] w-full bg-[#E85D04] fixed top-0 left-0 z-50 pointer-events-none" />
+
       {/* ========================================================================= */}
-      {/* SISI KIRI: IDENTITAS WORKSHOP & PLATFORM KIM 3 (Asimetris Desktop)        */}
+      {/* SISI KIRI: IDENTITAS WORKSHOP & ALUR PROSES NON-DATA                      */}
       {/* ========================================================================= */}
       <section className="hidden lg:flex lg:w-5/12 xl:w-1/2 bg-workshop-pattern text-white p-10 xl:p-14 flex-col justify-between relative overflow-hidden border-r border-border-dark">
+        
+        {/* Subtle Watermark Logo Background */}
+        <div className="absolute -right-16 -bottom-16 opacity-5 pointer-events-none select-none">
+          <img 
+            src="/logo.png" 
+            alt="" 
+            className="w-96 h-96 object-contain grayscale"
+          />
+        </div>
+
         {/* Top: Header & Brand Identity */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-3 bg-surface-dark border border-border-dark rounded-md px-3.5 py-2 shadow-hairline-dark">
+          <div className="inline-flex items-center gap-3 bg-surface-dark border border-border-dark rounded-md px-3.5 py-2">
             <img 
               src="/logo.png" 
               alt="KIM3 Bengkel" 
@@ -152,75 +168,82 @@ export const LoginPage: React.FC = () => {
               Sistem Operasional Bengkel &amp; Portal Armada Fleet
             </h1>
             <p className="mt-3 text-xs sm:text-sm text-[#94A0A9] leading-relaxed">
-              Integrasi alur kerja servis dari Security check-in, inspeksi SA, pengerjaan mekanik, quality control foreman, hingga gate out.
+              Platform terintegrasi untuk pemantauan alur perawatan armada komersial, tata kelola suku cadang, dan koordinasi antar unit kerja bengkel secara transparan.
             </p>
           </div>
 
-          {/* Technical Telemetry Card (Gaya Workshop Presisi) */}
-          <div className="mt-8 p-5 rounded-md bg-surface-dark/95 border border-border-dark shadow-xs max-w-lg space-y-4">
-            <div className="flex items-center justify-between border-b border-border-dark pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-sm bg-[#1E262C] border border-border-dark flex items-center justify-center text-accent">
-                  <Truck className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-semibold text-white tracking-wider px-1.5 py-0.5 rounded-xs bg-[#242E35] border border-border-dark tabular-nums">
-                      BK 8421 XD
-                    </span>
-                    <span className="text-xs text-[#94A0A9]">Hino 500 FL 260</span>
-                  </div>
-                  <span className="text-[11px] text-ink-subtle block mt-0.5">Bay Servis #03 — Heavy Duty</span>
-                </div>
-              </div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-sm border border-status-blue/30 bg-status-blue-bg/10 text-status-blue text-[11px] font-medium">
-                Pengerjaan
-              </span>
+          {/* Baris Alur Proses sebagai Label Abstrak Non-Data */}
+          <div className="mt-8 p-5 rounded-md bg-surface-dark/95 border border-border-dark max-w-lg">
+            <div className="text-[11px] font-semibold text-ink-subtle uppercase tracking-wider mb-4">
+              Alur Kerja Standar Operasional
             </div>
 
-            {/* Alur Servis Ringkas */}
-            <div className="grid grid-cols-4 gap-2 pt-1 text-center">
-              <div className="p-2 rounded-xs border border-border-dark bg-[#1A2227]">
-                <span className="text-[10px] text-ink-subtle block">Check In</span>
-                <span className="text-xs font-semibold text-white font-mono tabular-nums">08:15</span>
+            {/* 5 Tahap Alur Resmi (Label Murni, Bukan Data Fiktif) */}
+            <div className="grid grid-cols-5 gap-2 text-center relative">
+              
+              {/* Step 1: Check In */}
+              <div className="flex flex-col items-center">
+                <div className="w-9 h-9 rounded-md bg-[#1E262C] border border-border-dark flex items-center justify-center text-white mb-2">
+                  <ShieldCheck className="w-4 h-4 text-[#E85D04]" />
+                </div>
+                <span className="text-[11px] font-semibold text-white leading-tight">Check-In</span>
+                <span className="text-[10px] text-ink-subtle mt-0.5">Security</span>
               </div>
-              <div className="p-2 rounded-xs border border-border-dark bg-[#1A2227]">
-                <span className="text-[10px] text-ink-subtle block">SPK Order</span>
-                <span className="text-xs font-semibold text-white font-mono tabular-nums">SPK-109</span>
+
+              {/* Step 2: Inspeksi SA */}
+              <div className="flex flex-col items-center">
+                <div className="w-9 h-9 rounded-md bg-[#1E262C] border border-border-dark flex items-center justify-center text-white mb-2">
+                  <ClipboardList className="w-4 h-4 text-[#E85D04]" />
+                </div>
+                <span className="text-[11px] font-semibold text-white leading-tight">Inspeksi</span>
+                <span className="text-[10px] text-ink-subtle mt-0.5">SA Bengkel</span>
               </div>
-              <div className="p-2 rounded-xs border border-accent/40 bg-accent/10">
-                <span className="text-[10px] text-accent block">Durasi WO</span>
-                <span className="text-xs font-semibold text-accent font-mono tabular-nums">02:45:10</span>
+
+              {/* Step 3: Pengerjaan Mekanik */}
+              <div className="flex flex-col items-center">
+                <div className="w-9 h-9 rounded-md bg-[#1E262C] border border-border-dark flex items-center justify-center text-white mb-2">
+                  <Wrench className="w-4 h-4 text-[#E85D04]" />
+                </div>
+                <span className="text-[11px] font-semibold text-white leading-tight">Pengerjaan</span>
+                <span className="text-[10px] text-ink-subtle mt-0.5">Mekanik</span>
               </div>
-              <div className="p-2 rounded-xs border border-border-dark bg-[#1A2227]">
-                <span className="text-[10px] text-ink-subtle block">Target QC</span>
-                <span className="text-xs font-semibold text-white font-mono tabular-nums">14:00</span>
+
+              {/* Step 4: QC Foreman */}
+              <div className="flex flex-col items-center">
+                <div className="w-9 h-9 rounded-md bg-[#1E262C] border border-border-dark flex items-center justify-center text-white mb-2">
+                  <CheckCircle className="w-4 h-4 text-[#E85D04]" />
+                </div>
+                <span className="text-[11px] font-semibold text-white leading-tight">QC Final</span>
+                <span className="text-[10px] text-ink-subtle mt-0.5">Foreman</span>
               </div>
+
+              {/* Step 5: Gate Out */}
+              <div className="flex flex-col items-center">
+                <div className="w-9 h-9 rounded-md bg-[#1E262C] border border-border-dark flex items-center justify-center text-white mb-2">
+                  <Truck className="w-4 h-4 text-[#E85D04]" />
+                </div>
+                <span className="text-[11px] font-semibold text-white leading-tight">Gate Out</span>
+                <span className="text-[10px] text-ink-subtle mt-0.5">Pass Keluar</span>
+              </div>
+
             </div>
 
-            {/* Standar Teknis */}
-            <div className="pt-2 border-t border-border-dark flex items-center justify-between text-[11px] text-ink-subtle">
-              <div className="flex items-center gap-1.5">
-                <Wrench className="w-3.5 h-3.5 text-accent" />
-                <span>Inspeksi 40 Titik Armada</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-status-green" />
-                <span>Validasi Gate Pass Digital</span>
-              </div>
+            <div className="mt-4 pt-3 border-t border-border-dark text-[11px] text-ink-subtle flex items-center justify-between">
+              <span>Sistem Manajemen Alur 5 Tahap</span>
+              <span className="text-white font-medium">B2B Portal Fleet</span>
             </div>
           </div>
         </div>
 
         {/* Bottom Metadata */}
         <div className="relative z-10 pt-8 border-t border-border-dark flex items-center justify-between text-xs text-ink-subtle">
-          <span className="font-mono tabular-nums">KIM 3 Workshop Engine v2.4</span>
+          <span className="font-mono tabular-nums">KIM 3 Workshop System v2.4</span>
           <span>Medan, Sumatera Utara</span>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* SISI KANAN: FORM LOGIN & REGISTER (Bersih, Tegas, Radius 4-6px)          */}
+      {/* SISI KANAN: FORM LOGIN & REGISTER (Kontras Tinggi, Aksen Tegas)           */}
       {/* ========================================================================= */}
       <section className="flex-1 bg-surface flex flex-col justify-center items-center p-5 sm:p-8 lg:p-12 overflow-y-auto">
         <div className="w-full max-w-md">
@@ -237,8 +260,8 @@ export const LoginPage: React.FC = () => {
           {/* Card Form */}
           <div className="bg-surface-raised border border-border rounded-md p-6 sm:p-8 shadow-xs">
             
-            {/* Tab Navigasi Masuk / Daftar */}
-            <div className="flex rounded-sm bg-surface p-1 mb-6 border border-border">
+            {/* Tab Navigasi Masuk / Daftar dengan Aksen #E85D04 */}
+            <div className="flex rounded-md bg-surface p-1 mb-6 border border-border">
               <button
                 type="button"
                 onClick={() => {
@@ -246,9 +269,9 @@ export const LoginPage: React.FC = () => {
                   setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-xs transition-colors cursor-pointer text-center ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-sm transition-all cursor-pointer text-center ${
                   activeTab === 'login'
-                    ? 'bg-surface-raised text-ink font-semibold shadow-xs'
+                    ? 'bg-[#E85D04] text-white shadow-xs'
                     : 'text-ink-muted hover:text-ink'
                 }`}
               >
@@ -261,9 +284,9 @@ export const LoginPage: React.FC = () => {
                   setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-xs transition-colors cursor-pointer text-center ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-sm transition-all cursor-pointer text-center ${
                   activeTab === 'register'
-                    ? 'bg-surface-raised text-ink font-semibold shadow-xs'
+                    ? 'bg-[#E85D04] text-white shadow-xs'
                     : 'text-ink-muted hover:text-ink'
                 }`}
               >
@@ -304,10 +327,10 @@ export const LoginPage: React.FC = () => {
               <div className="mb-5 p-4 rounded-md border border-border bg-surface space-y-2.5">
                 <div className="flex items-center justify-between text-xs font-semibold text-ink">
                   <span>Memulai sesi sistem...</span>
-                  <span className="font-mono text-accent tabular-nums">ONLINE</span>
+                  <span className="font-mono text-[#E85D04] tabular-nums">ONLINE</span>
                 </div>
                 <div className="w-full h-1.5 bg-surface-raised rounded-xs overflow-hidden border border-border">
-                  <div className="h-full bg-accent animate-engine-start" />
+                  <div className="h-full bg-[#E85D04] animate-engine-start" />
                 </div>
               </div>
             )}
@@ -330,7 +353,7 @@ export const LoginPage: React.FC = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Masukkan username"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors"
                   />
                 </div>
 
@@ -343,7 +366,7 @@ export const LoginPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => alert('Untuk reset kata sandi, hubungi Helpdesk Bengkel KIM 3.')}
-                      className="text-xs text-ink-muted hover:text-accent cursor-pointer transition-colors"
+                      className="text-xs text-ink-muted hover:text-[#E85D04] cursor-pointer transition-colors"
                     >
                       Lupa kata sandi?
                     </button>
@@ -357,7 +380,7 @@ export const LoginPage: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Masukkan password"
-                      className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors font-sans"
+                      className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors font-sans"
                     />
                     <button
                       type="button"
@@ -370,14 +393,14 @@ export const LoginPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ingat Sesi */}
+                {/* Ingat Sesi (Default Unchecked) */}
                 <div className="pt-1">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="h-4 w-4 rounded-xs border-border text-accent focus:ring-accent cursor-pointer"
+                      className="h-4 w-4 rounded-xs border-border text-[#E85D04] focus:ring-[#E85D04] cursor-pointer"
                     />
                     <span className="text-xs text-ink-muted">
                       Ingat sesi login
@@ -385,12 +408,12 @@ export const LoginPage: React.FC = () => {
                   </label>
                 </div>
 
-                {/* Tombol Masuk (CTA Primer - Warna Accent Oranye Sinyal) */}
+                {/* Tombol Masuk: Kontras Tinggi (#E85D04 Background + Putih Tebal) */}
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active disabled:opacity-60 text-white font-semibold text-xs sm:text-sm rounded-md transition-colors cursor-pointer"
+                    disabled={Boolean(isLoading)}
+                    className="w-full py-3 px-4 bg-[#E85D04] hover:bg-[#D05303] active:bg-[#B84902] text-white font-bold text-sm rounded-md shadow-sm transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {isLoading ? 'Memverifikasi...' : 'Masuk'}
                   </button>
@@ -414,7 +437,7 @@ export const LoginPage: React.FC = () => {
                     value={regForm.nama_lengkap}
                     onChange={(e) => setRegForm({ ...regForm, nama_lengkap: e.target.value })}
                     placeholder="Masukkan nama lengkap"
-                    className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                    className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors"
                   />
                 </div>
 
@@ -429,7 +452,7 @@ export const LoginPage: React.FC = () => {
                     value={regForm.nama_perusahaan}
                     onChange={(e) => setRegForm({ ...regForm, nama_perusahaan: e.target.value })}
                     placeholder="Masukkan nama perusahaan"
-                    className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                    className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors"
                   />
                 </div>
 
@@ -445,7 +468,7 @@ export const LoginPage: React.FC = () => {
                       value={regForm.username}
                       onChange={(e) => setRegForm({ ...regForm, username: e.target.value })}
                       placeholder="Masukkan username"
-                      className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors font-mono"
+                      className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors font-mono"
                     />
                   </div>
                   <div>
@@ -456,7 +479,7 @@ export const LoginPage: React.FC = () => {
                       id="reg_peran"
                       value={regForm.peran}
                       onChange={(e) => setRegForm({ ...regForm, peran: e.target.value as PeranUser })}
-                      className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors cursor-pointer"
+                      className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors cursor-pointer"
                     >
                       <option value="Customer Fleet">Customer Fleet (Armada)</option>
                       <option value="SA">Service Advisor (SA)</option>
@@ -481,7 +504,7 @@ export const LoginPage: React.FC = () => {
                       value={regForm.no_telepon}
                       onChange={(e) => setRegForm({ ...regForm, no_telepon: e.target.value })}
                       placeholder="Masukkan nomor telepon"
-                      className="w-full px-3 py-2 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                      className="w-full px-3 py-2 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors"
                     />
                   </div>
 
@@ -495,7 +518,7 @@ export const LoginPage: React.FC = () => {
                       value={regForm.email}
                       onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
                       placeholder="Masukkan email"
-                      className="w-full px-3 py-2 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                      className="w-full px-3 py-2 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors"
                     />
                   </div>
                 </div>
@@ -512,7 +535,7 @@ export const LoginPage: React.FC = () => {
                       value={regForm.password}
                       onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
                       placeholder="Masukkan password"
-                      className="w-full pl-3.5 pr-10 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors font-sans"
+                      className="w-full pl-3.5 pr-10 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-[#E85D04] focus:ring-1 focus:ring-[#E85D04] transition-colors font-sans"
                     />
                     <button
                       type="button"
@@ -527,8 +550,8 @@ export const LoginPage: React.FC = () => {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active disabled:opacity-60 text-white font-semibold text-xs sm:text-sm rounded-md transition-colors cursor-pointer"
+                    disabled={Boolean(isLoading)}
+                    className="w-full py-2.5 px-4 bg-[#E85D04] hover:bg-[#D05303] active:bg-[#B84902] text-white font-bold text-sm rounded-md transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {isLoading ? 'Mendaftarkan...' : 'Daftar Mitra'}
                   </button>

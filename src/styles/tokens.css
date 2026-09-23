@@ -45,14 +45,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Workshop geometric grid pattern (lantai workshop presisi & tire tread subtle lines) */
+/* Workshop geometric grid pattern (lantai workshop presisi & alur tapak ban industrial) */
 .bg-workshop-pattern {
   background-color: var(--color-surface-dark);
   background-image: 
-    linear-gradient(rgba(216, 220, 223, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(216, 220, 223, 0.05) 1px, transparent 1px),
-    repeating-linear-gradient(45deg, rgba(232, 93, 4, 0.03) 0, rgba(232, 93, 4, 0.03) 1px, transparent 0, transparent 24px);
-  background-size: 32px 32px, 32px 32px, 48px 48px;
+    linear-gradient(rgba(216, 220, 223, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(216, 220, 223, 0.07) 1px, transparent 1px),
+    repeating-linear-gradient(45deg, rgba(232, 93, 4, 0.06) 0, rgba(232, 93, 4, 0.06) 1.5px, transparent 0, transparent 20px),
+    repeating-linear-gradient(-45deg, rgba(216, 220, 223, 0.03) 0, rgba(216, 220, 223, 0.03) 1px, transparent 0, transparent 20px);
+  background-size: 32px 32px, 32px 32px, 40px 40px, 40px 40px;
 }
 
 /* Start Engine Ignition Animation (Single crisp progress line) */
