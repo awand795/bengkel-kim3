@@ -20,10 +20,10 @@ export default {
           dark: 'var(--color-surface-dark)',
         },
         accent: {
-          DEFAULT: '#E85D04',
-          hover: '#D05303',
-          active: '#B84902',
-          subtle: '#FFF7ED',
+          DEFAULT: 'var(--color-accent, #0F6674)',
+          hover: 'var(--color-accent-hover, #0B525E)',
+          active: 'var(--color-accent-active, #083E47)',
+          subtle: 'var(--color-accent-subtle, #E6F3F5)',
         },
         border: {
           DEFAULT: 'var(--color-border)',

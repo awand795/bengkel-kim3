@@ -13,10 +13,10 @@
   --color-surface-raised: #FFFFFF;   /* permukaan card di atas surface */
   --color-surface-dark: #141A1E;     /* panel visual gelap bertema workshop */
 
-  --color-accent: #E85D04;           /* oranye sinyal/torque-orange untuk CTA primer & branding */
-  --color-accent-hover: #D05303;     /* hover oranye sinyal */
-  --color-accent-active: #B84902;    /* active oranye sinyal */
-  --color-accent-subtle: #FFF7ED;    /* tint oranye sinyal untuk aksen lembut */
+  --color-accent: #0F6674;           /* petrol teal untuk CTA primer & branding */
+  --color-accent-hover: #0B525E;     /* hover petrol teal */
+  --color-accent-active: #083E47;    /* active petrol teal */
+  --color-accent-subtle: #E6F3F5;    /* tint petrol teal untuk aksen lembut / wash */
 
   --color-border: #D8DCDF;           /* hairline border tipis 1px */
   --color-border-dark: #2B343B;      /* hairline border pada panel gelap */
@@ -51,7 +51,7 @@
   background-image: 
     linear-gradient(rgba(216, 220, 223, 0.07) 1px, transparent 1px),
     linear-gradient(90deg, rgba(216, 220, 223, 0.07) 1px, transparent 1px),
-    repeating-linear-gradient(45deg, rgba(232, 93, 4, 0.06) 0, rgba(232, 93, 4, 0.06) 1.5px, transparent 0, transparent 20px),
+    repeating-linear-gradient(45deg, rgba(15, 102, 116, 0.08) 0, rgba(15, 102, 116, 0.08) 1.5px, transparent 0, transparent 20px),
     repeating-linear-gradient(-45deg, rgba(216, 220, 223, 0.03) 0, rgba(216, 220, 223, 0.03) 1px, transparent 0, transparent 20px);
   background-size: 32px 32px, 32px 32px, 40px 40px, 40px 40px;
 }
