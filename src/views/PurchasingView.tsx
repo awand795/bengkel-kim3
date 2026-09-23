@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ShoppingCart, CheckCircle, PackageSearch, Clock, Plus, Filter, Tag, Info, AlertTriangle, Truck, Save, FileText, Download } from 'lucide-react';
 import { api } from '../api/client';
-import { StatusBadge } from '../components/common/StatusBadge';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { StatusBadge } from '../components/StatusBadge';
+import { realtimeHub } from '../utils/RealtimeHub';
+import { useAppStore } from '../store/useAppStore';
 import { PurchaseRequestPart } from '../types';
 import { 
   ShoppingBag, 
@@ -23,6 +26,7 @@ import { realtimeHub } from '../services/realtimeService';
 
 export const PurchasingView: React.FC = () => {
   const queryClient = useQueryClient();
+  const { currentUser } = useAppStore();
   const [selectedPr, setSelectedPr] = useState<PurchaseRequestPart | null>(null);
 
   // Search & Filter State
@@ -58,7 +62,7 @@ export const PurchasingView: React.FC = () => {
         no_po: poNo,
         id_pr: pr.pr_id,
         id_spk: pr.id_spk,
-        nama_admin_purchasing: 'Rina Marlina',
+        nama_admin_purchasing: currentUser,
         vendor_1_nama: poForm.vendor_1_nama,
         vendor_1_harga: poForm.vendor_1_harga,
         vendor_2_nama: poForm.vendor_2_nama,

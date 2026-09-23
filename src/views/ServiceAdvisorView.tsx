@@ -5,6 +5,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
 import { realtimeHub } from '../services/realtimeService';
+import { useAppStore } from '../store/useAppStore';
 import { 
   ClipboardList, 
   Wrench, 
@@ -30,6 +31,7 @@ import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
 export const ServiceAdvisorView: React.FC = () => {
   const queryClient = useQueryClient();
+  const { currentUser } = useAppStore();
   const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed'>('spk-list');
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrModal, setShowPrModal] = useState<SpkService | null>(null);
@@ -156,7 +158,7 @@ export const ServiceAdvisorView: React.FC = () => {
         cek_kelistrikan: data.cek_kelistrikan,
         cek_kaki_kaki: data.cek_kaki_kaki,
         catatan_kondisi_awal: data.catatan_kondisi_awal,
-        nama_sa: 'Budi Santoso',
+        nama_sa: currentUser,
         estimasi_waktu_jam: data.estimasi_waktu_jam,
         lead_time_jam: data.lead_time_jam,
         catatan_sa: data.catatan_sa,
@@ -245,7 +247,7 @@ export const ServiceAdvisorView: React.FC = () => {
         await api.ajukanPR({
           no_pr: prNo,
           id_spk: spk.id,
-          nama_sa_pemohon: 'Budi Santoso',
+          nama_sa_pemohon: currentUser,
           catatan_pr: `Otomatis dari Estimasi SA: Sparepart [${emptyNames}] stok gudang KOSONG / INDENT. Pengadaan segera melalui alur Kotak Merah.`,
         });
 
@@ -292,7 +294,7 @@ export const ServiceAdvisorView: React.FC = () => {
       return api.ajukanPR({
         no_pr: prNo,
         id_spk: spk.id,
-        nama_sa_pemohon: 'Budi Santoso',
+        nama_sa_pemohon: currentUser,
         catatan_pr: prNote || `Kebutuhan sparepart tidak ready untuk armada ${spk.no_polisi}`,
       });
     },

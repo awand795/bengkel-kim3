@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { SpkService } from '../types';
 import { 
@@ -22,6 +23,7 @@ import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
 export const ForemanView: React.FC = () => {
   const queryClient = useQueryClient();
+  const { currentUser } = useAppStore();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'hasil-pengecekan' | 'qc-fir'>('dashboard');
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
@@ -64,7 +66,7 @@ export const ForemanView: React.FC = () => {
       return api.updateSpkStatus({
         id: spk.id,
         status_spk: 'Dalam Pengerjaan',
-        nama_foreman: 'Joko Susilo',
+        nama_foreman: currentUser,
         nama_mekanik: selectedMekanik,
         catatan_foreman: `Ditugaskan oleh Foreman ke ${selectedMekanik}`,
       });
@@ -99,7 +101,7 @@ export const ForemanView: React.FC = () => {
         await api.inputQcFir({
           no_fir: firNo,
           id_spk: spk.id,
-          nama_foreman: 'Joko Susilo',
+          nama_foreman: currentUser,
           pekerjaan_sesuai_wo: firForm.pekerjaan_sesuai_wo,
           fungsi_normal: firForm.fungsi_normal,
           bebas_kebocoran: firForm.bebas_kebocoran,

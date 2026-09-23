@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { SpkService } from '../types';
 import { 
@@ -21,6 +22,8 @@ import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
 export const MekanikView: React.FC = () => {
   const queryClient = useQueryClient();
+  const { currentUser } = useAppStore();
+  const [activeTab, setActiveTab] = useState<'tugas' | 'riwayat'>('tugas');
   const [activeJob, setActiveJob] = useState<SpkService | null>(null);
   const [jobTimerSeconds, setJobTimerSeconds] = useState(3600); // 1 hour simulated
   const [timerRunning, setTimerRunning] = useState(false);
@@ -122,37 +125,35 @@ export const MekanikView: React.FC = () => {
         rekomendasi_perbaikan: tambahanForm.rekomendasi_perbaikan,
         estimasi_biaya_tambahan: tambahanForm.estimasi_biaya_tambahan,
         estimasi_waktu_tambahan_jam: tambahanForm.estimasi_waktu_tambahan_jam,
-        diajukan_oleh_mekanik: 'Andi Wijaya',
-        diverifikasi_foreman: 'Joko Susilo',
+        diajukan_oleh_mekanik: currentUser,
+        diverifikasi_foreman: myJob?.nama_foreman || 'Foreman',
         catatan: tambahanForm.catatan,
       });
     },
     onSuccess: () => {
       setShowTambahanModal(false);
-      alert('Pekerjaan tambahan berhasil diajukan ke Foreman & SA untuk approval Customer!');
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      alert('Pekerjaan Tambahan berhasil disubmit dan menunggu approval.');
     },
   });
 
   // Auto select active job if empty
-  const myJob = activeJob || spkList?.find(s => s.nama_mekanik?.includes('Andi') || s.status_spk === 'Dalam Pengerjaan') || spkList?.[0];
+  const myJob = activeJob || spkList?.find(s => s.nama_mekanik?.includes(currentUser) || s.status_spk === 'Dalam Pengerjaan') || spkList?.[0];
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-4 max-w-[480px] mx-auto mb-20 bg-slate-50 min-h-screen relative shadow-[0_0_15px_rgba(0,0,0,0.05)]">
       
-      {/* Mobile-optimized Header for Tablet / Smartphone */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
-            <Wrench className="w-6 h-6" />
-          </div>
+      {/* Header Mobile App Style */}
+      <div className="bg-white px-4 py-3 shadow-xs border-b border-slate-200 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-base sm:text-lg font-black text-slate-900">Mekanik Bengkel (Tablet / HP)</h1>
-            <p className="text-xs text-slate-500">Mekanik: Andi Wijaya | Mode Touchscreen</p>
+            <p className="text-xs text-slate-500">Mekanik: {currentUser} | Mode Touchscreen</p>
           </div>
         </div>
 
         {/* Live Job Timer Badge */}
-        <div className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-1.5 rounded-xl font-mono text-xs sm:text-sm font-bold shadow-xs">
+        <div className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-1.5 rounded-xl font-mono text-xs sm:text-sm font-bold shadow-xs mt-2">
           <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
           <span>{formatTimer(jobTimerSeconds)}</span>
         </div>

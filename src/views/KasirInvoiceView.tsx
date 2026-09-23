@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { InvoicePembayaran } from '../types';
 import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
@@ -18,6 +19,8 @@ import {
 
 export const KasirInvoiceView: React.FC = () => {
   const queryClient = useQueryClient();
+  const { currentUser } = useAppStore();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'belum-lunas' | 'lunas'>('dashboard');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoicePembayaran | null>(null);
   const [metodeBayar, setMetodeBayar] = useState<'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC'>('Transfer Bank');
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -39,7 +42,7 @@ export const KasirInvoiceView: React.FC = () => {
       return api.bayarInvoice({
         id: inv.id,
         metode_pembayaran: metodeBayar,
-        kasir_pic: 'Siti Rahma',
+        kasir_pic: currentUser,
       });
     },
     onSuccess: () => {
