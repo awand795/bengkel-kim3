@@ -92,6 +92,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     jenis_armada: 'Truk',
     tujuan_kedatangan: 'Service' as 'Service' | 'Beli Part' | 'Kunjungan' | 'Lainnya',
     pic_tujuan: '',
+    id_pic: undefined as number | null | undefined,
     keperluan: '',
     foto_kendaraan_masuk: '',
     catatan_security: '',
@@ -199,9 +200,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
       // Publish Realtime Event
       if (formCheckin.tujuan_kedatangan === 'Kunjungan') {
+        const targetPicUser = picPetugasList.find((p) => p.id === formCheckin.id_pic);
         realtimeHub.publish({
           type: 'KUNJUNGAN_ARRIVED',
           targetRoles: ['PIC Terkait'],
+          targetUserId: targetPicUser?.id,
+          targetUserEmail: targetPicUser?.email,
           title: 'Tamu Tiba di Pos Security',
           message: `Tamu ${formCheckin.nama_customer || 'Pengunjung'} (${formCheckin.no_polisi}) telah tiba di Pos Security menuju ${formCheckin.pic_tujuan}.`,
           linkTab: 'pic-terkait',
@@ -236,6 +240,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
         jenis_armada: 'Truk',
         tujuan_kedatangan: 'Service',
         pic_tujuan: '',
+        id_pic: undefined,
         keperluan: '',
         foto_kendaraan_masuk: '',
         catatan_security: '',
@@ -341,6 +346,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 jenis_armada: 'Truk',
                 tujuan_kedatangan: 'Service',
                 pic_tujuan: '',
+                id_pic: null,
                 keperluan: '',
                 foto_kendaraan_masuk: '',
                 catatan_security: '',
@@ -642,13 +648,29 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       <div>
                         <label className="block font-bold text-slate-700 mb-1.5">PIC / Petugas Tujuan</label>
                         <select
-                          value={formCheckin.pic_tujuan}
-                          onChange={(e) => setFormCheckin({ ...formCheckin, pic_tujuan: e.target.value })}
+                          value={formCheckin.id_pic ? String(formCheckin.id_pic) : formCheckin.pic_tujuan}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const found = picPetugasList.find((p) => String(p.id) === val);
+                            if (found) {
+                              setFormCheckin({
+                                ...formCheckin,
+                                id_pic: found.id,
+                                pic_tujuan: `${found.nama_lengkap} (${found.peran})`,
+                              });
+                            } else {
+                              setFormCheckin({
+                                ...formCheckin,
+                                id_pic: undefined,
+                                pic_tujuan: val,
+                              });
+                            }
+                          }}
                           className="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
                         >
                           <option value="">-- Pilih PIC / Petugas Tujuan --</option>
                           {picPetugasList.map((p) => (
-                            <option key={p.id} value={`${p.nama_lengkap} (${p.peran})`}>
+                            <option key={p.id} value={String(p.id)}>
                               {p.nama_lengkap} ({p.peran})
                             </option>
                           ))}
@@ -734,6 +756,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         jenis_armada: 'Truk',
                         tujuan_kedatangan: 'Service',
                         pic_tujuan: '',
+                        id_pic: null,
                         keperluan: '',
                         foto_kendaraan_masuk: '',
                         catatan_security: '',
@@ -996,6 +1019,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         jenis_armada: selectedBooking.jenis_armada || 'Truk',
                         tujuan_kedatangan: (selectedBooking.tujuan_kunjungan as any) || 'Service',
                         pic_tujuan: saUser ? `${saUser.nama_lengkap} (SA)` : '',
+                        id_pic: saUser?.id || null,
                         keperluan: selectedBooking.keterangan || selectedBooking.jenis_layanan || '',
                         foto_kendaraan_masuk: '',
                         catatan_security: `Booking ID: ${selectedBooking.no_booking}`,
@@ -1756,13 +1780,29 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">PIC / Petugas Tujuan</label>
                   <select
-                    value={formCheckin.pic_tujuan}
-                    onChange={(e) => setFormCheckin({ ...formCheckin, pic_tujuan: e.target.value })}
+                    value={formCheckin.id_pic ? String(formCheckin.id_pic) : formCheckin.pic_tujuan}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const found = picPetugasList.find((p) => String(p.id) === val);
+                      if (found) {
+                        setFormCheckin({
+                          ...formCheckin,
+                          id_pic: found.id,
+                          pic_tujuan: `${found.nama_lengkap} (${found.peran})`,
+                        });
+                      } else {
+                        setFormCheckin({
+                          ...formCheckin,
+                          id_pic: undefined,
+                          pic_tujuan: val,
+                        });
+                      }
+                    }}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                   >
                     <option value="">-- Pilih PIC / Petugas Tujuan --</option>
                     {picPetugasList.map((p) => (
-                      <option key={p.id} value={`${p.nama_lengkap} (${p.peran})`}>
+                      <option key={p.id} value={String(p.id)}>
                         {p.nama_lengkap} ({p.peran})
                       </option>
                     ))}

@@ -25,7 +25,7 @@ interface NotificationItem {
 }
 
 export const NotificationDropdown: React.FC = () => {
-  const { currentRole, currentUser, setActiveTab } = useAppStore();
+  const { currentRole, currentUser, authUser, setActiveTab } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -347,7 +347,8 @@ export const NotificationDropdown: React.FC = () => {
       (a) =>
         a.tujuan_kedatangan === 'Kunjungan' &&
         a.status_kunjungan === 'Check In' &&
-        (!a.status_konfirmasi_pic || a.status_konfirmasi_pic === 'Menunggu Konfirmasi')
+        (!a.status_konfirmasi_pic || a.status_konfirmasi_pic === 'Menunggu Konfirmasi') &&
+        (!authUser?.id || !a.id_pic || a.id_pic === authUser.id)
     );
     incoming.forEach((a) => {
       notifications.push({

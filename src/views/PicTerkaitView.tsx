@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { AntrianKunjungan } from '../types';
 import { realtimeHub } from '../services/realtimeService';
@@ -27,6 +28,7 @@ type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Sudah Keluar';
 
 export const PicTerkaitView: React.FC = () => {
   const queryClient = useQueryClient();
+  const { authUser, currentRole, currentUser } = useAppStore();
   const [subTab, setSubTab] = useState<'masuk' | 'riwayat'>('masuk');
   const [rejecting, setRejecting] = useState<AntrianKunjungan | null>(null);
   const [catatanTolak, setCatatanTolak] = useState('');
@@ -54,10 +56,20 @@ export const PicTerkaitView: React.FC = () => {
     return () => unsub();
   }, [queryClient]);
 
-  // Murni hasil fetch API antrian Kunjungan tanpa mock data
-  const allKunjungan: AntrianKunjungan[] = (antrianList || []).filter(
-    (a) => a.tujuan_kedatangan === 'Kunjungan'
-  );
+  // Murni hasil fetch API antrian Kunjungan, scoped ke akun PIC yang login (atau semua jika Super Admin)
+  const allKunjungan: AntrianKunjungan[] = (antrianList || []).filter((a) => {
+    if (a.tujuan_kedatangan !== 'Kunjungan') return false;
+    if (currentRole === 'Super Admin') return true;
+    if (authUser?.id && a.id_pic) {
+      return a.id_pic === authUser.id;
+    }
+    if (authUser?.nama_lengkap && a.pic_tujuan) {
+      const nama = authUser.nama_lengkap.toLowerCase();
+      const picTujuan = a.pic_tujuan.toLowerCase();
+      return picTujuan.includes(nama) || (authUser.email && picTujuan.includes(authUser.email.toLowerCase()));
+    }
+    return false;
+  });
 
   // Notifikasi kunjungan masuk: tamu / dinas yang masih Check In & belum selesai konfirmasi
   const kunjunganMasuk = allKunjungan.filter(
@@ -343,6 +355,11 @@ export const PicTerkaitView: React.FC = () => {
             <p className="text-xs text-slate-500">
               Konfirmasi tamu & dinas yang masuk melalui Pos Security sebelum diterima di area bengkel
             </p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                Akun PIC: <strong className="text-slate-900">{authUser?.nama_lengkap || currentUser}</strong> ({authUser?.email || '-'})
+              </span>
+            </div>
           </div>
         </div>
 
@@ -457,7 +474,7 @@ export const PicTerkaitView: React.FC = () => {
               </div>
               <h3 className="text-sm font-bold text-slate-800">Tidak Ada Kunjungan Menunggu</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Semua tamu dengan tujuan "Kunjungan" saat ini sudah dikonfirmasi.
+                Tidak ada antrian tamu yang menunggu respon PIC {authUser?.nama_lengkap || currentUser}. Semua kunjungan Anda telah diproses.
               </p>
             </div>
           )}

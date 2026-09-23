@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
+import { api } from './api/client';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
@@ -19,9 +20,64 @@ import { PicTerkaitView } from './views/PicTerkaitView';
 import { AdminPanelView } from './views/AdminPanelView';
 
 export const App: React.FC = () => {
-  const { activeTab, isLoggedIn } = useAppStore();
+  const {
+    activeTab,
+    isLoggedIn,
+    isVerifyingSession,
+    setIsVerifyingSession,
+    logout,
+  } = useAppStore();
 
-  // If user is not logged in, enforce Login Page first
+  // Validasi sesi aktif dari database saat web dibuka atau di-refresh (F5)
+  useEffect(() => {
+    const token = localStorage.getItem('bengkel_jwt_token');
+    if (!token) {
+      setIsVerifyingSession(false);
+      if (isLoggedIn) logout();
+      return;
+    }
+
+    let isMounted = true;
+    api
+      .getMe()
+      .then((me) => {
+        if (!isMounted) return;
+        useAppStore.setState({
+          authUser: me,
+          currentUser: me.nama_lengkap,
+          currentRole: me.peran,
+          isLoggedIn: true,
+          isVerifyingSession: false,
+        });
+        localStorage.setItem('bengkel_auth_user', JSON.stringify(me));
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.warn('Sesi tidak valid atau pengguna telah dihapus dari database:', err);
+        logout();
+        setIsVerifyingSession(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Jika sedang memverifikasi sesi pada reload, cegah flash antarmuka internal
+  if (isVerifyingSession) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-9 h-9 border-3 border-sky-400/20 border-t-sky-400 rounded-full animate-spin" />
+          <div className="text-xs font-semibold text-slate-300 tracking-wide">
+            Memverifikasi Sesi Bengkel KIM 3...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Jika user belum login atau sesi tidak valid, langsung arahkan ke halaman login
   if (!isLoggedIn) {
     return <LoginPage />;
   }

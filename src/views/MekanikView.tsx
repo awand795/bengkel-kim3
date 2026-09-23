@@ -23,7 +23,7 @@ import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
 export const MekanikView: React.FC = () => {
   const queryClient = useQueryClient();
-  const { currentUser } = useAppStore();
+  const { currentUser, authUser, currentRole } = useAppStore();
   const [activeTab, setActiveTab] = useState<'tugas' | 'riwayat'>('tugas');
   const [activeJob, setActiveJob] = useState<SpkService | null>(null);
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
@@ -55,11 +55,26 @@ export const MekanikView: React.FC = () => {
     queryFn: () => api.getPartSpk(),
   });
 
-  // Auto select active job dynamically from spkList
-  const myJob = (activeJobId ? spkList?.find(s => s.id === activeJobId) : null)
-    || (activeJob ? spkList?.find(s => s.id === activeJob.id) || activeJob : null)
-    || spkList?.find(s => s.nama_mekanik?.includes(currentUser) || s.status_spk === 'Dalam Pengerjaan')
-    || spkList?.[0];
+  // Filter SPK spesifik untuk Mekanik yang bertugas (kecuali Super Admin atau Foreman yang dapat melihat seluruh antrian bengkel)
+  const mySpkList = (spkList || []).filter((s) => {
+    if (currentRole === 'Super Admin' || currentRole === 'Foreman') return true;
+    if (authUser?.id && s.id_mekanik) {
+      return s.id_mekanik === authUser.id;
+    }
+    if (authUser?.nama_lengkap && s.nama_mekanik) {
+      return s.nama_mekanik.toLowerCase().includes(authUser.nama_lengkap.toLowerCase());
+    }
+    if (currentUser && s.nama_mekanik) {
+      return s.nama_mekanik.toLowerCase().includes(currentUser.toLowerCase());
+    }
+    return false;
+  });
+
+  // Auto select active job dynamically from mySpkList
+  const myJob = (activeJobId ? mySpkList.find(s => s.id === activeJobId) : null)
+    || (activeJob ? mySpkList.find(s => s.id === activeJob.id) || activeJob : null)
+    || mySpkList.find(s => s.status_spk === 'Dalam Pengerjaan')
+    || mySpkList[0];
 
   // 1. Realtime listener: auto-refresh spk-list on status changes across tabs/server
   useEffect(() => {
@@ -246,10 +261,10 @@ export const MekanikView: React.FC = () => {
       </div>
 
       {/* Quick Job Switcher (Chips Carousel) */}
-      {spkList && spkList.length > 1 && (
+      {mySpkList && mySpkList.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Pilih Pekerjaan:</span>
-          {spkList.map((job) => {
+          {mySpkList.map((job) => {
             const isSelected = (activeJobId || myJob?.id) === job.id;
             return (
               <button

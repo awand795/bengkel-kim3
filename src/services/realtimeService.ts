@@ -32,6 +32,8 @@ export interface RealtimeEvent {
   id: string;
   type: EventType;
   targetRoles: NotificationRole[];
+  targetUserId?: number;
+  targetUserEmail?: string;
   title: string;
   message: string;
   timestamp: string;

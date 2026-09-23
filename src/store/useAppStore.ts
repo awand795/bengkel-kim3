@@ -11,12 +11,14 @@ interface AppState {
   mobileMenuOpen: boolean;
   jwtToken: string | null;
   isLoggedIn: boolean;
+  isVerifyingSession: boolean;
   
   setRole: (role: PeranUser, user?: string) => void;
   setActiveTab: (tab: string) => void;
   setSelectedSpkId: (id: number | null) => void;
   setMobileMenuOpen: (open: boolean) => void;
   setJwtToken: (token: string | null) => void;
+  setIsVerifyingSession: (verifying: boolean) => void;
   loginUser: (user: Partial<AuthUser>, token: string, refreshToken?: string) => void;
   logout: () => void;
   decrementNotification: () => void;
@@ -63,6 +65,7 @@ export const useAppStore = create<AppState>((set) => ({
   mobileMenuOpen: false,
   jwtToken: savedToken,
   isLoggedIn: !!savedToken && !!initialUser,
+  isVerifyingSession: !!savedToken,
 
   setRole: (role: PeranUser, user?: string) => {
     const defaultTab = roleDefaultTabs[role] || 'dashboard';
@@ -73,6 +76,8 @@ export const useAppStore = create<AppState>((set) => ({
       mobileMenuOpen: false,
     });
   },
+
+  setIsVerifyingSession: (verifying: boolean) => set({ isVerifyingSession: verifying }),
 
   loginUser: (user: Partial<AuthUser>, token: string, refreshToken?: string) => {
     const role = (user.peran as PeranUser) || 'SA';
@@ -92,6 +97,7 @@ export const useAppStore = create<AppState>((set) => ({
       authUser: fullUser,
       currentRole: role,
       activeTab: defaultTab,
+      isVerifyingSession: false,
     });
   },
 
@@ -106,6 +112,7 @@ export const useAppStore = create<AppState>((set) => ({
       isLoggedIn: false,
       currentUser: '',
       authUser: null,
+      isVerifyingSession: false,
     });
   },
 

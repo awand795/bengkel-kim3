@@ -48,6 +48,7 @@ export interface AuthUser {
   id: number;
   nama_lengkap: string;
   peran: PeranUser;
+  role?: string;
   email: string;
   id_pelanggan?: number | null;
   nama_perusahaan?: string | null;
@@ -140,6 +141,9 @@ export interface AntrianKunjungan {
   jenis_armada?: string;
   tujuan_kedatangan: 'Service' | 'Beli Part' | 'Kunjungan' | 'Lainnya';
   pic_tujuan?: string;
+  id_pic?: number | null;
+  nama_pic?: string;
+  email_pic?: string;
   nama_mekanik?: string;
   keperluan?: string;
   waktu_masuk: string;
@@ -154,6 +158,7 @@ export interface AntrianKunjungan {
   no_memo_keluar?: string;
   catatan_security?: string;
   id_booking?: number;
+  input_by?: string;
   status_konfirmasi_pic?: 'Menunggu Konfirmasi' | 'Diterima' | 'Ditolak';
   waktu_konfirmasi_pic?: string;
   catatan_pic?: string;
@@ -165,6 +170,7 @@ export interface SpkService {
   id_antrian?: number;
   id_booking?: number;
   id_pelanggan?: number | null;
+  id_mekanik?: number | null;
   no_polisi: string;
   nama_customer?: string;
   odometer_km: number;

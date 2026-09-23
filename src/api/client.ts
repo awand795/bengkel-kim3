@@ -21,6 +21,7 @@ import {
   PengaturanSistem,
   PeranUser
 } from '../types';
+import { useAppStore } from '../store/useAppStore';
 
 // In Vite development, requests to /api are proxied to http://94.237.69.119:8081
 // For standalone production builds or direct access, fallback to server IP
@@ -68,50 +69,62 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
-      const storedRefreshToken = localStorage.getItem('bengkel_refresh_token');
-      if (!storedRefreshToken) {
+    if (error.response?.status === 401) {
+      // If it's already an auth endpoint (login, refresh, or me)
+      if (originalRequest.url?.includes('/auth/')) {
+        if (originalRequest.url?.includes('/auth/me')) {
+          useAppStore.getState().logout();
+        }
         return Promise.reject(error);
       }
 
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers['Authorization'] = `Bearer ${token}`;
-            return apiClient(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const refreshRes = await axios.post(
-          `${API_BASE}/api/data/kim3/auth/refresh-token`,
-          { refresh_token: storedRefreshToken },
-          { headers: { 'x-api-key': KIM3_STATIC_TOKEN } }
-        );
-
-        const newAccessToken = refreshRes.data?.access_token;
-        if (newAccessToken) {
-          localStorage.setItem('bengkel_jwt_token', newAccessToken);
-          if (refreshRes.data?.refresh_token) {
-            localStorage.setItem('bengkel_refresh_token', refreshRes.data.refresh_token);
-          }
-          processQueue(null, newAccessToken);
-          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
-          return apiClient(originalRequest);
+      if (!originalRequest._retry) {
+        const storedRefreshToken = localStorage.getItem('bengkel_refresh_token');
+        if (!storedRefreshToken) {
+          useAppStore.getState().logout();
+          return Promise.reject(error);
         }
-      } catch (refreshErr) {
-        processQueue(refreshErr, null);
-        localStorage.removeItem('bengkel_jwt_token');
-        localStorage.removeItem('bengkel_refresh_token');
-        return Promise.reject(refreshErr);
-      } finally {
-        isRefreshing = false;
+
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              originalRequest.headers['Authorization'] = `Bearer ${token}`;
+              return apiClient(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const refreshRes = await axios.post(
+            `${API_BASE}/api/data/kim3/auth/refresh-token`,
+            { refresh_token: storedRefreshToken },
+            { headers: { 'x-api-key': KIM3_STATIC_TOKEN } }
+          );
+
+          const newAccessToken = refreshRes.data?.access_token;
+          if (newAccessToken) {
+            localStorage.setItem('bengkel_jwt_token', newAccessToken);
+            if (refreshRes.data?.refresh_token) {
+              localStorage.setItem('bengkel_refresh_token', refreshRes.data.refresh_token);
+            }
+            processQueue(null, newAccessToken);
+            originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+            return apiClient(originalRequest);
+          } else {
+            throw new Error('Refresh token invalid');
+          }
+        } catch (refreshErr) {
+          processQueue(refreshErr, null);
+          useAppStore.getState().logout();
+          return Promise.reject(refreshErr);
+        } finally {
+          isRefreshing = false;
+        }
       }
     }
     return Promise.reject(error);
@@ -411,6 +424,25 @@ export const api = {
     localStorage.removeItem('bengkel_jwt_token');
     localStorage.removeItem('bengkel_refresh_token');
     localStorage.removeItem('bengkel_auth_user');
+  },
+
+  // Verifikasi Sesi & Identity User aktif dari Database (me)
+  getMe: async (): Promise<AuthUser> => {
+    const res = await apiClient.get<AuthUser[]>('/kim3/auth/me');
+    const data = Array.isArray(res.data) ? res.data[0] : res.data;
+    if (!data || !data.id) {
+      throw new Error('User not found or inactive in database');
+    }
+    return {
+      id: data.id,
+      email: data.email,
+      nama_lengkap: data.nama_lengkap,
+      peran: (data.peran as PeranUser) || 'Customer Fleet',
+      role: data.role || data.peran,
+      status_aktif: data.status_aktif !== false,
+      id_pelanggan: data.id_pelanggan,
+      nama_perusahaan: data.nama_perusahaan,
+    };
   },
 
   // Admin Panel: Pengaturan Sistem (Workshop, PPN, Kop & Footer Cetak)
