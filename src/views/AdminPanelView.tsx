@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { Pengguna, PeranUser, PengaturanSistem } from '../types';
+import { isValidEmail } from '../utils/validation';
 import { 
   Users, 
   Settings, 
@@ -919,11 +920,16 @@ export const AdminPanelView: React.FC = () => {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!addForm.email || !addForm.nama_lengkap) {
+                const cleanEmail = addForm.email.trim();
+                if (!cleanEmail || !addForm.nama_lengkap.trim()) {
                   alert('Lengkapi email dan nama lengkap');
                   return;
                 }
-                addUserMutation.mutate(addForm);
+                if (!isValidEmail(cleanEmail)) {
+                  alert('Format email tidak valid. Masukkan domain lengkap (contoh: user@bengkelkim3.com)');
+                  return;
+                }
+                addUserMutation.mutate({ ...addForm, email: cleanEmail });
               }}
               className="p-5 space-y-3.5"
             >
@@ -1059,12 +1065,21 @@ export const AdminPanelView: React.FC = () => {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                const cleanEmail = editingUser.email.trim();
+                if (!cleanEmail || !editingUser.nama_lengkap.trim()) {
+                  alert('Lengkapi nama lengkap dan email');
+                  return;
+                }
+                if (!isValidEmail(cleanEmail)) {
+                  alert('Format email tidak valid. Masukkan domain lengkap (contoh: user@bengkelkim3.com)');
+                  return;
+                }
                 updateUserMutation.mutate({
                   id: editingUser.id,
-                  nama_lengkap: editingUser.nama_lengkap,
+                  nama_lengkap: editingUser.nama_lengkap.trim(),
                   peran: editingUser.peran,
                   no_telepon: editingUser.no_telepon,
-                  email: editingUser.email,
+                  email: cleanEmail,
                   status_aktif: editingUser.status_aktif,
                 });
               }}

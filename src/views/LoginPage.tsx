@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../api/client';
 import { PeranUser } from '../types';
+import { isValidEmail } from '../utils/validation';
 import { 
   Lock, 
   User, 
@@ -49,8 +50,14 @@ export const LoginPage: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      setErrorMsg('Masukkan email dan password');
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password.trim()) {
+      setErrorMsg('Masukkan email dan kata sandi');
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setErrorMsg('Format email tidak valid. Masukkan domain lengkap (contoh: nama@perusahaan.com)');
       return;
     }
 
@@ -59,13 +66,13 @@ export const LoginPage: React.FC = () => {
     setSuccessMsg(null);
 
     try {
-      const res = await api.login(email.trim(), password);
+      const res = await api.login(cleanEmail, password);
       if (res.access_token) {
         // Trigger single crisp "start engine" ignition transition
         setIsEngineStarting(true);
         setTimeout(() => {
           loginUser(
-            res.user || { nama_lengkap: email.trim(), peran: 'Customer Fleet' }, 
+            res.user || { nama_lengkap: cleanEmail, peran: 'Customer Fleet' }, 
             res.access_token, 
             res.refresh_token
           );
@@ -92,8 +99,14 @@ export const LoginPage: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regForm.email.trim() || !regForm.password.trim() || !regForm.nama_lengkap.trim()) {
+    const cleanEmail = regForm.email.trim();
+    if (!cleanEmail || !regForm.password.trim() || !regForm.nama_lengkap.trim()) {
       setErrorMsg('Lengkapi seluruh kolom bertanda bintang');
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setErrorMsg('Format email tidak valid. Masukkan domain lengkap (contoh: nama@perusahaan.com)');
       return;
     }
 
@@ -103,7 +116,7 @@ export const LoginPage: React.FC = () => {
 
     try {
       const res = await api.register({
-        email: regForm.email.trim(),
+        email: cleanEmail,
         password: regForm.password,
         nama_lengkap: regForm.nama_lengkap.trim(),
         peran: regForm.peran,
@@ -355,6 +368,8 @@ export const LoginPage: React.FC = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="email@perusahaan.com"
                       autoComplete="email"
+                      pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                      title="Format email harus menyertakan domain lengkap (contoh: nama@perusahaan.com)"
                       className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
@@ -480,6 +495,8 @@ export const LoginPage: React.FC = () => {
                       onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
                       placeholder="email@perusahaan.com"
                       autoComplete="email"
+                      pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                      title="Format email harus menyertakan domain lengkap (contoh: nama@perusahaan.com)"
                       className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
