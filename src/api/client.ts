@@ -370,8 +370,8 @@ export const api = {
   },
 
   // Auth & Token (JWT Authentication)
-  login: async (username: string, password: string = 'password123'): Promise<LoginResponse> => {
-    const res = await apiClient.post<LoginResponse>('/kim3/auth/login', { username, password });
+  login: async (email: string, password: string = 'password123'): Promise<LoginResponse> => {
+    const res = await apiClient.post<LoginResponse>('/kim3/auth/login', { email, password });
     if (res.data?.access_token) {
       localStorage.setItem('bengkel_jwt_token', res.data.access_token);
       if (res.data?.refresh_token) {
@@ -426,12 +426,11 @@ export const api = {
 
   // Admin Panel: Manajemen Pengguna & Role
   tambahPengguna: async (data: {
-    username: string;
+    email: string;
     password?: string;
     nama_lengkap: string;
     peran: PeranUser;
     no_telepon?: string;
-    email?: string;
     status_aktif?: boolean;
   }): Promise<any> => {
     const res = await apiClient.post('/kim3/pengguna-tambah', data);

@@ -35,21 +35,19 @@ export interface PengaturanSistem {
 
 export interface Pengguna {
   id: number;
-  username: string;
   nama_lengkap: string;
   peran: PeranUser;
   no_telepon?: string;
-  email?: string;
+  email: string;
   status_aktif: boolean;
   created_at?: string;
 }
 
 export interface AuthUser {
   id: number;
-  username: string;
   nama_lengkap: string;
   peran: PeranUser;
-  email?: string;
+  email: string;
   status_aktif?: boolean;
 }
 

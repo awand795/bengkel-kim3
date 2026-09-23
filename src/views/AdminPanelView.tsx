@@ -54,12 +54,11 @@ export const AdminPanelView: React.FC = () => {
   // Modal State: Tambah User
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [addForm, setAddForm] = useState({
-    username: '',
+    email: '',
     password: '',
     nama_lengkap: '',
     peran: 'SA' as PeranUser,
     no_telepon: '',
-    email: '',
     status_aktif: true,
   });
 
@@ -113,19 +112,18 @@ export const AdminPanelView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['pengguna'] });
       setIsAddUserOpen(false);
       setAddForm({
-        username: '',
+        email: '',
         password: '',
         nama_lengkap: '',
         peran: 'SA',
         no_telepon: '',
-        email: '',
         status_aktif: true,
       });
       setFeedbackMsg({ type: 'success', text: 'Pengguna baru berhasil ditambahkan ke database Supabase!' });
       setTimeout(() => setFeedbackMsg(null), 4000);
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Gagal menambahkan pengguna. Username mungkin sudah digunakan.';
+      const msg = err.response?.data?.message || 'Gagal menambahkan pengguna. Email mungkin sudah terdaftar.';
       setFeedbackMsg({ type: 'error', text: msg });
     },
   });
@@ -195,7 +193,6 @@ export const AdminPanelView: React.FC = () => {
   const filteredUsers = users.filter((u) => {
     const matchesSearch = 
       u.nama_lengkap.toLowerCase().includes(searchUser.toLowerCase()) ||
-      u.username.toLowerCase().includes(searchUser.toLowerCase()) ||
       (u.email && u.email.toLowerCase().includes(searchUser.toLowerCase()));
     const matchesRole = filterRole === 'ALL' || u.peran === filterRole;
     return matchesSearch && matchesRole;
@@ -357,24 +354,21 @@ export const AdminPanelView: React.FC = () => {
           {/* Controls: Search & Filter */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari berdasarkan nama, username, atau email..."
                 value={searchUser}
                 onChange={(e) => setSearchUser(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                placeholder="Cari berdasarkan nama atau email..."
+                className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-accent"
               />
             </div>
-
-            {/* Filter by Role Dropdown */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-400" />
+            <div className="w-44">
               <select
                 value={filterRole}
                 onChange={(e) => setFilterRole(e.target.value)}
-                className="text-xs py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 font-medium focus:outline-none focus:border-accent cursor-pointer"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white font-medium focus:outline-none focus:border-accent cursor-pointer"
               >
                 <option value="ALL">Semua Peran ({users.length})</option>
                 {ALL_ROLES.map((r) => (
@@ -391,9 +385,9 @@ export const AdminPanelView: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
-                  <th className="py-3 px-4">Pengguna</th>
+                  <th className="py-3 px-4">Pengguna (Nama & Email)</th>
                   <th className="py-3 px-4">Peran (Role)</th>
-                  <th className="py-3 px-4">Kontak (HP / Email)</th>
+                  <th className="py-3 px-4">No. Telepon / HP</th>
                   <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-right">Aksi Manajemen</th>
                 </tr>
@@ -415,7 +409,7 @@ export const AdminPanelView: React.FC = () => {
                 ) : (
                   filteredUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
-                      {/* Pengguna (Avatar + Nama + Username) */}
+                      {/* Pengguna (Avatar + Nama + Email) */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs shrink-0">
@@ -423,7 +417,7 @@ export const AdminPanelView: React.FC = () => {
                           </div>
                           <div>
                             <div className="font-bold text-slate-900">{u.nama_lengkap}</div>
-                            <div className="text-[11px] font-mono text-slate-500">@{u.username}</div>
+                            <div className="text-[11px] font-mono text-slate-500">{u.email}</div>
                           </div>
                         </div>
                       </td>
@@ -438,7 +432,6 @@ export const AdminPanelView: React.FC = () => {
                       {/* Kontak */}
                       <td className="py-3 px-4">
                         <div className="text-slate-800 font-medium">{u.no_telepon || '-'}</div>
-                        <div className="text-[11px] text-slate-400">{u.email || '-'}</div>
                       </td>
 
                       {/* Status */}
@@ -926,8 +919,8 @@ export const AdminPanelView: React.FC = () => {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!addForm.username || !addForm.nama_lengkap) {
-                  alert('Lengkapi username dan nama lengkap');
+                if (!addForm.email || !addForm.nama_lengkap) {
+                  alert('Lengkapi email dan nama lengkap');
                   return;
                 }
                 addUserMutation.mutate(addForm);
@@ -935,17 +928,17 @@ export const AdminPanelView: React.FC = () => {
               className="p-5 space-y-3.5"
             >
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="add_username">
-                  Username Akun <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="add_email">
+                  Alamat Email (Login Akun) <span className="text-rose-500">*</span>
                 </label>
                 <input
-                  id="add_username"
-                  type="text"
+                  id="add_email"
+                  type="email"
                   required
-                  value={addForm.username}
-                  onChange={(e) => setAddForm({ ...addForm, username: e.target.value })}
-                  placeholder="Contoh: sa_ahmad atau foreman_budi"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 font-mono focus:outline-none focus:border-accent"
+                  value={addForm.email}
+                  onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                  placeholder="Contoh: sa@bengkelkim3.com"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -996,34 +989,18 @@ export const AdminPanelView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="add_phone">
-                    Nomor Telepon / WhatsApp
-                  </label>
-                  <input
-                    id="add_phone"
-                    type="text"
-                    value={addForm.no_telepon}
-                    onChange={(e) => setAddForm({ ...addForm, no_telepon: e.target.value })}
-                    placeholder="0812xxxxxxx"
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-accent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="add_email">
-                    Alamat Email
-                  </label>
-                  <input
-                    id="add_email"
-                    type="email"
-                    value={addForm.email}
-                    onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
-                    placeholder="user@perusahaan.com"
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-accent"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="add_phone">
+                  Nomor Telepon / WhatsApp
+                </label>
+                <input
+                  id="add_phone"
+                  type="text"
+                  value={addForm.no_telepon}
+                  onChange={(e) => setAddForm({ ...addForm, no_telepon: e.target.value })}
+                  placeholder="0812xxxxxxx"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-accent"
+                />
               </div>
 
               <div className="pt-2">
@@ -1068,7 +1045,7 @@ export const AdminPanelView: React.FC = () => {
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-accent" />
-                <h3 className="font-bold text-sm text-slate-900">Ubah Peran &amp; Data: @{editingUser.username}</h3>
+                <h3 className="font-bold text-sm text-slate-900">Ubah Peran &amp; Data: {editingUser.email}</h3>
               </div>
               <button
                 type="button"
@@ -1093,18 +1070,6 @@ export const AdminPanelView: React.FC = () => {
               }}
               className="p-5 space-y-3.5"
             >
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Username (Tidak dapat diubah)
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={editingUser.username}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-500 font-mono"
-                />
-              </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1" htmlFor="edit_nama">
                   Nama Lengkap
@@ -1234,7 +1199,7 @@ export const AdminPanelView: React.FC = () => {
               className="p-5 space-y-4"
             >
               <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800">
-                Mereset kata sandi untuk akun <span className="font-bold">@{resetPwdUser.username}</span> ({resetPwdUser.nama_lengkap}).
+                Mereset kata sandi untuk akun <span className="font-bold">{resetPwdUser.email}</span> ({resetPwdUser.nama_lengkap}).
               </div>
 
               <div>
