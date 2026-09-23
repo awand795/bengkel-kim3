@@ -9,7 +9,6 @@ import {
   CheckCircle2, 
   Eye, 
   EyeOff,
-  Building2,
   Phone,
   Mail,
   ShieldCheck,
@@ -31,18 +30,16 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
 
   // Login Form State
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Register Form State (Neutral defaults)
+  // Register Form State
   const [regForm, setRegForm] = useState({
-    username: '',
+    email: '',
     password: '',
     nama_lengkap: '',
-    nama_perusahaan: '',
-    peran: 'Customer Fleet' as PeranUser,
     no_telepon: '',
-    email: '',
+    peran: 'Customer Fleet' as PeranUser,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -52,8 +49,8 @@ export const LoginPage: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      setErrorMsg('Masukkan username dan password');
+    if (!email.trim() || !password.trim()) {
+      setErrorMsg('Masukkan email dan password');
       return;
     }
 
@@ -62,19 +59,19 @@ export const LoginPage: React.FC = () => {
     setSuccessMsg(null);
 
     try {
-      const res = await api.login(username.trim(), password);
+      const res = await api.login(email.trim(), password);
       if (res.access_token) {
         // Trigger single crisp "start engine" ignition transition
         setIsEngineStarting(true);
         setTimeout(() => {
           loginUser(
-            res.user || { nama_lengkap: username.trim(), peran: 'Customer Fleet' }, 
+            res.user || { nama_lengkap: email.trim(), peran: 'Customer Fleet' }, 
             res.access_token, 
             res.refresh_token
           );
         }, 650);
       } else {
-        setErrorMsg('Username atau password salah');
+        setErrorMsg('Email atau password salah');
       }
     } catch (err: any) {
       const serverMsg = err.response?.data?.message;
@@ -86,7 +83,7 @@ export const LoginPage: React.FC = () => {
       ) {
         setErrorMsg(serverMsg);
       } else {
-        setErrorMsg('Username atau password salah');
+        setErrorMsg('Email atau password salah');
       }
     } finally {
       setIsLoading(false);
@@ -95,7 +92,7 @@ export const LoginPage: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regForm.username.trim() || !regForm.password.trim() || !regForm.nama_lengkap.trim()) {
+    if (!regForm.email.trim() || !regForm.password.trim() || !regForm.nama_lengkap.trim()) {
       setErrorMsg('Lengkapi seluruh kolom bertanda bintang');
       return;
     }
@@ -106,16 +103,15 @@ export const LoginPage: React.FC = () => {
 
     try {
       const res = await api.register({
-        username: regForm.username.trim(),
+        email: regForm.email.trim(),
         password: regForm.password,
         nama_lengkap: regForm.nama_lengkap.trim(),
         peran: regForm.peran,
         no_telepon: regForm.no_telepon.trim(),
-        email: regForm.email.trim(),
       });
       if (res.success) {
-        setSuccessMsg('Pendaftaran akun mitra berhasil. Silakan masuk dengan akun baru Anda.');
-        setUsername(regForm.username);
+        setSuccessMsg('Pendaftaran berhasil. Silakan masuk dengan email Anda.');
+        setEmail(regForm.email);
         setPassword(regForm.password);
         setTimeout(() => {
           setActiveTab('login');
@@ -123,7 +119,7 @@ export const LoginPage: React.FC = () => {
         }, 1200);
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Pendaftaran gagal. Username mungkin telah terdaftar.';
+      const msg = err.response?.data?.message || 'Pendaftaran gagal. Email mungkin sudah terdaftar.';
       setErrorMsg(msg);
     } finally {
       setIsLoading(false);
@@ -302,8 +298,8 @@ export const LoginPage: React.FC = () => {
               </h2>
               <p className="text-xs text-ink-muted mt-1 leading-relaxed">
                 {activeTab === 'login'
-                  ? 'Masukkan kredensial akun untuk mengakses sistem operasional bengkel.'
-                  : 'Lengkapi profil perusahaan armada untuk verifikasi kemitraan resmi.'}
+                  ? 'Masukkan email dan password untuk mengakses sistem operasional bengkel.'
+                  : 'Lengkapi data diri untuk mendaftarkan akun mitra baru.'}
               </p>
             </div>
 
@@ -341,23 +337,24 @@ export const LoginPage: React.FC = () => {
             {/* =================================================================== */}
             {activeTab === 'login' && !isEngineStarting && (
               <form onSubmit={handleLogin} className="space-y-4">
-                {/* Username */}
+                {/* Email */}
                 <div>
-                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="username">
-                    Username
+                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="login_email">
+                    Email
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
-                      <User className="w-4 h-4" />
+                      <Mail className="w-4 h-4" />
                     </div>
                     <input
-                      id="username"
-                      name="username"
-                      type="text"
+                      id="login_email"
+                      name="email"
+                      type="email"
                       required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Masukkan username akun"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="email@perusahaan.com"
+                      autoComplete="email"
                       className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
@@ -445,9 +442,10 @@ export const LoginPage: React.FC = () => {
             {/* =================================================================== */}
             {activeTab === 'register' && (
               <form onSubmit={handleRegister} className="space-y-3.5">
+                {/* Nama Lengkap */}
                 <div>
                   <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_nama">
-                    Nama Lengkap PIC <span className="text-status-red">*</span>
+                    Nama Lengkap <span className="text-status-red">*</span>
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
@@ -459,92 +457,55 @@ export const LoginPage: React.FC = () => {
                       required
                       value={regForm.nama_lengkap}
                       onChange={(e) => setRegForm({ ...regForm, nama_lengkap: e.target.value })}
-                      placeholder="Masukkan nama lengkap"
+                      placeholder="Nama lengkap Anda"
                       className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
                 </div>
 
+                {/* Email */}
                 <div>
-                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_pt">
-                    Nama Perusahaan Armada <span className="text-status-red">*</span>
+                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_email">
+                    Email <span className="text-status-red">*</span>
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
-                      <Building2 className="w-4 h-4" />
+                      <Mail className="w-4 h-4" />
                     </div>
                     <input
-                      id="reg_pt"
-                      type="text"
+                      id="reg_email"
+                      type="email"
                       required
-                      value={regForm.nama_perusahaan}
-                      onChange={(e) => setRegForm({ ...regForm, nama_perusahaan: e.target.value })}
-                      placeholder="Masukkan nama perusahaan"
+                      value={regForm.email}
+                      onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                      placeholder="email@perusahaan.com"
+                      autoComplete="email"
                       className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
                 </div>
 
+                {/* No. HP */}
                 <div>
-                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_username">
-                    Username Akun <span className="text-status-red">*</span>
+                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_phone">
+                    No. WhatsApp / HP
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
-                      <User className="w-4 h-4" />
+                      <Phone className="w-4 h-4" />
                     </div>
                     <input
-                      id="reg_username"
+                      id="reg_phone"
                       type="text"
-                      required
-                      value={regForm.username}
-                      onChange={(e) => setRegForm({ ...regForm, username: e.target.value })}
-                      placeholder="Masukkan username mitra"
-                      className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all font-mono"
+                      value={regForm.no_telepon}
+                      onChange={(e) => setRegForm({ ...regForm, no_telepon: e.target.value })}
+                      placeholder="0812xxxxxxx"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_phone">
-                      No. WhatsApp / HP
-                    </label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
-                        <Phone className="w-3.5 h-3.5" />
-                      </div>
-                      <input
-                        id="reg_phone"
-                        type="text"
-                        value={regForm.no_telepon}
-                        onChange={(e) => setRegForm({ ...regForm, no_telepon: e.target.value })}
-                        placeholder="0812xxxxxxx"
-                        className="w-full pl-9 pr-3 py-2.5 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_email">
-                      Email Kerja
-                    </label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
-                        <Mail className="w-3.5 h-3.5" />
-                      </div>
-                      <input
-                        id="reg_email"
-                        type="email"
-                        value={regForm.email}
-                        onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                        placeholder="pic@perusahaan.com"
-                        className="w-full pl-9 pr-3 py-2.5 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-
+                {/* Kata Sandi */}
                 <div>
                   <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_pwd">
                     Kata Sandi <span className="text-status-red">*</span>
@@ -585,7 +546,7 @@ export const LoginPage: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <span>Daftarkan Akun Mitra</span>
+                        <span>Daftarkan Akun</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}

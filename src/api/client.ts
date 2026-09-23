@@ -385,12 +385,11 @@ export const api = {
   },
 
   register: async (userData: {
-    username: string;
+    email: string;
     password: string;
     nama_lengkap: string;
     peran: string;
     no_telepon?: string;
-    email?: string;
   }): Promise<any> => {
     const res = await apiClient.post('/kim3/auth/register', userData);
     return res.data;
