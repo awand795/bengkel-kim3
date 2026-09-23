@@ -16,7 +16,8 @@ import {
   ClipboardList,
   Wrench,
   CheckCircle,
-  Truck
+  Truck,
+  ArrowRight
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -258,10 +259,10 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Card Form */}
-          <div className="bg-surface-raised border border-border rounded-md p-6 sm:p-8 shadow-xs">
+          <div className="bg-surface-raised border border-border rounded-lg p-6 sm:p-8 shadow-xs">
             
-            {/* Tab Navigasi Masuk / Daftar: Underline 2px Accent, Teks Accent, Background Netral */}
-            <div className="flex border-b border-border mb-6">
+            {/* Tab Navigasi Masuk / Daftar: Segmented Pill Switcher Modern */}
+            <div className="flex p-1 bg-surface rounded-lg border border-border/70 mb-6">
               <button
                 type="button"
                 onClick={() => {
@@ -269,10 +270,10 @@ export const LoginPage: React.FC = () => {
                   setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
-                className={`flex-1 pb-2.5 pt-1 text-xs font-semibold transition-all cursor-pointer text-center relative ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer text-center ${
                   activeTab === 'login'
-                    ? 'text-accent border-b-2 border-accent bg-transparent font-bold'
-                    : 'text-ink-muted hover:text-ink border-b-2 border-transparent'
+                    ? 'bg-surface-raised text-accent shadow-xs font-bold'
+                    : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 Masuk
@@ -284,10 +285,10 @@ export const LoginPage: React.FC = () => {
                   setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
-                className={`flex-1 pb-2.5 pt-1 text-xs font-semibold transition-all cursor-pointer text-center relative ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all cursor-pointer text-center ${
                   activeTab === 'register'
-                    ? 'text-accent border-b-2 border-accent bg-transparent font-bold'
-                    : 'text-ink-muted hover:text-ink border-b-2 border-transparent'
+                    ? 'bg-surface-raised text-accent shadow-xs font-bold'
+                    : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 Daftar Mitra
@@ -299,10 +300,10 @@ export const LoginPage: React.FC = () => {
               <h2 className="text-lg font-bold text-ink tracking-tight">
                 {activeTab === 'login' ? 'Masuk ke Sistem' : 'Pendaftaran Akun Mitra'}
               </h2>
-              <p className="text-xs text-ink-muted mt-1">
+              <p className="text-xs text-ink-muted mt-1 leading-relaxed">
                 {activeTab === 'login'
-                  ? 'Gunakan kredensial akun untuk mengakses sistem.'
-                  : 'Daftarkan data perusahaan dan PIC armada Anda.'}
+                  ? 'Masukkan kredensial akun untuk mengakses sistem operasional bengkel.'
+                  : 'Lengkapi profil perusahaan armada untuk verifikasi kemitraan resmi.'}
               </p>
             </div>
 
@@ -342,25 +343,30 @@ export const LoginPage: React.FC = () => {
               <form onSubmit={handleLogin} className="space-y-4">
                 {/* Username */}
                 <div>
-                  <label className="block text-xs font-medium text-ink mb-1.5" htmlFor="username">
+                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="username">
                     Username
                   </label>
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Masukkan username"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-                  />
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Masukkan username akun"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                    />
+                  </div>
                 </div>
 
                 {/* Password */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-medium text-ink" htmlFor="password">
+                    <label className="block text-xs font-semibold text-ink" htmlFor="password">
                       Kata Sandi
                     </label>
                     <button
@@ -371,7 +377,10 @@ export const LoginPage: React.FC = () => {
                       Lupa kata sandi?
                     </button>
                   </div>
-                  <div className="relative">
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
+                      <Lock className="w-4 h-4" />
+                    </div>
                     <input
                       id="password"
                       name="password"
@@ -379,8 +388,8 @@ export const LoginPage: React.FC = () => {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Masukkan password"
-                      className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors font-sans"
+                      placeholder="Masukkan kata sandi"
+                      className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all font-sans"
                     />
                     <button
                       type="button"
@@ -393,29 +402,39 @@ export const LoginPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ingat Sesi (Default Unchecked) */}
-                <div className="pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                {/* Ingat Sesi */}
+                <div className="pt-0.5">
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="h-4 w-4 rounded-xs border-border text-accent focus:ring-accent cursor-pointer"
+                      className="h-4 w-4 rounded-xs border-border accent-accent focus:ring-accent cursor-pointer"
                     />
                     <span className="text-xs text-ink-muted">
-                      Ingat sesi login
+                      Ingat sesi di perangkat ini
                     </span>
                   </label>
                 </div>
 
-                {/* Tombol Masuk: SATU-SATUNYA Elemen Solid Fill --color-accent */}
+                {/* Tombol Masuk */}
                 <div className="pt-2">
                   <button
                     type="submit"
                     disabled={Boolean(isLoading)}
-                    className="w-full py-3 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-bold text-sm sm:text-base rounded-md shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-sm rounded-md shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    {isLoading ? 'Memverifikasi...' : 'Masuk'}
+                    {isLoading ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                        <span>Memverifikasi...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Masuk ke Sistem</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
@@ -427,38 +446,48 @@ export const LoginPage: React.FC = () => {
             {activeTab === 'register' && (
               <form onSubmit={handleRegister} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-medium text-ink mb-1" htmlFor="reg_nama">
+                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_nama">
                     Nama Lengkap PIC <span className="text-status-red">*</span>
                   </label>
-                  <input
-                    id="reg_nama"
-                    type="text"
-                    required
-                    value={regForm.nama_lengkap}
-                    onChange={(e) => setRegForm({ ...regForm, nama_lengkap: e.target.value })}
-                    placeholder="Masukkan nama lengkap"
-                    className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-                  />
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <input
+                      id="reg_nama"
+                      type="text"
+                      required
+                      value={regForm.nama_lengkap}
+                      onChange={(e) => setRegForm({ ...regForm, nama_lengkap: e.target.value })}
+                      placeholder="Masukkan nama lengkap"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-ink mb-1" htmlFor="reg_pt">
+                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_pt">
                     Nama Perusahaan Armada <span className="text-status-red">*</span>
                   </label>
-                  <input
-                    id="reg_pt"
-                    type="text"
-                    required
-                    value={regForm.nama_perusahaan}
-                    onChange={(e) => setRegForm({ ...regForm, nama_perusahaan: e.target.value })}
-                    placeholder="Masukkan nama perusahaan"
-                    className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-                  />
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                    <input
+                      id="reg_pt"
+                      type="text"
+                      required
+                      value={regForm.nama_perusahaan}
+                      onChange={(e) => setRegForm({ ...regForm, nama_perusahaan: e.target.value })}
+                      placeholder="Masukkan nama perusahaan"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-ink mb-1" htmlFor="reg_username">
+                    <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_username">
                       Username <span className="text-status-red">*</span>
                     </label>
                     <input
@@ -467,19 +496,19 @@ export const LoginPage: React.FC = () => {
                       required
                       value={regForm.username}
                       onChange={(e) => setRegForm({ ...regForm, username: e.target.value })}
-                      placeholder="Masukkan username"
-                      className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors font-mono"
+                      placeholder="username_mitra"
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-ink mb-1" htmlFor="reg_peran">
+                    <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_peran">
                       Peran Akses <span className="text-status-red">*</span>
                     </label>
                     <select
                       id="reg_peran"
                       value={regForm.peran}
                       onChange={(e) => setRegForm({ ...regForm, peran: e.target.value as PeranUser })}
-                      className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors cursor-pointer"
+                      className="w-full px-3 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all cursor-pointer"
                     >
                       <option value="Customer Fleet">Customer Fleet (Armada)</option>
                       <option value="SA">Service Advisor (SA)</option>
@@ -495,47 +524,60 @@ export const LoginPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-ink mb-1" htmlFor="reg_phone">
+                    <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_phone">
                       No. WhatsApp / HP
                     </label>
-                    <input
-                      id="reg_phone"
-                      type="text"
-                      value={regForm.no_telepon}
-                      onChange={(e) => setRegForm({ ...regForm, no_telepon: e.target.value })}
-                      placeholder="Masukkan nomor telepon"
-                      className="w-full px-3 py-2 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-                    />
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
+                        <Phone className="w-3.5 h-3.5" />
+                      </div>
+                      <input
+                        id="reg_phone"
+                        type="text"
+                        value={regForm.no_telepon}
+                        onChange={(e) => setRegForm({ ...regForm, no_telepon: e.target.value })}
+                        placeholder="0812xxxxxxx"
+                        className="w-full pl-9 pr-3 py-2.5 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-ink mb-1" htmlFor="reg_email">
+                    <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_email">
                       Email Kerja
                     </label>
-                    <input
-                      id="reg_email"
-                      type="email"
-                      value={regForm.email}
-                      onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                      placeholder="Masukkan email"
-                      className="w-full px-3 py-2 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-                    />
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
+                        <Mail className="w-3.5 h-3.5" />
+                      </div>
+                      <input
+                        id="reg_email"
+                        type="email"
+                        value={regForm.email}
+                        onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                        placeholder="pic@perusahaan.com"
+                        className="w-full pl-9 pr-3 py-2.5 text-xs rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-ink mb-1" htmlFor="reg_pwd">
+                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_pwd">
                     Kata Sandi <span className="text-status-red">*</span>
                   </label>
-                  <div className="relative">
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
+                      <Lock className="w-4 h-4" />
+                    </div>
                     <input
                       id="reg_pwd"
                       type={showPassword ? 'text' : 'password'}
                       required
                       value={regForm.password}
                       onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                      placeholder="Masukkan password"
-                      className="w-full pl-3.5 pr-10 py-2 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors font-sans"
+                      placeholder="Buat kata sandi akun"
+                      className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all font-sans"
                     />
                     <button
                       type="button"
@@ -551,13 +593,29 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={Boolean(isLoading)}
-                    className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-bold text-sm rounded-md transition-colors cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-sm rounded-md shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    {isLoading ? 'Mendaftarkan...' : 'Daftar Mitra'}
+                    {isLoading ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                        <span>Mendaftarkan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Daftarkan Akun Mitra</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
             )}
+
+            {/* Trust / Security Note */}
+            <div className="mt-6 pt-4 border-t border-border/70 flex items-center justify-center gap-2 text-[11px] text-ink-subtle">
+              <ShieldCheck className="w-3.5 h-3.5 text-accent shrink-0" />
+              <span>Sesi terenkripsi &amp; terlindungi standar operasional KIM 3</span>
+            </div>
           </div>
         </div>
       </section>
