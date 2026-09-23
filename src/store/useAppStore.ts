@@ -22,6 +22,7 @@ interface AppState {
 }
 
 const roleDefaultTabs: Record<PeranUser, string> = {
+  'Super Admin': 'admin-panel',
   'SA': 'dashboard',
   'Foreman': 'dashboard',
   'Mekanik': 'dashboard',

@@ -17,7 +17,9 @@ import {
   InvoicePembayaran,
   MemoKeluar,
   LoginResponse,
-  AuthUser
+  AuthUser,
+  PengaturanSistem,
+  PeranUser
 } from '../types';
 
 // In Vite development, requests to /api are proxied to http://94.237.69.119:8081
@@ -410,5 +412,78 @@ export const api = {
     localStorage.removeItem('bengkel_jwt_token');
     localStorage.removeItem('bengkel_refresh_token');
     localStorage.removeItem('bengkel_auth_user');
+  },
+
+  // Admin Panel: Pengaturan Sistem (Workshop, PPN, Kop & Footer Cetak)
+  getPengaturan: async (): Promise<PengaturanSistem> => {
+    const res = await apiClient.get<PengaturanSistem[]>('/bengkel/pengaturan');
+    return res.data[0] || {
+      id: 1,
+      nama_bengkel: 'BENGKEL KIM 3',
+      slogan_bengkel: 'Kawasan Industri Modern 3 - Pusat Perawatan Armada Komersial',
+      alamat_bengkel: 'Jl. Pulau Pinang Raya No. 8, Kawasan Industri Modern 3, Medan, Sumatera Utara',
+      no_telepon_bengkel: '(061) 8920123 / 0812-6543-9870',
+      email_bengkel: 'service@kim3bengkel.co.id',
+      npwp_bengkel: '01.234.567.8-123.000',
+      logo_url: '/logo.png',
+      ppn_persen: 11.00,
+      header_print_memo: 'BENGKEL KIM 3 - GATE PASS KELUAR RESMI',
+      footer_print_memo: 'Memo keluar ini merupakan dokumen resmi verifikasi security gate. Kendaraan dan muatan wajib diperiksa sebelum keluar gerbang bengkel.',
+      header_print_spk: 'BENGKEL KIM 3 - SURAT PERINTAH KERJA (SPK)',
+      footer_print_spk: 'Seluruh pengerjaan dan penggantian suku cadang telah diverifikasi Service Advisor dan disetujui pihak penanggung jawab armada.',
+      header_print_invoice: 'BENGKEL KIM 3 - FAKTUR TAGIHAN & PEMBAYARAN',
+      footer_print_invoice: 'Pembayaran sah setelah dana efektif di rekening. Simpan bukti faktur ini sebagai dokumen jaminan garansi service.',
+      bank_nama: 'Bank Mandiri',
+      bank_rekening: '105-00-1234567-8',
+      bank_atas_nama: 'PT BENGKEL KIM TIGA SEJAHTERA',
+      catatan_garansi: 'Garansi pengerjaan bengkel berlaku selama 14 hari kerja atau 1.000 km (mana yang tercapai lebih dahulu).'
+    };
+  },
+
+  simpanPengaturan: async (data: Partial<PengaturanSistem>): Promise<PengaturanSistem> => {
+    const res = await apiClient.post('/bengkel/pengaturan-simpan', data);
+    return Array.isArray(res.data) ? res.data[0] : res.data;
+  },
+
+  // Admin Panel: Manajemen Pengguna & Role
+  tambahPengguna: async (data: {
+    username: string;
+    password?: string;
+    nama_lengkap: string;
+    peran: PeranUser;
+    no_telepon?: string;
+    email?: string;
+    status_aktif?: boolean;
+  }): Promise<any> => {
+    const res = await apiClient.post('/bengkel/pengguna-tambah', data);
+    return res.data;
+  },
+
+  updatePengguna: async (data: {
+    id: number;
+    nama_lengkap?: string;
+    peran?: PeranUser;
+    no_telepon?: string;
+    email?: string;
+    status_aktif?: boolean;
+  }): Promise<any> => {
+    const res = await apiClient.post('/bengkel/pengguna-update', data);
+    return res.data;
+  },
+
+  resetPasswordPengguna: async (data: {
+    id: number;
+    password_baru: string;
+  }): Promise<any> => {
+    const res = await apiClient.post('/bengkel/pengguna-reset-pwd', data);
+    return res.data;
+  },
+
+  toggleStatusPengguna: async (data: {
+    id: number;
+    status_aktif: boolean;
+  }): Promise<any> => {
+    const res = await apiClient.post('/bengkel/pengguna-toggle-status', data);
+    return res.data;
   },
 };

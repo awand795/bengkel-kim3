@@ -16,7 +16,9 @@ import {
   Building2,
   UserCheck,
   LogOut,
-  PlusCircle
+  PlusCircle,
+  Settings,
+  Users
 } from 'lucide-react';
 import { PeranUser } from '../../types';
 
@@ -31,6 +33,16 @@ export const Sidebar: React.FC = () => {
   const { activeTab, setActiveTab, currentRole } = useAppStore();
 
   const allNavigationItems: NavItem[] = [
+    // Super Admin (Admin Panel & Master Controls)
+    { id: 'admin-panel', label: 'Admin Panel & Sistem', icon: Settings, roles: ['Super Admin'] },
+    { id: 'dashboard', label: 'Monitoring Operasional', icon: LayoutDashboard, roles: ['Super Admin'] },
+    { id: 'security-dashboard', label: 'Pos Gerbang Security', icon: ShieldCheck, roles: ['Super Admin'] },
+    { id: 'sa', label: 'Service Advisor (SPK)', icon: ClipboardList, roles: ['Super Admin'] },
+    { id: 'foreman', label: 'Foreman (QC Workshop)', icon: Wrench, roles: ['Super Admin'] },
+    { id: 'purchasing', label: 'Purchasing & Part', icon: ShoppingBag, roles: ['Super Admin'] },
+    { id: 'kasir', label: 'Kasir & Faktur Tagihan', icon: Receipt, roles: ['Super Admin'] },
+    { id: 'fleet-dashboard', label: 'Portal Armada Fleet', icon: Truck, roles: ['Super Admin'] },
+
     // Dashboards per Peran
     { id: 'dashboard', label: 'Dashboard SA', icon: LayoutDashboard, roles: ['SA'] },
     { id: 'dashboard', label: 'Dashboard Foreman', icon: LayoutDashboard, roles: ['Foreman'] },

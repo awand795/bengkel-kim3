@@ -485,40 +485,23 @@ export const LoginPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_username">
-                      Username <span className="text-status-red">*</span>
-                    </label>
+                <div>
+                  <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_username">
+                    Username Akun <span className="text-status-red">*</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors">
+                      <User className="w-4 h-4" />
+                    </div>
                     <input
                       id="reg_username"
                       type="text"
                       required
                       value={regForm.username}
                       onChange={(e) => setRegForm({ ...regForm, username: e.target.value })}
-                      placeholder="username_mitra"
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all font-mono"
+                      placeholder="Masukkan username mitra"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all font-mono"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="reg_peran">
-                      Peran Akses <span className="text-status-red">*</span>
-                    </label>
-                    <select
-                      id="reg_peran"
-                      value={regForm.peran}
-                      onChange={(e) => setRegForm({ ...regForm, peran: e.target.value as PeranUser })}
-                      className="w-full px-3 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all cursor-pointer"
-                    >
-                      <option value="Customer Fleet">Customer Fleet (Armada)</option>
-                      <option value="SA">Service Advisor (SA)</option>
-                      <option value="Foreman">Foreman Workshop</option>
-                      <option value="Mekanik">Mekanik</option>
-                      <option value="Admin Purchasing">Admin Purchasing</option>
-                      <option value="Admin Invoice">Kasir &amp; Invoice</option>
-                      <option value="Security">Security Gerbang</option>
-                      <option value="PIC Terkait">PIC Terkait Kunjungan</option>
-                    </select>
                   </div>
                 </div>
 

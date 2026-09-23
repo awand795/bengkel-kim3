@@ -16,6 +16,7 @@ import { BeliPartView } from './views/BeliPartView';
 import { KasirInvoiceView } from './views/KasirInvoiceView';
 import { WebFleetCustomerView } from './views/WebFleetCustomerView';
 import { PicTerkaitView } from './views/PicTerkaitView';
+import { AdminPanelView } from './views/AdminPanelView';
 
 export const App: React.FC = () => {
   const { activeTab, isLoggedIn } = useAppStore();
@@ -27,6 +28,8 @@ export const App: React.FC = () => {
 
   const renderActiveView = () => {
     switch (activeTab) {
+      case 'admin-panel':
+        return <AdminPanelView />;
       case 'dashboard':
         return <DashboardView />;
       case 'security':

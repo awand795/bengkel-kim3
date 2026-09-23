@@ -13,6 +13,8 @@ export const Navbar: React.FC = () => {
 
   const getRoleBadgeStyle = () => {
     switch (currentRole) {
+      case 'Super Admin':
+        return 'bg-rose-50 text-rose-800 border-rose-200';
       case 'Security':
         return 'bg-amber-50 text-amber-800 border-amber-200';
       case 'SA':

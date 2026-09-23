@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../api/client';
 import { InvoicePembayaran } from '../../types';
 import { Printer, X, CheckCircle2 } from 'lucide-react';
 
@@ -8,6 +10,12 @@ interface PrintThermalInvoiceModalProps {
 }
 
 export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> = ({ invoice, onClose }) => {
+  const { data: settings } = useQuery({
+    queryKey: ['admin-pengaturan-sistem'],
+    queryFn: api.getPengaturan,
+    staleTime: 60000,
+  });
+
   const handlePrint = () => {
     window.print();
   };
@@ -48,10 +56,10 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
           >
             {/* Header Toko / Bengkel */}
             <div className="text-center space-y-0.5 mb-2">
-              <div className="font-black text-xs tracking-tight uppercase">PT. BENGKEL KIM 3 MEDAN</div>
-              <div className="text-[10px] text-slate-600">Kawasan Industri Medan III (KIM 3)</div>
-              <div className="text-[9px] text-slate-500">Jl. Pulau Bunyu, Deli Serdang, Sumut</div>
-              <div className="text-[9px] text-slate-500">Telp: (061) 8888-KIM3 / 0812-3456-7890</div>
+              <div className="font-black text-xs tracking-tight uppercase">{settings?.nama_bengkel || 'PT. BENGKEL KIM 3 MEDAN'}</div>
+              <div className="text-[10px] text-slate-600">{settings?.slogan_bengkel || 'Kawasan Industri Medan III (KIM 3)'}</div>
+              <div className="text-[9px] text-slate-500">{settings?.alamat_bengkel || 'Jl. Pulau Pinang Raya No. 8, Medan'}</div>
+              <div className="text-[9px] text-slate-500">Telp: {settings?.no_telepon_bengkel || '(061) 8920123 / 0812-6543-9870'}</div>
             </div>
 
             <div className="border-b border-dashed border-slate-400 my-2"></div>
@@ -138,9 +146,9 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
 
             {/* Footer Ucapan */}
             <div className="text-center text-[9px] text-slate-600 space-y-0.5">
-              <div className="font-semibold">* Simpan struk ini sebagai bukti sah *</div>
-              <div>Terima kasih atas kepercayaan Anda</div>
-              <div className="font-bold">BENGKEL KIM 3 MEDAN</div>
+              <div className="font-semibold">* {settings?.footer_print_invoice || 'Simpan bukti faktur ini sebagai dokumen jaminan garansi service.'} *</div>
+              <div>Terima kasih atas kunjungan Anda</div>
+              <div className="font-bold">{settings?.nama_bengkel || 'BENGKEL KIM 3 MEDAN'}</div>
             </div>
           </div>
 

@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../api/client';
 import { SpkService, SpkItemPekerjaan, SpkItemPart } from '../../types';
 import { Printer, X, FileText, CheckCircle2, Wrench } from 'lucide-react';
 
@@ -10,6 +12,12 @@ interface PrintSpkModalProps {
 }
 
 export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList = [], partList = [], onClose }) => {
+  const { data: settings } = useQuery({
+    queryKey: ['admin-pengaturan-sistem'],
+    queryFn: api.getPengaturan,
+    staleTime: 60000,
+  });
+
   const handlePrint = () => {
     window.print();
   };
@@ -55,16 +63,16 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                   </div>
                   <div>
                     <h1 className="text-base font-black tracking-tight text-slate-900 uppercase">
-                      PT. BENGKEL KIM 3 MEDAN
+                      {settings?.nama_bengkel || 'PT. BENGKEL KIM 3 MEDAN'}
                     </h1>
                     <p className="text-[11px] font-semibold text-slate-700">
-                      Pusat Pelayanan Perawatan, Perbaikan Armada Truk &amp; Kendaraan Industri
+                      {settings?.slogan_bengkel || 'Pusat Pelayanan Perawatan, Perbaikan Armada Truk & Kendaraan Industri'}
                     </p>
                     <p className="text-[10px] text-slate-500">
-                      Jl. Pulau Bunyu, Kawasan Industri Medan III (KIM 3), Deli Serdang, Sumatera Utara
+                      {settings?.alamat_bengkel || 'Jl. Pulau Pinang Raya No. 8, Kawasan Industri Modern 3, Medan, Sumatera Utara'}
                     </p>
                     <p className="text-[10px] text-slate-500">
-                      Telp: (061) 8888-KIM3 / 0812-3456-7890 | Email: service@bengkelkim3.com
+                      Telp: {settings?.no_telepon_bengkel || '(061) 8920123'} | Email: {settings?.email_bengkel || 'service@kim3bengkel.co.id'}
                     </p>
                   </div>
                 </div>
@@ -79,10 +87,10 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
             {/* JUDUL DOKUMEN */}
             <div className="text-center my-3">
               <h2 className="text-sm sm:text-base font-black tracking-wide uppercase text-slate-900 underline underline-offset-4">
-                SURAT PERINTAH KERJA (WORK ORDER)
+                {settings?.header_print_spk || 'SURAT PERINTAH KERJA (WORK ORDER)'}
               </h2>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Dokumen Instruksi Resmi Teknisi Mekanik &amp; Lembar Kontrol Kualitas Bengkel KIM 3
+                Dokumen Instruksi Resmi Teknisi Mekanik &amp; Lembar Kontrol Kualitas {settings?.nama_bengkel || 'Bengkel KIM 3'}
               </p>
             </div>
 
@@ -244,7 +252,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
 
             {/* CATATAN FOREMAN & K3 */}
             <div className="border border-slate-300 rounded-xl p-3 mb-6 bg-slate-50 text-[11px] text-slate-600">
-              <span className="font-bold text-slate-800">Catatan Keselamatan Kerja &amp; Instruksi Foreman:</span> Wajib gunakan kacamata pelindung dan sarung tangan saat membongkar sistem rem. Bila ditemukan kerusakan lain di luar SPK ini, segera laporkan ke Foreman untuk diajukan form Pekerjaan Tambahan.
+              <span className="font-bold text-slate-800">Catatan Pengerjaan &amp; Validasi SPK:</span> {settings?.footer_print_spk || 'Seluruh pengerjaan dan penggantian suku cadang telah diverifikasi Service Advisor dan disetujui pihak penanggung jawab armada.'}
             </div>
 
             {/* 4 KOLOM TANDA TANGAN */}

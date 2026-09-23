@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../api/client';
 import { MemoKeluar } from '../../types';
 import { Printer, X, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
@@ -8,6 +10,12 @@ interface PrintMemoKeluarModalProps {
 }
 
 export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo, onClose }) => {
+  const { data: settings } = useQuery({
+    queryKey: ['admin-pengaturan-sistem'],
+    queryFn: api.getPengaturan,
+    staleTime: 60000,
+  });
+
   const handlePrint = () => {
     window.print();
   };
@@ -57,16 +65,16 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
                   </div>
                   <div>
                     <h1 className="text-base font-black tracking-tight text-slate-900 uppercase">
-                      POS SECURITY – PT. BENGKEL KIM 3 MEDAN
+                      POS SECURITY – {settings?.nama_bengkel || 'PT. BENGKEL KIM 3 MEDAN'}
                     </h1>
                     <p className="text-[11px] font-semibold text-slate-700">
-                      Gerbang Utama Kontrol Keluar Masuk Armada &amp; Fasilitas Terpadu KIM 3
+                      {settings?.slogan_bengkel || 'Gerbang Utama Kontrol Keluar Masuk Armada & Fasilitas Terpadu KIM 3'}
                     </p>
                     <p className="text-[10px] text-slate-500">
-                      Jl. Pulau Bunyu, Kawasan Industri Medan III (KIM 3), Deli Serdang, Sumatera Utara
+                      {settings?.alamat_bengkel || 'Jl. Pulau Pinang Raya No. 8, Kawasan Industri Modern 3, Medan, Sumatera Utara'}
                     </p>
                     <p className="text-[10px] text-slate-500">
-                      Layanan Darurat / Pos Security: (061) 8888-KIM3 / 0812-3456-7890
+                      {settings?.no_telepon_bengkel ? `Layanan Darurat / Pos Security: ${settings.no_telepon_bengkel}` : 'Layanan Darurat / Pos Security: (061) 8920123 / 0812-6543-9870'}
                     </p>
                   </div>
                 </div>
@@ -83,10 +91,10 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
             {/* JUDUL DOKUMEN */}
             <div className="text-center my-4">
               <h2 className="text-base font-black tracking-wider uppercase text-slate-900 underline underline-offset-4">
-                SURAT MEMO KELUAR RESMI (GATE PASS)
+                {settings?.header_print_memo || 'SURAT MEMO KELUAR RESMI (GATE PASS)'}
               </h2>
               <p className="text-[11px] text-slate-500 mt-1">
-                Bukti Izin Resmi Meninggalkan Area Fasilitas Bengkel KIM 3
+                Bukti Izin Resmi Meninggalkan Area Fasilitas {settings?.nama_bengkel || 'Bengkel KIM 3'}
               </p>
             </div>
 
@@ -164,9 +172,11 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
             </div>
 
             {/* KETENTUAN POS GERBANG */}
-            <div className="text-[10px] text-slate-500 mb-8 space-y-0.5">
-              <p>1. Surat Memo Keluar ini adalah dokumen resmi yang sah untuk melewati portal keluar pos utama Bengkel KIM 3.</p>
-              <p>2. Pengemudi wajib menyerahkan lembar verifikasi ini kepada petugas pos gerbang sebelum meninggalkan lokasi.</p>
+            <div className="text-[10px] text-slate-500 mb-8 space-y-1">
+              <p className="italic">
+                {settings?.footer_print_memo || 'Memo keluar ini merupakan dokumen resmi verifikasi security gate. Kendaraan dan muatan wajib diperiksa sebelum keluar gerbang bengkel.'}
+              </p>
+              <p>Pengemudi wajib menyerahkan lembar verifikasi ini kepada petugas pos gerbang sebelum meninggalkan lokasi.</p>
             </div>
 
             {/* KOLOM TANDA TANGAN & STEMPEL */}
