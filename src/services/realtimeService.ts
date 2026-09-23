@@ -25,6 +25,7 @@ export type EventType =
   | 'MEMO_TERBIT'
   | 'VEHICLE_CHECKED_OUT'
   | 'KUNJUNGAN_ARRIVED'
+  | 'KUNJUNGAN_CONFIRMED'
   | 'TAMBAHAN_PEKERJAAN';
 
 export interface RealtimeEvent {
