@@ -65,17 +65,23 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
                   </div>
                   <div>
                     <h1 className="text-base font-black tracking-tight text-slate-900 uppercase">
-                      POS SECURITY – {settings?.nama_bengkel || 'PT. BENGKEL KIM 3 MEDAN'}
+                      POS SECURITY – {settings?.nama_bengkel || '-'}
                     </h1>
-                    <p className="text-[11px] font-semibold text-slate-700">
-                      {settings?.slogan_bengkel || 'Gerbang Utama Kontrol Keluar Masuk Armada & Fasilitas Terpadu KIM 3'}
-                    </p>
-                    <p className="text-[10px] text-slate-500">
-                      {settings?.alamat_bengkel || 'Jl. Pulau Pinang Raya No. 8, Kawasan Industri Modern 3, Medan, Sumatera Utara'}
-                    </p>
-                    <p className="text-[10px] text-slate-500">
-                      {settings?.no_telepon_bengkel ? `Layanan Darurat / Pos Security: ${settings.no_telepon_bengkel}` : 'Layanan Darurat / Pos Security: (061) 8920123 / 0812-6543-9870'}
-                    </p>
+                    {settings?.slogan_bengkel && (
+                      <p className="text-[11px] font-semibold text-slate-700">
+                        {settings.slogan_bengkel}
+                      </p>
+                    )}
+                    {settings?.alamat_bengkel && (
+                      <p className="text-[10px] text-slate-500">
+                        {settings.alamat_bengkel}
+                      </p>
+                    )}
+                    {settings?.no_telepon_bengkel && (
+                      <p className="text-[10px] text-slate-500">
+                        Layanan Darurat / Pos Security: {settings.no_telepon_bengkel}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -94,7 +100,7 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
                 {settings?.header_print_memo || 'SURAT MEMO KELUAR RESMI (GATE PASS)'}
               </h2>
               <p className="text-[11px] text-slate-500 mt-1">
-                Bukti Izin Resmi Meninggalkan Area Fasilitas {settings?.nama_bengkel || 'Bengkel KIM 3'}
+                Bukti Izin Resmi Meninggalkan Area Fasilitas {settings?.nama_bengkel || ''}
               </p>
             </div>
 
@@ -174,7 +180,7 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
             {/* KETENTUAN POS GERBANG */}
             <div className="text-[10px] text-slate-500 mb-8 space-y-1">
               <p className="italic">
-                {settings?.footer_print_memo || 'Memo keluar ini merupakan dokumen resmi verifikasi security gate. Kendaraan dan muatan wajib diperiksa sebelum keluar gerbang bengkel.'}
+                {settings?.footer_print_memo || ''}
               </p>
               <p>Pengemudi wajib menyerahkan lembar verifikasi ini kepada petugas pos gerbang sebelum meninggalkan lokasi.</p>
             </div>

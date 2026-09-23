@@ -90,7 +90,7 @@ class RealtimeNotificationHub {
     if (typeof window === 'undefined') return;
     try {
       // Connect to backend SSE if endpoint is available
-      const sseUrl = '/api/data/bengkel/stream';
+      const sseUrl = '/api/data/kim3/stream';
       this.sseSource = new EventSource(sseUrl);
 
       this.sseSource.onmessage = (e) => {

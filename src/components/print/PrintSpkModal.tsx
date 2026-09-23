@@ -63,16 +63,20 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                   </div>
                   <div>
                     <h1 className="text-base font-black tracking-tight text-slate-900 uppercase">
-                      {settings?.nama_bengkel || 'PT. BENGKEL KIM 3 MEDAN'}
+                      {settings?.nama_bengkel || '-'}
                     </h1>
-                    <p className="text-[11px] font-semibold text-slate-700">
-                      {settings?.slogan_bengkel || 'Pusat Pelayanan Perawatan, Perbaikan Armada Truk & Kendaraan Industri'}
-                    </p>
+                    {settings?.slogan_bengkel && (
+                      <p className="text-[11px] font-semibold text-slate-700">
+                        {settings.slogan_bengkel}
+                      </p>
+                    )}
+                    {settings?.alamat_bengkel && (
+                      <p className="text-[10px] text-slate-500">
+                        {settings.alamat_bengkel}
+                      </p>
+                    )}
                     <p className="text-[10px] text-slate-500">
-                      {settings?.alamat_bengkel || 'Jl. Pulau Pinang Raya No. 8, Kawasan Industri Modern 3, Medan, Sumatera Utara'}
-                    </p>
-                    <p className="text-[10px] text-slate-500">
-                      Telp: {settings?.no_telepon_bengkel || '(061) 8920123'} | Email: {settings?.email_bengkel || 'service@kim3bengkel.co.id'}
+                      {settings?.no_telepon_bengkel ? `Telp: ${settings.no_telepon_bengkel}` : ''}{settings?.no_telepon_bengkel && settings?.email_bengkel ? ' | ' : ''}{settings?.email_bengkel ? `Email: ${settings.email_bengkel}` : ''}
                     </p>
                   </div>
                 </div>
@@ -90,7 +94,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                 {settings?.header_print_spk || 'SURAT PERINTAH KERJA (WORK ORDER)'}
               </h2>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Dokumen Instruksi Resmi Teknisi Mekanik &amp; Lembar Kontrol Kualitas {settings?.nama_bengkel || 'Bengkel KIM 3'}
+                Dokumen Instruksi Resmi Teknisi Mekanik &amp; Lembar Kontrol Kualitas {settings?.nama_bengkel || ''}
               </p>
             </div>
 
@@ -252,7 +256,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
 
             {/* CATATAN FOREMAN & K3 */}
             <div className="border border-slate-300 rounded-xl p-3 mb-6 bg-slate-50 text-[11px] text-slate-600">
-              <span className="font-bold text-slate-800">Catatan Pengerjaan &amp; Validasi SPK:</span> {settings?.footer_print_spk || 'Seluruh pengerjaan dan penggantian suku cadang telah diverifikasi Service Advisor dan disetujui pihak penanggung jawab armada.'}
+              <span className="font-bold text-slate-800">Catatan Pengerjaan &amp; Validasi SPK:</span> {settings?.footer_print_spk || ''}
             </div>
 
             {/* 4 KOLOM TANDA TANGAN */}

@@ -90,7 +90,7 @@ apiClient.interceptors.response.use(
 
       try {
         const refreshRes = await axios.post(
-          `${API_BASE}/api/data/bengkel/auth/refresh-token`,
+          `${API_BASE}/api/data/kim3/auth/refresh-token`,
           { refresh_token: storedRefreshToken },
           { headers: { 'x-api-key': KIM3_STATIC_TOKEN } }
         );
@@ -153,7 +153,7 @@ export const uploadFileToStorage = async (file: File, bucket: 'foto_kendaraan' |
 export const api = {
   // Dashboard
   getDashboardSummary: async (): Promise<DashboardSummary> => {
-    const res = await apiClient.get<DashboardSummary[]>('/bengkel/dashboard-summary');
+    const res = await apiClient.get<DashboardSummary[]>('/kim3/dashboard-summary');
     return res.data[0] || {
       total_on_progress: 0,
       sedang_dikerjakan: 0,
@@ -167,109 +167,109 @@ export const api = {
 
   // Pengguna & Tim
   getPengguna: async (): Promise<Pengguna[]> => {
-    const res = await apiClient.get<Pengguna[]>('/bengkel/pengguna');
+    const res = await apiClient.get<Pengguna[]>('/kim3/pengguna');
     return res.data;
   },
 
   // Pelanggan
   getPelanggan: async (): Promise<Pelanggan[]> => {
-    const res = await apiClient.get<Pelanggan[]>('/bengkel/pelanggan');
+    const res = await apiClient.get<Pelanggan[]>('/kim3/pelanggan');
     return res.data;
   },
 
   // Kendaraan
   getKendaraan: async (): Promise<Kendaraan[]> => {
-    const res = await apiClient.get<Kendaraan[]>('/bengkel/kendaraan');
+    const res = await apiClient.get<Kendaraan[]>('/kim3/kendaraan');
     return res.data;
   },
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/kendaraan-tambah', data);
+    const res = await apiClient.post('/kim3/kendaraan-tambah', data);
     return res.data;
   },
 
   // Dokumen
   getDokumen: async (): Promise<DokumenKendaraan[]> => {
-    const res = await apiClient.get<DokumenKendaraan[]>('/bengkel/dokumen');
+    const res = await apiClient.get<DokumenKendaraan[]>('/kim3/dokumen');
     return res.data;
   },
   tambahDokumen: async (data: Partial<DokumenKendaraan>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/dokumen-tambah', data);
+    const res = await apiClient.post('/kim3/dokumen-tambah', data);
     return res.data;
   },
 
   // Booking Service
   getBooking: async (): Promise<BookingService[]> => {
-    const res = await apiClient.get<BookingService[]>('/bengkel/booking');
+    const res = await apiClient.get<BookingService[]>('/kim3/booking');
     return res.data;
   },
   tambahBooking: async (data: Partial<BookingService>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/booking-tambah', data);
+    const res = await apiClient.post('/kim3/booking-tambah', data);
     return res.data;
   },
 
   // Antrian Security
   getAntrian: async (): Promise<AntrianKunjungan[]> => {
-    const res = await apiClient.get<AntrianKunjungan[]>('/bengkel/antrian');
+    const res = await apiClient.get<AntrianKunjungan[]>('/kim3/antrian');
     return res.data;
   },
   checkInSecurity: async (data: Partial<AntrianKunjungan>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/antrian-checkin', data);
+    const res = await apiClient.post('/kim3/antrian-checkin', data);
     return res.data;
   },
   checkOutSecurity: async (data: { id: number; barang_dibawa_keluar?: boolean; detail_barang_keluar?: string; foto_kendaraan_keluar?: string; foto_barang?: string; no_memo_keluar?: string }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/antrian-checkout', data);
+    const res = await apiClient.post('/kim3/antrian-checkout', data);
     return res.data;
   },
   konfirmasiKunjunganPic: async (data: { id: number; status_konfirmasi_pic: 'Diterima' | 'Ditolak'; catatan_pic?: string }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/antrian-konfirmasi-pic', data);
+    const res = await apiClient.post('/kim3/antrian-konfirmasi-pic', data);
     return res.data;
   },
 
   // SPK Service
   getSpkList: async (): Promise<SpkService[]> => {
-    const res = await apiClient.get<SpkService[]>('/bengkel/spk');
+    const res = await apiClient.get<SpkService[]>('/kim3/spk');
     return res.data;
   },
   buatSpk: async (data: Partial<SpkService>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/spk-buat', data);
+    const res = await apiClient.post('/kim3/spk-buat', data);
     return res.data;
   },
   updateSpkStatus: async (data: { id: number; status_spk?: string; nama_foreman?: string; nama_mekanik?: string; estimasi_biaya?: number; estimasi_waktu_jam?: number; catatan_foreman?: string; catatan_sa?: string }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/spk-status', data);
+    const res = await apiClient.post('/kim3/spk-status', data);
     return res.data;
   },
 
   // Pekerjaan & Part SPK
   getPekerjaanSpk: async (): Promise<SpkItemPekerjaan[]> => {
-    const res = await apiClient.get<SpkItemPekerjaan[]>('/bengkel/spk-pekerjaan');
+    const res = await apiClient.get<SpkItemPekerjaan[]>('/kim3/spk-pekerjaan');
     return res.data;
   },
   tambahPekerjaanSpk: async (data: Partial<SpkItemPekerjaan>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/spk-pekerjaan-tambah', data);
+    const res = await apiClient.post('/kim3/spk-pekerjaan-tambah', data);
     return res.data;
   },
   getPartSpk: async (): Promise<SpkItemPart[]> => {
-    const res = await apiClient.get<SpkItemPart[]>('/bengkel/spk-part');
+    const res = await apiClient.get<SpkItemPart[]>('/kim3/spk-part');
     return res.data;
   },
   tambahPartSpk: async (data: Partial<SpkItemPart>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/spk-part-tambah', data);
+    const res = await apiClient.post('/kim3/spk-part-tambah', data);
     return res.data;
   },
 
   // Stok Sparepart
   getStokPart: async (): Promise<StokSparepart[]> => {
-    const res = await apiClient.get<StokSparepart[]>('/bengkel/stok-part');
+    const res = await apiClient.get<StokSparepart[]>('/kim3/stok-part');
     return res.data;
   },
 
   // Purchasing & PR
   getPurchasingList: async (): Promise<PurchaseRequestPart[]> => {
-    const res = await apiClient.get<PurchaseRequestPart[]>('/bengkel/purchasing');
+    const res = await apiClient.get<PurchaseRequestPart[]>('/kim3/purchasing');
     return res.data;
   },
   ajukanPR: async (data: { no_pr: string; id_spk: number; nama_sa_pemohon: string; catatan_pr?: string }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/purchase-request', data);
+    const res = await apiClient.post('/kim3/purchase-request', data);
     return res.data;
   },
   buatPO: async (data: {
@@ -287,25 +287,25 @@ export const api = {
     estimasi_jam_ready_eta: string;
     catatan_purchasing?: string;
   }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/purchase-order', data);
+    const res = await apiClient.post('/kim3/purchase-order', data);
     return res.data;
   },
   konfirmasiSA: async (data: { id: number; status_konfirmasi_sa: 'Disetujui SA' | 'Ditolak SA' }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/po-konfirmasi-sa', data);
+    const res = await apiClient.post('/kim3/po-konfirmasi-sa', data);
     return res.data;
   },
 
   // Tambahan Pekerjaan
   getTambahanPekerjaan: async (): Promise<PekerjaanTambahan[]> => {
-    const res = await apiClient.get<PekerjaanTambahan[]>('/bengkel/pekerjaan-tambahan');
+    const res = await apiClient.get<PekerjaanTambahan[]>('/kim3/pekerjaan-tambahan');
     return res.data;
   },
   ajukanTambahanPekerjaan: async (data: Partial<PekerjaanTambahan>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/pekerjaan-tambahan-tambah', data);
+    const res = await apiClient.post('/kim3/pekerjaan-tambahan-tambah', data);
     return res.data;
   },
   approvalCustomer: async (data: { id: number; status_approval_customer: 'Disetujui' | 'Ditolak' }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/approval-customer', data);
+    const res = await apiClient.post('/kim3/approval-customer', data);
     return res.data;
   },
 
@@ -322,56 +322,56 @@ export const api = {
     catatan_foreman?: string;
     status_qc: 'QC Passed' | 'Perlu Perbaikan';
   }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/qc-fir', data);
+    const res = await apiClient.post('/kim3/qc-fir', data);
     return res.data;
   },
 
   // Beli Part Langsung
   getBeliPartList: async (): Promise<TransaksiBeliPart[]> => {
-    const res = await apiClient.get<TransaksiBeliPart[]>('/bengkel/beli-part');
+    const res = await apiClient.get<TransaksiBeliPart[]>('/kim3/beli-part');
     return res.data;
   },
   buatBeliPart: async (data: Partial<TransaksiBeliPart>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/beli-part-buat', data);
+    const res = await apiClient.post('/kim3/beli-part-buat', data);
     return res.data;
   },
   updateBeliPartStatus: async (data: { id: number; status_transaksi?: string; foto_penyerahan?: string; catatan?: string }): Promise<any> => {
     try {
-      const res = await apiClient.post('/bengkel/beli-part-status', data);
+      const res = await apiClient.post('/kim3/beli-part-status', data);
       return res.data;
     } catch (e) {
-      console.warn('Endpoint /bengkel/beli-part-status note:', e);
+      console.warn('Endpoint /kim3/beli-part-status note:', e);
       return { success: true };
     }
   },
 
   // Invoice & Pembayaran
   getInvoiceList: async (): Promise<InvoicePembayaran[]> => {
-    const res = await apiClient.get<InvoicePembayaran[]>('/bengkel/invoice');
+    const res = await apiClient.get<InvoicePembayaran[]>('/kim3/invoice');
     return res.data;
   },
   buatInvoice: async (data: Partial<InvoicePembayaran>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/invoice-buat', data);
+    const res = await apiClient.post('/kim3/invoice-buat', data);
     return res.data;
   },
   bayarInvoice: async (data: { id: number; metode_pembayaran: string; kasir_pic?: string; bukti_pembayaran?: string }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/invoice-bayar', data);
+    const res = await apiClient.post('/kim3/invoice-bayar', data);
     return res.data;
   },
 
   // Memo Keluar
   getMemoKeluarList: async (): Promise<MemoKeluar[]> => {
-    const res = await apiClient.get<MemoKeluar[]>('/bengkel/memo-keluar');
+    const res = await apiClient.get<MemoKeluar[]>('/kim3/memo-keluar');
     return res.data;
   },
   buatMemoKeluar: async (data: Partial<MemoKeluar>): Promise<any> => {
-    const res = await apiClient.post('/bengkel/memo-keluar-buat', data);
+    const res = await apiClient.post('/kim3/memo-keluar-buat', data);
     return res.data;
   },
 
   // Auth & Token (JWT Authentication)
   login: async (username: string, password: string = 'password123'): Promise<LoginResponse> => {
-    const res = await apiClient.post<LoginResponse>('/bengkel/auth/login', { username, password });
+    const res = await apiClient.post<LoginResponse>('/kim3/auth/login', { username, password });
     if (res.data?.access_token) {
       localStorage.setItem('bengkel_jwt_token', res.data.access_token);
       if (res.data?.refresh_token) {
@@ -392,13 +392,13 @@ export const api = {
     no_telepon?: string;
     email?: string;
   }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/auth/register', userData);
+    const res = await apiClient.post('/kim3/auth/register', userData);
     return res.data;
   },
 
   refreshToken: async (token?: string): Promise<LoginResponse> => {
     const rToken = token || localStorage.getItem('bengkel_refresh_token');
-    const res = await apiClient.post<LoginResponse>('/bengkel/auth/refresh-token', { refresh_token: rToken });
+    const res = await apiClient.post<LoginResponse>('/kim3/auth/refresh-token', { refresh_token: rToken });
     if (res.data?.access_token) {
       localStorage.setItem('bengkel_jwt_token', res.data.access_token);
       if (res.data?.refresh_token) {
@@ -416,32 +416,12 @@ export const api = {
 
   // Admin Panel: Pengaturan Sistem (Workshop, PPN, Kop & Footer Cetak)
   getPengaturan: async (): Promise<PengaturanSistem> => {
-    const res = await apiClient.get<PengaturanSistem[]>('/bengkel/pengaturan');
-    return res.data[0] || {
-      id: 1,
-      nama_bengkel: 'BENGKEL KIM 3',
-      slogan_bengkel: 'Kawasan Industri Modern 3 - Pusat Perawatan Armada Komersial',
-      alamat_bengkel: 'Jl. Pulau Pinang Raya No. 8, Kawasan Industri Modern 3, Medan, Sumatera Utara',
-      no_telepon_bengkel: '(061) 8920123 / 0812-6543-9870',
-      email_bengkel: 'service@kim3bengkel.co.id',
-      npwp_bengkel: '01.234.567.8-123.000',
-      logo_url: '/logo.png',
-      ppn_persen: 11.00,
-      header_print_memo: 'BENGKEL KIM 3 - GATE PASS KELUAR RESMI',
-      footer_print_memo: 'Memo keluar ini merupakan dokumen resmi verifikasi security gate. Kendaraan dan muatan wajib diperiksa sebelum keluar gerbang bengkel.',
-      header_print_spk: 'BENGKEL KIM 3 - SURAT PERINTAH KERJA (SPK)',
-      footer_print_spk: 'Seluruh pengerjaan dan penggantian suku cadang telah diverifikasi Service Advisor dan disetujui pihak penanggung jawab armada.',
-      header_print_invoice: 'BENGKEL KIM 3 - FAKTUR TAGIHAN & PEMBAYARAN',
-      footer_print_invoice: 'Pembayaran sah setelah dana efektif di rekening. Simpan bukti faktur ini sebagai dokumen jaminan garansi service.',
-      bank_nama: 'Bank Mandiri',
-      bank_rekening: '105-00-1234567-8',
-      bank_atas_nama: 'PT BENGKEL KIM TIGA SEJAHTERA',
-      catatan_garansi: 'Garansi pengerjaan bengkel berlaku selama 14 hari kerja atau 1.000 km (mana yang tercapai lebih dahulu).'
-    };
+    const res = await apiClient.get<PengaturanSistem[]>('/kim3/pengaturan');
+    return res.data[0] || ({} as PengaturanSistem);
   },
 
   simpanPengaturan: async (data: Partial<PengaturanSistem>): Promise<PengaturanSistem> => {
-    const res = await apiClient.post('/bengkel/pengaturan-simpan', data);
+    const res = await apiClient.post('/kim3/pengaturan-simpan', data);
     return Array.isArray(res.data) ? res.data[0] : res.data;
   },
 
@@ -455,7 +435,7 @@ export const api = {
     email?: string;
     status_aktif?: boolean;
   }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/pengguna-tambah', data);
+    const res = await apiClient.post('/kim3/pengguna-tambah', data);
     return res.data;
   },
 
@@ -467,7 +447,7 @@ export const api = {
     email?: string;
     status_aktif?: boolean;
   }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/pengguna-update', data);
+    const res = await apiClient.post('/kim3/pengguna-update', data);
     return res.data;
   },
 
@@ -475,7 +455,7 @@ export const api = {
     id: number;
     password_baru: string;
   }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/pengguna-reset-pwd', data);
+    const res = await apiClient.post('/kim3/pengguna-reset-pwd', data);
     return res.data;
   },
 
@@ -483,7 +463,7 @@ export const api = {
     id: number;
     status_aktif: boolean;
   }): Promise<any> => {
-    const res = await apiClient.post('/bengkel/pengguna-toggle-status', data);
+    const res = await apiClient.post('/kim3/pengguna-toggle-status', data);
     return res.data;
   },
 };
