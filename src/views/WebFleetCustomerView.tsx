@@ -38,7 +38,7 @@ interface WebFleetCustomerViewProps {
 
 export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ initialMenu }) => {
   const queryClient = useQueryClient();
-  const { setActiveTab, currentUser } = useAppStore();
+  const { setActiveTab, currentUser, authUser } = useAppStore();
   const [fleetMenu, setFleetMenu] = useState<'dashboard' | 'booking' | 'status' | 'history' | 'kendaraan' | 'dokumen' | 'profil'>(
     initialMenu || 'dashboard'
   );
@@ -104,11 +104,53 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryFn: api.getPartSpk,
   });
 
+  // Multi-tenant Customer Scoping:
+  // Pelanggan ID & Nama Perusahaan dari sesi login akun mitra aktif
+  const myPelangganId = authUser?.id_pelanggan || null;
+  const myCompanyName = (authUser?.nama_perusahaan || authUser?.nama_lengkap || '').toLowerCase().trim();
+
+  // Filter Kendaraan milik armada customer yang sedang login
+  const myKendaraanList = (kendaraanList || []).filter((k) => {
+    if (myPelangganId && k.id_pelanggan === myPelangganId) return true;
+    if (myCompanyName && (
+      (k.nama_pemilik && k.nama_pemilik.toLowerCase().trim() === myCompanyName) ||
+      (k.nama_perusahaan && k.nama_perusahaan.toLowerCase().trim() === myCompanyName)
+    )) return true;
+    return false;
+  });
+
+  // Himpunan plat nomor kendaraan armada customer
+  const myPlateSet = new Set(myKendaraanList.map((k) => k.no_polisi.toUpperCase().replace(/\s+/g, '')));
+
+  // Filter SPK khusus armada customer yang sedang login
+  const mySpkList = (spkList || []).filter((s) => {
+    if (myPelangganId && s.id_pelanggan === myPelangganId) return true;
+    if (myCompanyName && s.nama_customer && s.nama_customer.toLowerCase().trim() === myCompanyName) return true;
+    if (s.no_polisi && myPlateSet.has(s.no_polisi.toUpperCase().replace(/\s+/g, ''))) return true;
+    return false;
+  });
+
+  // Filter Booking khusus customer yang sedang login
+  const myBookingList = (bookingList || []).filter((b) => {
+    if (myPelangganId && b.id_pelanggan === myPelangganId) return true;
+    if (myCompanyName && b.nama_perusahaan && b.nama_perusahaan.toLowerCase().trim() === myCompanyName) return true;
+    if (b.no_polisi && myPlateSet.has(b.no_polisi.toUpperCase().replace(/\s+/g, ''))) return true;
+    return false;
+  });
+
+  // Filter Dokumen khusus armada milik customer yang sedang login
+  const myDokumenList = (dokumenList || []).filter((d) => {
+    if (myPelangganId && d.id_pelanggan === myPelangganId) return true;
+    if (myCompanyName && d.nama_perusahaan && d.nama_perusahaan.toLowerCase().trim() === myCompanyName) return true;
+    if (d.no_polisi && myPlateSet.has(d.no_polisi.toUpperCase().replace(/\s+/g, ''))) return true;
+    return false;
+  });
+
   // Tab State di bawah Horizontal Stepper Tracker Status Service
   const [statusSubTab, setStatusSubTab] = useState<'progress' | 'detail' | 'catatan' | 'dokumen'>('progress');
 
-  // Active SPK being monitored
-  const activeTrackSpk = spkList?.[0];
+  // Active SPK being monitored: ambil SPK aktif milik customer yang sedang berjalan
+  const activeTrackSpk = mySpkList.find(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed') || mySpkList[0];
 
   // Active PR untuk SPK yang sedang dimonitor
   const activePr = purchasingList?.find(
@@ -118,7 +160,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Filter detail pekerjaan, part, dan dokumen armada aktif
   const activePekerjaan = (pekerjaanList || []).filter(p => p.id_spk === activeTrackSpk?.id);
   const activeParts = (partSpkList || []).filter(p => p.id_spk === activeTrackSpk?.id);
-  const activeArmadaDocs = (dokumenList || []).filter(d => d.no_polisi === activeTrackSpk?.no_polisi);
+  const activeArmadaDocs = (myDokumenList || []).filter(d => d.no_polisi === activeTrackSpk?.no_polisi);
 
   // Pekerjaan tambahan yang masih menunggu persetujuan customer untuk SPK aktif
   const approvalTambahanList = (tambahanList || []).filter(
@@ -149,7 +191,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       const bookNo = `BK${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
       return api.tambahBooking({
         no_booking: bookNo,
-        id_pelanggan: 1,
+        id_pelanggan: myPelangganId || undefined,
         no_polisi: bookingForm.no_polisi,
         jenis_layanan: bookingForm.jenis_layanan,
         tanggal_booking: bookingForm.tanggal_booking,
@@ -198,12 +240,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         merk: data.merk,
         model: data.model,
         tahun: Number(data.tahun) || new Date().getFullYear(),
-        nama_pemilik: data.nama_pemilik,
+        nama_pemilik: data.nama_pemilik || authUser?.nama_perusahaan || authUser?.nama_lengkap || 'Customer Fleet',
         no_rangka: data.no_rangka,
         no_mesin: data.no_mesin,
         asuransi: data.asuransi,
         masa_berlaku_asuransi: data.masa_berlaku_asuransi || undefined,
-        id_pelanggan: 1,
+        id_pelanggan: myPelangganId || undefined,
       });
     },
     onSuccess: () => {
@@ -246,7 +288,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         masa_berlaku: data.masa_berlaku || undefined,
         keterangan: data.keterangan,
         file_url: data.file_url,
-        id_pelanggan: 1,
+        id_pelanggan: myPelangganId || undefined,
       });
     },
     onSuccess: () => {
@@ -307,7 +349,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-slate-900">{kendaraanList?.length || 0}</span>
+                <span className="text-2xl font-black text-slate-900">{myKendaraanList.length}</span>
                 <span className="text-[11px] text-slate-400 ml-2 font-medium">Unit Terdaftar</span>
               </div>
             </div>
@@ -321,7 +363,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
               <div className="mt-3">
                 <span className="text-2xl font-black text-amber-600">
-                  {spkList?.filter(s => s.status_spk !== 'Selesai').length || 0}
+                  {mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length}
                 </span>
                 <span className="text-[11px] text-slate-400 ml-2 font-medium">Di Bengkel KIM 3</span>
               </div>
@@ -336,7 +378,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
               <div className="mt-3">
                 <span className="text-2xl font-black text-emerald-600">
-                  {bookingList?.length || 0}
+                  {myBookingList.length}
                 </span>
                 <span className="text-[11px] text-slate-400 ml-2 font-medium">Antrian Masuk</span>
               </div>
@@ -350,7 +392,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-slate-900">{dokumenList?.length || 0}</span>
+                <span className="text-2xl font-black text-slate-900">{myDokumenList.length}</span>
                 <span className="text-[11px] text-slate-400 ml-2 font-medium">STNK & KIR</span>
               </div>
             </div>
@@ -433,9 +475,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </button>
               </div>
 
-              {bookingList && bookingList.length > 0 ? (
+              {myBookingList.length > 0 ? (
                 <div className="space-y-2.5">
-                  {bookingList.slice(0, 3).map((b) => (
+                  {myBookingList.slice(0, 3).map((b) => (
                     <div key={b.id} className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
                       <div>
                         <span className="font-bold text-slate-900 text-xs">{b.no_polisi}</span>
@@ -475,9 +517,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </button>
               </div>
 
-              {kendaraanList && kendaraanList.length > 0 ? (
+              {myKendaraanList.length > 0 ? (
                 <div className="space-y-2.5">
-                  {kendaraanList.slice(0, 3).map((k) => (
+                  {myKendaraanList.slice(0, 3).map((k) => (
                     <div key={k.id} className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
                       <div>
                         <span className="font-bold text-slate-900 text-xs">{k.no_polisi}</span>
@@ -1134,39 +1176,53 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </button>
               </div>
               <div className="space-y-2">
-                {kendaraanList?.map((k) => (
-                  <label
-                    key={k.id}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
-                      bookingForm.no_polisi === k.no_polisi
-                        ? 'border-blue-600 bg-blue-50/60 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="booking_kendaraan"
-                        checked={bookingForm.no_polisi === k.no_polisi}
-                        onChange={() => setBookingForm({ ...bookingForm, no_polisi: k.no_polisi })}
-                        className="text-blue-600"
-                      />
-                      <div>
-                        <div className="text-sm font-black text-slate-900">{k.no_polisi}</div>
-                        <div className="text-xs text-slate-500">{k.merk} {k.model} ({k.tahun})</div>
+                {myKendaraanList.length > 0 ? (
+                  myKendaraanList.map((k) => (
+                    <label
+                      key={k.id}
+                      className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        bookingForm.no_polisi === k.no_polisi
+                          ? 'border-blue-600 bg-blue-50/60 shadow-xs'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="booking_kendaraan"
+                          checked={bookingForm.no_polisi === k.no_polisi}
+                          onChange={() => setBookingForm({ ...bookingForm, no_polisi: k.no_polisi })}
+                          className="text-blue-600"
+                        />
+                        <div>
+                          <div className="text-sm font-black text-slate-900">{k.no_polisi}</div>
+                          <div className="text-xs text-slate-500">{k.merk} {k.model} ({k.tahun})</div>
+                        </div>
                       </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
-                      Armada Aktif
-                    </span>
-                  </label>
-                ))}
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                        Armada Aktif
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 space-y-2">
+                    <p className="text-xs text-slate-500">Belum ada armada terdaftar untuk akun fleet Anda.</p>
+                    <button
+                      type="button"
+                      onClick={() => setOpenTambahArmadaModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Daftarkan Truk Sekarang
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button
                 type="button"
+                disabled={!bookingForm.no_polisi || myKendaraanList.length === 0}
                 onClick={() => setBookingStep(2)}
-                className="w-full mt-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2"
+                className="w-full mt-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 Lanjut: Pilih Layanan <ArrowRight className="w-4 h-4" />
               </button>
@@ -1341,53 +1397,74 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {kendaraanList?.map((k) => (
-              <div key={k.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-black text-slate-900">{k.no_polisi}</span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                      Aktif
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-600 font-bold mt-0.5">{k.merk} {k.model} ({k.jenis_armada})</div>
+          {myKendaraanList.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {myKendaraanList.map((k) => (
+                <div key={k.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-base font-black text-slate-900">{k.no_polisi}</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        Aktif
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 font-bold mt-0.5">{k.merk} {k.model} ({k.jenis_armada})</div>
 
-                  <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Tahun Pembuatan:</span>
-                      <span className="font-semibold text-slate-800">{k.tahun || '-'}</span>
+                    <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Tahun Pembuatan:</span>
+                        <span className="font-semibold text-slate-800">{k.tahun || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Asuransi:</span>
+                        <span className="font-semibold text-slate-800">{k.asuransi || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">No. Rangka:</span>
+                        <span className="font-mono text-[11px] text-slate-600">{k.no_rangka || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">No. Mesin:</span>
+                        <span className="font-mono text-[11px] text-slate-600">{k.no_mesin || '-'}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Asuransi:</span>
-                      <span className="font-semibold text-slate-800">{k.asuransi || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">No. Rangka:</span>
-                      <span className="font-mono text-[11px] text-slate-600">{k.no_rangka || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">No. Mesin:</span>
-                      <span className="font-mono text-[11px] text-slate-600">{k.no_mesin || '-'}</span>
-                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
+                        setFleetMenu('booking');
+                      }}
+                      className="w-full py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Calendar className="w-3.5 h-3.5" /> Jadwalkan Service
+                    </button>
                   </div>
                 </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
-                      setFleetMenu('booking');
-                    }}
-                    className="w-full py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Calendar className="w-3.5 h-3.5" /> Jadwalkan Service
-                  </button>
-                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-xs max-w-lg mx-auto space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <Truck className="w-7 h-7" />
               </div>
-            ))}
-          </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Belum Ada Armada Terdaftar</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Daftarkan kendaraan operasional atau armada truk perusahaan Anda untuk mulai memanfaatkan fitur pemantauan & booking service.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenTambahArmadaModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Daftarkan Unit Sekarang
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1402,8 +1479,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <button
               type="button"
               onClick={() => {
-                if (kendaraanList && kendaraanList.length > 0) {
-                  setDokumenForm(prev => ({ ...prev, no_polisi: kendaraanList[0].no_polisi }));
+                if (myKendaraanList.length > 0) {
+                  setDokumenForm(prev => ({ ...prev, no_polisi: myKendaraanList[0].no_polisi }));
                 }
                 setOpenTambahDokumenModal(true);
               }}
@@ -1414,78 +1491,106 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </button>
           </div>
 
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
-                <tr>
-                  <th className="py-2.5 px-3 font-semibold">Nama Dokumen</th>
-                  <th className="py-2.5 px-3 font-semibold">Jenis</th>
-                  <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
-                  <th className="py-2.5 px-3 font-semibold">Masa Berlaku</th>
-                  <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {dokumenList?.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-3 font-semibold text-slate-900">{doc.nama_dokumen}</td>
-                    <td className="py-3 px-3">
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">
+          {myDokumenList.length > 0 ? (
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
+                    <tr>
+                      <th className="py-2.5 px-3 font-semibold">Nama Dokumen</th>
+                      <th className="py-2.5 px-3 font-semibold">Jenis</th>
+                      <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
+                      <th className="py-2.5 px-3 font-semibold">Masa Berlaku</th>
+                      <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {myDokumenList.map((doc) => (
+                      <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-3 font-semibold text-slate-900">{doc.nama_dokumen}</td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">
+                            {doc.jenis_dokumen}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-800">{doc.no_polisi}</td>
+                        <td className="py-3 px-3 text-slate-600 font-mono">
+                          {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <a
+                            href={doc.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Unduh
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+              <div className="block md:hidden space-y-2.5">
+                {myDokumenList.map((doc) => (
+                  <div key={doc.id} className="rounded-xl border border-slate-200 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-slate-900 leading-snug">{doc.nama_dokumen}</div>
+                        <div className="font-mono text-[11px] font-bold text-slate-500 mt-0.5">{doc.no_polisi}</div>
+                      </div>
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold shrink-0">
                         {doc.jenis_dokumen}
                       </span>
-                    </td>
-                    <td className="py-3 px-3 font-mono font-bold text-slate-800">{doc.no_polisi}</td>
-                    <td className="py-3 px-3 text-slate-600 font-mono">
-                      {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <a
-                        href={doc.file_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold transition-colors"
-                      >
-                        <Download className="w-3.5 h-3.5" /> Unduh
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
 
-          {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
-          <div className="block md:hidden space-y-2.5">
-            {dokumenList?.map((doc) => (
-              <div key={doc.id} className="rounded-xl border border-slate-200 p-3.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-slate-900 leading-snug">{doc.nama_dokumen}</div>
-                    <div className="font-mono text-[11px] font-bold text-slate-500 mt-0.5">{doc.no_polisi}</div>
+                    <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                      <span>Masa Berlaku</span>
+                      <span className="font-mono font-semibold text-slate-600">
+                        {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
+                      </span>
+                    </div>
+
+                    <a
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-700 active:bg-blue-100 rounded-xl text-xs font-bold transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Unduh Dokumen
+                    </a>
                   </div>
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold shrink-0">
-                    {doc.jenis_dokumen}
-                  </span>
-                </div>
-
-                <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Masa Berlaku</span>
-                  <span className="font-mono font-semibold text-slate-600">
-                    {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
-                  </span>
-                </div>
-
-                <a
-                  href={doc.file_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-700 active:bg-blue-100 rounded-xl text-xs font-bold transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5" /> Unduh Dokumen
-                </a>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Belum Ada Dokumen Digital</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Unggah berkas STNK, KIR, atau polis asuransi armada Anda agar tersimpan rapi dan mudah diakses.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (myKendaraanList.length > 0) {
+                    setDokumenForm(prev => ({ ...prev, no_polisi: myKendaraanList[0].no_polisi }));
+                  }
+                  setOpenTambahDokumenModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Unggah Dokumen Baru
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1503,11 +1608,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Nama Perusahaan / Entitas:</span>
-                  <span className="font-bold text-slate-800">{currentUser || 'Customer Fleet'}</span>
+                  <span className="font-bold text-slate-800">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || 'Customer Fleet'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">ID Pelanggan / Kemitraan:</span>
+                  <span className="font-mono font-bold text-blue-700">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || 1).padStart(4, '0')}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Tipe Kemitraan:</span>
                   <span className="font-semibold text-slate-800">Prioritas Bengkel Mitra KIM 3</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Status Akun:</span>
+                  <span className="font-semibold text-emerald-700">Aktif Terverifikasi</span>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 block text-[10px]">Area Operasional:</span>
@@ -1520,16 +1633,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <span className="font-bold text-slate-900 block text-sm">Kontak PIC / Penanggung Jawab:</span>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Nama Akun:</span>
-                  <span className="font-bold text-slate-800">{currentUser || '-'}</span>
+                  <span className="text-slate-400 block text-[10px]">Nama PIC:</span>
+                  <span className="font-bold text-slate-800">{authUser?.nama_lengkap || currentUser || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Email Login:</span>
+                  <span className="font-mono font-semibold text-slate-800">{authUser?.email || '-'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Peran Pengguna:</span>
                   <span className="font-semibold text-slate-800">Customer Fleet</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Status Akun:</span>
-                  <span className="font-semibold text-emerald-700">Aktif Terverifikasi</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Notifikasi Terhubung:</span>
@@ -1549,65 +1662,81 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <p className="text-xs text-slate-500">Histori lengkap pengerjaan service dan penggantian part armada Anda</p>
           </div>
 
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
-                <tr>
-                  <th className="py-2.5 px-3 font-semibold">No. Booking / SPK</th>
-                  <th className="py-2.5 px-3 font-semibold">Kendaraan</th>
-                  <th className="py-2.5 px-3 font-semibold">Layanan</th>
-                  <th className="py-2.5 px-3 font-semibold">Tanggal Masuk</th>
-                  <th className="py-2.5 px-3 font-semibold">Biaya</th>
-                  <th className="py-2.5 px-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {spkList?.map((spk) => (
-                  <tr key={spk.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-3 font-mono font-bold text-blue-600">{spk.no_spk}</td>
-                    <td className="py-3 px-3 font-bold text-slate-900">{spk.no_polisi}</td>
-                    <td className="py-3 px-3 text-slate-700">{spk.keluhan_customer}</td>
-                    <td className="py-3 px-3 font-mono text-slate-500">{new Date(spk.created_at).toLocaleDateString('id-ID')}</td>
-                    <td className="py-3 px-3 font-mono font-bold text-slate-900">Rp {Number(spk.estimasi_biaya || 0).toLocaleString()}</td>
-                    <td className="py-3 px-3">
-                      <StatusBadge status={spk.status_spk} size="sm" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
-          <div className="block md:hidden space-y-2.5">
-            {spkList?.map((spk) => (
-              <div key={spk.id} className="rounded-xl border border-slate-200 p-3.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-mono text-[11px] font-bold text-blue-600">{spk.no_spk}</div>
-                    <div className="text-base font-black text-slate-900 mt-0.5">{spk.no_polisi}</div>
-                  </div>
-                  <StatusBadge status={spk.status_spk} size="sm" />
-                </div>
-
-                <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5">
-                  <p className="text-xs text-slate-700 leading-relaxed">{spk.keluhan_customer}</p>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Tanggal Masuk</span>
-                    <span className="font-mono font-semibold text-slate-600">
-                      {new Date(spk.created_at).toLocaleDateString('id-ID')}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Biaya</span>
-                    <span className="font-mono font-bold text-slate-900">
-                      Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
-                    </span>
-                  </div>
-                </div>
+          {mySpkList.length > 0 ? (
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
+                    <tr>
+                      <th className="py-2.5 px-3 font-semibold">No. Booking / SPK</th>
+                      <th className="py-2.5 px-3 font-semibold">Kendaraan</th>
+                      <th className="py-2.5 px-3 font-semibold">Layanan</th>
+                      <th className="py-2.5 px-3 font-semibold">Tanggal Masuk</th>
+                      <th className="py-2.5 px-3 font-semibold">Biaya</th>
+                      <th className="py-2.5 px-3 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {mySpkList.map((spk) => (
+                      <tr key={spk.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-blue-600">{spk.no_spk}</td>
+                        <td className="py-3 px-3 font-bold text-slate-900">{spk.no_polisi}</td>
+                        <td className="py-3 px-3 text-slate-700">{spk.keluhan_customer}</td>
+                        <td className="py-3 px-3 font-mono text-slate-500">{new Date(spk.created_at).toLocaleDateString('id-ID')}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900">Rp {Number(spk.estimasi_biaya || 0).toLocaleString()}</td>
+                        <td className="py-3 px-3">
+                          <StatusBadge status={spk.status_spk} size="sm" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+
+              {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+              <div className="block md:hidden space-y-2.5">
+                {mySpkList.map((spk) => (
+                  <div key={spk.id} className="rounded-xl border border-slate-200 p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-mono text-[11px] font-bold text-blue-600">{spk.no_spk}</div>
+                        <div className="text-base font-black text-slate-900 mt-0.5">{spk.no_polisi}</div>
+                      </div>
+                      <StatusBadge status={spk.status_spk} size="sm" />
+                    </div>
+
+                    <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5">
+                      <p className="text-xs text-slate-700 leading-relaxed">{spk.keluhan_customer}</p>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>Tanggal Masuk</span>
+                        <span className="font-mono font-semibold text-slate-600">
+                          {new Date(spk.created_at).toLocaleDateString('id-ID')}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>Biaya</span>
+                        <span className="font-mono font-bold text-slate-900">
+                          Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <Wrench className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Belum Ada Riwayat Service</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Seluruh riwayat pengerjaan service armada Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1844,7 +1973,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
                 >
                   <option value="">-- Pilih Nomor Polisi --</option>
-                  {kendaraanList?.map((k) => (
+                  {myKendaraanList.map((k) => (
                     <option key={k.id} value={k.no_polisi}>
                       {k.no_polisi} — {k.merk} {k.model}
                     </option>

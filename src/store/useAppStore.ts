@@ -4,6 +4,7 @@ import { PeranUser, AuthUser } from '../types';
 interface AppState {
   currentRole: PeranUser;
   currentUser: string;
+  authUser: AuthUser | null;
   activeTab: string;
   selectedSpkId: number | null;
   notificationCount: number;
@@ -38,11 +39,13 @@ const roleDefaultTabs: Record<PeranUser, string> = {
 const savedToken = typeof localStorage !== 'undefined' ? localStorage.getItem('bengkel_jwt_token') : null;
 let initialUser = '';
 let initialRole: PeranUser = 'SA';
+let initialAuthUser: AuthUser | null = null;
 
 try {
   const savedUserJson = typeof localStorage !== 'undefined' ? localStorage.getItem('bengkel_auth_user') : null;
   if (savedUserJson) {
     const parsed = JSON.parse(savedUserJson);
+    initialAuthUser = parsed;
     if (parsed.nama_lengkap) initialUser = parsed.nama_lengkap;
     if (parsed.peran) initialRole = parsed.peran;
   }
@@ -53,6 +56,7 @@ try {
 export const useAppStore = create<AppState>((set) => ({
   currentRole: initialRole,
   currentUser: initialUser,
+  authUser: initialAuthUser,
   activeTab: roleDefaultTabs[initialRole] || 'dashboard',
   selectedSpkId: null,
   notificationCount: 0,
@@ -73,17 +77,19 @@ export const useAppStore = create<AppState>((set) => ({
   loginUser: (user: Partial<AuthUser>, token: string, refreshToken?: string) => {
     const role = (user.peran as PeranUser) || 'SA';
     const defaultTab = roleDefaultTabs[role] || 'dashboard';
+    const fullUser = user as AuthUser;
     
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('bengkel_jwt_token', token);
       if (refreshToken) localStorage.setItem('bengkel_refresh_token', refreshToken);
-      localStorage.setItem('bengkel_auth_user', JSON.stringify(user));
+      localStorage.setItem('bengkel_auth_user', JSON.stringify(fullUser));
     }
 
     set({
       jwtToken: token,
       isLoggedIn: true,
       currentUser: user.nama_lengkap || '',
+      authUser: fullUser,
       currentRole: role,
       activeTab: defaultTab,
     });
@@ -99,6 +105,7 @@ export const useAppStore = create<AppState>((set) => ({
       jwtToken: null,
       isLoggedIn: false,
       currentUser: '',
+      authUser: null,
     });
   },
 

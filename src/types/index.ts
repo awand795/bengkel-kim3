@@ -39,6 +39,7 @@ export interface Pengguna {
   peran: PeranUser;
   no_telepon?: string;
   email: string;
+  id_pelanggan?: number | null;
   status_aktif: boolean;
   created_at?: string;
 }
@@ -48,6 +49,8 @@ export interface AuthUser {
   nama_lengkap: string;
   peran: PeranUser;
   email: string;
+  id_pelanggan?: number | null;
+  nama_perusahaan?: string | null;
   status_aktif?: boolean;
 }
 
@@ -161,6 +164,7 @@ export interface SpkService {
   no_spk: string;
   id_antrian?: number;
   id_booking?: number;
+  id_pelanggan?: number | null;
   no_polisi: string;
   nama_customer?: string;
   odometer_km: number;
