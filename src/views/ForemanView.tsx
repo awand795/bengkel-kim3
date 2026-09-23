@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { SpkService } from '../types';
+import { SpkService, BookingService } from '../types';
 import { 
   Wrench, 
   UserCheck, 
@@ -17,7 +17,13 @@ import {
   X,
   Printer,
   Search,
-  Filter
+  Filter,
+  Calendar,
+  CalendarDays,
+  Truck,
+  ChevronDown,
+  ChevronUp,
+  Info
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
@@ -53,12 +59,94 @@ export const ForemanView: React.FC = () => {
     catatan_foreman: 'Pekerjaan selesai dengan baik, pengereman responsif dan tidak ada getaran lagi.',
   });
 
+  // Card Jadwal Booking State
+  const [isBookingExpanded, setIsBookingExpanded] = useState(true);
+
   // Queries
   const { data: spkList } = useQuery({
     queryKey: ['spk-list'],
     queryFn: api.getSpkList,
     refetchInterval: 8000,
   });
+
+  const { data: rawBookingList } = useQuery({
+    queryKey: ['booking-list'],
+    queryFn: api.getBooking,
+    refetchInterval: 10000,
+  });
+
+  const todayFormatted = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const DEFAULT_BOOKING_FOREMAN: BookingService[] = [
+    {
+      id: 101,
+      no_booking: 'BK250503-001',
+      no_polisi: 'BK 1234 AB',
+      nama_customer: 'PT. Andi Jaya',
+      nama_perusahaan: 'PT. Andi Jaya',
+      tujuan_kunjungan: 'Service',
+      jenis_layanan: 'Service Berkala 20.000 KM',
+      jenis_armada: 'Truk',
+      tanggal_booking: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
+      jam_booking: '08:00',
+      no_telepon: '0812-3456-7890',
+      pic_driver: 'Slamet Riyadi',
+      keterangan: 'Keluhan: Rem bergetar & ganti oli rutin',
+      status: 'Check In',
+      prioritas: 'Prioritas Booking',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 102,
+      no_booking: 'BK250503-002',
+      no_polisi: 'BK 5678 CD',
+      nama_customer: 'CV. Sinar Abadi',
+      nama_perusahaan: 'CV. Sinar Abadi',
+      tujuan_kunjungan: 'Service',
+      jenis_layanan: 'Perbaikan Kaki-kaki & Bearing',
+      jenis_armada: 'Truk',
+      tanggal_booking: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
+      jam_booking: '09:30',
+      no_telepon: '0813-9876-5432',
+      pic_driver: 'Hendra Gunawan',
+      keterangan: 'Pengecekan bearing roda depan & bushing arm',
+      status: 'Booked',
+      prioritas: 'Prioritas Booking',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 104,
+      no_booking: 'BK250503-004',
+      no_polisi: 'BK 2468 GH',
+      nama_customer: 'PT. Sejahtera',
+      nama_perusahaan: 'PT. Sejahtera',
+      tujuan_kunjungan: 'Service',
+      jenis_layanan: 'Tune Up & Filter Udara',
+      jenis_armada: 'Truk',
+      tanggal_booking: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
+      jam_booking: '11:00',
+      no_telepon: '0852-7788-9900',
+      pic_driver: 'Rudi Hartono',
+      keterangan: 'Tarikan mesin berat saat muatan penuh',
+      status: 'Booked',
+      prioritas: 'Prioritas Booking',
+      created_at: new Date().toISOString(),
+    },
+  ];
+
+  const bookingList: BookingService[] = rawBookingList && rawBookingList.length > 0
+    ? rawBookingList
+    : DEFAULT_BOOKING_FOREMAN;
+
+  // Filter booking khusus service hari ini
+  const todayBookings = bookingList.filter(
+    (b) => !b.tujuan_kunjungan || b.tujuan_kunjungan === 'Service'
+  );
 
   // Mutations
   const assignMekanikMutation = useMutation({
@@ -274,7 +362,141 @@ export const ForemanView: React.FC = () => {
 
       {/* TAB 1: DASHBOARD SPK FOREMAN */}
       {activeTab === 'dashboard' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+
+          {/* Card: Jadwal Booking Hari Ini (Estimasi Beban Kerja yang Akan Datang) */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold shrink-0">
+                  <CalendarDays className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-slate-900">Jadwal Booking Hari Ini</h2>
+                    <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+                      {todayBookings.length} Armada Terjadwal
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Beban kerja service yang akan datang (estimasi kedatangan armada di bengkel hari ini)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{todayFormatted}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsBookingExpanded(!isBookingExpanded)}
+                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                  title={isBookingExpanded ? 'Ciutkan Card' : 'Perluas Card'}
+                >
+                  {isBookingExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {isBookingExpanded ? (
+              <div className="space-y-3">
+                {todayBookings.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+                    {todayBookings.map((b) => (
+                      <div
+                        key={b.id}
+                        className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-purple-300 hover:shadow-xs transition-all space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 font-bold text-xs border border-purple-200/60">
+                              <Clock className="w-3.5 h-3.5 text-purple-600" />
+                              {b.jam_booking || '08:00'} WIB
+                            </span>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-200/80 text-slate-700 flex items-center gap-1">
+                              <Truck className="w-3 h-3" />
+                              {b.jenis_armada || 'Truk'}
+                            </span>
+                          </div>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              b.status === 'Check In'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {b.status === 'Check In' ? '✓ Sudah Check-In' : '⏳ Menunggu Masuk'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-baseline justify-between">
+                          <div>
+                            <span className="text-base font-black text-slate-900 tracking-tight">{b.no_polisi}</span>
+                            <div className="text-xs font-semibold text-slate-700">{b.nama_perusahaan || b.nama_customer}</div>
+                          </div>
+                          {b.prioritas === 'Prioritas Booking' && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200">
+                              Prioritas
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-xs bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1">
+                          <div className="flex items-center gap-1.5 text-slate-800 font-semibold">
+                            <Wrench className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span>{b.jenis_layanan || 'Service Berkala'}</span>
+                          </div>
+                          {(b.keluhan || b.keterangan) && (
+                            <p className="text-[11px] text-slate-500 line-clamp-2 italic">
+                              "{b.keluhan || b.keterangan}"
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
+                          <span>Driver: <strong className="text-slate-700">{b.pic_driver || '-'}</strong></span>
+                          {b.no_telepon && (
+                            <span className="font-mono text-slate-600">{b.no_telepon}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    Belum ada armada booking yang dijadwalkan untuk hari ini.
+                  </div>
+                )}
+
+                <div className="text-[11px] text-slate-500 bg-purple-50/50 p-2.5 rounded-lg border border-purple-100 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-purple-600 shrink-0" />
+                  <span>
+                    Armada yang tiba di pos security gerbang dan telah dibuatkan SPK oleh SA akan otomatis muncul pada daftar <strong>SPK Menunggu &amp; On Progress</strong> di bawah untuk didistribusikan ke mekanik.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                <span>
+                  <strong>{todayBookings.length} Armada Terjadwal:</strong>{' '}
+                  {todayBookings.map((b) => `${b.no_polisi} (${b.jam_booking || '08:00'})`).join(', ')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsBookingExpanded(true)}
+                  className="text-purple-600 font-bold hover:underline ml-2 shrink-0"
+                >
+                  Tampilkan Rincian →
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Grid Daftar SPK & Panel Aksi */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Daftar SPK (2 Cols) */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
@@ -461,6 +683,8 @@ export const ForemanView: React.FC = () => {
           </div>
 
         </div>
+
+      </div>
       )}
 
       {/* TAB 2: INPUT PERBAIKAN HASIL PENGECEKAN (image1.png Mockup 5) */}
