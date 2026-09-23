@@ -25,7 +25,8 @@ import {
   Trash2,
   Plus,
   Search,
-  Filter
+  Filter,
+  ShieldCheck
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
 
@@ -36,6 +37,30 @@ export const ServiceAdvisorView: React.FC = () => {
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrModal, setShowPrModal] = useState<SpkService | null>(null);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
+  const [showFinalCheckModal, setShowFinalCheckModal] = useState<SpkService | null>(null);
+
+  // Form Pemeriksaan Akhir (Final Check SA) Checklist State
+  const [finalCheckForm, setFinalCheckForm] = useState({
+    kebersihan: false,
+    tes_jalan: false,
+    kelengkapan_surat: false,
+    catatan_final: 'Kondisi kendaraan bersih, uji fungsi normal, berkas surat lengkap siap diserahkan.',
+  });
+
+  const handleOpenFinalCheck = (spk: SpkService) => {
+    setShowFinalCheckModal(spk);
+    setFinalCheckForm({
+      kebersihan: false,
+      tes_jalan: false,
+      kelengkapan_surat: false,
+      catatan_final: 'Kondisi kendaraan bersih, uji fungsi normal, berkas surat lengkap siap diserahkan.',
+    });
+  };
+
+  const isFinalCheckValid = 
+    finalCheckForm.kebersihan && 
+    finalCheckForm.tes_jalan && 
+    finalCheckForm.kelengkapan_surat;
 
   // Search & Filter State for SPK List
   const [saSearchQuery, setSaSearchQuery] = useState('');
@@ -352,10 +377,11 @@ export const ServiceAdvisorView: React.FC = () => {
   // SA FIR Closed & Terbitkan Invoice Otomatis
   const firClosedMutation = useMutation({
     mutationFn: async (spk: SpkService) => {
-      // 1. Update SPK to FIR Closed
+      // 1. Update SPK to FIR Closed with SA final check notes
       await api.updateSpkStatus({
         id: spk.id,
         status_spk: 'FIR Closed',
+        catatan_sa: `[Final Check SA Disetujui]: Kebersihan (OK), Uji Fisik/Tes Jalan (OK), Dokumen & Surat (OK). Catatan: ${finalCheckForm.catatan_final}`,
       });
 
       // 2. Buat Invoice otomatis
@@ -381,7 +407,8 @@ export const ServiceAdvisorView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
-      alert('FIR Closed Berhasil! Work Order resmi selesai dan Invoice Pembayaran otomatis diterbitkan.');
+      alert('Pemeriksaan Akhir (Final Check SA) Selesai!\n\nFIR Closed berhasil, Work Order resmi selesai, dan Invoice Pembayaran otomatis diterbitkan ke Modul Kasir.');
+      setShowFinalCheckModal(null);
     },
     onError: (err: any) => alert('Gagal menutup FIR: ' + err?.message),
   });
@@ -617,14 +644,15 @@ export const ServiceAdvisorView: React.FC = () => {
                             </button>
                           )}
 
-                          {/* Jika QC Passed -> SA Tombol FIR Closed */}
+                          {/* Jika QC Passed -> SA Tombol Final Check (FIR Closed) */}
                           {spk.status_spk === 'QC Passed' && (
                             <button
                               type="button"
-                              onClick={() => firClosedMutation.mutate(spk)}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1"
+                              onClick={() => handleOpenFinalCheck(spk)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1 transition-all"
+                              title="Pemeriksaan Akhir (Final Check SA) sebelum menutup FIR"
                             >
-                              <FileCheck className="w-3.5 h-3.5" /> FIR Closed
+                              <FileCheck className="w-3.5 h-3.5" /> Final Check (FIR Closed)
                             </button>
                           )}
 
@@ -708,10 +736,10 @@ export const ServiceAdvisorView: React.FC = () => {
                 {spk.status_spk === 'QC Passed' && (
                   <button
                     type="button"
-                    onClick={() => firClosedMutation.mutate(spk)}
-                    className="mt-3 w-full min-h-[44px] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs flex items-center justify-center gap-1.5"
+                    onClick={() => handleOpenFinalCheck(spk)}
+                    className="mt-3 w-full min-h-[44px] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all"
                   >
-                    <FileCheck className="w-4 h-4" /> FIR Closed
+                    <FileCheck className="w-4 h-4" /> Final Check (FIR Closed)
                   </button>
                 )}
 
@@ -1237,6 +1265,223 @@ export const ServiceAdvisorView: React.FC = () => {
                 className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-600/20"
               >
                 {prMutation.isPending ? 'Mengirim...' : 'KIRIM KE PURCHASING'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PEMERIKSAAN AKHIR (FINAL CHECK SA) SEBELUM FIR CLOSED */}
+      {showFinalCheckModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in duration-150">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold shrink-0">
+                  <ShieldCheck className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">Pemeriksaan Akhir (Final Check SA)</h3>
+                  <p className="text-xs text-emerald-100">
+                    Verifikasi fisik &amp; dokumen sebelum penutupan FIR dan penerbitan Invoice
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFinalCheckModal(null)}
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 text-xs">
+              {/* Info SPK & Hasil QC Foreman */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-blue-700">{showFinalCheckModal.no_spk}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px] flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" /> QC Passed (Foreman)
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <div>
+                    <div className="text-base font-black text-slate-900">{showFinalCheckModal.no_polisi}</div>
+                    <div className="text-xs text-slate-600 font-semibold">{showFinalCheckModal.nama_customer}</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">Total Biaya SPK:</span>
+                    <span className="font-bold text-slate-900 text-xs">
+                      Rp {Number(showFinalCheckModal.estimasi_biaya || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 flex items-center justify-between">
+                  <span>Mekanik: <strong>{showFinalCheckModal.nama_mekanik || '-'}</strong></span>
+                  <span>Foreman: <strong>{showFinalCheckModal.nama_foreman || 'Foreman'}</strong></span>
+                </div>
+              </div>
+
+              {/* Checklist Section */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 uppercase tracking-wider text-[11px] block">
+                    Checklist Pemeriksaan Wajib SA:
+                  </label>
+                  <span className="text-[10px] font-semibold text-slate-500">
+                    {[finalCheckForm.kebersihan, finalCheckForm.tes_jalan, finalCheckForm.kelengkapan_surat].filter(Boolean).length} / 3 Terverifikasi
+                  </span>
+                </div>
+
+                {/* Item 1: Kebersihan Kendaraan */}
+                <div
+                  onClick={() => setFinalCheckForm({ ...finalCheckForm, kebersihan: !finalCheckForm.kebersihan })}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    finalCheckForm.kebersihan
+                      ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-xs'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={finalCheckForm.kebersihan}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setFinalCheckForm({ ...finalCheckForm, kebersihan: e.target.checked });
+                    }}
+                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 shrink-0 cursor-pointer"
+                  />
+                  <div>
+                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>1. Kebersihan Kendaraan</span>
+                      {finalCheckForm.kebersihan && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                      Kabin pengemudi dan bodi luar bersih dari ceceran oli, sisa gemuk/kotoran, serta tidak ada alat teknisi yang tertinggal di unit.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Item 2: Tes Jalan / Fisik */}
+                <div
+                  onClick={() => setFinalCheckForm({ ...finalCheckForm, tes_jalan: !finalCheckForm.tes_jalan })}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    finalCheckForm.tes_jalan
+                      ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-xs'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={finalCheckForm.tes_jalan}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setFinalCheckForm({ ...finalCheckForm, tes_jalan: e.target.checked });
+                    }}
+                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 shrink-0 cursor-pointer"
+                  />
+                  <div>
+                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>2. Uji Tes Jalan &amp; Fungsi Fisik</span>
+                      {finalCheckForm.tes_jalan && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                      Sistem pengereman responsif, lampu/kelistrikan menyala normal, mesin langsam stabil, dan keluhan awal customer telah teratasi.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Item 3: Kelengkapan Surat */}
+                <div
+                  onClick={() => setFinalCheckForm({ ...finalCheckForm, kelengkapan_surat: !finalCheckForm.kelengkapan_surat })}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    finalCheckForm.kelengkapan_surat
+                      ? 'border-emerald-500 bg-emerald-50/60 text-emerald-950 shadow-xs'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={finalCheckForm.kelengkapan_surat}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setFinalCheckForm({ ...finalCheckForm, kelengkapan_surat: e.target.checked });
+                    }}
+                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 shrink-0 cursor-pointer"
+                  />
+                  <div>
+                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>3. Kelengkapan Dokumen &amp; Barang Armada</span>
+                      {finalCheckForm.kelengkapan_surat && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                      STNK / KIR asli, buku riwayat servis, kunci kontak, ban serep, dan tool kit lengkap dalam kondisi siap serah terima ke driver.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Catatan Akhir SA */}
+              <div>
+                <label className="block text-slate-700 font-bold mb-1 text-[11px]">
+                  Catatan Tambahan Pemeriksaan Akhir SA:
+                </label>
+                <textarea
+                  rows={2}
+                  value={finalCheckForm.catatan_final}
+                  onChange={(e) => setFinalCheckForm({ ...finalCheckForm, catatan_final: e.target.value })}
+                  placeholder="Catatan kondisi fisik saat serah terima..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Notice Warning if not checked */}
+              {!isFinalCheckValid ? (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    Centang <strong>semua 3 checklist di atas</strong> untuk mengaktifkan tombol penutupan FIR dan penerbitan Invoice.
+                  </span>
+                </div>
+              ) : (
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-[11px] flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    Pemeriksaan akhir lengkap. Tombol <strong>FIR Closed &amp; Terbitkan Invoice</strong> siap dieksekusi.
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowFinalCheckModal(null)}
+                className="flex-1 py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={!isFinalCheckValid || firClosedMutation.isPending}
+                onClick={() => firClosedMutation.mutate(showFinalCheckModal)}
+                className="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition-all"
+              >
+                {firClosedMutation.isPending ? (
+                  <>
+                    <Clock className="w-4 h-4 animate-spin" />
+                    <span>Memproses Invoice...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="w-4 h-4" />
+                    <span>FIR CLOSED &amp; TERBITKAN INVOICE</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

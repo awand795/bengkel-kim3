@@ -232,7 +232,7 @@ export const api = {
     const res = await apiClient.post('/bengkel/spk-buat', data);
     return res.data;
   },
-  updateSpkStatus: async (data: { id: number; status_spk?: string; nama_foreman?: string; nama_mekanik?: string; estimasi_biaya?: number; estimasi_waktu_jam?: number; catatan_foreman?: string }): Promise<any> => {
+  updateSpkStatus: async (data: { id: number; status_spk?: string; nama_foreman?: string; nama_mekanik?: string; estimasi_biaya?: number; estimasi_waktu_jam?: number; catatan_foreman?: string; catatan_sa?: string }): Promise<any> => {
     const res = await apiClient.post('/bengkel/spk-status', data);
     return res.data;
   },
