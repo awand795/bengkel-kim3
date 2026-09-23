@@ -24,7 +24,12 @@ import {
   Wrench,
   AlertCircle,
   XCircle,
-  X
+  X,
+  Camera,
+  Package,
+  FileCheck,
+  Check,
+  Info
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
@@ -89,6 +94,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 8000,
   });
 
+  const { data: pekerjaanList } = useQuery({
+    queryKey: ['pekerjaan-spk-list'],
+    queryFn: api.getPekerjaanSpk,
+  });
+
+  const { data: partSpkList } = useQuery({
+    queryKey: ['part-spk-list'],
+    queryFn: api.getPartSpk,
+  });
+
+  // Tab State di bawah Horizontal Stepper Tracker Status Service
+  const [statusSubTab, setStatusSubTab] = useState<'progress' | 'detail' | 'catatan' | 'dokumen'>('progress');
+
   // Active SPK being monitored
   const activeTrackSpk = spkList?.[0];
 
@@ -96,6 +114,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const activePr = purchasingList?.find(
     (p) => p.id_spk === activeTrackSpk?.id || p.no_polisi === activeTrackSpk?.no_polisi
   );
+
+  // Filter detail pekerjaan, part, dan dokumen armada aktif
+  const activePekerjaan = (pekerjaanList || []).filter(p => p.id_spk === activeTrackSpk?.id);
+  const activeParts = (partSpkList || []).filter(p => p.id_spk === activeTrackSpk?.id);
+  const activeArmadaDocs = (dokumenList || []).filter(d => d.no_polisi === activeTrackSpk?.no_polisi);
 
   // Pekerjaan tambahan yang masih menunggu persetujuan customer untuk SPK aktif
   const approvalTambahanList = (tambahanList || []).filter(
@@ -707,44 +730,408 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
 
-            {/* Live Progress Logs */}
-            <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="space-y-3">
-                <span className="font-bold text-slate-800 block">Riwayat Aktivitas Terkini:</span>
-                <div className="space-y-2.5">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
-                    <div>
-                      <div className="font-semibold text-slate-900">Kendaraan Masuk di Pos Security</div>
-                      <div className="text-[11px] text-slate-400">09:00 WIB | Petugas: Hisar Pardede</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
-                    <div>
-                      <div className="font-semibold text-slate-900">Penerimaan & Cek Odometer oleh SA</div>
-                      <div className="text-[11px] text-slate-400">09:15 WIB | SA: Budi Santoso | KM: 125,680</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0 animate-ping"></div>
-                    <div>
-                      <div className="font-semibold text-slate-900">Pekerjaan Sedang Dilakukan oleh Mekanik</div>
-                      <div className="text-[11px] text-slate-400">09:30 WIB | Mekanik: Andi Wijaya</div>
-                    </div>
-                  </div>
-                </div>
+            {/* 4 Detail Tabs di bawah Tracker Status Service */}
+            <div className="border-t border-slate-200 pt-5 space-y-4">
+              {/* Tab Navigation */}
+              <div className="flex border-b border-slate-200 gap-2 overflow-x-auto pb-px">
+                <button
+                  type="button"
+                  onClick={() => setStatusSubTab('progress')}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                    statusSubTab === 'progress'
+                      ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  Progress Pekerjaan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusSubTab('detail')}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                    statusSubTab === 'detail'
+                      ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  }`}
+                >
+                  <Package className="w-4 h-4" />
+                  Detail Pekerjaan & Part
+                  {(activePekerjaan.length > 0 || activeParts.length > 0) && (
+                    <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-700">
+                      {activePekerjaan.length + activeParts.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusSubTab('catatan')}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                    statusSubTab === 'catatan'
+                      ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  }`}
+                >
+                  <FileCheck className="w-4 h-4" />
+                  Catatan SA & Mekanik
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusSubTab('dokumen')}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                    statusSubTab === 'dokumen'
+                      ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  }`}
+                >
+                  <Camera className="w-4 h-4" />
+                  Dokumen & Foto Kendaraan
+                  {activeArmadaDocs.length > 0 && (
+                    <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200 text-slate-700">
+                      {activeArmadaDocs.length}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                <span className="font-bold text-slate-800 block">Informasi Armada & Catatan SA:</span>
-                <p className="text-slate-600 leading-relaxed">
-                  Keluhan Customer: "{activeTrackSpk.keluhan_customer}"
-                </p>
-                <div className="pt-2 border-t border-slate-200 text-slate-500">
-                  Customer tidak perlu konfirmasi via WhatsApp manual karena status akan otomatis diperbarui oleh sistem bengkel.
+              {/* TAB 1: Progress Pekerjaan */}
+              {statusSubTab === 'progress' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
+                  <div className="space-y-3 bg-slate-50/60 p-4 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                      Timeline Riwayat Aktivitas Service:
+                    </span>
+                    <div className="space-y-3 relative pl-4 border-l-2 border-slate-200 ml-2">
+                      <div className="relative">
+                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-white"></div>
+                        <div className="font-semibold text-slate-900">Kendaraan Masuk di Pos Security</div>
+                        <div className="text-[11px] text-slate-500">Pukul 09:00 WIB | Petugas Security: Gate KIM3</div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-white"></div>
+                        <div className="font-semibold text-slate-900">Penerimaan & Cek Awal oleh SA</div>
+                        <div className="text-[11px] text-slate-500">Pukul 09:15 WIB | SA: {activeTrackSpk.nama_sa || 'Budi Santoso'} | Odometer: {activeTrackSpk.odometer_km ? `${activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM` : '125,680 KM'}</div>
+                      </div>
+                      <div className="relative">
+                        <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${activeTrackSpk.status_spk === 'Waiting Part' ? 'bg-purple-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`}></div>
+                        <div className="font-semibold text-slate-900">
+                          {activeTrackSpk.status_spk === 'Waiting Part'
+                            ? 'Menunggu Ketersediaan Sparepart (Timer Ditunda)'
+                            : activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai'
+                            ? 'Pengerjaan Service Teknisi Selesai'
+                            : 'Pengerjaan Sedang Dilakukan oleh Mekanik'}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Mekanik: {activeTrackSpk.nama_mekanik || 'Teknisi KIM3'} | Status SPK: <span className="font-medium text-slate-800">{activeTrackSpk.status_spk}</span>
+                        </div>
+                      </div>
+                      {(activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai') && (
+                        <div className="relative">
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-emerald-600 ring-4 ring-white"></div>
+                          <div className="font-semibold text-slate-900">Quality Control (QC) Lulus</div>
+                          <div className="text-[11px] text-slate-500">Inspeksi kualitas pengerjaan disetujui Foreman</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 bg-blue-50/40 p-4 rounded-xl border border-blue-100">
+                    <span className="font-bold text-slate-800 flex items-center gap-2">
+                      <Info className="w-4 h-4 text-blue-600" />
+                      Status Terkini & Petunjuk:
+                    </span>
+                    <p className="text-slate-600 leading-relaxed">
+                      Kendaraan <span className="font-semibold text-slate-900">{activeTrackSpk.no_polisi}</span> saat ini berada pada tahap pengerjaan <span className="font-semibold text-blue-700">{activeTrackSpk.status_spk}</span>.
+                    </p>
+                    <div className="bg-white p-3 rounded-lg border border-blue-200/60 text-slate-600 space-y-1">
+                      <div className="font-medium text-slate-800">Estimasi Selesai:</div>
+                      <div>{activeTrackSpk.estimasi_waktu_jam ? `${activeTrackSpk.estimasi_waktu_jam} Jam kerja` : 'Hari ini, estimasi 2-3 jam kerja'}</div>
+                    </div>
+                    <div className="text-[11px] text-slate-500 pt-1">
+                      Pembaruan status sistem berjalan realtime tanpa perlu konfirmasi manual via chat/telepon.
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 2: Detail Pekerjaan & Sparepart */}
+              {statusSubTab === 'detail' && (
+                <div className="space-y-4 pt-1 text-xs">
+                  {/* Daftar Jasa */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-slate-100 px-4 py-2.5 font-bold text-slate-800 flex justify-between items-center">
+                      <span>Daftar Pekerjaan / Jasa Service</span>
+                      <span className="text-[11px] text-slate-500 font-normal">
+                        {activePekerjaan.length > 0 ? `${activePekerjaan.length} Item Jasa` : 'Estimasi Paket'}
+                      </span>
+                    </div>
+                    <div className="divide-y divide-slate-100 bg-white">
+                      {activePekerjaan.length > 0 ? (
+                        activePekerjaan.map((p, idx) => (
+                          <div key={idx} className="p-3 flex justify-between items-center">
+                            <div>
+                              <div className="font-semibold text-slate-800">{p.nama_pekerjaan || p.kategori}</div>
+                              <div className="text-[11px] text-slate-400">Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-900">Rp {(p.biaya_jasa || 0).toLocaleString('id-ID')}</div>
+                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <>
+                          <div className="p-3 flex justify-between items-center">
+                            <div>
+                              <div className="font-semibold text-slate-800">Service Berkala & Tune Up Mesin</div>
+                              <div className="text-[11px] text-slate-400">Pembersihan filter, busi, dan kalibrasi mesin</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-900">Rp 350.000</div>
+                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Disetujui</span>
+                            </div>
+                          </div>
+                          <div className="p-3 flex justify-between items-center">
+                            <div>
+                              <div className="font-semibold text-slate-800">Pengecekan & Servis Sistem Rem</div>
+                              <div className="text-[11px] text-slate-400">Pembersihan tromol dan bleed minyak rem</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-900">Rp 150.000</div>
+                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Disetujui</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Daftar Part */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-slate-100 px-4 py-2.5 font-bold text-slate-800 flex justify-between items-center">
+                      <span>Daftar Sparepart & Material</span>
+                      <span className="text-[11px] text-slate-500 font-normal">
+                        {activeParts.length > 0 ? `${activeParts.length} Item Part` : 'Estimasi Material'}
+                      </span>
+                    </div>
+                    <div className="divide-y divide-slate-100 bg-white">
+                      {activeParts.length > 0 ? (
+                        activeParts.map((pt, idx) => (
+                          <div key={idx} className="p-3 flex justify-between items-center">
+                            <div>
+                              <div className="font-semibold text-slate-800">{pt.nama_part}</div>
+                              <div className="text-[11px] text-slate-400">Jumlah: {pt.jumlah} {pt.satuan || 'pcs'}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-900">Rp {((pt.harga_satuan || 0) * (pt.jumlah || 1)).toLocaleString('id-ID')}</div>
+                              <span className="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <>
+                          <div className="p-3 flex justify-between items-center">
+                            <div>
+                              <div className="font-semibold text-slate-800">Filter Oli Genuine Hino Dutro</div>
+                              <div className="text-[11px] text-slate-400">Qty: 1 pcs @ Rp 85.000</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-900">Rp 85.000</div>
+                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Ready Stock</span>
+                            </div>
+                          </div>
+                          <div className="p-3 flex justify-between items-center">
+                            <div>
+                              <div className="font-semibold text-slate-800">Oli Mesin Meditran SX 15W-40</div>
+                              <div className="text-[11px] text-slate-400">Qty: 8 Liter @ Rp 60.000</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-900">Rp 480.000</div>
+                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Ready Stock</span>
+                            </div>
+                          </div>
+                          <div className="p-3 flex justify-between items-center">
+                            <div>
+                              <div className="font-semibold text-slate-800">Brake Pad Depan Genuine</div>
+                              <div className="text-[11px] text-slate-400">Qty: 1 set @ Rp 420.000</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-900">Rp 420.000</div>
+                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Ready Stock</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: Catatan SA & Mekanik */}
+              {statusSubTab === 'catatan' && (
+                <div className="space-y-3 pt-1 text-xs">
+                  <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200/80 space-y-1.5">
+                    <div className="font-bold text-amber-900 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                      Keluhan Awal Customer (Driver / PIC Armada):
+                    </div>
+                    <p className="text-slate-800 font-medium italic pl-6">
+                      "{activeTrackSpk.keluhan_customer || 'Tarikan mesin terasa berat dan rem bergetar saat muatan penuh.'}"
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                      <div className="font-bold text-slate-800 flex items-center gap-2">
+                        <FileCheck className="w-4 h-4 text-blue-600" />
+                        Catatan Service Advisor (SA):
+                      </div>
+                      <ul className="space-y-1.5 text-slate-600 pl-4 list-disc">
+                        <li>Kondisi fisik body luar: wajar pemakaian armada logistik.</li>
+                        <li>Odometer masuk tercatat: {activeTrackSpk.odometer_km ? `${activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM` : '125,680 KM'}.</li>
+                        <li>Kelengkapan: Ban serep, dongkrak, dan tool kit lengkap.</li>
+                        <li>Tingkat urgensi: Reguler Service sesuai jadwal operasional.</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                      <div className="font-bold text-slate-800 flex items-center gap-2">
+                        <Wrench className="w-4 h-4 text-slate-700" />
+                        Catatan & Temuan Mekanik:
+                      </div>
+                      <ul className="space-y-1.5 text-slate-600 pl-4 list-disc">
+                        <li>Filter udara masih dalam toleransi bersih (telah disemprot kompresor).</li>
+                        <li>Tebal kampas rem depan sisa 25%, direkomendasikan penggantian segera.</li>
+                        <li>Kebocoran oli mesin tidak terdeteksi pada baut karter.</li>
+                        <li>Tekanan angin ban telah disesuaikan standar pabrikan (45 PSI).</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50/50 p-3 rounded-lg border border-emerald-200 text-slate-600 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Garansi pekerjaan service KIM3 berlaku selama 14 hari kerja atau 1.000 KM sejak kendaraan keluar.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: Dokumen & Foto Kendaraan */}
+              {statusSubTab === 'dokumen' && (
+                <div className="space-y-4 pt-1 text-xs">
+                  {/* Foto Kendaraan (Before / After) */}
+                  <div className="space-y-2">
+                    <span className="font-bold text-slate-800 block">Dokumentasi Visual Kendaraan (Foto Fisik):</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-center">
+                        <div className="text-[11px] font-semibold text-slate-700">Foto Masuk Pos Security</div>
+                        <div className="h-32 bg-slate-200 rounded-lg flex flex-col items-center justify-center text-slate-400 gap-1 overflow-hidden">
+                          {(activeTrackSpk as any).foto_kendaraan_masuk ? (
+                            <img src={(activeTrackSpk as any).foto_kendaraan_masuk} alt="Kendaraan Masuk" className="h-full w-full object-cover" />
+                          ) : (
+                            <>
+                              <Camera className="w-6 h-6" />
+                              <span className="text-[10px]">Tersimpan di Security Log</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500">Tampak Depan & Nopol</div>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-center">
+                        <div className="text-[11px] font-semibold text-slate-700">Foto Sebelum Pengerjaan</div>
+                        <div className="h-32 bg-slate-200 rounded-lg flex flex-col items-center justify-center text-slate-400 gap-1">
+                          <Camera className="w-6 h-6" />
+                          <span className="text-[10px]">Kondisi Awal Komponen</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500">Dokumentasi SA / Mekanik</div>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-center">
+                        <div className="text-[11px] font-semibold text-slate-700">Foto Setelah Pengerjaan</div>
+                        <div className="h-32 bg-slate-200 rounded-lg flex flex-col items-center justify-center text-slate-400 gap-1">
+                          {activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai' ? (
+                            <>
+                              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                              <span className="text-[10px] text-emerald-700 font-medium">Verifikasi QC Disetujui</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="w-6 h-6 text-slate-400" />
+                              <span className="text-[10px]">Menunggu Pekerjaan Selesai</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500">Inspeksi Akhir Foreman</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dokumen Terkait Armada */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <span className="font-bold text-slate-800 block">Berkas & Dokumen Armada Ini:</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-colors">
+                        <div className="flex items-center gap-2.5">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <div className="font-semibold text-slate-900">SPK_{activeTrackSpk.no_spk}.pdf</div>
+                            <div className="text-[10px] text-slate-400">Surat Perintah Kerja Resmi</div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => alert(`Mengunduh salinan Surat Perintah Kerja ${activeTrackSpk.no_spk}`)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          title="Unduh SPK"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {activeArmadaDocs.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-colors">
+                          <div className="flex items-center gap-2.5">
+                            <FileCheck className="w-5 h-5 text-emerald-600" />
+                            <div>
+                              <div className="font-semibold text-slate-900">{doc.nama_dokumen || doc.jenis_dokumen}</div>
+                              <div className="text-[10px] text-slate-400">Berlaku s/d: {doc.masa_berlaku || '-'}</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => alert(`Mengunduh dokumen ${doc.nama_dokumen}`)}
+                            className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                            title="Unduh Dokumen"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {activeArmadaDocs.length === 0 && (
+                        <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white">
+                          <div className="flex items-center gap-2.5">
+                            <FileCheck className="w-5 h-5 text-slate-500" />
+                            <div>
+                              <div className="font-semibold text-slate-900">Kartu_Riwayat_Service.pdf</div>
+                              <div className="text-[10px] text-slate-400">Riwayat Perawatan Rutin Bengkel KIM3</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => alert(`Mengunduh riwayat service armada ${activeTrackSpk.no_polisi}`)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            title="Unduh Riwayat"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>
