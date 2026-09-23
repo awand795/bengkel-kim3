@@ -316,19 +316,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     <div className="space-y-6">
       
       {/* Top Banner / Pos Security Header */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20">
+          <div className="w-11 h-11 rounded-md bg-accent text-white flex items-center justify-center font-black shadow-xs">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black text-slate-900 tracking-tight">SECURITY – BENGKEL KIM3</h1>
-              <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-black tracking-wide border border-blue-200">
+              <h1 className="text-lg font-black text-ink tracking-tight">SECURITY – BENGKEL KIM3</h1>
+              <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent text-[11px] font-bold tracking-wide border border-accent/30">
                 POS UTAMA
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-ink-muted mt-0.5">
               Gate Control &amp; Validasi Nopol Booking, Monitoring Armada Realtime, dan Penerbitan Memo Keluar
             </p>
           </div>
@@ -354,7 +354,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               });
               changeTab('checkin');
             }}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
+            className="px-4 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
             + CHECK IN KENDARAAN MASUK
@@ -368,95 +368,99 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {currentTab === 'dashboard' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Booking Hari Ini (Kategori Utama: Netral + text-accent) */}
             <div 
               onClick={() => changeTab('booking')}
-              className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs cursor-pointer hover:border-blue-300 transition-all"
+              className="bg-surface-raised p-4 rounded-md border border-border shadow-xs cursor-pointer hover:border-accent transition-all"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">Booking Hari Ini</span>
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <span className="text-xs font-bold text-ink-muted">Booking Hari Ini</span>
+                <div className="w-8 h-8 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
                   <Calendar className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-slate-900 mt-2">{bookingList.length} Unit</div>
-              <p className="text-[11px] text-blue-600 font-semibold mt-1 flex items-center gap-1">
+              <div className="text-2xl font-black text-accent mt-2 tabular-nums">{bookingList.length} Unit</div>
+              <p className="text-[11px] text-accent font-semibold mt-1 flex items-center gap-1">
                 Buka List Booking →
               </p>
             </div>
 
+            {/* Card 2: Armada di Dalam Bengkel (On Progress: Status Amber) */}
             <div 
               onClick={() => changeTab('onprogress')}
-              className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs cursor-pointer hover:border-orange-300 transition-all"
+              className="bg-surface-raised p-4 rounded-md border border-border shadow-xs cursor-pointer hover:border-status-amber transition-all"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">Armada di Dalam Bengkel</span>
-                <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                <span className="text-xs font-bold text-ink-muted">Armada di Dalam Bengkel</span>
+                <div className="w-8 h-8 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
                   <Truck className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-orange-600 mt-2">{onProgressList.length} Unit</div>
-              <p className="text-[11px] text-orange-600 font-semibold mt-1 flex items-center gap-1">
+              <div className="text-2xl font-black text-status-amber mt-2 tabular-nums">{onProgressList.length} Unit</div>
+              <p className="text-[11px] text-status-amber font-semibold mt-1 flex items-center gap-1">
                 Pantau On Progress →
               </p>
             </div>
 
+            {/* Card 3: Keluar / Selesai Hari Ini (Selesai: Status Green) */}
             <div 
               onClick={() => changeTab('selesai')}
-              className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs cursor-pointer hover:border-emerald-300 transition-all"
+              className="bg-surface-raised p-4 rounded-md border border-border shadow-xs cursor-pointer hover:border-status-green transition-all"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">Keluar / Selesai Hari Ini</span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <span className="text-xs font-bold text-ink-muted">Keluar / Selesai Hari Ini</span>
+                <div className="w-8 h-8 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
                   <CheckCircle className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-emerald-700 mt-2">{selesaiList.length} Unit</div>
-              <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+              <div className="text-2xl font-black text-status-green mt-2 tabular-nums">{selesaiList.length} Unit</div>
+              <p className="text-[11px] text-status-green font-semibold mt-1 flex items-center gap-1">
                 Histori Keluar →
               </p>
             </div>
 
+            {/* Card 4: Memo Keluar Diterbitkan (Arsip Dokumen: Netral) */}
             <div 
               onClick={() => changeTab('memo')}
-              className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs cursor-pointer hover:border-purple-300 transition-all"
+              className="bg-surface-raised p-4 rounded-md border border-border shadow-xs cursor-pointer hover:border-border transition-all"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">Memo Keluar Diterbitkan</span>
-                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                <span className="text-xs font-bold text-ink-muted">Memo Keluar Diterbitkan</span>
+                <div className="w-8 h-8 rounded-md bg-surface text-ink-subtle flex items-center justify-center border border-border">
                   <FileText className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-purple-700 mt-2">{memoList.length} Surat</div>
-              <p className="text-[11px] text-purple-600 font-semibold mt-1 flex items-center gap-1">
+              <div className="text-2xl font-black text-ink mt-2 tabular-nums">{memoList.length} Surat</div>
+              <p className="text-[11px] text-ink-muted font-semibold mt-1 flex items-center gap-1">
                 Arsip &amp; Cetak Memo →
               </p>
             </div>
           </div>
 
           {/* Gate Control Live Stream */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
               <div>
-                <h2 className="text-sm font-black text-slate-900">Live Aktivitas Gerbang Masuk &amp; Keluar Pos Security</h2>
-                <p className="text-xs text-slate-500">Pencatatan realtime seluruh armada yang melintas di pos gerbang</p>
+                <h2 className="text-sm font-bold text-ink">Live Aktivitas Gerbang Masuk &amp; Keluar Pos Security</h2>
+                <p className="text-xs text-ink-muted">Pencatatan realtime seluruh armada yang melintas di pos gerbang</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCheckinModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white font-bold text-xs transition-colors"
+                className="px-3 py-1.5 rounded-md bg-accent-subtle text-accent hover:bg-accent hover:text-white font-bold text-xs transition-colors"
               >
                 + Check In Langsung
               </button>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-border">
               {antrianData.slice(0, 6).map((item) => (
                 <div key={`feed-${item.id}`} className="py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                    <div className={`w-9 h-9 rounded-md flex items-center justify-center font-bold text-xs ${
                       item.status_kunjungan === 'Selesai' || item.status_kunjungan === 'Keluar'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-blue-100 text-blue-700'
+                        ? 'bg-status-green-bg text-status-green'
+                        : 'bg-accent-subtle text-accent'
                     }`}>
                       {item.status_kunjungan === 'Selesai' || item.status_kunjungan === 'Keluar' ? (
                         <LogOut className="w-4 h-4" />
@@ -466,13 +470,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-900">{item.no_polisi}</span>
-                        <span className="text-[11px] font-semibold text-slate-600">({item.nama_customer})</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 font-bold text-slate-600">
+                        <span className="text-xs font-black text-ink">{item.no_polisi}</span>
+                        <span className="text-[11px] font-semibold text-ink-muted">({item.nama_customer})</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-surface font-bold text-ink-muted border border-border">
                           {item.tujuan_kedatangan}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
+                      <div className="text-[11px] text-ink-subtle mt-0.5 font-mono">
                         Masuk: {new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB 
                         {item.waktu_keluar && ` • Keluar: ${new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB`}
                       </div>
@@ -484,7 +488,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <button
                       type="button"
                       onClick={() => setShowDetailModal(item)}
-                      className="px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent-subtle rounded-md transition-colors"
                     >
                       Detail →
                     </button>
@@ -502,31 +506,31 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {currentTab === 'checkin' && (
         <div className="space-y-6">
           {/* Header Bar */}
-          <div className="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-5 sm:p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-surface-dark rounded-md p-5 sm:p-6 text-white border border-border-dark shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg bg-white/20 text-white text-[11px] font-black uppercase tracking-wider backdrop-blur-xs">
+                <span className="px-2.5 py-1 rounded bg-accent-subtle/20 text-teal-100 text-[11px] font-black uppercase tracking-wider backdrop-blur-xs">
                   POS SECURITY GERBANG
                 </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-xs text-blue-100 font-medium">Live Recording &amp; Realtime Sync</span>
+                <span className="w-2 h-2 rounded-full bg-status-green animate-pulse"></span>
+                <span className="text-xs text-teal-100/80 font-medium">Live Recording &amp; Realtime Sync</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight">
                 Check In Kendaraan Masuk
               </h2>
-              <p className="text-xs text-blue-100/90 mt-1 max-w-xl">
+              <p className="text-xs text-teal-100/70 mt-1 max-w-xl">
                 Catat nomor polisi, jenis armada, tujuan kedatangan, dan dokumentasi fisik saat armada tiba di gerbang KIM 3.
               </p>
             </div>
             
             <div className="flex items-center gap-3">
-              <div className="bg-white/10 backdrop-blur-xs rounded-2xl px-4 py-3 text-center border border-white/10">
-                <div className="text-[10px] text-blue-200 uppercase font-bold">Total Masuk</div>
-                <div className="text-2xl font-black">{antrianData.length}</div>
+              <div className="bg-white/5 backdrop-blur-xs rounded-md px-4 py-3 text-center border border-border-dark">
+                <div className="text-[10px] text-teal-200/70 uppercase font-bold">Total Masuk</div>
+                <div className="text-2xl font-black tabular-nums">{antrianData.length}</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-xs rounded-2xl px-4 py-3 text-center border border-white/10">
-                <div className="text-[10px] text-blue-200 uppercase font-bold">On Progress</div>
-                <div className="text-2xl font-black text-orange-300">{onProgressList.length}</div>
+              <div className="bg-white/5 backdrop-blur-xs rounded-md px-4 py-3 text-center border border-border-dark">
+                <div className="text-[10px] text-teal-200/70 uppercase font-bold">On Progress</div>
+                <div className="text-2xl font-black text-status-amber tabular-nums">{onProgressList.length}</div>
               </div>
             </div>
           </div>
@@ -534,19 +538,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           {/* Split Layout: Left = Form Check-In, Right = Riwayat Check-In Hari Ini */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* LEFT COLUMN: Input Form (7 cols) */}
-            <div className="lg:col-span-7 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="lg:col-span-7 bg-surface-raised rounded-md p-5 sm:p-6 border border-border shadow-xs space-y-5">
+              <div className="flex items-center justify-between border-b border-border pb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <div className="w-9 h-9 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold">
                     <PlusCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900">Formulir Validasi Gerbang</h3>
-                    <p className="text-xs text-slate-500">Lengkapi data armada sebelum diarahkan ke area bengkel</p>
+                    <h3 className="text-sm font-bold text-ink">Formulir Validasi Gerbang</h3>
+                    <p className="text-xs text-ink-muted">Lengkapi data armada sebelum diarahkan ke area bengkel</p>
                   </div>
                 </div>
                 {formCheckin.id_booking && (
-                  <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold">
+                  <span className="px-2.5 py-1 rounded bg-accent-subtle text-accent border border-accent/30 text-[11px] font-bold">
                     Terkait Booking #{formCheckin.id_booking}
                   </span>
                 )}
@@ -560,14 +564,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 className="space-y-6 text-xs"
               >
                 {/* Bagian 1: Identitas Kendaraan */}
-                <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200">
-                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-slate-500" /> Identitas Kendaraan
+                <div className="bg-surface p-4 sm:p-5 rounded-md border border-border">
+                  <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-ink-subtle" /> Identitas Kendaraan
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1.5">
-                        Nomor Polisi (Plat Nomor) <span className="text-rose-500">*</span>
+                      <label className="block font-bold text-ink-muted mb-1.5">
+                        Nomor Polisi (Plat Nomor) <span className="text-status-red">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -576,17 +580,17 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           placeholder="Contoh: BK 1234 AB"
                           value={formCheckin.no_polisi}
                           onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm sm:text-base font-black uppercase tracking-wider focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                          className="w-full px-4 py-3 rounded-md border border-border text-sm sm:text-base font-black uppercase tracking-wider focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs font-mono"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1.5">Jenis Armada</label>
+                      <label className="block font-bold text-ink-muted mb-1.5">Jenis Armada</label>
                       <select
                         value={formCheckin.jenis_armada}
                         onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                        className="w-full px-4 py-3 rounded-md border border-border font-bold focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                       >
                         <option value="Truk">Truk (Canter / Dutro / Tronton / Fuso)</option>
                         <option value="Mobil">Mobil Pribadi / Operasional</option>
@@ -598,14 +602,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 </div>
 
                 {/* Bagian 2: Detail Kedatangan */}
-                <div className="bg-blue-50/40 p-4 sm:p-5 rounded-2xl border border-blue-100">
-                  <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-blue-600" /> Detail Kedatangan
+                <div className="bg-surface p-4 sm:p-5 rounded-md border border-border">
+                  <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-accent" /> Detail Kedatangan
                   </h4>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block font-bold text-slate-700 mb-2">Tujuan Kedatangan <span className="text-rose-500">*</span></label>
+                      <label className="block font-bold text-ink-muted mb-2">Tujuan Kedatangan <span className="text-status-red">*</span></label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                         {[
                           { id: 'Service', label: '1. Service', desc: 'Perbaikan / Service Truk' },
@@ -631,14 +635,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                                 pic_tujuan: defaultPic || formCheckin.pic_tujuan,
                               });
                             }}
-                            className={`p-3 rounded-xl border-2 text-left transition-all ${
+                            className={`p-3 rounded-md border text-left transition-all ${
                               formCheckin.tujuan_kedatangan === t.id
-                                ? 'border-blue-600 bg-white text-blue-900 shadow-md ring-2 ring-blue-600/20'
-                                : 'border-transparent bg-white hover:border-blue-200 text-slate-700 shadow-xs'
+                                ? 'border-accent bg-surface-raised text-accent font-bold ring-1 ring-accent/30 shadow-xs'
+                                : 'border-border bg-surface-raised hover:border-accent/40 text-ink-muted shadow-2xs'
                             }`}
                           >
-                            <div className="text-xs font-black">{t.label}</div>
-                            <div className="text-[10px] text-slate-500 mt-1">{t.desc}</div>
+                            <div className="text-xs font-bold">{t.label}</div>
+                            <div className="text-[10px] text-ink-subtle mt-1">{t.desc}</div>
                           </button>
                         ))}
                       </div>
@@ -646,7 +650,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div>
-                        <label className="block font-bold text-slate-700 mb-1.5">PIC / Petugas Tujuan</label>
+                        <label className="block font-bold text-ink-muted mb-1.5">PIC / Petugas Tujuan</label>
                         <select
                           value={formCheckin.id_pic ? String(formCheckin.id_pic) : formCheckin.pic_tujuan}
                           onChange={(e) => {
@@ -666,7 +670,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                               });
                             }
                           }}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                          className="w-full px-4 py-2.5 rounded-md border border-border font-semibold focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                         >
                           <option value="">-- Pilih PIC / Petugas Tujuan --</option>
                           {picPetugasList.map((p) => (
@@ -681,13 +685,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       </div>
 
                       <div>
-                        <label className="block font-bold text-slate-700 mb-1.5">Keperluan Singkat / Keluhan</label>
+                        <label className="block font-bold text-ink-muted mb-1.5">Keperluan Singkat / Keluhan</label>
                         <input
                           type="text"
                           placeholder="Contoh: Ganti oli rutin, servis rem, meeting"
                           value={formCheckin.keperluan}
                           onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                          className="w-full px-4 py-2.5 rounded-md border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                         />
                       </div>
                     </div>
@@ -696,35 +700,35 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                 {/* Bagian 3: Data Customer & Dokumentasi */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-4">
-                    <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                      <User className="w-4 h-4 text-slate-500" /> Data Pengemudi / PIC
+                  <div className="bg-surface p-4 sm:p-5 rounded-md border border-border space-y-4">
+                    <h4 className="font-bold text-ink flex items-center gap-2">
+                      <User className="w-4 h-4 text-ink-subtle" /> Data Pengemudi / PIC
                     </h4>
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1.5">Nama Customer / Perusahaan</label>
+                      <label className="block font-bold text-ink-muted mb-1.5">Nama Customer / Perusahaan</label>
                       <input
                         type="text"
                         placeholder="Contoh: PT. Andi Jaya"
                         value={formCheckin.nama_customer}
                         onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                        className="w-full px-4 py-2.5 rounded-md border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1.5">No. HP Driver / PIC</label>
+                      <label className="block font-bold text-ink-muted mb-1.5">No. HP Driver / PIC</label>
                       <input
                         type="text"
                         placeholder="0812-xxxx-xxxx"
                         value={formCheckin.no_hp_customer}
                         onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                        className="w-full px-4 py-2.5 rounded-md border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs font-mono"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-4">
-                    <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                      <Camera className="w-4 h-4 text-slate-500" /> Dokumentasi & Catatan
+                  <div className="bg-surface p-4 sm:p-5 rounded-md border border-border space-y-4">
+                    <h4 className="font-bold text-ink flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-ink-subtle" /> Dokumentasi &amp; Catatan
                     </h4>
                     <PhotoUploader
                       label="Foto Kendaraan Saat Masuk Gerbang"
@@ -733,19 +737,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       bucket="foto_kendaraan"
                     />
                     <div>
-                      <label className="block font-bold text-slate-700 mb-1.5">Catatan Security</label>
+                      <label className="block font-bold text-ink-muted mb-1.5">Catatan Security</label>
                       <textarea
                         rows={2}
                         placeholder="Catatan kondisi awal fisik atau kelengkapan armada..."
                         value={formCheckin.catatan_security}
                         onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-xs"
+                        className="w-full px-4 py-2.5 rounded-md border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <div className="flex gap-3 pt-4 border-t border-border">
                   <button
                     type="button"
                     onClick={() => {
@@ -763,14 +767,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         id_booking: undefined,
                       });
                     }}
-                    className="px-6 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all"
+                    className="px-6 py-3.5 rounded-md bg-surface hover:bg-border text-ink-muted font-bold transition-all border border-border"
                   >
                     Reset Form
                   </button>
                   <button
                     type="submit"
                     disabled={checkinMutation.isPending}
-                    className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 text-sm"
+                    className="flex-1 py-3.5 bg-accent hover:bg-accent-hover text-white font-black rounded-md shadow-xs transition-all flex items-center justify-center gap-2 text-sm"
                   >
                     <PlusCircle className="w-5 h-5" />
                     {checkinMutation.isPending ? 'Menyimpan ke Sistem...' : 'SUBMIT CHECK-IN KENDARAAN'}
@@ -780,22 +784,22 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             {/* RIGHT COLUMN: Riwayat Check-In Hari Ini (5 cols) */}
-            <div className="lg:col-span-5 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between">
+            <div className="lg:col-span-5 bg-surface-raised rounded-md p-5 sm:p-6 border border-border shadow-xs space-y-4 flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between border-b border-border pb-3">
                   <div>
-                    <h3 className="text-sm font-black text-slate-900">Riwayat Check-In Hari Ini</h3>
-                    <p className="text-xs text-slate-500">Daftar unit yang baru masuk gerbang</p>
+                    <h3 className="text-sm font-bold text-ink">Riwayat Check-In Hari Ini</h3>
+                    <p className="text-xs text-ink-muted">Daftar unit yang baru masuk gerbang</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black">
+                  <span className="px-2.5 py-1 rounded bg-status-green-bg text-status-green border border-status-green/20 text-xs font-black tabular-nums">
                     {antrianData.length} Unit
                   </span>
                 </div>
 
                 {/* Quick List */}
-                <div className="divide-y divide-slate-100 max-h-[580px] overflow-y-auto space-y-2 pt-2">
+                <div className="divide-y divide-border max-h-[580px] overflow-y-auto space-y-2 pt-2">
                   {antrianData.length === 0 ? (
-                    <div className="py-12 text-center text-slate-400">
+                    <div className="py-12 text-center text-ink-subtle">
                       <Truck className="w-10 h-10 mx-auto mb-2 opacity-30" />
                       <p className="font-semibold text-xs">Belum ada kendaraan yang di-check in hari ini</p>
                     </div>
@@ -803,27 +807,27 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     antrianData.map((item) => (
                       <div
                         key={item.id}
-                        className="py-3 px-3 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-200 flex items-center justify-between gap-3"
+                        className="py-3 px-3 hover:bg-surface rounded-md transition-all border border-transparent hover:border-border flex items-center justify-between gap-3"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono font-black text-xs tracking-wider">
+                            <span className="px-2.5 py-1 rounded bg-surface-dark text-white font-mono font-black text-xs tracking-wider">
                               {item.no_polisi}
                             </span>
-                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent border border-accent/30 text-[10px] font-bold">
                               {item.tujuan_kedatangan}
                             </span>
                           </div>
-                          <div className="text-xs font-bold text-slate-800">
+                          <div className="text-xs font-bold text-ink">
                             {item.nama_customer || '-'}
                           </div>
-                          <div className="text-[10px] text-slate-400 flex items-center gap-2">
-                            <Clock className="w-3 h-3" />
+                          <div className="text-[10px] text-ink-subtle flex items-center gap-2 font-mono">
+                            <Clock className="w-3 h-3 text-ink-subtle" />
                             <span>
                               {item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}
                             </span>
                             <span>•</span>
-                            <span className="font-medium text-slate-600">{item.pic_tujuan || '-'}</span>
+                            <span className="font-medium text-ink-muted">{item.pic_tujuan || '-'}</span>
                           </div>
                         </div>
 
@@ -832,7 +836,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           <button
                             type="button"
                             onClick={() => setShowDetailModal(item)}
-                            className="text-[11px] font-bold text-blue-600 hover:text-blue-800"
+                            className="text-[11px] font-bold text-accent hover:text-accent-hover"
                           >
                             Detail →
                           </button>
@@ -844,8 +848,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </div>
 
               {/* Informational Alert Box */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[11px] flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-md bg-surface border border-border text-ink-muted text-[11px] flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                 <p>
                   Setiap kendaraan yang selesai di-check in akan otomatis memicu <strong>notifikasi realtime</strong> ke Service Advisor, Warehouse, atau PIC terkait serta mengupdate antrian bengkel.
                 </p>
@@ -860,15 +864,15 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {currentTab === 'booking' && (
         <div className="space-y-5">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
             
             {/* Header & Filter Controls matching screenshot */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center">
+                <span className="w-6 h-6 rounded bg-accent text-white font-black text-xs flex items-center justify-center">
                   1
                 </span>
-                <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">
+                <h2 className="text-sm font-bold text-ink tracking-tight uppercase">
                   LIST NOPOL YANG TELAH BOOKING
                 </h2>
               </div>
@@ -881,22 +885,22 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Cari No. Polisi / Nama Customer"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-3.5 pr-8 py-1.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none w-64 bg-white"
+                    className="pl-3.5 pr-8 py-1.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none w-64 bg-surface-raised text-ink"
                   />
-                  <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-700">
-                  <span className="text-slate-400 font-medium">Tanggal</span>
-                  <span className="font-bold text-slate-800">{todayFormatted}</span>
-                  <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1" />
+                <div className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted">
+                  <span className="text-ink-subtle font-medium">Tanggal</span>
+                  <span className="font-bold text-ink">{todayFormatted}</span>
+                  <Calendar className="w-3.5 h-3.5 text-ink-subtle ml-1" />
                 </div>
 
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-md border border-border bg-surface-raised hover:bg-surface text-xs font-bold text-ink-muted flex items-center gap-1.5 transition-colors"
                 >
-                  <Filter className="w-3.5 h-3.5 text-slate-500" />
+                  <Filter className="w-3.5 h-3.5 text-ink-subtle" />
                   Filter
                 </button>
               </div>
@@ -905,7 +909,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             {/* Table: No, No. Polisi, Nama Customer, Tujuan Kunjungan, Jenis Armada, Tgl Booking, Jam Booking, Status */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 border-y border-slate-200">
+                <thead className="bg-surface text-ink-muted border-y border-border">
                   <tr>
                     <th className="py-2.5 px-3 font-bold w-12">No.</th>
                     <th className="py-2.5 px-3 font-bold">No. Polisi</th>
@@ -917,10 +921,10 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <th className="py-2.5 px-3 font-bold text-center">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {filteredBookingList.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-400 font-medium">
+                      <td colSpan={8} className="py-8 text-center text-ink-subtle font-medium">
                         Tidak ada data booking kendaraan.
                       </td>
                     </tr>
@@ -932,18 +936,18 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           key={b.id}
                           onClick={() => setSelectedBooking(b)}
                           className={`cursor-pointer transition-colors ${
-                            isSelected ? 'bg-blue-50/90 font-medium' : 'hover:bg-slate-50/70'
+                            isSelected ? 'bg-accent-subtle/70 font-medium' : 'hover:bg-surface/80'
                           }`}
                         >
-                          <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
-                          <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{b.no_polisi}</td>
-                          <td className="py-3 px-3 text-slate-800 font-medium">{b.nama_customer || b.nama_perusahaan}</td>
-                          <td className="py-3 px-3 text-slate-600">{b.tujuan_kunjungan || b.jenis_layanan}</td>
-                          <td className="py-3 px-3 text-slate-600">{b.jenis_armada || 'Truk'}</td>
-                          <td className="py-3 px-3 text-slate-700 font-medium">{b.tanggal_booking}</td>
-                          <td className="py-3 px-3 font-bold text-slate-800 font-mono">{b.jam_booking}</td>
+                          <td className="py-3 px-3 text-ink-subtle font-semibold">{idx + 1}</td>
+                          <td className="py-3 px-3 font-black text-ink tracking-wide font-mono">{b.no_polisi}</td>
+                          <td className="py-3 px-3 text-ink font-medium">{b.nama_customer || b.nama_perusahaan}</td>
+                          <td className="py-3 px-3 text-ink-muted">{b.tujuan_kunjungan || b.jenis_layanan}</td>
+                          <td className="py-3 px-3 text-ink-muted">{b.jenis_armada || 'Truk'}</td>
+                          <td className="py-3 px-3 text-ink-muted font-medium">{b.tanggal_booking}</td>
+                          <td className="py-3 px-3 font-bold text-ink font-mono">{b.jam_booking}</td>
                           <td className="py-3 px-3 text-center">
-                            <span className="inline-block px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-700 font-bold text-[11px]">
+                            <span className="inline-block px-2.5 py-0.5 rounded bg-accent-subtle text-accent border border-accent/30 font-bold text-[11px]">
                               {b.status}
                             </span>
                           </td>
@@ -956,53 +960,53 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+            <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-ink-subtle">
               <div>Menampilkan {filteredBookingList.length > 0 ? `1 - ${filteredBookingList.length}` : '0'} dari {bookingList.length} data</div>
               <div className="flex items-center gap-1">
-                <button className="px-2 py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&lt;</button>
-                <button className="px-2.5 py-1 rounded bg-blue-600 text-white font-bold">1</button>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">2</button>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">3</button>
-                <span className="px-1 text-slate-400">...</span>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">5</button>
-                <button className="px-2 py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&gt;</button>
+                <button className="px-2 py-1 rounded border border-border text-ink-subtle hover:bg-surface">&lt;</button>
+                <button className="px-2.5 py-1 rounded bg-accent text-white font-bold">1</button>
+                <button className="px-2.5 py-1 rounded border border-border text-ink-muted hover:bg-surface">2</button>
+                <button className="px-2.5 py-1 rounded border border-border text-ink-muted hover:bg-surface">3</button>
+                <span className="px-1 text-ink-subtle">...</span>
+                <button className="px-2.5 py-1 rounded border border-border text-ink-muted hover:bg-surface">5</button>
+                <button className="px-2.5 py-1 rounded border border-border text-ink-subtle hover:bg-surface">&gt;</button>
               </div>
             </div>
 
             {/* Detail Booking Card with '+ PILIH & ISI OTOMATIS' */}
             {selectedBooking && (
-              <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="mt-4 p-4 rounded-md bg-surface border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-2 flex-1">
-                  <div className="text-[11px] font-black uppercase text-slate-400 tracking-wider">
+                  <div className="text-[11px] font-bold uppercase text-ink-subtle tracking-wider">
                     DETAIL BOOKING
                   </div>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div>
-                      <div className="text-slate-400 text-[10px]">No. Polisi</div>
-                      <div className="text-base font-black text-slate-900 mt-0.5">{selectedBooking.no_polisi}</div>
-                      <div className="text-slate-400 text-[10px] mt-1.5">Jenis Armada</div>
-                      <div className="font-bold text-slate-800">{selectedBooking.jenis_armada || 'Truk'}</div>
-                      <div className="text-slate-400 text-[10px] mt-1.5">Tujuan Kunjungan</div>
-                      <div className="font-semibold text-slate-800">{selectedBooking.tujuan_kunjungan || 'Service'}</div>
+                      <div className="text-ink-subtle text-[10px]">No. Polisi</div>
+                      <div className="text-base font-black text-ink mt-0.5 font-mono">{selectedBooking.no_polisi}</div>
+                      <div className="text-ink-subtle text-[10px] mt-1.5">Jenis Armada</div>
+                      <div className="font-bold text-ink">{selectedBooking.jenis_armada || 'Truk'}</div>
+                      <div className="text-ink-subtle text-[10px] mt-1.5">Tujuan Kunjungan</div>
+                      <div className="font-semibold text-ink">{selectedBooking.tujuan_kunjungan || 'Service'}</div>
                     </div>
 
                     <div>
-                      <div className="text-slate-400 text-[10px]">Nama Customer</div>
-                      <div className="font-bold text-slate-900 mt-0.5">{selectedBooking.nama_customer || selectedBooking.nama_perusahaan || '-'}</div>
-                      <div className="text-slate-400 text-[10px] mt-1.5">No. Telepon</div>
-                      <div className="font-mono text-slate-700 font-semibold">{selectedBooking.no_telepon || '-'}</div>
-                      <div className="text-slate-400 text-[10px] mt-1.5">PIC / Driver</div>
-                      <div className="font-semibold text-slate-800">{selectedBooking.pic_driver || '-'}</div>
+                      <div className="text-ink-subtle text-[10px]">Nama Customer</div>
+                      <div className="font-bold text-ink mt-0.5">{selectedBooking.nama_customer || selectedBooking.nama_perusahaan || '-'}</div>
+                      <div className="text-ink-subtle text-[10px] mt-1.5">No. Telepon</div>
+                      <div className="font-mono text-ink-muted font-semibold">{selectedBooking.no_telepon || '-'}</div>
+                      <div className="text-ink-subtle text-[10px] mt-1.5">PIC / Driver</div>
+                      <div className="font-semibold text-ink">{selectedBooking.pic_driver || '-'}</div>
                     </div>
 
                     <div>
-                      <div className="text-slate-400 text-[10px]">Tanggal Booking</div>
-                      <div className="font-bold text-slate-900 mt-0.5">{selectedBooking.tanggal_booking}</div>
-                      <div className="text-slate-400 text-[10px] mt-1.5">Jam Booking</div>
-                      <div className="font-mono font-bold text-blue-600">{selectedBooking.jam_booking}</div>
-                      <div className="text-slate-400 text-[10px] mt-1.5">Keterangan</div>
-                      <div className="text-slate-600 italic text-[11px] truncate">{selectedBooking.keterangan || '-'}</div>
+                      <div className="text-ink-subtle text-[10px]">Tanggal Booking</div>
+                      <div className="font-bold text-ink mt-0.5">{selectedBooking.tanggal_booking}</div>
+                      <div className="text-ink-subtle text-[10px] mt-1.5">Jam Booking</div>
+                      <div className="font-mono font-bold text-accent">{selectedBooking.jam_booking}</div>
+                      <div className="text-ink-subtle text-[10px] mt-1.5">Keterangan</div>
+                      <div className="text-ink-muted italic text-[11px] truncate">{selectedBooking.keterangan || '-'}</div>
                     </div>
                   </div>
                 </div>
@@ -1027,7 +1031,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       });
                       changeTab('checkin');
                     }}
-                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-5 py-3 rounded-md bg-accent hover:bg-accent-hover text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2"
                   >
                     <PlusCircle className="w-4 h-4" />
                     + PILIH &amp; ISI OTOMATIS
@@ -1050,59 +1054,59 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
             
             {/* Total On Progress */}
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <div className="bg-surface-raised p-3.5 rounded-md border border-border shadow-xs flex items-center gap-3">
+              <div className="w-11 h-11 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
                 <Truck className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-[11px] text-slate-500 font-semibold leading-tight">Total On Progress</div>
-                <div className="text-xl font-black text-slate-900 mt-0.5">{countTotalOnProgress} <span className="text-xs font-medium text-slate-400">Unit</span></div>
+                <div className="text-[11px] text-ink-muted font-semibold leading-tight">Total On Progress</div>
+                <div className="text-xl font-black text-ink mt-0.5">{countTotalOnProgress} <span className="text-xs font-medium text-ink-subtle">Unit</span></div>
               </div>
             </div>
 
             {/* Sedang Dikerjakan */}
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+            <div className="bg-surface-raised p-3.5 rounded-md border border-border shadow-xs flex items-center gap-3">
+              <div className="w-11 h-11 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
                 <Wrench className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] text-slate-500 font-semibold leading-tight">Sedang Dikerjakan</div>
-                <div className="text-xl font-black text-orange-600 mt-0.5">{countSedangDikerjakan} <span className="text-xs font-medium text-slate-400">Unit</span></div>
+                <div className="text-[11px] text-ink-muted font-semibold leading-tight">Sedang Dikerjakan</div>
+                <div className="text-xl font-black text-status-amber mt-0.5">{countSedangDikerjakan} <span className="text-xs font-medium text-ink-subtle">Unit</span></div>
               </div>
             </div>
 
             {/* Menunggu Part / Approval */}
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+            <div className="bg-surface-raised p-3.5 rounded-md border border-border shadow-xs flex items-center gap-3">
+              <div className="w-11 h-11 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] text-slate-500 font-semibold leading-tight">Menunggu Part / Approval</div>
-                <div className="text-xl font-black text-purple-700 mt-0.5">{countMenungguPart} <span className="text-xs font-medium text-slate-400">Unit</span></div>
+                <div className="text-[11px] text-ink-muted font-semibold leading-tight">Menunggu Part / Approval</div>
+                <div className="text-xl font-black text-status-amber mt-0.5">{countMenungguPart} <span className="text-xs font-medium text-ink-subtle">Unit</span></div>
               </div>
             </div>
 
             {/* Menunggu QC */}
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+            <div className="bg-surface-raised p-3.5 rounded-md border border-border shadow-xs flex items-center gap-3">
+              <div className="w-11 h-11 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] text-slate-500 font-semibold leading-tight">Menunggu QC</div>
-                <div className="text-xl font-black text-teal-700 mt-0.5">{countMenungguQC} <span className="text-xs font-medium text-slate-400">Unit</span></div>
+                <div className="text-[11px] text-ink-muted font-semibold leading-tight">Menunggu QC</div>
+                <div className="text-xl font-black text-accent mt-0.5">{countMenungguQC} <span className="text-xs font-medium text-ink-subtle">Unit</span></div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
             
             {/* Header & Filter Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center">
+                <span className="w-6 h-6 rounded-md bg-accent text-white font-black text-xs flex items-center justify-center">
                   2
                 </span>
-                <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">
+                <h2 className="text-sm font-black text-ink tracking-tight uppercase">
                   SELURUH NOPOL YANG MASIH BERADA DIBENGKEL (STATUS ON PROGRESS)
                 </h2>
               </div>
@@ -1115,22 +1119,22 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Cari No. Polisi / Nama Customer"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-3.5 pr-8 py-1.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none w-64 bg-white"
+                    className="pl-3.5 pr-8 py-1.5 rounded-md border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none w-64 bg-surface-raised text-ink"
                   />
-                  <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-700">
-                  <span className="text-slate-400 font-medium">Tanggal</span>
-                  <span className="font-bold text-slate-800">{todayFormatted}</span>
-                  <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1" />
+                <div className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted">
+                  <span className="text-ink-subtle font-medium">Tanggal</span>
+                  <span className="font-bold text-ink">{todayFormatted}</span>
+                  <Calendar className="w-3.5 h-3.5 text-ink-subtle ml-1" />
                 </div>
 
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised text-xs font-bold text-ink flex items-center gap-1.5 transition-colors"
                 >
-                  <Filter className="w-3.5 h-3.5 text-slate-500" />
+                  <Filter className="w-3.5 h-3.5 text-ink-muted" />
                   Filter
                 </button>
               </div>
@@ -1139,7 +1143,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             {/* Table: No, No. Polisi, Nama Customer, Jenis Armada, Tujuan, Masuk, Status, PIC / Mekanik, Aksi */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 border-y border-slate-200">
+                <thead className="bg-surface text-ink-muted border-y border-border">
                   <tr>
                     <th className="py-2.5 px-3 font-bold w-12">No.</th>
                     <th className="py-2.5 px-3 font-bold">No. Polisi</th>
@@ -1152,29 +1156,29 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <th className="py-2.5 px-3 font-bold text-center">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {filteredOnProgressList.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
+                      <td colSpan={9} className="py-8 text-center text-ink-subtle font-medium">
                         Tidak ada kendaraan yang sedang diproses.
                       </td>
                     </tr>
                   ) : (
                     filteredOnProgressList.map((item, idx) => (
-                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
-                        <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{item.no_polisi}</td>
-                        <td className="py-3 px-3 text-slate-800 font-medium">{item.nama_customer}</td>
-                        <td className="py-3 px-3 text-slate-600">{item.jenis_armada}</td>
-                        <td className="py-3 px-3 text-slate-700 font-medium">{item.tujuan_kedatangan}</td>
-                        <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
+                      <tr key={item.id} className="hover:bg-surface/80 transition-colors">
+                        <td className="py-3 px-3 text-ink-muted font-semibold">{idx + 1}</td>
+                        <td className="py-3 px-3 font-black text-ink tracking-wide">{item.no_polisi}</td>
+                        <td className="py-3 px-3 text-ink font-medium">{item.nama_customer}</td>
+                        <td className="py-3 px-3 text-ink-muted">{item.jenis_armada}</td>
+                        <td className="py-3 px-3 text-ink font-medium">{item.tujuan_kedatangan}</td>
+                        <td className="py-3 px-3 text-ink font-mono text-[11px]">
                           <div>{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
-                          <div className="text-slate-400 font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                          <div className="text-ink-subtle font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
                         </td>
                         <td className="py-3 px-3 text-center">
                           <StatusBadge status={item.status_kunjungan} size="sm" />
                         </td>
-                        <td className="py-3 px-3 font-medium text-slate-700">
+                        <td className="py-3 px-3 font-medium text-ink">
                           {item.nama_mekanik || item.pic_tujuan || '-'}
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -1183,7 +1187,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             <button
                               type="button"
                               onClick={() => setShowDetailModal(item)}
-                              className="px-2.5 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors"
+                              className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface font-bold text-xs transition-colors"
                             >
                               Detail
                             </button>
@@ -1199,7 +1203,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                                   no_memo_keluar: '',
                                 });
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1"
+                              className="px-2.5 py-1 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1"
                             >
                               <LogOut className="w-3 h-3" /> Check Out
                             </button>
@@ -1213,14 +1217,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+            <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-ink-muted">
               <div>Menampilkan 1 - {filteredOnProgressList.length} dari {onProgressList.length} data</div>
               <div className="flex items-center gap-1">
-                <button className="px-2 py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&lt;</button>
-                <button className="px-2.5 py-1 rounded bg-blue-600 text-white font-bold">1</button>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">2</button>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">3</button>
-                <button className="px-2 py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&gt;</button>
+                <button className="px-2 py-1 rounded-md border border-border text-ink-subtle hover:bg-surface">&lt;</button>
+                <button className="px-2.5 py-1 rounded-md bg-accent text-white font-bold">1</button>
+                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">2</button>
+                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">3</button>
+                <button className="px-2 py-1 rounded-md border border-border text-ink-subtle hover:bg-surface">&gt;</button>
               </div>
             </div>
 
@@ -1233,15 +1237,15 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {currentTab === 'selesai' && (
         <div className="space-y-5">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
             
             {/* Header & Filter Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center">
+                <span className="w-6 h-6 rounded-md bg-accent text-white font-black text-xs flex items-center justify-center">
                   3
                 </span>
-                <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">
+                <h2 className="text-sm font-black text-ink tracking-tight uppercase">
                   SELURUH NOPOL YANG TELAH MENINGGALKAN BENGKEL
                 </h2>
               </div>
@@ -1254,22 +1258,22 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Cari No. Polisi / Nama Customer"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-3.5 pr-8 py-1.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none w-64 bg-white"
+                    className="pl-3.5 pr-8 py-1.5 rounded-md border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none w-64 bg-surface-raised text-ink"
                   />
-                  <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-700">
-                  <span className="text-slate-400 font-medium">Tanggal</span>
-                  <span className="font-bold text-slate-800">{todayFormatted}</span>
-                  <Calendar className="w-3.5 h-3.5 text-slate-400 ml-1" />
+                <div className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted">
+                  <span className="text-ink-subtle font-medium">Tanggal</span>
+                  <span className="font-bold text-ink">{todayFormatted}</span>
+                  <Calendar className="w-3.5 h-3.5 text-ink-subtle ml-1" />
                 </div>
 
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised text-xs font-bold text-ink flex items-center gap-1.5 transition-colors"
                 >
-                  <Filter className="w-3.5 h-3.5 text-slate-500" />
+                  <Filter className="w-3.5 h-3.5 text-ink-muted" />
                   Filter
                 </button>
               </div>
@@ -1282,10 +1286,10 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   key={pill}
                   type="button"
                   onClick={() => setSelesaiTimeRange(pill)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                     selesaiTimeRange === pill
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-accent text-white shadow-xs'
+                      : 'bg-surface text-ink-muted hover:bg-border/60'
                   }`}
                 >
                   {pill}
@@ -1296,7 +1300,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             {/* Table: No, No. Polisi, Nama Customer, Jenis Armada, Tujuan, Masuk, Keluar, Status, Aksi */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 border-y border-slate-200">
+                <thead className="bg-surface text-ink-muted border-y border-border">
                   <tr>
                     <th className="py-2.5 px-3 font-bold w-12">No.</th>
                     <th className="py-2.5 px-3 font-bold">No. Polisi</th>
@@ -1309,31 +1313,31 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <th className="py-2.5 px-3 font-bold text-center">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {filteredSelesaiList.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-slate-400 font-medium">
+                      <td colSpan={9} className="py-8 text-center text-ink-subtle font-medium">
                         Tidak ada riwayat kendaraan selesai.
                       </td>
                     </tr>
                   ) : (
                     filteredSelesaiList.map((item, idx) => (
-                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3 px-3 text-slate-500 font-semibold">{idx + 1}</td>
-                        <td className="py-3 px-3 font-black text-slate-900 tracking-wide">{item.no_polisi}</td>
-                        <td className="py-3 px-3 text-slate-800 font-medium">{item.nama_customer}</td>
-                        <td className="py-3 px-3 text-slate-600">{item.jenis_armada}</td>
-                        <td className="py-3 px-3 text-slate-700 font-medium">{item.tujuan_kedatangan}</td>
-                        <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
+                      <tr key={item.id} className="hover:bg-surface/80 transition-colors">
+                        <td className="py-3 px-3 text-ink-muted font-semibold">{idx + 1}</td>
+                        <td className="py-3 px-3 font-black text-ink tracking-wide">{item.no_polisi}</td>
+                        <td className="py-3 px-3 text-ink font-medium">{item.nama_customer}</td>
+                        <td className="py-3 px-3 text-ink-muted">{item.jenis_armada}</td>
+                        <td className="py-3 px-3 text-ink font-medium">{item.tujuan_kedatangan}</td>
+                        <td className="py-3 px-3 text-ink font-mono text-[11px]">
                           <div>{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
-                          <div className="text-slate-400 font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                          <div className="text-ink-subtle font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
                         </td>
-                        <td className="py-3 px-3 text-slate-700 font-mono text-[11px]">
+                        <td className="py-3 px-3 text-ink font-mono text-[11px]">
                           <div>{item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
-                          <div className="text-slate-400 font-medium">{item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                          <div className="text-ink-subtle font-medium">{item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <span className="inline-block px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                          <span className="inline-block px-2.5 py-0.5 rounded-md bg-status-green-bg text-status-green font-bold text-[11px]">
                             Selesai
                           </span>
                         </td>
@@ -1341,7 +1345,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           <button
                             type="button"
                             onClick={() => setShowDetailModal(item)}
-                            className="px-3 py-1 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors"
+                            className="px-3 py-1 rounded-md border border-border text-ink hover:bg-surface font-bold text-xs transition-colors"
                           >
                             Detail
                           </button>
@@ -1354,16 +1358,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+            <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-ink-muted">
               <div>Menampilkan 1 - {filteredSelesaiList.length} dari {selesaiList.length} data</div>
               <div className="flex items-center gap-1">
-                <button className="px-2 py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&lt;</button>
-                <button className="px-2.5 py-1 rounded bg-blue-600 text-white font-bold">1</button>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">2</button>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">3</button>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">4</button>
-                <button className="px-2.5 py-1 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">5</button>
-                <button className="px-2 py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&gt;</button>
+                <button className="px-2 py-1 rounded-md border border-border text-ink-subtle hover:bg-surface">&lt;</button>
+                <button className="px-2.5 py-1 rounded-md bg-accent text-white font-bold">1</button>
+                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">2</button>
+                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">3</button>
+                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">4</button>
+                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">5</button>
+                <button className="px-2 py-1 rounded-md border border-border text-ink-subtle hover:bg-surface">&gt;</button>
               </div>
             </div>
 
@@ -1377,10 +1381,10 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {currentTab === 'memo' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center">
+            <span className="w-6 h-6 rounded-md bg-accent text-white font-black text-xs flex items-center justify-center">
               4
             </span>
-            <h2 className="text-sm font-black text-slate-900 tracking-tight uppercase">
+            <h2 className="text-sm font-black text-ink tracking-tight uppercase">
               MEMO KELUAR
             </h2>
           </div>
@@ -1388,9 +1392,9 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             
             {/* Left Pane: LIST MEMO KELUAR (5 cols on lg) */}
-            <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
+            <div className="lg:col-span-6 bg-surface-raised rounded-md border border-border p-4 sm:p-5 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                <h3 className="text-xs font-black uppercase text-ink tracking-wider">
                   LIST MEMO KELUAR
                 </h3>
               </div>
@@ -1403,22 +1407,22 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Cari No. Polisi / Nama Customer"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-3 pr-7 py-1.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full pl-3 pr-7 py-1.5 rounded-md border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
                   />
-                  <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-ink-subtle" />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2 py-1.5 text-[11px] text-slate-700">
-                  <span className="text-slate-400 font-medium">Tanggal</span>
-                  <span className="font-bold text-slate-800">{todayFormatted}</span>
-                  <Calendar className="w-3 h-3 text-slate-400 ml-0.5" />
+                <div className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2 py-1.5 text-[11px] text-ink-muted">
+                  <span className="text-ink-subtle font-medium">Tanggal</span>
+                  <span className="font-bold text-ink">{todayFormatted}</span>
+                  <Calendar className="w-3 h-3 text-ink-subtle ml-0.5" />
                 </div>
 
                 <button
                   type="button"
-                  className="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised text-xs font-bold text-ink flex items-center gap-1 transition-colors"
                 >
-                  <Filter className="w-3 h-3 text-slate-500" />
+                  <Filter className="w-3 h-3 text-ink-muted" />
                   Filter
                 </button>
               </div>
@@ -1426,7 +1430,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               {/* Table: No., No. Memo, No. Polisi, Nama Customer, Keluar, Aksi */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 border-y border-slate-200">
+                  <thead className="bg-surface text-ink-muted border-y border-border">
                     <tr>
                       <th className="py-2.5 px-2.5 font-bold w-8">No.</th>
                       <th className="py-2.5 px-2.5 font-bold">No. Memo</th>
@@ -1436,10 +1440,10 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       <th className="py-2.5 px-2.5 font-bold text-center">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {filteredMemoList.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                        <td colSpan={6} className="py-8 text-center text-ink-subtle font-medium">
                           Tidak ada data memo keluar.
                         </td>
                       </tr>
@@ -1451,19 +1455,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             key={m.id}
                             onClick={() => setSelectedMemo(m)}
                             className={`cursor-pointer transition-colors ${
-                              isSelected ? 'bg-blue-50/90 font-medium' : 'hover:bg-slate-50/70'
+                              isSelected ? 'bg-accent-subtle/80 font-medium' : 'hover:bg-surface/70'
                             }`}
                           >
-                            <td className="py-2.5 px-2.5 text-slate-500 font-semibold">{idx + 1}</td>
-                            <td className="py-2.5 px-2.5 font-mono font-bold text-blue-700">{m.no_memo}</td>
-                            <td className="py-2.5 px-2.5 font-bold text-slate-900">{m.no_polisi}</td>
-                            <td className="py-2.5 px-2.5 text-slate-800">{m.nama_customer}</td>
-                            <td className="py-2.5 px-2.5 text-slate-600 font-mono text-[11px]">
+                            <td className="py-2.5 px-2.5 text-ink-muted font-semibold">{idx + 1}</td>
+                            <td className="py-2.5 px-2.5 font-mono font-bold text-accent">{m.no_memo}</td>
+                            <td className="py-2.5 px-2.5 font-bold text-ink">{m.no_polisi}</td>
+                            <td className="py-2.5 px-2.5 text-ink">{m.nama_customer}</td>
+                            <td className="py-2.5 px-2.5 text-ink-muted font-mono text-[11px]">
                               <div>{new Date(m.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                              <div className="text-slate-400 font-medium">{new Date(m.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                              <div className="text-ink-subtle font-medium">{new Date(m.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                             </td>
                             <td className="py-2.5 px-2.5 text-center">
-                              <div className="flex items-center justify-center gap-1.5 text-slate-500">
+                              <div className="flex items-center justify-center gap-1.5 text-ink-muted">
                               <button
                                 type="button"
                                 title="Lihat Preview"
@@ -1471,7 +1475,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                                   e.stopPropagation();
                                   setSelectedMemo(m);
                                 }}
-                                className="p-1 hover:text-blue-600 rounded transition-colors"
+                                className="p-1 hover:text-accent rounded transition-colors"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
@@ -1483,7 +1487,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                                   setSelectedMemo(m);
                                   setShowPrintMemo(m);
                                 }}
-                                className="p-1 hover:text-slate-900 rounded transition-colors"
+                                className="p-1 hover:text-ink rounded transition-colors"
                               >
                                 <Printer className="w-3.5 h-3.5" />
                               </button>
@@ -1497,57 +1501,57 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+              <div className="flex items-center justify-between pt-2 border-t border-border text-[11px] text-ink-muted">
                 <div>Menampilkan 1 - {filteredMemoList.length} dari {memoList.length} data</div>
                 <div className="flex items-center gap-1">
-                  <button className="px-2 py-0.5 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&lt;</button>
-                  <button className="px-2 py-0.5 rounded bg-blue-600 text-white font-bold">1</button>
-                  <button className="px-2 py-0.5 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">2</button>
-                  <button className="px-2 py-0.5 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">3</button>
-                  <button className="px-2 py-0.5 rounded border border-slate-200 text-slate-700 hover:bg-slate-50">4</button>
-                  <button className="px-2 py-0.5 rounded border border-slate-200 text-slate-400 hover:bg-slate-50">&gt;</button>
+                  <button className="px-2 py-0.5 rounded-md border border-border text-ink-subtle hover:bg-surface">&lt;</button>
+                  <button className="px-2.5 py-0.5 rounded-md bg-accent text-white font-bold">1</button>
+                  <button className="px-2.5 py-0.5 rounded-md border border-border text-ink hover:bg-surface">2</button>
+                  <button className="px-2.5 py-0.5 rounded-md border border-border text-ink hover:bg-surface">3</button>
+                  <button className="px-2.5 py-0.5 rounded-md border border-border text-ink hover:bg-surface">4</button>
+                  <button className="px-2.5 py-0.5 rounded-md border border-border text-ink-subtle hover:bg-surface">&gt;</button>
                 </div>
               </div>
             </div>
 
             {/* Right Pane: PREVIEW MEMO KELUAR (Formal Letter Format) (6 cols on lg) */}
-            <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+            <div className="lg:col-span-6 bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between">
               {selectedMemo ? (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <h3 className="text-xs font-black uppercase text-ink tracking-wider">
                       PREVIEW MEMO KELUAR
                     </h3>
-                    <span className="text-[11px] text-slate-400 font-mono">Format Resmi Pos Security</span>
+                    <span className="text-[11px] text-ink-subtle font-mono">Format Resmi Pos Security</span>
                   </div>
 
                   {/* Formal Letter Paper Area */}
-                  <div id="formal-memo-printable" className="p-6 bg-white rounded-xl border border-slate-300 shadow-sm space-y-4 text-xs font-sans">
+                  <div id="formal-memo-printable" className="p-6 bg-surface-raised rounded-md border border-border shadow-xs space-y-4 text-xs font-sans">
                     
                     {/* Official Letterhead / Kop Surat */}
-                    <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
+                    <div className="border-b-2 border-ink pb-3 flex items-start justify-between">
                       <div>
-                        <div className="text-base font-black text-slate-900 tracking-wider">BENGKEL KIM 3 MEDAN</div>
-                        <div className="text-[10px] text-slate-600">Kawasan Industri Medan III, Jl. Pelita Raya No. 88</div>
-                        <div className="text-[10px] text-slate-500">Security Division &amp; Gate Control Portal</div>
+                        <div className="text-base font-black text-ink tracking-wider">BENGKEL KIM 3 MEDAN</div>
+                        <div className="text-[10px] text-ink-muted">Kawasan Industri Medan III, Jl. Pelita Raya No. 88</div>
+                        <div className="text-[10px] text-ink-subtle">Security Division &amp; Gate Control Portal</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-base font-black text-slate-900 tracking-tight">MEMO KELUAR</div>
-                        <div className="font-mono text-xs font-black text-blue-700">{selectedMemo.no_memo}</div>
+                        <div className="text-base font-black text-ink tracking-tight">MEMO KELUAR</div>
+                        <div className="font-mono text-xs font-black text-accent">{selectedMemo.no_memo}</div>
                       </div>
                     </div>
 
                     {/* Date & Time Row */}
-                    <div className="grid grid-cols-2 gap-4 text-xs pb-1 border-b border-slate-100">
+                    <div className="grid grid-cols-2 gap-4 text-xs pb-1 border-b border-border">
                       <div>
-                        <span className="text-slate-400 text-[10px] block">Tanggal Keluar:</span>
-                        <span className="font-bold text-slate-800">
+                        <span className="text-ink-subtle text-[10px] block">Tanggal Keluar:</span>
+                        <span className="font-bold text-ink">
                           {new Date(selectedMemo.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
                         </span>
                       </div>
                       <div className="text-right sm:text-left">
-                        <span className="text-slate-400 text-[10px] block">Jam Keluar:</span>
-                        <span className="font-mono font-bold text-slate-800">
+                        <span className="text-ink-subtle text-[10px] block">Jam Keluar:</span>
+                        <span className="font-mono font-bold text-ink">
                           {new Date(selectedMemo.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB
                         </span>
                       </div>
@@ -1555,42 +1559,42 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                     {/* DATA KENDARAAN */}
                     <div>
-                      <div className="text-[11px] font-black uppercase text-slate-900 tracking-wide mb-2">
+                      <div className="text-[11px] font-black uppercase text-ink tracking-wide mb-2">
                         DATA KENDARAAN
                       </div>
                       <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-xs">
                         <div className="flex">
-                          <span className="w-28 text-slate-500">No. Polisi</span>
-                          <span className="font-black text-slate-900">: {selectedMemo.no_polisi}</span>
+                          <span className="w-28 text-ink-muted">No. Polisi</span>
+                          <span className="font-black text-ink">: {selectedMemo.no_polisi}</span>
                         </div>
                         <div className="flex">
-                          <span className="w-28 text-slate-500">Jenis Armada</span>
-                          <span className="font-semibold text-slate-800">: {selectedMemo.jenis_armada || 'Truk'}</span>
+                          <span className="w-28 text-ink-muted">Jenis Armada</span>
+                          <span className="font-semibold text-ink">: {selectedMemo.jenis_armada || 'Truk'}</span>
                         </div>
                         <div className="flex">
-                          <span className="w-28 text-slate-500">Nama Customer</span>
-                          <span className="font-semibold text-slate-800">: {selectedMemo.nama_customer}</span>
+                          <span className="w-28 text-ink-muted">Nama Customer</span>
+                          <span className="font-semibold text-ink">: {selectedMemo.nama_customer}</span>
                         </div>
                         <div className="flex">
-                          <span className="w-28 text-slate-500">Tujuan Kunjungan</span>
-                          <span className="font-semibold text-slate-800">: {selectedMemo.tujuan_kedatangan}</span>
+                          <span className="w-28 text-ink-muted">Tujuan Kunjungan</span>
+                          <span className="font-semibold text-ink">: {selectedMemo.tujuan_kedatangan}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* KETERANGAN */}
-                    <div className="pt-2 border-t border-slate-100">
-                      <div className="text-[11px] font-black uppercase text-slate-900 tracking-wide mb-1.5">
+                    <div className="pt-2 border-t border-border">
+                      <div className="text-[11px] font-black uppercase text-ink tracking-wide mb-1.5">
                         KETERANGAN
                       </div>
                       <div className="space-y-1 text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="w-20 text-slate-500">Status</span>
-                          <span className="font-bold text-emerald-700">: Selesai</span>
+                          <span className="w-20 text-ink-muted">Status</span>
+                          <span className="font-bold text-status-green">: Selesai</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="w-20 text-slate-500 shrink-0">Catatan</span>
-                          <span className="text-slate-700">: {selectedMemo.catatan || 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.'}</span>
+                          <span className="w-20 text-ink-muted shrink-0">Catatan</span>
+                          <span className="text-ink">: {selectedMemo.catatan || 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.'}</span>
                         </div>
                       </div>
                     </div>
@@ -1598,24 +1602,24 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     {/* Official Signature Box matching Excel */}
                     <div className="pt-5 flex items-end justify-between text-center">
                       <div>
-                        <div className="text-[10px] text-slate-400 mb-8">Penerima / Driver,</div>
-                        <div className="font-bold text-slate-800 border-t border-slate-300 pt-1 px-3">
+                        <div className="text-[10px] text-ink-subtle mb-8">Penerima / Driver,</div>
+                        <div className="font-bold text-ink border-t border-border pt-1 px-3">
                           ( {selectedMemo.nama_customer || 'Driver'} )
                         </div>
                       </div>
 
                       <div className="flex flex-col items-center">
-                        <div className="text-[10px] text-slate-400 mb-2">Dibuat oleh,</div>
+                        <div className="text-[10px] text-ink-subtle mb-2">Dibuat oleh,</div>
                         
                         {/* Signature graphic/stamp simulation */}
-                        <div className="w-20 h-10 border border-blue-400 rounded-lg bg-blue-50/50 flex items-center justify-center text-[10px] text-blue-700 font-serif italic mb-1 transform -rotate-3">
+                        <div className="w-20 h-10 border border-accent/40 rounded-md bg-accent-subtle/50 flex items-center justify-center text-[10px] text-accent font-serif italic mb-1 transform -rotate-3">
                           Security
                         </div>
 
-                        <div className="font-black text-slate-900 text-xs">
+                        <div className="font-black text-ink text-xs">
                           {selectedMemo.petugas_security || '( Petugas Security )'}
                         </div>
-                        <div className="text-[10px] text-slate-400">Security Bengkel KIM 3</div>
+                        <div className="text-[10px] text-ink-subtle">Security Bengkel KIM 3</div>
                       </div>
                     </div>
 
@@ -1626,7 +1630,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <button
                       type="button"
                       onClick={() => setShowPrintMemo(selectedMemo)}
-                      className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-2 transition-colors"
+                      className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs flex items-center gap-2 transition-colors"
                     >
                       <Printer className="w-4 h-4" />
                       CETAK MEMO (A4)
@@ -1637,7 +1641,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       onClick={() => {
                         window.print();
                       }}
-                      className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
+                      className="px-4 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
                     >
                       <Download className="w-4 h-4" />
                       EXPORT PDF
@@ -1645,7 +1649,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </div>
                 </div>
               ) : (
-                <div className="p-12 text-center text-slate-400 text-xs">
+                <div className="p-12 text-center text-ink-subtle text-xs">
                   Pilih salah satu memo dari tabel di sebelah kiri untuk melihat preview resmi.
                 </div>
               )}
@@ -1660,20 +1664,20 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {showCheckinModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-8">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-surface-raised rounded-md max-w-2xl w-full p-6 shadow-2xl border border-border space-y-5 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-100 rounded-xl text-blue-600">
+                <div className="p-2 bg-accent-subtle rounded-md text-accent">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">Check-In Kendaraan Masuk</h3>
-                  <p className="text-xs text-slate-500">Pencatatan gerbang pos security Bengkel KIM 3</p>
+                  <h3 className="font-black text-ink text-base">Check-In Kendaraan Masuk</h3>
+                  <p className="text-xs text-ink-muted">Pencatatan gerbang pos security Bengkel KIM 3</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowCheckinModal(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                className="p-1 rounded-md hover:bg-surface text-ink-subtle hover:text-ink transition-colors"
               >
                 ✕
               </button>
@@ -1682,8 +1686,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             <form onSubmit={(e) => { e.preventDefault(); checkinMutation.mutate(formCheckin); }} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Nomor Polisi (Plat Nomor) <span className="text-rose-500">*</span>
+                  <label className="block font-bold text-ink mb-1">
+                    Nomor Polisi (Plat Nomor) <span className="text-status-red">*</span>
                   </label>
                   <input
                     type="text"
@@ -1691,16 +1695,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Contoh: BK 1234 AB"
                     value={formCheckin.no_polisi}
                     onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-black uppercase tracking-wider focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-md border border-border text-sm font-black uppercase tracking-wider focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Jenis Armada</label>
+                  <label className="block font-bold text-ink mb-1">Jenis Armada</label>
                   <select
                     value={formCheckin.jenis_armada}
                     onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-md border border-border font-semibold focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
                   >
                     <option value="Truk">Truk (Canter / Dutro / Tronton)</option>
                     <option value="Mobil">Mobil Pribadi / Operasional</option>
@@ -1711,8 +1715,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  Tujuan Kedatangan <span className="text-rose-500">*</span>
+                <label className="block font-bold text-ink mb-1">
+                  Tujuan Kedatangan <span className="text-status-red">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
@@ -1739,14 +1743,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           pic_tujuan: defaultPic || formCheckin.pic_tujuan,
                         });
                       }}
-                      className={`p-2 rounded-xl border text-left transition-all ${
+                      className={`p-2 rounded-md border text-left transition-all ${
                         formCheckin.tujuan_kedatangan === t.id
-                          ? 'border-blue-600 bg-blue-50 text-blue-900 font-bold shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                          ? 'border-accent bg-accent-subtle text-accent font-bold shadow-xs'
+                          : 'border-border hover:border-accent/40 text-ink bg-surface'
                       }`}
                     >
                       <div className="text-xs font-bold">{t.label}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">{t.desc}</div>
+                      <div className="text-[10px] text-ink-muted mt-0.5">{t.desc}</div>
                     </button>
                   ))}
                 </div>
@@ -1754,31 +1758,31 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Nama Customer / Perusahaan</label>
+                  <label className="block font-bold text-ink mb-1">Nama Customer / Perusahaan</label>
                   <input
                     type="text"
                     placeholder="Contoh: PT. Andi Jaya"
                     value={formCheckin.nama_customer}
                     onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-md border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">No. HP Driver / PIC</label>
+                  <label className="block font-bold text-ink mb-1">No. HP Driver / PIC</label>
                   <input
                     type="text"
                     placeholder="0812-xxxx-xxxx"
                     value={formCheckin.no_hp_customer}
                     onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-md border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">PIC / Petugas Tujuan</label>
+                  <label className="block font-bold text-ink mb-1">PIC / Petugas Tujuan</label>
                   <select
                     value={formCheckin.id_pic ? String(formCheckin.id_pic) : formCheckin.pic_tujuan}
                     onChange={(e) => {
@@ -1798,7 +1802,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         });
                       }
                     }}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    className="w-full px-3.5 py-2 rounded-md border border-border font-semibold focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
                   >
                     <option value="">-- Pilih PIC / Petugas Tujuan --</option>
                     {picPetugasList.map((p) => (
@@ -1813,13 +1817,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Keperluan Singkat / Keluhan</label>
+                  <label className="block font-bold text-ink mb-1">Keperluan Singkat / Keluhan</label>
                   <input
                     type="text"
                     placeholder="Contoh: Service berkala, ganti kampas rem"
                     value={formCheckin.keperluan}
                     onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3.5 py-2 rounded-md border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
                   />
                 </div>
               </div>
@@ -1833,13 +1837,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               />
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Catatan Security</label>
+                <label className="block font-bold text-ink mb-1">Catatan Security</label>
                 <textarea
                   rows={2}
                   placeholder="Catatan kondisi awal fisik atau kelengkapan armada..."
                   value={formCheckin.catatan_security}
                   onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-3.5 py-2 rounded-md border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
                 />
               </div>
 
@@ -1847,14 +1851,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <button
                   type="button"
                   onClick={() => setShowCheckinModal(false)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                  className="flex-1 py-2.5 bg-surface hover:bg-border/40 text-ink font-bold rounded-md border border-border transition-colors text-xs"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={checkinMutation.isPending}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 bg-accent hover:bg-accent-hover text-white font-bold rounded-md shadow-xs transition-colors flex items-center justify-center gap-2 text-xs"
                 >
                   {checkinMutation.isPending ? 'Menyimpan...' : 'SUBMIT CHECK IN'}
                 </button>
@@ -1869,39 +1873,39 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {showCheckoutModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-slate-200 space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-border space-y-4 my-8">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-900">Proses Check Out Kendaraan</h3>
-                <p className="text-xs text-slate-500 font-mono">{showCheckoutModal.no_polisi} - {showCheckoutModal.nama_customer}</p>
+                <h3 className="text-base font-black text-ink">Proses Check Out Kendaraan</h3>
+                <p className="text-xs text-ink-muted font-mono">{showCheckoutModal.no_polisi} - {showCheckoutModal.nama_customer}</p>
               </div>
               <button
                 onClick={() => setShowCheckoutModal(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3.5 text-xs">
-              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 text-xs">
+              <div className="p-3.5 rounded-md bg-accent-subtle/70 border border-accent/30 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Tujuan Kedatangan:</span>
-                  <span className="font-semibold text-blue-700">{showCheckoutModal.tujuan_kedatangan}</span>
+                  <span className="font-bold text-ink">Tujuan Kedatangan:</span>
+                  <span className="font-semibold text-accent">{showCheckoutModal.tujuan_kedatangan}</span>
                 </div>
-                <div className="flex items-center justify-between mt-1 text-slate-600">
+                <div className="flex items-center justify-between mt-1 text-ink-muted">
                   <span>Waktu Masuk:</span>
                   <span className="font-mono">{new Date(showCheckoutModal.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB</span>
                 </div>
               </div>
 
               <div>
-                <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <label className="flex items-center gap-2 font-bold text-ink cursor-pointer p-3 bg-surface rounded-md border border-border">
                   <input
                     type="checkbox"
                     checked={formCheckout.barang_dibawa_keluar}
                     onChange={(e) => setFormCheckout({ ...formCheckout, barang_dibawa_keluar: e.target.checked })}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded text-accent focus:ring-accent"
                   />
                   <span>Ada Barang yang Dibawa Keluar? (Sparepart bekas / box / dokumen)</span>
                 </label>
@@ -1909,14 +1913,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
               {formCheckout.barang_dibawa_keluar && (
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Rincian Barang yang Dibawa Keluar <span className="text-rose-500">*</span></label>
+                  <label className="block font-bold text-ink mb-1">Rincian Barang yang Dibawa Keluar <span className="text-status-red">*</span></label>
                   <input
                     type="text"
                     required
                     placeholder="Contoh: 1 Dus Sparepart Bekas, Dokumen Faktur"
                     value={formCheckout.detail_barang_keluar}
                     onChange={(e) => setFormCheckout({ ...formCheckout, detail_barang_keluar: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-md border border-border font-medium focus:ring-1 focus:ring-accent bg-surface-raised text-ink text-xs focus:outline-none"
                   />
                 </div>
               )}
@@ -1938,8 +1942,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 />
               )}
 
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] flex items-start gap-2">
-                <Info className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="p-3 bg-status-amber-bg rounded-md border border-status-amber/30 text-status-amber text-[11px] flex items-start gap-2">
+                <Info className="w-4 h-4 shrink-0 text-status-amber mt-0.5" />
                 <span>Setelah konfirmasi, sistem akan secara otomatis menerbitkan <strong>Memo Keluar (Surat Jalan)</strong> resmi untuk armada ini.</span>
               </div>
 
@@ -1947,7 +1951,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <button
                   type="button"
                   onClick={() => setShowCheckoutModal(null)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                  className="flex-1 py-2.5 bg-surface hover:bg-border/40 text-ink font-bold rounded-md border border-border transition-colors text-xs"
                 >
                   Batal
                 </button>
@@ -1955,7 +1959,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   type="button"
                   disabled={checkoutMutation.isPending}
                   onClick={() => checkoutMutation.mutate(showCheckoutModal)}
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 bg-accent hover:bg-accent-hover text-white font-bold rounded-md shadow-xs transition-colors flex items-center justify-center gap-2 text-xs"
                 >
                   {checkoutMutation.isPending ? 'Menerbitkan Memo...' : 'KONFIRMASI KELUAR & TERBITKAN MEMO'}
                 </button>
@@ -1970,70 +1974,70 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {showDetailModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-slate-200 space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-border space-y-4 my-8">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-900">Rincian Histori Kunjungan Kendaraan</h3>
-                <p className="text-xs text-slate-500 font-mono">{showDetailModal.no_polisi} - {showDetailModal.nama_customer}</p>
+                <h3 className="text-base font-black text-ink">Rincian Histori Kunjungan Kendaraan</h3>
+                <p className="text-xs text-ink-muted font-mono">{showDetailModal.no_polisi} - {showDetailModal.nama_customer}</p>
               </div>
               <button
                 onClick={() => setShowDetailModal(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <div className="grid grid-cols-2 gap-2.5 bg-surface p-3.5 rounded-md border border-border">
                 <div>
-                  <span className="text-slate-400 text-[10px] block">No. Tiket Antrian</span>
-                  <span className="font-mono font-bold text-blue-700">{showDetailModal.no_tiket}</span>
+                  <span className="text-ink-subtle text-[10px] block">No. Tiket Antrian</span>
+                  <span className="font-mono font-bold text-accent">{showDetailModal.no_tiket}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[10px] block">Jenis Armada</span>
-                  <span className="font-bold text-slate-800">{showDetailModal.jenis_armada || 'Truk'}</span>
+                  <span className="text-ink-subtle text-[10px] block">Jenis Armada</span>
+                  <span className="font-bold text-ink">{showDetailModal.jenis_armada || 'Truk'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[10px] block">Waktu Masuk</span>
-                  <span className="font-medium text-slate-700">
+                  <span className="text-ink-subtle text-[10px] block">Waktu Masuk</span>
+                  <span className="font-medium text-ink-muted">
                     {new Date(showDetailModal.waktu_masuk).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[10px] block">Waktu Keluar</span>
-                  <span className="font-medium text-slate-700">
+                  <span className="text-ink-subtle text-[10px] block">Waktu Keluar</span>
+                  <span className="font-medium text-ink-muted">
                     {showDetailModal.waktu_keluar ? new Date(showDetailModal.waktu_keluar).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '- (Masih di dalam)'}
                   </span>
                 </div>
               </div>
 
               <div>
-                <span className="text-slate-400 text-[10px] block mb-1">Status Kunjungan</span>
+                <span className="text-ink-subtle text-[10px] block mb-1">Status Kunjungan</span>
                 <StatusBadge status={showDetailModal.status_kunjungan} />
               </div>
 
               <div>
-                <span className="text-slate-400 text-[10px] block mb-1">Keperluan / Penugasan PIC</span>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-700 font-medium">
+                <span className="text-ink-subtle text-[10px] block mb-1">Keperluan / Penugasan PIC</span>
+                <div className="p-3 bg-surface rounded-md border border-border text-ink font-medium">
                   {showDetailModal.keperluan || 'Service berkala dan pemeliharaan armada.'}
                 </div>
               </div>
 
               {showDetailModal.detail_barang_keluar && (
                 <div>
-                  <span className="text-slate-400 text-[10px] block mb-1">Barang Bawaan Saat Keluar</span>
-                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-amber-900 font-medium">
+                  <span className="text-ink-subtle text-[10px] block mb-1">Barang Bawaan Saat Keluar</span>
+                  <div className="p-3 bg-status-amber-bg border border-status-amber/30 rounded-md text-status-amber font-medium">
                     {showDetailModal.detail_barang_keluar}
                   </div>
                 </div>
               )}
 
               {showDetailModal.no_memo_keluar && (
-                <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 flex items-center justify-between">
+                <div className="p-3 bg-accent-subtle rounded-md border border-accent/30 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-purple-600 font-bold block">No. Memo Keluar:</span>
-                    <span className="font-mono font-black text-purple-900">{showDetailModal.no_memo_keluar}</span>
+                    <span className="text-[10px] text-accent font-bold block">No. Memo Keluar:</span>
+                    <span className="font-mono font-black text-accent">{showDetailModal.no_memo_keluar}</span>
                   </div>
                   <button
                     type="button"
@@ -2043,7 +2047,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       setShowDetailModal(null);
                       changeTab('memo');
                     }}
-                    className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs"
+                    className="px-3 py-1.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-xs transition-colors"
                   >
                     Buka Memo →
                   </button>
@@ -2054,7 +2058,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <button
                   type="button"
                   onClick={() => setShowDetailModal(null)}
-                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl"
+                  className="w-full py-2.5 bg-surface hover:bg-border/40 text-ink font-bold rounded-md border border-border transition-colors text-xs"
                 >
                   Tutup
                 </button>
