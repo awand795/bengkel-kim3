@@ -40,6 +40,30 @@
     color: var(--color-ink);
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Custom text selection styling - kontras tinggi petrol teal */
+  ::selection {
+    background-color: var(--color-accent, #0F6674);
+    color: #FFFFFF;
+  }
+
+  ::-moz-selection {
+    background-color: var(--color-accent, #0F6674);
+    color: #FFFFFF;
+  }
+}
+
+/* Panel visual gelap (sisi kiri login / workshop visual) */
+.bg-workshop-pattern ::selection,
+.bg-surface-dark ::selection {
+  background-color: #2DD4BF;
+  color: #042F2E;
+}
+
+.bg-workshop-pattern ::-moz-selection,
+.bg-surface-dark ::-moz-selection {
+  background-color: #2DD4BF;
+  color: #042F2E;
 }
 
 /* Custom modern scrollbars */
