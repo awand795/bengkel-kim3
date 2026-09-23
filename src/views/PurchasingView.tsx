@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { ShoppingCart, CheckCircle, PackageSearch, Clock, Plus, Filter, Tag, Info, AlertTriangle, Truck, Save, FileText, Download } from 'lucide-react';
-import { api } from '../api/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StatusBadge } from '../components/StatusBadge';
-import { realtimeHub } from '../utils/RealtimeHub';
+import { api } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
+import { StatusBadge } from '../components/common/StatusBadge';
 import { PurchaseRequestPart } from '../types';
 import { 
   ShoppingBag, 
