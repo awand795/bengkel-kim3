@@ -18,8 +18,10 @@ import {
   LogOut,
   UserCheck,
   MoreHorizontal,
+  Settings,
   X
 } from 'lucide-react';
+import { PeranUser } from '../../types';
 
 interface NavTab {
   id: string;
@@ -27,94 +29,153 @@ interface NavTab {
   icon: any;
 }
 
+interface RoleNavConfig {
+  primary: NavTab[];
+  more: NavTab[];
+}
+
 export const MobileBottomNav: React.FC = () => {
   const { activeTab, setActiveTab, currentRole } = useAppStore();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const getRoleTabs = (): NavTab[] => {
-    switch (currentRole) {
+  // Exact menu alignment with desktop sidebar per role (Stage 9)
+  const getRoleConfig = (role: PeranUser): RoleNavConfig => {
+    switch (role) {
+      // 1. Security (6 menu: 4 di bar, 2 di "Lainnya")
       case 'Security':
-        return [
-          { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'security-checkin', label: 'Check In', icon: PlusCircle },
-          { id: 'security-booking', label: 'Booking', icon: Calendar },
-          { id: 'security-onprogress', label: 'On Progress', icon: Clock },
-          { id: 'security-memo', label: 'Memo Keluar', icon: FileText },
-        ];
-      case 'Mekanik':
-        return [
-          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'mekanik', label: 'Pekerjaan Saya', icon: Clock },
-        ];
-      case 'PIC Terkait':
-        return [
-          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'pic-terkait', label: 'Kunjungan', icon: UserCheck },
-        ];
+        return {
+          primary: [
+            { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'security-checkin', label: 'Check In', icon: PlusCircle },
+            { id: 'security-booking', label: 'Booking', icon: Calendar },
+            { id: 'security-onprogress', label: 'On Progress', icon: Clock },
+          ],
+          more: [
+            { id: 'security-selesai', label: 'Telah Keluar', icon: LogOut },
+            { id: 'security-memo', label: 'Memo Keluar', icon: FileText },
+          ],
+        };
+
+      // 2. Service Advisor (4 menu: pas 4 di bar, tanpa "Lainnya")
+      case 'SA':
+        return {
+          primary: [
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'sa', label: 'SPK & Est.', icon: ClipboardList },
+            { id: 'purchasing', label: 'Kotak Merah', icon: ShoppingBag },
+            { id: 'beli-part', label: 'Beli Part', icon: Package },
+          ],
+          more: [],
+        };
+
+      // 3. Foreman (3 menu: pas 3 di bar, tanpa "Lainnya")
       case 'Foreman':
-        return [
-          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'foreman', label: 'QC & Penugasan', icon: Wrench },
-          { id: 'mekanik', label: 'Mekanik Live', icon: Clock },
-        ];
-      case 'Admin Purchasing':
-        return [
-          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'purchasing', label: 'PR & PO', icon: ShoppingBag },
-        ];
+        return {
+          primary: [
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'foreman', label: 'QC & Tugas', icon: Wrench },
+            { id: 'mekanik', label: 'Live Mekanik', icon: Clock },
+          ],
+          more: [],
+        };
+
+      // 4. Mekanik (2 menu: pas 2 di bar, tanpa "Lainnya")
+      case 'Mekanik':
+        return {
+          primary: [
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'mekanik', label: 'Pekerjaan Saya', icon: Clock },
+          ],
+          more: [],
+        };
+
+      // 5. Kasir / Admin Invoice (3 menu: pas 3 di bar, tanpa "Lainnya")
       case 'Admin Invoice':
-        return [
-          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'kasir', label: 'Kasir & Inv', icon: Receipt },
-          { id: 'beli-part', label: 'Beli Part', icon: Package },
-        ];
-      case 'SA':
-        return [
-          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'sa', label: 'Estimasi & SPK', icon: ClipboardList },
-          { id: 'purchasing', label: 'Kotak Merah', icon: ShoppingBag },
-          { id: 'beli-part', label: 'Beli Part', icon: Package },
-        ];
+        return {
+          primary: [
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'kasir', label: 'Kasir & Inv', icon: Receipt },
+            { id: 'beli-part', label: 'Beli Part', icon: Package },
+          ],
+          more: [],
+        };
+
+      // 6. Admin Purchasing (2 menu: pas 2 di bar, tanpa "Lainnya")
+      case 'Admin Purchasing':
+        return {
+          primary: [
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'purchasing', label: 'PR & PO Part', icon: ShoppingBag },
+          ],
+          more: [],
+        };
+
+      // 7. PIC Terkait (2 menu: pas 2 di bar, tanpa "Lainnya")
+      case 'PIC Terkait':
+        return {
+          primary: [
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'pic-terkait', label: 'Kunjungan Tamu', icon: UserCheck },
+          ],
+          more: [],
+        };
+
+      // 8. Web Fleet / Customer Fleet (7 menu: 4 di bar, 3 di "Lainnya")
       case 'Customer Fleet':
+        return {
+          primary: [
+            { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'fleet-booking', label: 'Booking', icon: Calendar },
+            { id: 'fleet-status', label: 'Status Unit', icon: Truck },
+            { id: 'fleet-history', label: 'Histori & Inv', icon: Receipt },
+          ],
+          more: [
+            { id: 'fleet-kendaraan', label: 'Daftar Armada Truk', icon: Car },
+            { id: 'fleet-dokumen', label: 'Dokumen STNK & KIR', icon: FileText },
+            { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2 },
+          ],
+        };
+
+      // Super Admin (8 menu: 4 di bar, 4 di "Lainnya")
+      case 'Super Admin':
+        return {
+          primary: [
+            { id: 'admin-panel', label: 'Admin', icon: Settings },
+            { id: 'dashboard', label: 'Monitoring', icon: LayoutDashboard },
+            { id: 'security-dashboard', label: 'Security', icon: ShieldCheck },
+            { id: 'sa', label: 'SA / SPK', icon: ClipboardList },
+          ],
+          more: [
+            { id: 'foreman', label: 'Foreman QC', icon: Wrench },
+            { id: 'purchasing', label: 'Purchasing & Part', icon: ShoppingBag },
+            { id: 'kasir', label: 'Kasir & Faktur', icon: Receipt },
+            { id: 'fleet-dashboard', label: 'Portal Armada Fleet', icon: Truck },
+          ],
+        };
+
+      // Warehouse
+      case 'Warehouse':
+        return {
+          primary: [
+            { id: 'beli-part', label: 'Penjualan Part', icon: Package },
+          ],
+          more: [],
+        };
+
       default:
-        // Hanya 4 menu paling sering dipakai di bottom bar,
-        // sisanya (Kendaraan / Dokumen / Profil) masuk menu "More".
-        return [
-          { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'fleet-status', label: 'Status', icon: Truck },
-          { id: 'fleet-booking', label: 'Booking', icon: Calendar },
-          { id: 'fleet-history', label: 'History', icon: Receipt },
-        ];
+        return {
+          primary: [
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          ],
+          more: [],
+        };
     }
   };
 
-  const getMoreTabs = (): NavTab[] => {
-    switch (currentRole) {
-      case 'Security':
-        return [
-          { id: 'security-selesai', label: 'Selesai / Keluar', icon: LogOut },
-        ];
-      case 'SA':
-        return [
-          { id: 'dokumen', label: 'Dokumen STNK & KIR', icon: FileText },
-        ];
-      case 'Customer Fleet':
-        return [
-          { id: 'fleet-kendaraan', label: 'Daftar Armada Truk', icon: Car },
-          { id: 'fleet-dokumen', label: 'Dokumen STNK & KIR', icon: FileText },
-          { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2 },
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const tabs = getRoleTabs();
-  const moreTabs = getMoreTabs();
+  const { primary: tabs, more: moreTabs } = getRoleConfig(currentRole);
   const isMoreActive = moreTabs.some((tab) => tab.id === activeTab);
 
-  // If role only has 1 tab (like Mekanik on phone), no need for cluttered bottom bar
-  if (tabs.length <= 1 && moreTabs.length === 0) {
+  if (tabs.length === 0) {
     return null;
   }
 
@@ -125,7 +186,11 @@ export const MobileBottomNav: React.FC = () => {
 
   return (
     <>
-      <nav className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-lg border-t border-slate-200 lg:hidden z-40 py-1.5 px-3 safe-bottom flex items-center justify-around shadow-lg">
+      {/* Mobile Fixed Bottom Navigation Bar (< 768px) */}
+      <nav
+        aria-label="Navigasi Bawah Seluler"
+        className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-[#D8DCDF] md:hidden z-40 px-1 py-1 safe-bottom flex items-center justify-around shadow-md font-sans"
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -134,63 +199,91 @@ export const MobileBottomNav: React.FC = () => {
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center flex-1 min-h-[52px] py-1 transition-all ${
-                isActive ? 'text-blue-600 font-bold scale-105' : 'text-slate-500 hover:text-slate-800'
+              onClick={() => handleNavigate(tab.id)}
+              className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-[6px] active:scale-95 ${
+                isActive ? 'text-[#0F6674]' : 'text-[#79838C] hover:text-[#1B2126]'
               }`}
             >
-              <div className={`p-1.5 rounded-xl ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
-                <Icon className="w-5 h-5" />
+              <div
+                className={`p-1.5 rounded-[6px] transition-colors ${
+                  isActive ? 'bg-[#E6F3F5] text-[#0F6674]' : 'bg-transparent text-[#79838C]'
+                }`}
+              >
+                <Icon className="w-5 h-5 shrink-0" />
               </div>
-              <span className="text-[10px] tracking-tight mt-0.5">{tab.label}</span>
+              <span
+                className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
+                  isActive ? 'font-bold text-[#0F6674]' : 'font-medium text-[#79838C]'
+                }`}
+              >
+                {tab.label}
+              </span>
             </button>
           );
         })}
 
+        {/* Slot 5: "Lainnya" Button if role has > 4 tabs */}
         {moreTabs.length > 0 && (
           <button
             type="button"
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center justify-center flex-1 min-h-[52px] py-1 transition-all ${
-              isMoreActive ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+            className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-[6px] active:scale-95 ${
+              isMoreActive ? 'text-[#0F6674]' : 'text-[#79838C] hover:text-[#1B2126]'
             }`}
           >
-            <div className={`p-1.5 rounded-xl ${isMoreActive ? 'bg-blue-50' : 'bg-transparent'}`}>
-              <MoreHorizontal className="w-5 h-5" />
+            <div
+              className={`p-1.5 rounded-[6px] transition-colors ${
+                isMoreActive ? 'bg-[#E6F3F5] text-[#0F6674]' : 'bg-transparent text-[#79838C]'
+              }`}
+            >
+              <MoreHorizontal className="w-5 h-5 shrink-0" />
             </div>
-            <span className="text-[10px] tracking-tight mt-0.5">More</span>
+            <span
+              className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
+                isMoreActive ? 'font-bold text-[#0F6674]' : 'font-medium text-[#79838C]'
+              }`}
+            >
+              Lainnya
+            </span>
           </button>
         )}
       </nav>
 
-      {/* More Menu Bottom Sheet */}
+      {/* "Lainnya" Menu Bottom Sheet Modal */}
       {moreOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex items-end">
+        <div className="md:hidden fixed inset-0 z-50 flex items-end">
+          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs"
+            className="absolute inset-0 bg-[#08282E]/50 backdrop-blur-xs transition-opacity"
             onClick={() => setMoreOpen(false)}
+            aria-hidden="true"
           />
-          <div className="relative w-full bg-white rounded-t-3xl shadow-2xl border-t border-slate-200 max-h-[75vh] overflow-y-auto">
-            <div className="pt-3 pb-1 flex justify-center">
-              <span className="w-10 h-1.5 rounded-full bg-slate-300" />
+
+          {/* Sheet Container */}
+          <div className="relative w-full bg-white rounded-t-[12px] shadow-2xl border-t border-[#D8DCDF] max-h-[80vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] font-sans animate-in slide-in-from-bottom duration-200">
+            {/* Grab Handle */}
+            <div className="pt-2.5 pb-1 flex justify-center">
+              <span className="w-10 h-1 rounded-full bg-[#D8DCDF]" />
             </div>
 
-            <div className="px-5 pb-2 flex items-center justify-between">
+            {/* Header */}
+            <div className="px-4 pb-3 pt-1 flex items-center justify-between border-b border-[#D8DCDF]">
               <div>
-                <h3 className="text-sm font-black text-slate-900">Menu Lainnya</h3>
-                <p className="text-[11px] text-slate-500">Menu {currentRole}</p>
+                <h3 className="text-sm font-bold text-[#1B2126]">Menu Lainnya</h3>
+                <p className="text-[11px] text-[#79838C]">Menu khusus {currentRole}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="Tutup menu"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-[6px] text-[#79838C] hover:text-[#1B2126] hover:bg-[#F2F4F5] active:bg-[#E6F3F5] transition-colors"
+                aria-label="Tutup menu lainnya"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="px-3 pb-6 pt-1 space-y-2">
+            {/* Menu List */}
+            <div className="p-3 space-y-2">
               {moreTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -200,19 +293,22 @@ export const MobileBottomNav: React.FC = () => {
                     key={tab.id}
                     type="button"
                     onClick={() => handleNavigate(tab.id)}
-                    className={`w-full min-h-[56px] flex items-center gap-3.5 px-4 py-3 rounded-2xl text-left transition-all ${
+                    className={`w-full min-h-[48px] flex items-center gap-3 px-3.5 py-2.5 rounded-[6px] border text-left transition-all ${
                       isActive
-                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                        ? 'bg-[#0F6674] text-white border-[#0F6674] font-semibold shadow-xs'
+                        : 'bg-[#F2F4F5] text-[#1B2126] border-[#D8DCDF] hover:bg-[#E6F3F5] hover:text-[#0F6674] font-medium'
                     }`}
                   >
                     <div
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500 border border-slate-200'
+                      className={`w-8 h-8 rounded-[4px] flex items-center justify-center shrink-0 ${
+                        isActive
+                          ? 'bg-white/20 text-white'
+                          : 'bg-white text-[#0F6674] border border-[#D8DCDF]'
                       }`}
-                    >                        <Icon className="w-4 h-4" />
+                    >
+                      <Icon className="w-4 h-4" />
                     </div>
-                    <span className={`text-sm ${isActive ? 'font-bold' : 'font-semibold'}`}>{tab.label}</span>
+                    <span className="text-xs truncate">{tab.label}</span>
                   </button>
                 );
               })}

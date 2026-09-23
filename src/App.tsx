@@ -146,7 +146,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20 lg:pb-0">
+    <div className="min-h-screen bg-[#F2F4F5] flex flex-col font-sans text-[#1B2126] pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
       {/* Top App Header */}
       <Navbar />
 
@@ -155,12 +155,14 @@ export const App: React.FC = () => {
         <Sidebar />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto max-h-[calc(100vh-4rem)]">
-          {renderActiveView()}
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto max-h-[calc(100vh-3.5rem)] md:max-h-[calc(100vh-4rem)]">
+          <div key={activeTab} className="app-page-transition w-full">
+            {renderActiveView()}
+          </div>
         </main>
       </div>
 
-      {/* Floating Bottom Nav for Smartphone Viewport */}
+      {/* Floating Bottom Nav for Smartphone Viewport (< 768px) */}
       <MobileBottomNav />
     </div>
   );
