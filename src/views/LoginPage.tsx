@@ -141,11 +141,11 @@ export const LoginPage: React.FC = () => {
       <section className="hidden lg:flex lg:w-5/12 xl:w-1/2 bg-workshop-pattern text-white p-10 xl:p-14 flex-col justify-between relative overflow-hidden border-r border-border-dark">
         
         {/* Subtle Watermark Logo Background */}
-        <div className="absolute -right-16 -bottom-16 opacity-5 pointer-events-none select-none">
+        <div className="absolute -right-16 -bottom-16 opacity-[0.04] pointer-events-none select-none">
           <img 
             src="/logo.png" 
             alt="" 
-            className="w-96 h-96 object-contain grayscale"
+            className="w-96 h-96 object-contain"
           />
         </div>
 
@@ -159,7 +159,7 @@ export const LoginPage: React.FC = () => {
             />
             <div className="border-l border-border-dark pl-3">
               <span className="block text-xs font-bold tracking-tight text-white leading-tight">BENGKEL KIM 3</span>
-              <span className="block text-[11px] text-ink-subtle">Kawasan Industri Modern 3</span>
+              <span className="block text-[11px] text-teal-200/70">Kawasan Industri Modern 3</span>
             </div>
           </div>
 
@@ -167,14 +167,14 @@ export const LoginPage: React.FC = () => {
             <h1 className="text-2xl xl:text-3xl font-bold tracking-tight text-white leading-snug">
               Sistem Operasional Bengkel &amp; Portal Armada Fleet
             </h1>
-            <p className="mt-3 text-xs sm:text-sm text-[#94A0A9] leading-relaxed">
+            <p className="mt-3 text-xs sm:text-sm text-teal-100/80 leading-relaxed">
               Platform terintegrasi untuk pemantauan alur perawatan armada komersial, tata kelola suku cadang, dan koordinasi antar unit kerja bengkel secara transparan.
             </p>
           </div>
 
           {/* Baris Alur Proses sebagai Label Abstrak Non-Data (Outline Style) */}
           <div className="mt-8 p-5 rounded-md bg-surface-dark/95 border border-border-dark max-w-lg">
-            <div className="text-[11px] font-semibold text-ink-subtle uppercase tracking-wider mb-4">
+            <div className="text-[11px] font-semibold text-teal-300 uppercase tracking-wider mb-4">
               Alur Kerja Standar Operasional
             </div>
 
@@ -187,7 +187,7 @@ export const LoginPage: React.FC = () => {
                   <ShieldCheck className="w-4 h-4 text-accent" />
                 </div>
                 <span className="text-[11px] font-semibold text-white leading-tight">Check-In</span>
-                <span className="text-[10px] text-ink-subtle mt-0.5">Security</span>
+                <span className="text-[10px] text-teal-200/70 mt-0.5">Security</span>
               </div>
 
               {/* Step 2: Inspeksi SA */}
@@ -196,7 +196,7 @@ export const LoginPage: React.FC = () => {
                   <ClipboardList className="w-4 h-4 text-accent" />
                 </div>
                 <span className="text-[11px] font-semibold text-white leading-tight">Inspeksi</span>
-                <span className="text-[10px] text-ink-subtle mt-0.5">SA Bengkel</span>
+                <span className="text-[10px] text-teal-200/70 mt-0.5">SA Bengkel</span>
               </div>
 
               {/* Step 3: Pengerjaan Mekanik */}
@@ -205,7 +205,7 @@ export const LoginPage: React.FC = () => {
                   <Wrench className="w-4 h-4 text-accent" />
                 </div>
                 <span className="text-[11px] font-semibold text-white leading-tight">Pengerjaan</span>
-                <span className="text-[10px] text-ink-subtle mt-0.5">Mekanik</span>
+                <span className="text-[10px] text-teal-200/70 mt-0.5">Mekanik</span>
               </div>
 
               {/* Step 4: QC Foreman */}
@@ -214,7 +214,7 @@ export const LoginPage: React.FC = () => {
                   <CheckCircle className="w-4 h-4 text-accent" />
                 </div>
                 <span className="text-[11px] font-semibold text-white leading-tight">QC Final</span>
-                <span className="text-[10px] text-ink-subtle mt-0.5">Foreman</span>
+                <span className="text-[10px] text-teal-200/70 mt-0.5">Foreman</span>
               </div>
 
               {/* Step 5: Gate Out */}
@@ -223,12 +223,12 @@ export const LoginPage: React.FC = () => {
                   <Truck className="w-4 h-4 text-accent" />
                 </div>
                 <span className="text-[11px] font-semibold text-white leading-tight">Gate Out</span>
-                <span className="text-[10px] text-ink-subtle mt-0.5">Pass Keluar</span>
+                <span className="text-[10px] text-teal-200/70 mt-0.5">Pass Keluar</span>
               </div>
 
             </div>
 
-            <div className="mt-4 pt-3 border-t border-border-dark text-[11px] text-ink-subtle flex items-center justify-between">
+            <div className="mt-4 pt-3 border-t border-border-dark text-[11px] text-teal-200/70 flex items-center justify-between">
               <span>Sistem Manajemen Alur 5 Tahap</span>
               <span className="text-white font-medium">B2B Portal Fleet</span>
             </div>
@@ -236,7 +236,7 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Bottom Metadata */}
-        <div className="relative z-10 pt-8 border-t border-border-dark flex items-center justify-between text-xs text-ink-subtle">
+        <div className="relative z-10 pt-8 border-t border-border-dark flex items-center justify-between text-xs text-teal-200/70">
           <span className="font-mono tabular-nums">KIM 3 Workshop System v2.4</span>
           <span>Medan, Sumatera Utara</span>
         </div>

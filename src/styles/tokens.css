@@ -10,15 +10,8 @@
 
   --color-surface: #F2F4F5;
   --color-surface-raised: #FFFFFF;
-  --color-surface-dark: #141A1E;
-
-  --color-accent: #0F6674;
-  --color-accent-hover: #0B525E;
-  --color-accent-active: #083E47;
-  --color-accent-subtle: #E6F3F5;
-
-  --color-border: #D8DCDF;
-  --color-border-dark: #2B343B;
+  --color-surface-dark: #08282E;
+  --color-border-dark: #124B53;
 
   --color-status-amber: #D97706;
   --color-status-amber-bg: #FEF3C7;
@@ -44,7 +37,7 @@
 
   --color-surface: #F2F4F5;          /* netral dingin lantai bengkel, BUKAN putih polos / krem hangat */
   --color-surface-raised: #FFFFFF;   /* permukaan card di atas surface */
-  --color-surface-dark: #141A1E;     /* panel visual gelap bertema workshop */
+  --color-surface-dark: #08282E;     /* panel visual gelap bertema workshop (petrol dark) */
 
   --color-accent: #0F6674;           /* petrol teal untuk CTA primer & branding */
   --color-accent-hover: #0B525E;     /* hover petrol teal */
@@ -52,7 +45,7 @@
   --color-accent-subtle: #E6F3F5;    /* tint petrol teal untuk aksen lembut / wash */
 
   --color-border: #D8DCDF;           /* hairline border tipis 1px */
-  --color-border-dark: #2B343B;      /* hairline border pada panel gelap */
+  --color-border-dark: #124B53;      /* hairline border pada panel gelap (petrol border) */
 
   /* Functional Status Colors (Semantik tetap konvensional) */
   --color-status-amber: #D97706;     /* Waiting / Pending */
@@ -78,15 +71,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Workshop panel: gradasi petrol teal + radial glow + grid presisi industrial (v2 - lebih hidup, tidak flat abu-abu) */
+/* Workshop panel: gradasi petrol teal + radial glow + grid presisi industrial (harmonious petrol, zero dull grey) */
 .bg-workshop-pattern {
-  background-color: var(--color-surface-dark);
+  background-color: var(--color-surface-dark, #08282E);
   background-image:
-    radial-gradient(circle at 12% 8%, rgba(15, 102, 116, 0.5) 0%, transparent 42%),
-    radial-gradient(circle at 88% 95%, rgba(15, 102, 116, 0.28) 0%, transparent 50%),
-    linear-gradient(155deg, #0A2126 0%, #0D3038 45%, #141A1E 100%),
-    linear-gradient(rgba(216, 220, 223, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(216, 220, 223, 0.07) 1px, transparent 1px);
+    radial-gradient(circle at 12% 8%, rgba(15, 102, 116, 0.55) 0%, transparent 42%),
+    radial-gradient(circle at 88% 95%, rgba(15, 102, 116, 0.35) 0%, transparent 50%),
+    linear-gradient(155deg, #0A2126 0%, #0D3038 45%, #061F24 100%),
+    linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px);
   background-size: auto, auto, auto, 32px 32px, 32px 32px;
 }
 
