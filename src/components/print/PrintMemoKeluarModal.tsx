@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { MemoKeluar } from '../../types';
 import { Printer, X, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface PrintMemoKeluarModalProps {
   memo: MemoKeluar;
@@ -29,7 +30,8 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
     : new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-surface-dark/60 backdrop-blur-xs printable-container">
+    <ModalPortal onClose={onClose}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-surface-dark/60 backdrop-blur-xs printable-container">
       {/* Modal Card */}
       <div className="bg-surface-raised rounded-md shadow-2xl border border-border w-full max-w-3xl overflow-hidden flex flex-col max-h-[95vh]">
         
@@ -229,6 +231,7 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
 
       </div>
     </div>
+    </ModalPortal>
   );
 };
 

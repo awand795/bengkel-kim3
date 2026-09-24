@@ -392,3 +392,17 @@ export interface DashboardSummary {
   booking_hari_ini: number;
   pr_pending_purchasing: number;
 }
+
+export interface Notifikasi {
+  id: number;
+  target_role: string;
+  target_user_id?: number | null;
+  target_pelanggan_id?: number | null;
+  title: string;
+  pesan: string;
+  link_tab?: string;
+  urgency?: 'urgent' | 'warning' | 'info' | 'success';
+  is_read: boolean;
+  read_at?: string | null;
+  created_at: string;
+}

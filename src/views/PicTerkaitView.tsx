@@ -23,6 +23,8 @@ import {
   Search,
   FileText
 } from 'lucide-react';
+import { ModalPortal } from '../components/common/ModalPortal';
+import { toast } from '../components/common/Toast';
 
 type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Sudah Keluar';
 
@@ -152,18 +154,18 @@ export const PicTerkaitView: React.FC = () => {
         urgency: variables.status_konfirmasi_pic === 'Diterima' ? 'info' : 'warning',
       });
 
-      alert(
-        variables.status_konfirmasi_pic === 'Diterima'
-          ? 'Kunjungan dikonfirmasi DITERIMA. Tamu dipersilakan masuk.'
-          : 'Kunjungan DITOLAK dan Security sudah diberi tahu.'
-      );
+      if (variables.status_konfirmasi_pic === 'Diterima') {
+        toast.success('Kunjungan dikonfirmasi DITERIMA. Tamu dipersilakan masuk.');
+      } else {
+        toast.warning('Kunjungan DITOLAK dan Security sudah diberi tahu.');
+      }
       setRejecting(null);
       setCatatanTolak('');
       setSelected(null);
       setSubTab('riwayat');
     },
     onError: (err: any) =>
-      alert('Gagal mengirim konfirmasi kunjungan: ' + (err?.message || 'Coba lagi.')),
+      toast.error('Gagal mengirim konfirmasi kunjungan: ' + (err?.message || 'Coba lagi.')),
   });
 
   const renderKunjunganCard = (item: AntrianKunjungan) => {
@@ -187,82 +189,82 @@ export const PicTerkaitView: React.FC = () => {
     return (
       <div
         key={item.id}
-        className={`bg-white rounded-2xl border p-4 sm:p-5 shadow-xs transition-all ${
-          selected?.id === item.id ? 'border-blue-400 ring-2 ring-blue-100' : 'border-slate-200 hover:shadow-md'
+        className={`bg-surface-raised rounded-md border p-4 sm:p-5 shadow-xs transition-all ${
+          selected?.id === item.id ? 'border-accent ring-2 ring-accent/20' : 'border-border hover:shadow-md'
         }`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
               <Truck className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-base font-black text-slate-900">{item.no_polisi}</span>
+                <span className="text-base font-black text-ink">{item.no_polisi}</span>
                 <StatusBadge status={item.status_kunjungan} size="sm" />
                 {sudahDikonfirmasi && (
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       item.status_konfirmasi_pic === 'Diterima'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-rose-100 text-rose-800'
+                        ? 'bg-status-green-bg text-status-green'
+                        : 'bg-status-red-bg text-status-red'
                     }`}
                   >
                     {item.status_konfirmasi_pic}
                   </span>
                 )}
                 {sudahKeluar && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface text-ink-muted">
                     Sudah Keluar
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-ink-muted mt-0.5">
                 {item.nama_customer || 'Tamu tanpa nama'} • {item.jenis_armada || '-'}
               </p>
             </div>
           </div>
 
           <div className="text-left sm:text-right">
-            <span className="text-[10px] text-slate-400 block">Waktu Masuk Gerbang</span>
-            <span className="text-xs font-mono font-bold text-slate-700">
+            <span className="text-[10px] text-ink-subtle block">Waktu Masuk Gerbang</span>
+            <span className="text-xs font-mono font-bold text-ink-muted">
               {formatJam(item.waktu_masuk)}
             </span>
           </div>
         </div>
 
         {/* INFO DETAIL JAM CHECK IN & CHECK OUT (Highlight Stage 6) */}
-        <div className="mt-3.5 p-3 bg-slate-50 rounded-xl border border-slate-200/80 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+        <div className="mt-3.5 p-3 bg-surface rounded-md border border-border grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <LogIn className="w-3 h-3 text-emerald-600" /> Jam Check In
+            <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider flex items-center gap-1">
+              <LogIn className="w-3 h-3 text-status-green" /> Jam Check In
             </span>
-            <span className="font-mono font-bold text-slate-800 text-xs mt-0.5 block">
+            <span className="font-mono font-bold text-ink text-xs mt-0.5 block">
               {formatJam(item.waktu_masuk)}
             </span>
           </div>
 
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <LogOut className="w-3 h-3 text-blue-600" /> Jam Check Out
+            <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider flex items-center gap-1">
+              <LogOut className="w-3 h-3 text-accent" /> Jam Check Out
             </span>
             {item.waktu_keluar ? (
-              <span className="font-mono font-bold text-slate-800 text-xs mt-0.5 block">
+              <span className="font-mono font-bold text-ink text-xs mt-0.5 block">
                 {formatJam(item.waktu_keluar)}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-status-green bg-status-green-bg/70 px-2 py-0.5 rounded-md mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-status-green animate-pulse" />
                 Masih di Bengkel
               </span>
             )}
           </div>
 
           <div className="col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <Clock className="w-3 h-3 text-slate-400" /> Durasi / Status
+            <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider flex items-center gap-1">
+              <Clock className="w-3 h-3 text-ink-subtle" /> Durasi / Status
             </span>
-            <span className="font-semibold text-slate-700 text-xs mt-0.5 block truncate">
+            <span className="font-semibold text-ink-muted text-xs mt-0.5 block truncate">
               {item.durasi ? item.durasi : item.waktu_keluar ? 'Kunjungan Selesai' : 'Sedang Berlangsung'}
             </span>
           </div>
@@ -270,48 +272,48 @@ export const PicTerkaitView: React.FC = () => {
 
         {/* INFO TIKET, PIC, DAN TELEPON */}
         <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-          <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100">
-            <span className="text-slate-400 text-[10px] block">No. Tiket</span>
-            <span className="font-mono font-semibold text-slate-700">{item.no_tiket}</span>
+          <div className="p-2.5 bg-surface/70 rounded-md border border-border">
+            <span className="text-ink-subtle text-[10px] block">No. Tiket</span>
+            <span className="font-mono font-semibold text-ink-muted">{item.no_tiket}</span>
           </div>
-          <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100">
-            <span className="text-slate-400 text-[10px] block">PIC Tujuan</span>
-            <span className="font-semibold text-slate-700">{item.pic_tujuan || '-'}</span>
+          <div className="p-2.5 bg-surface/70 rounded-md border border-border">
+            <span className="text-ink-subtle text-[10px] block">PIC Tujuan</span>
+            <span className="font-semibold text-ink-muted">{item.pic_tujuan || '-'}</span>
           </div>
-          <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-100">
-            <span className="text-slate-400 text-[10px] block">No. HP</span>
-            <span className="font-semibold text-slate-700 flex items-center gap-1">
-              <Phone className="w-3 h-3 text-slate-400" /> {item.no_hp_customer || '-'}
+          <div className="p-2.5 bg-surface/70 rounded-md border border-border">
+            <span className="text-ink-subtle text-[10px] block">No. HP</span>
+            <span className="font-semibold text-ink-muted flex items-center gap-1">
+              <Phone className="w-3 h-3 text-ink-subtle" /> {item.no_hp_customer || '-'}
             </span>
           </div>
         </div>
 
         {/* KEPERLUAN */}
         {item.keperluan && (
-          <div className="mt-2 p-2.5 bg-blue-50/70 border border-blue-100 rounded-xl text-xs">
-            <span className="text-blue-500 text-[10px] block font-bold uppercase tracking-wider">Keperluan Tamu</span>
-            <span className="text-slate-700 font-medium">{item.keperluan}</span>
+          <div className="mt-2 p-2.5 bg-accent-subtle border border-accent/20 rounded-md text-xs">
+            <span className="text-accent text-[10px] block font-bold uppercase tracking-wider">Keperluan Tamu</span>
+            <span className="text-ink-muted font-medium">{item.keperluan}</span>
           </div>
         )}
 
         {/* MEMO KELUAR JIKA ADA */}
         {item.no_memo_keluar && (
-          <div className="mt-2 px-3 py-2 bg-sky-50/80 border border-sky-200 rounded-xl text-xs flex items-center justify-between">
-            <span className="text-[11px] text-sky-800 font-semibold flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-sky-600" /> Memo Keluar Otomatis:
+          <div className="mt-2 px-3 py-2 bg-accent-subtle border border-accent/30 rounded-md text-xs flex items-center justify-between">
+            <span className="text-[11px] text-accent font-semibold flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-accent" /> Memo Keluar Otomatis:
             </span>
-            <span className="font-mono font-bold text-sky-900 bg-white px-2 py-0.5 rounded-md border border-sky-200">
+            <span className="font-mono font-bold text-accent bg-surface-raised px-2 py-0.5 rounded-md border border-accent/30">
               {item.no_memo_keluar}
             </span>
           </div>
         )}
 
         {item.catatan_security && (
-          <p className="mt-2 text-[11px] text-slate-500 italic">Catatan Security: {item.catatan_security}</p>
+          <p className="mt-2 text-[11px] text-ink-muted italic">Catatan Security: {item.catatan_security}</p>
         )}
 
         {item.catatan_pic && (
-          <p className="mt-1 text-[11px] text-slate-500 italic">Catatan PIC: {item.catatan_pic}</p>
+          <p className="mt-1 text-[11px] text-ink-muted italic">Catatan PIC: {item.catatan_pic}</p>
         )}
 
         {/* ACTION BUTTONS UNTUK TAB MENUNGGU KONFIRMASI */}
@@ -321,7 +323,7 @@ export const PicTerkaitView: React.FC = () => {
               type="button"
               disabled={konfirmasiMutation.isPending}
               onClick={() => konfirmasiMutation.mutate({ id: item.id, status_konfirmasi_pic: 'Diterima' })}
-              className="flex-1 min-h-[44px] py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" /> Konfirmasi Diterima
             </button>
@@ -332,7 +334,7 @@ export const PicTerkaitView: React.FC = () => {
                 setRejecting(item);
                 setCatatanTolak('');
               }}
-              className="flex-1 min-h-[44px] py-2.5 px-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <XCircle className="w-4 h-4" /> Tolak
             </button>
@@ -345,19 +347,19 @@ export const PicTerkaitView: React.FC = () => {
   return (
     <div className="space-y-5">
       {/* HEADER UTAMA */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
             <UserCheck className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-slate-900">PIC Terkait - Notifikasi Kunjungan</h1>
-            <p className="text-xs text-slate-500">
+            <h1 className="text-lg font-black text-ink">PIC Terkait - Notifikasi Kunjungan</h1>
+            <p className="text-xs text-ink-muted">
               Konfirmasi tamu & dinas yang masuk melalui Pos Security sebelum diterima di area bengkel
             </p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                Akun PIC: <strong className="text-slate-900">{authUser?.nama_lengkap || currentUser}</strong> ({authUser?.email || '-'})
+              <span className="text-[11px] font-semibold text-ink-muted bg-surface px-2 py-0.5 rounded-md border border-border">
+                Akun PIC: <strong className="text-ink">{authUser?.nama_lengkap || currentUser}</strong> ({authUser?.email || '-'})
               </span>
             </div>
           </div>
@@ -365,16 +367,16 @@ export const PicTerkaitView: React.FC = () => {
 
         <div className="flex items-center gap-2">
           {isFetching && (
-            <span className="flex items-center gap-1.5 text-[11px] text-blue-600 font-semibold">
+            <span className="flex items-center gap-1.5 text-[11px] text-accent font-semibold">
               <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Memperbarui...
             </span>
           )}
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <div className="flex gap-1 bg-surface p-1 rounded-md">
             <button
               type="button"
               onClick={() => setSubTab('masuk')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
-                subTab === 'masuk' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+                subTab === 'masuk' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
               }`}
             >
               Menunggu ({kunjunganMasuk.length})
@@ -382,8 +384,8 @@ export const PicTerkaitView: React.FC = () => {
             <button
               type="button"
               onClick={() => setSubTab('riwayat')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
-                subTab === 'riwayat' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+                subTab === 'riwayat' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
               }`}
             >
               Riwayat ({kunjunganRiwayat.length})
@@ -395,30 +397,30 @@ export const PicTerkaitView: React.FC = () => {
       {/* 4 KARTU METRIK RINGKAS DI ATAS HALAMAN (STAGE 6 - PERSIS PERMINTAAN USER) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Total Tamu Hari Ini */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-blue-300 transition-all">
+        <div className="bg-surface-raised rounded-md p-4 border border-border shadow-xs hover:border-accent/30 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Total Tamu Hari Ini</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <span className="text-xs font-bold text-ink-muted">Total Tamu Hari Ini</span>
+            <div className="w-8 h-8 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-slate-900">{totalTamuHariIni}</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Semua kunjungan tercatat</p>
+          <div className="mt-2 text-2xl font-black text-accent">{totalTamuHariIni}</div>
+          <p className="text-[11px] text-ink-subtle mt-0.5">Semua kunjungan tercatat</p>
         </div>
 
         {/* Card 2: Menunggu Konfirmasi */}
         <div
           onClick={() => setSubTab('masuk')}
-          className="bg-white rounded-2xl p-4 border border-amber-200/80 bg-amber-50/20 shadow-xs hover:border-amber-300 cursor-pointer transition-all"
+          className="rounded-md p-4 border border-status-amber/30 bg-status-amber-bg shadow-xs hover:border-status-amber/60 cursor-pointer transition-all"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-800">Menunggu Konfirmasi</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <span className="text-xs font-bold text-status-amber">Menunggu Konfirmasi</span>
+            <div className="w-8 h-8 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-amber-900">{menungguKonfirmasiCount}</div>
-          <p className="text-[11px] text-amber-700/80 mt-0.5">Perlu respon PIC segera</p>
+          <div className="mt-2 text-2xl font-black text-status-amber">{menungguKonfirmasiCount}</div>
+          <p className="text-[11px] text-status-amber/80 mt-0.5">Perlu respon PIC segera</p>
         </div>
 
         {/* Card 3: Tamu di Area Bengkel */}
@@ -427,16 +429,16 @@ export const PicTerkaitView: React.FC = () => {
             setSubTab('riwayat');
             setRiwayatFilter('Diterima');
           }}
-          className="bg-white rounded-2xl p-4 border border-emerald-200/80 bg-emerald-50/20 shadow-xs hover:border-emerald-300 cursor-pointer transition-all"
+          className="rounded-md p-4 border border-status-blue/30 bg-status-blue-bg shadow-xs hover:border-status-blue/60 cursor-pointer transition-all"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-800">Tamu di Area Bengkel</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <span className="text-xs font-bold text-status-blue">Tamu di Area Bengkel</span>
+            <div className="w-8 h-8 rounded-md bg-status-blue-bg text-status-blue flex items-center justify-center">
               <Building2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-emerald-900">{tamuDiAreaBengkelCount}</div>
-          <p className="text-[11px] text-emerald-700/80 mt-0.5">Sedang aktif di dalam lokasi</p>
+          <div className="mt-2 text-2xl font-black text-status-blue">{tamuDiAreaBengkelCount}</div>
+          <p className="text-[11px] text-status-blue/80 mt-0.5">Sedang aktif di dalam lokasi</p>
         </div>
 
         {/* Card 4: Tamu Selesai */}
@@ -445,16 +447,16 @@ export const PicTerkaitView: React.FC = () => {
             setSubTab('riwayat');
             setRiwayatFilter('Sudah Keluar');
           }}
-          className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-slate-300 cursor-pointer transition-all"
+          className="rounded-md p-4 border border-status-green/30 bg-status-green-bg shadow-xs hover:border-status-green/60 cursor-pointer transition-all"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Tamu Selesai</span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+            <span className="text-xs font-bold text-status-green">Tamu Selesai</span>
+            <div className="w-8 h-8 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-black text-slate-900">{tamuSelesaiCount}</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Sudah check-out gerbang</p>
+          <div className="mt-2 text-2xl font-black text-status-green">{tamuSelesaiCount}</div>
+          <p className="text-[11px] text-status-green/80 mt-0.5">Sudah check-out gerbang</p>
         </div>
       </div>
 
@@ -462,18 +464,18 @@ export const PicTerkaitView: React.FC = () => {
       {subTab === 'masuk' && (
         <div className="space-y-3">
           {isLoading ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-xs text-slate-400">
+            <div className="bg-surface-raised rounded-md border border-border p-8 text-center text-xs text-ink-subtle">
               Memuat data kunjungan masuk...
             </div>
           ) : kunjunganMasuk.length > 0 ? (
             kunjunganMasuk.map(renderKunjunganCard)
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-xs max-w-lg mx-auto">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+            <div className="bg-surface-raised rounded-md border border-border p-8 text-center shadow-xs max-w-lg mx-auto">
+              <div className="w-14 h-14 rounded-md bg-accent-subtle text-accent flex items-center justify-center mx-auto mb-3">
                 <Inbox className="w-7 h-7" />
               </div>
-              <h3 className="text-sm font-bold text-slate-800">Tidak Ada Kunjungan Menunggu</h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <h3 className="text-sm font-bold text-ink">Tidak Ada Kunjungan Menunggu</h3>
+              <p className="text-xs text-ink-muted mt-1">
                 Tidak ada antrian tamu yang menunggu respon PIC {authUser?.nama_lengkap || currentUser}. Semua kunjungan Anda telah diproses.
               </p>
             </div>
@@ -485,23 +487,23 @@ export const PicTerkaitView: React.FC = () => {
       {subTab === 'riwayat' && (
         <div className="space-y-4">
           {/* TOOLBAR FILTER STATUS CEPAT (STAGE 6: Semua / Diterima / Ditolak / Sudah Keluar) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="bg-surface-raised rounded-md border border-border p-3.5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-bold text-slate-500 mr-1 hidden sm:inline">Filter Status:</span>
+              <span className="text-xs font-bold text-ink-muted mr-1 hidden sm:inline">Filter Status:</span>
               
               {/* Filter: Semua */}
               <button
                 type="button"
                 onClick={() => setRiwayatFilter('Semua')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   riwayatFilter === 'Semua'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    ? 'bg-ink text-surface shadow-xs'
+                    : 'bg-surface hover:bg-surface-raised text-ink-muted'
                 }`}
               >
                 Semua
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  riwayatFilter === 'Semua' ? 'bg-blue-700 text-white' : 'bg-white text-slate-600'
+                  riwayatFilter === 'Semua' ? 'bg-surface/20 text-surface' : 'bg-surface-raised text-ink-muted'
                 }`}>
                   {countRiwayatSemua}
                 </span>
@@ -511,15 +513,15 @@ export const PicTerkaitView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setRiwayatFilter('Diterima')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   riwayatFilter === 'Diterima'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+                    ? 'bg-status-green text-white shadow-xs'
+                    : 'bg-status-green-bg hover:bg-status-green/10 text-status-green'
                 }`}
               >
                 Diterima
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  riwayatFilter === 'Diterima' ? 'bg-emerald-700 text-white' : 'bg-white text-emerald-800'
+                  riwayatFilter === 'Diterima' ? 'bg-status-green/80 text-white' : 'bg-surface-raised text-status-green'
                 }`}>
                   {countRiwayatDiterima}
                 </span>
@@ -529,15 +531,15 @@ export const PicTerkaitView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setRiwayatFilter('Ditolak')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   riwayatFilter === 'Ditolak'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-rose-50 hover:bg-rose-100 text-rose-800'
+                    ? 'bg-status-red text-white shadow-xs'
+                    : 'bg-status-red-bg hover:bg-status-red/10 text-status-red'
                 }`}
               >
                 Ditolak
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  riwayatFilter === 'Ditolak' ? 'bg-rose-700 text-white' : 'bg-white text-rose-800'
+                  riwayatFilter === 'Ditolak' ? 'bg-status-red/80 text-white' : 'bg-surface-raised text-status-red'
                 }`}>
                   {countRiwayatDitolak}
                 </span>
@@ -547,15 +549,15 @@ export const PicTerkaitView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setRiwayatFilter('Sudah Keluar')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   riwayatFilter === 'Sudah Keluar'
-                    ? 'bg-slate-800 text-white shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    ? 'bg-ink text-white shadow-xs'
+                    : 'bg-surface hover:bg-surface-raised text-ink-muted'
                 }`}
               >
                 Sudah Keluar
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  riwayatFilter === 'Sudah Keluar' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700'
+                  riwayatFilter === 'Sudah Keluar' ? 'bg-surface/20 text-surface' : 'bg-surface-raised text-ink-muted'
                 }`}>
                   {countRiwayatSudahKeluar}
                 </span>
@@ -564,13 +566,13 @@ export const PicTerkaitView: React.FC = () => {
 
             {/* Quick Search */}
             <div className="relative min-w-[200px] sm:min-w-[240px]">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
               <input
                 type="text"
                 placeholder="Cari nopol / tamu / memo..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:bg-surface-raised transition-all"
               />
             </div>
           </div>
@@ -581,12 +583,12 @@ export const PicTerkaitView: React.FC = () => {
               {filteredRiwayat.map(renderKunjunganCard)}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-xs max-w-lg mx-auto">
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-3">
+            <div className="bg-surface-raised rounded-md border border-border p-8 text-center shadow-xs max-w-lg mx-auto">
+              <div className="w-14 h-14 rounded-md bg-surface text-ink-muted flex items-center justify-center mx-auto mb-3">
                 <History className="w-7 h-7" />
               </div>
-              <h3 className="text-sm font-bold text-slate-800">Tidak Ada Kunjungan Ditemukan</h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <h3 className="text-sm font-bold text-ink">Tidak Ada Kunjungan Ditemukan</h3>
+              <p className="text-xs text-ink-muted mt-1">
                 {searchQuery || riwayatFilter !== 'Semua'
                   ? 'Tidak ada data kunjungan yang cocok dengan filter atau kata kunci saat ini.'
                   : 'Riwayat kunjungan yang sudah diproses akan tampil di sini.'}
@@ -598,71 +600,73 @@ export const PicTerkaitView: React.FC = () => {
 
       {/* MODAL TOLAK KUNJUNGAN */}
       {rejecting && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-rose-600" />
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Tolak Kunjungan</h3>
-                  <p className="text-xs text-slate-500 font-mono">
-                    {rejecting.no_polisi} - {rejecting.nama_customer || 'Tamu'}
-                  </p>
+        <ModalPortal onClose={() => setRejecting(null)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-surface-raised rounded-t-md sm:rounded-md p-5 sm:p-6 max-w-lg w-full shadow-xl border border-border space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-status-red" />
+                  <div>
+                    <h3 className="text-base font-bold text-ink">Tolak Kunjungan</h3>
+                    <p className="text-xs text-ink-muted font-mono">
+                      {rejecting.no_polisi} - {rejecting.nama_customer || 'Tamu'}
+                    </p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setRejecting(null)}
+                  className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-surface cursor-pointer"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setRejecting(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Alasan Penolakan (opsional)
-              </label>
-              <textarea
-                rows={3}
-                value={catatanTolak}
-                onChange={(e) => setCatatanTolak(e.target.value)}
-                placeholder="Contoh: PIC tidak ada di tempat / jadwal penuh, silakan datang lain waktu."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-ink-muted mb-1">
+                  Alasan Penolakan (opsional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={catatanTolak}
+                  onChange={(e) => setCatatanTolak(e.target.value)}
+                  placeholder="Contoh: PIC tidak ada di tempat / jadwal penuh, silakan datang lain waktu."
+                  className="w-full px-3.5 py-2.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                />
+              </div>
 
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => setRejecting(null)}
-                className="flex-1 min-h-[44px] py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={konfirmasiMutation.isPending}
-                onClick={() =>
-                  konfirmasiMutation.mutate({
-                    id: rejecting.id,
-                    status_konfirmasi_pic: 'Ditolak',
-                    catatan_pic: catatanTolak || undefined,
-                  })
-                }
-                className="flex-1 min-h-[44px] py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 cursor-pointer"
-              >
-                {konfirmasiMutation.isPending ? 'Memproses...' : 'KONFIRMASI TOLAK'}
-              </button>
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setRejecting(null)}
+                  className="flex-1 min-h-[44px] py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted font-bold text-xs rounded-md cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={konfirmasiMutation.isPending}
+                  onClick={() =>
+                    konfirmasiMutation.mutate({
+                      id: rejecting.id,
+                      status_konfirmasi_pic: 'Ditolak',
+                      catatan_pic: catatanTolak || undefined,
+                    })
+                  }
+                  className="flex-1 min-h-[44px] py-2.5 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20 cursor-pointer"
+                >
+                  {konfirmasiMutation.isPending ? 'Memproses...' : 'KONFIRMASI TOLAK'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* FOOTER NOTE */}
-      <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex items-start gap-3">
-        <Building2 className="w-4 h-4 text-sky-600 mt-0.5 shrink-0" />
-        <p className="text-[11px] text-sky-900 leading-relaxed">
+      <div className="bg-accent-subtle border border-accent/30 rounded-md p-4 flex items-start gap-3">
+        <Building2 className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+        <p className="text-[11px] text-accent leading-relaxed">
           Bila tamu disetujui, Security otomatis melihat status kunjungan diperbarui pada monitor Pos Gerbang.
           Bila ditolak, tamu diminta menunggu konfirmasi ulang atau meninggalkan area.
         </p>

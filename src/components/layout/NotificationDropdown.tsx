@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -8,359 +8,99 @@ import {
   AlertTriangle,
   Clock,
   Wrench,
-  ShoppingBag,
-  Receipt,
-  ShieldCheck,
   ChevronRight,
+  CheckCheck,
+  Check,
+  Inbox,
+  Sparkles,
 } from 'lucide-react';
-import { realtimeHub } from '../../services/realtimeService';
+import { realtimeHub, RealtimeEvent } from '../../services/realtimeService';
+import { toast } from '../common/Toast';
+import { Notifikasi } from '../../types';
 
-interface NotificationItem {
-  id: string;
-  title: string;
-  desc: string;
-  time: string;
-  tab: string;
-  type: 'urgent' | 'warning' | 'info' | 'success';
+// Helper to format ISO or SQL timestamp to Indonesian relative or friendly string
+function formatNotificationTime(dateStr?: string | null): string {
+  if (!dateStr) return 'Baru saja';
+  try {
+    const date = new Date(dateStr.replace(' ', 'T'));
+    if (isNaN(date.getTime())) return dateStr;
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMins / 60);
+
+    if (diffMins < 1) return 'Baru saja';
+    if (diffMins < 60) return `${diffMins} menit lalu`;
+    if (diffHours < 24) {
+      return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+    }
+    return date.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }) + ' WIB';
+  } catch {
+    return dateStr;
+  }
 }
 
 export const NotificationDropdown: React.FC = () => {
-  const { currentRole, currentUser, authUser, setActiveTab } = useAppStore();
+  const queryClient = useQueryClient();
+  const { currentRole, authUser, setActiveTab } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fast differential polling queries (3s)
-  const { data: antrianList } = useQuery({
-    queryKey: ['antrian-list'],
-    queryFn: api.getAntrian,
-    refetchInterval: 3000,
+  // 1. Fetch Real Database Notifications via API
+  const { data: notifikasiList = [], isLoading } = useQuery({
+    queryKey: ['notifikasi-list'],
+    queryFn: api.getNotifikasi,
+    refetchInterval: 4000,
   });
 
-  const { data: spkList } = useQuery({
-    queryKey: ['spk-list'],
-    queryFn: api.getSpkList,
-    refetchInterval: 3000,
+  // 2. Mark Single Notification as Read
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) => api.tandaiNotifikasiBaca(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
+    },
+    onError: (err: any) => {
+      console.warn('Gagal menandai notifikasi dibaca:', err);
+    },
   });
 
-  const { data: purchasingList } = useQuery({
-    queryKey: ['purchasing-list'],
-    queryFn: api.getPurchasingList,
-    refetchInterval: 3000,
+  // 3. Mark All Notifications as Read (Facebook Style)
+  const markAllReadMutation = useMutation({
+    mutationFn: () => api.tandaiSemuaNotifikasiBaca(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
+      toast.success('Semua notifikasi telah ditandai sudah dibaca.');
+    },
+    onError: (err: any) => {
+      toast.error('Gagal memperbarui notifikasi', err?.message);
+    },
   });
 
-  const { data: invoiceList } = useQuery({
-    queryKey: ['invoice-list'],
-    queryFn: api.getInvoiceList,
-    refetchInterval: 3000,
-  });
-
-  const { data: tambahanList } = useQuery({
-    queryKey: ['tambahan-pekerjaan'],
-    queryFn: api.getTambahanPekerjaan,
-    refetchInterval: 3000,
-  });
-
-  const { data: bookingList } = useQuery({
-    queryKey: ['booking-list'],
-    queryFn: api.getBooking,
-    refetchInterval: 3000,
-  });
-
-  // Track previous items to broadcast real-time delta notifications
-  const prevBookingsRef = useRef<number[]>([]);
-  const prevAntrianRef = useRef<number[]>([]);
-  const isFirstLoad = useRef(true);
-
+  // 4. Real-time Subscription to trigger instant re-fetch & audio alert
   useEffect(() => {
-    if (!bookingList && !antrianList) return;
+    const unsubscribe = realtimeHub.subscribe((evt: RealtimeEvent) => {
+      const isForMe =
+        evt.targetRoles.includes('ALL') ||
+        (currentRole && evt.targetRoles.includes(currentRole as any)) ||
+        (authUser?.id && evt.targetUserId === authUser.id);
 
-    if (isFirstLoad.current) {
-      if (bookingList) prevBookingsRef.current = bookingList.map((b) => b.id);
-      if (antrianList) prevAntrianRef.current = antrianList.map((a) => a.id);
-      isFirstLoad.current = false;
-      return;
-    }
-
-    // Check for new bookings
-    if (bookingList && bookingList.length > 0) {
-      const newBookings = bookingList.filter((b) => !prevBookingsRef.current.includes(b.id));
-      newBookings.forEach((b) => {
-        realtimeHub.publish({
-          type: 'BOOKING_CREATED',
-          targetRoles: ['SA', 'Security'],
-          title: 'Booking Baru Diterima',
-          message: `Customer ${b.nama_customer || b.nama_perusahaan} (${b.no_polisi}) memesan service untuk ${b.tanggal_booking} jam ${b.jam_booking}.`,
-          linkTab: 'security-booking',
-          urgency: 'info',
-        });
-      });
-      prevBookingsRef.current = bookingList.map((b) => b.id);
-    }
-
-    // Check for new checkins in antrian
-    if (antrianList && antrianList.length > 0) {
-      const newAntrian = antrianList.filter((a) => !prevAntrianRef.current.includes(a.id));
-      newAntrian.forEach((a) => {
-        if (a.tujuan_kedatangan === 'Kunjungan') {
-          realtimeHub.publish({
-            type: 'KUNJUNGAN_ARRIVED',
-            targetRoles: ['PIC Terkait'],
-            title: 'Tamu Tiba di Pos Security',
-            message: `Tamu ${a.nama_customer || 'Pengunjung'} (${a.no_polisi}) telah tiba menuju ${a.pic_tujuan || 'PIC Bengkel'}.`,
-            linkTab: 'pic-terkait',
-            urgency: 'urgent',
-          });
-        } else if (a.tujuan_kedatangan === 'Beli Part') {
-          realtimeHub.publish({
-            type: 'VEHICLE_CHECKED_IN',
-            targetRoles: ['Admin Invoice', 'Admin Purchasing'],
-            title: 'Customer Beli Part Datang',
-            message: `${a.nama_customer || 'Pelanggan'} (${a.no_polisi}) tiba di pos untuk pembelian part.`,
-            linkTab: 'beli-part',
-            urgency: 'info',
-          });
-        } else {
-          realtimeHub.publish({
-            type: 'VEHICLE_CHECKED_IN',
-            targetRoles: ['SA', 'Customer Fleet'],
-            title: 'Kendaraan Masuk Bengkel',
-            message: `Unit ${a.no_polisi} (${a.nama_customer || 'Customer'}) telah di-check in. Siap diperiksa SA.`,
-            linkTab: 'sa',
-            urgency: 'urgent',
-          });
-        }
-      });
-      prevAntrianRef.current = antrianList.map((a) => a.id);
-    }
-  }, [bookingList, antrianList]);
-
-  // Calculate dynamic notifications according to workflow & current role
-  const notifications: NotificationItem[] = [];
-
-  if (currentRole === 'SA') {
-    // 1. Check-ins without SPK
-    const unhandled = (antrianList || []).filter(
-      (a) => a.tujuan_kedatangan === 'Service' && a.status_kunjungan === 'Check In'
-    );
-    unhandled.forEach((a) => {
-      notifications.push({
-        id: `sa-checkin-${a.id}`,
-        title: 'Kendaraan Masuk (Perlu SPK)',
-        desc: `Unit ${a.no_polisi} (${a.nama_customer || 'Pelanggan'}) siap dibuatkan SPK & checklist awal.`,
-        time: new Date(a.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
-        tab: 'sa',
-        type: 'urgent',
-      });
+      if (isForMe) {
+        // Play chime sound
+        realtimeHub.playChime(evt.urgency || 'info');
+        // Instantly re-fetch notifications from database API
+        queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
+      }
     });
 
-    // 2. PO from Purchasing awaiting SA confirmation
-    const pendingPo = (purchasingList || []).filter(
-      (p) => p.status_pr === 'PO Diterbitkan' && p.status_konfirmasi_sa === 'Menunggu Konfirmasi'
-    );
-    pendingPo.forEach((p) => {
-      notifications.push({
-        id: `sa-po-${p.pr_id}`,
-        title: 'Konfirmasi PO & ETA Part',
-        desc: `Purchasing telah memilih vendor untuk ${p.no_polisi || 'unit'}. Cek penawaran harga & ETA.`,
-        time: 'Hari ini',
-        tab: 'sa',
-        type: 'warning',
-      });
-    });
-
-    // 3. SPKs with QC Passed ready for FIR Closed
-    const qcPassed = (spkList || []).filter((s) => s.status_spk === 'QC Passed');
-    qcPassed.forEach((s) => {
-      notifications.push({
-        id: `sa-qc-${s.id}`,
-        title: 'QC Selesai (Siap FIR Closed)',
-        desc: `Foreman telah menyetujui hasil kerja unit ${s.no_polisi}. Lakukan final check & tutup FIR.`,
-        time: 'Terkini',
-        tab: 'sa',
-        type: 'success',
-      });
-    });
-  } else if (currentRole === 'Foreman') {
-    // 1. SPKs needing mechanic assignment
-    const needAssign = (spkList || []).filter(
-      (s) => s.status_spk === 'Menunggu Pengecekan Mekanik' || !s.nama_mekanik
-    );
-    needAssign.forEach((s) => {
-      notifications.push({
-        id: `foreman-assign-${s.id}`,
-        title: 'SPK Baru (Belum Ditugaskan)',
-        desc: `Unit ${s.no_polisi} (${s.nama_customer || 'Armada'}) menunggu penugasan mekanik dari Foreman.`,
-        time: 'Menunggu penugasan',
-        tab: 'foreman',
-        type: 'urgent',
-      });
-    });
-
-    // 2. Finished work awaiting QC FIR inspection
-    const needQc = (spkList || []).filter((s) => s.status_spk === 'Waiting QC');
-    needQc.forEach((s) => {
-      notifications.push({
-        id: `foreman-qc-${s.id}`,
-        title: 'Inspeksi QC FIR Diperlukan',
-        desc: `Mekanik telah menyelesaikan pengerjaan ${s.no_polisi}. Periksa 5 poin QC untuk approval.`,
-        time: 'Menunggu QC',
-        tab: 'foreman',
-        type: 'warning',
-      });
-    });
-
-    // 3. Tambahan Pekerjaan waiting for review
-    const unverifiedTambahan = (tambahanList || []).filter(
-      (t) => !t.diverifikasi_foreman || t.diverifikasi_foreman === 'Menunggu Verifikasi'
-    );
-    unverifiedTambahan.forEach((t) => {
-      notifications.push({
-        id: `foreman-tambahan-${t.id}`,
-        title: 'Temuan Pekerjaan Tambahan',
-        desc: `Mekanik mengajukan temuan: ${t.deskripsi_tambahan.slice(0, 50)}...`,
-        time: 'Hari ini',
-        tab: 'foreman',
-        type: 'info',
-      });
-    });
-  } else if (currentRole === 'Mekanik') {
-    // Active jobs assigned
-    const activeJobs = (spkList || []).filter(
-      (s) =>
-        s.status_spk === 'Dalam Pengerjaan' &&
-        (!s.nama_mekanik || s.nama_mekanik === currentUser)
-    );
-    activeJobs.forEach((s) => {
-      notifications.push({
-        id: `mekanik-job-${s.id}`,
-        title: 'Perintah Kerja Aktif (WO)',
-        desc: `Unit ${s.no_polisi} - ${s.keluhan_customer || 'Service rutin'}. Lanjutkan pekerjaan & stopwatch.`,
-        time: 'Sedang Berjalan',
-        tab: 'mekanik',
-        type: 'info',
-      });
-    });
-  } else if (currentRole === 'Admin Purchasing') {
-    // PRs awaiting PO
-    const pendingPr = (purchasingList || []).filter(
-      (p) => p.status_pr === 'Diajukan' || p.status_pr === 'Diproses Purchasing'
-    );
-    pendingPr.forEach((p) => {
-      notifications.push({
-        id: `purchasing-pr-${p.pr_id}`,
-        title: 'Purchase Request Masuk (Kotak Merah)',
-        desc: `SA meminta pengadaan part untuk ${p.no_polisi || 'unit SPK'}. Input penawaran min. 2 vendor & ETA.`,
-        time: 'Menunggu PO',
-        tab: 'purchasing',
-        type: 'urgent',
-      });
-    });
-  } else if (currentRole === 'Admin Invoice') {
-    // 1. SPKs finished FIR closed needing invoice
-    const readyForInv = (spkList || []).filter((s) => s.status_spk === 'FIR Closed');
-    readyForInv.forEach((s) => {
-      notifications.push({
-        id: `kasir-inv-ready-${s.id}`,
-        title: 'SPK FIR Closed (Penerbitan Faktur)',
-        desc: `Unit ${s.no_polisi} selesai service. Siapkan tagihan & faktur resmi.`,
-        time: 'Siap Faktur',
-        tab: 'kasir',
-        type: 'info',
-      });
-    });
-
-    // 2. Unpaid invoices
-    const unpaidInvoices = (invoiceList || []).filter(
-      (i) => i.status_pembayaran === 'Unpaid'
-    );
-    unpaidInvoices.forEach((i) => {
-      notifications.push({
-        id: `kasir-unpaid-${i.id}`,
-        title: 'Tagihan Menunggu Pembayaran',
-        desc: `${i.no_invoice} (${i.no_polisi}): Rp ${Number(i.grand_total).toLocaleString('id-ID')} belum lunas.`,
-        time: 'Unpaid',
-        tab: 'kasir',
-        type: 'warning',
-      });
-    });
-  } else if (currentRole === 'Security') {
-    // 1. Ready for checkout
-    const paidInvoices = (invoiceList || []).filter(
-      (i) => i.status_pembayaran === 'Paid'
-    );
-    paidInvoices.slice(0, 3).forEach((i) => {
-      notifications.push({
-        id: `sec-checkout-${i.id}`,
-        title: 'Armada Lunas (Validasi Check Out)',
-        desc: `Unit ${i.no_polisi} pembayaran lunas. Periksa barang bawaan & cetak Memo Keluar.`,
-        time: 'Siap Keluar',
-        tab: 'security',
-        type: 'success',
-      });
-    });
-
-    // 2. Today's bookings
-    const bookings = (bookingList || []).filter(
-      (b) => b.status === 'Booked'
-    );
-    bookings.slice(0, 3).forEach((b) => {
-      notifications.push({
-        id: `sec-booking-${b.id}`,
-        title: 'Booking Service Hari Ini',
-        desc: `Unit ${b.no_polisi} dijadwalkan jam ${b.jam_booking || '08:00'} WIB. Siapkan kartu antrian prioritas.`,
-        time: b.jam_booking || 'Hari ini',
-        tab: 'security',
-        type: 'info',
-      });
-    });
-  } else if (currentRole === 'Customer Fleet') {
-    // 1. Additional work approval
-    const pendingApproval = (tambahanList || []).filter(
-      (t) => t.status_approval_customer === 'Menunggu Approval'
-    );
-    pendingApproval.forEach((t) => {
-      notifications.push({
-        id: `fleet-tambahan-${t.id}`,
-        title: 'Persetujuan Pekerjaan Tambahan',
-        desc: `Ada temuan baru pada unit Anda: ${t.deskripsi_tambahan}. Total: Rp ${Number(t.estimasi_biaya_tambahan).toLocaleString('id-ID')}.`,
-        time: 'Penting',
-        tab: 'fleet-status',
-        type: 'urgent',
-      });
-    });
-
-    // 2. Active monitored vehicles
-    const activeUnits = (spkList || []).filter((s) => s.status_spk !== 'Selesai');
-    activeUnits.slice(0, 2).forEach((s) => {
-      notifications.push({
-        id: `fleet-status-${s.id}`,
-        title: `Monitoring Unit ${s.no_polisi}`,
-        desc: `Status saat ini: ${s.status_spk}. Estimasi selesai: ${s.lead_time_jam || 6} Jam.`,
-        time: 'Realtime',
-        tab: 'fleet-status',
-        type: 'info',
-      });
-    });
-  } else if (currentRole === 'PIC Terkait') {
-    // Incoming visits
-    const incoming = (antrianList || []).filter(
-      (a) =>
-        a.tujuan_kedatangan === 'Kunjungan' &&
-        a.status_kunjungan === 'Check In' &&
-        (!a.status_konfirmasi_pic || a.status_konfirmasi_pic === 'Menunggu Konfirmasi') &&
-        (!authUser?.id || !a.id_pic || a.id_pic === authUser.id)
-    );
-    incoming.forEach((a) => {
-      notifications.push({
-        id: `pic-visit-${a.id}`,
-        title: 'Kunjungan Tamu di Pos Security',
-        desc: `Tamu ${a.nama_customer || 'Pengunjung'} (${a.no_polisi}) menunggu konfirmasi kedatangan.`,
-        time: new Date(a.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
-        tab: 'pic-terkait',
-        type: 'urgent',
-      });
-    });
-  }
+    return () => unsubscribe();
+  }, [currentRole, authUser, queryClient]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -373,123 +113,305 @@ export const NotificationDropdown: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleNotificationClick = (tab: string) => {
-    setActiveTab(tab);
+  // Compute Unread Counts & Filtered Feed
+  const unreadItems = useMemo(() => {
+    return notifikasiList.filter((n) => !n.is_read);
+  }, [notifikasiList]);
+
+  const unreadCount = unreadItems.length;
+
+  const displayedNotifications = useMemo(() => {
+    if (filterTab === 'unread') {
+      return unreadItems;
+    }
+    return notifikasiList;
+  }, [filterTab, unreadItems, notifikasiList]);
+
+  // Action: Click item -> Mark read & Navigate
+  const handleNotificationClick = (item: Notifikasi) => {
+    if (!item.is_read) {
+      markReadMutation.mutate(item.id);
+    }
+    if (item.link_tab) {
+      // Role-safe navigation: Customer Fleet can NEVER be routed to internal staff menus!
+      if (currentRole === 'Customer Fleet') {
+        const safeTab = item.link_tab.startsWith('fleet-') ? item.link_tab : 'fleet-status';
+        setActiveTab(safeTab);
+      } else if (currentRole === 'Security') {
+        const safeTab = item.link_tab.startsWith('security-') ? item.link_tab : 'security-dashboard';
+        setActiveTab(safeTab);
+      } else {
+        setActiveTab(item.link_tab);
+      }
+    }
     setIsOpen(false);
   };
 
-  const getIcon = (type: NotificationItem['type']) => {
-    switch (type) {
+  const getIcon = (urgency?: string) => {
+    switch (urgency) {
       case 'urgent':
-        return <AlertTriangle className="w-4 h-4 text-rose-600" />;
+        return <AlertTriangle className="w-4 h-4 text-status-red" />;
       case 'warning':
-        return <Clock className="w-4 h-4 text-amber-600" />;
+        return <Clock className="w-4 h-4 text-status-amber" />;
       case 'success':
-        return <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+        return <CheckCircle2 className="w-4 h-4 text-status-green" />;
       case 'info':
       default:
-        return <Wrench className="w-4 h-4 text-blue-600" />;
+        return <Wrench className="w-4 h-4 text-accent" />;
     }
   };
 
-  const getBadgeColor = (type: NotificationItem['type']) => {
-    switch (type) {
+  const getBadgeColor = (urgency?: string) => {
+    switch (urgency) {
       case 'urgent':
-        return 'bg-rose-50 border-rose-200 text-rose-800';
+        return 'bg-status-red-bg border-status-red/30 text-status-red';
       case 'warning':
-        return 'bg-amber-50 border-amber-200 text-amber-800';
+        return 'bg-status-amber-bg border-status-amber/30 text-status-amber';
       case 'success':
-        return 'bg-emerald-50 border-emerald-200 text-emerald-800';
+        return 'bg-status-green-bg border-status-green/30 text-status-green';
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-200 text-blue-800';
+        return 'bg-accent-subtle border-accent/30 text-accent';
     }
   };
 
   return (
     <div className="relative font-sans" ref={dropdownRef}>
-      {/* Bell Button (min 44x44px touch target) */}
+      {/* Bell Button (Facebook Style with Unread Counter Badge) */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink-muted hover:text-ink hover:bg-surface active:bg-accent-subtle transition-colors cursor-pointer"
-        title="Pusat Notifikasi Sistem"
+        className={`relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer ${
+          isOpen
+            ? 'bg-accent-subtle text-accent shadow-xs'
+            : 'text-ink-muted hover:text-ink hover:bg-surface active:bg-accent-subtle'
+        }`}
+        title={`Pusat Notifikasi (${unreadCount} belum dibaca)`}
         aria-label="Pusat Notifikasi"
       >
-        <Bell className="w-5 h-5" />
-        {notifications.length > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-status-red text-white rounded text-[10px] font-bold flex items-center justify-center animate-pulse shadow-2xs font-mono">
-            {notifications.length}
+        <Bell className={`w-5 h-5 transition-transform ${unreadCount > 0 ? 'text-ink' : 'text-ink-muted'}`} />
+
+        {/* Facebook-style Red Badge Counter: ONLY SHOWS IF UNREAD > 0 */}
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[19px] h-[19px] px-1 bg-status-red text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse shadow-xs font-mono ring-2 ring-surface">
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Dropdown Panel */}
+      {/* Facebook-style Dropdown Popover */}
       {isOpen && (
-        <div className="fixed sm:absolute right-2 sm:right-0 top-14 sm:top-auto sm:mt-2 w-[calc(100vw-16px)] sm:w-96 max-w-sm bg-surface-raised rounded-md border border-border shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="fixed sm:absolute right-2 sm:right-0 top-14 sm:top-auto sm:mt-2 w-[calc(100vw-16px)] sm:w-[420px] max-w-md max-h-[calc(100vh-85px)] sm:max-h-[520px] flex flex-col bg-surface-raised rounded-xl border border-border shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           
-          {/* Header */}
-          <div className="p-3.5 border-b border-border bg-surface flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded bg-accent-subtle text-accent flex items-center justify-center font-bold">
-                <Bell className="w-4 h-4" />
+          {/* Facebook Header: Title & Mark All as Read */}
+          <div className="shrink-0 p-4 border-b border-border bg-surface flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-ink tracking-tight">Notifikasi</h3>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-status-red text-white text-[10px] font-black font-mono">
+                    {unreadCount} baru
+                  </span>
+                )}
               </div>
-              <div>
-                <h4 className="text-xs font-bold text-ink leading-tight">Pusat Notifikasi</h4>
-                <p className="text-[10px] text-ink-subtle font-medium">Alur Operasional • {currentRole}</p>
-              </div>
+              <p className="text-[11px] text-ink-subtle mt-0.5 font-medium">
+                Pusat Aktivitas • {currentRole}
+              </p>
             </div>
-            <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent border border-accent/30 text-[10px] font-bold tabular-nums">
-              {notifications.length} Menunggu
-            </span>
+
+            {/* Mark All as Read Action (Facebook Style) */}
+            {unreadCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => markAllReadMutation.mutate()}
+                disabled={markAllReadMutation.isPending}
+                className="text-xs text-accent hover:text-accent-hover hover:underline font-bold flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-accent-subtle/50 transition-colors cursor-pointer disabled:opacity-50"
+                title="Tandai semua notifikasi sudah dibaca"
+              >
+                <CheckCheck className="w-4 h-4" />
+                <span>Tandai dibaca</span>
+              </button>
+            ) : (
+              <span className="text-[11px] text-ink-subtle flex items-center gap-1 font-medium">
+                <Check className="w-3.5 h-3.5 text-status-green" />
+                Semua terbaca
+              </span>
+            )}
           </div>
 
-          {/* Notification List */}
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-border">
-            {notifications.length > 0 ? (
-              notifications.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => handleNotificationClick(item.tab)}
-                  className="p-3 hover:bg-surface transition-colors cursor-pointer flex items-start gap-2.5 group"
+          {/* Facebook Filter Pills: "Semua" & "Belum Dibaca" */}
+          <div className="shrink-0 px-4 py-2.5 border-b border-border bg-surface-raised flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFilterTab('all')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                filterTab === 'all'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'bg-surface text-ink-muted hover:text-ink hover:bg-surface-raised border border-border'
+              }`}
+            >
+              <span>Semua</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                  filterTab === 'all' ? 'bg-white/20 text-white' : 'bg-surface-raised text-ink-muted'
+                }`}
+              >
+                {notifikasiList.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterTab('unread')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                filterTab === 'unread'
+                  ? 'bg-accent text-white shadow-xs'
+                  : 'bg-surface text-ink-muted hover:text-ink hover:bg-surface-raised border border-border'
+              }`}
+            >
+              <span>Belum Dibaca</span>
+              {unreadCount > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                    filterTab === 'unread' ? 'bg-white/20 text-white' : 'bg-status-red text-white'
+                  }`}
                 >
-                  <div className={`w-8 h-8 rounded border flex items-center justify-center shrink-0 mt-0.5 ${getBadgeColor(item.type)}`}>
-                    {getIcon(item.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-ink group-hover:text-accent transition-colors">
-                        {item.title}
-                      </span>
-                      <span className="text-[9px] font-mono font-medium text-ink-subtle shrink-0">
-                        {item.time}
-                      </span>
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Facebook Notification Feed (Strictly bounded with smooth scroll) */}
+          <div className="flex-1 max-h-[340px] sm:max-h-[380px] overflow-y-auto divide-y divide-border/60 overscroll-contain">
+            {isLoading ? (
+              <div className="py-10 text-center text-xs text-ink-muted">
+                <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                Memuat notifikasi...
+              </div>
+            ) : displayedNotifications.length > 0 ? (
+              displayedNotifications.map((item) => {
+                const isRead = Boolean(item.is_read);
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleNotificationClick(item)}
+                    className={`p-3.5 transition-all cursor-pointer flex items-start gap-3 relative group ${
+                      !isRead
+                        ? 'bg-accent-subtle/35 hover:bg-accent-subtle/60'
+                        : 'bg-surface-raised hover:bg-surface'
+                    }`}
+                  >
+                    {/* Urgency / Category Icon Badge */}
+                    <div
+                      className={`w-9 h-9 rounded-full border flex items-center justify-center shrink-0 mt-0.5 shadow-2xs ${getBadgeColor(
+                        item.urgency
+                      )}`}
+                    >
+                      {getIcon(item.urgency)}
                     </div>
-                    <p className="text-[11px] text-ink-muted mt-0.5 line-clamp-2 leading-relaxed">
-                      {item.desc}
-                    </p>
-                    <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-accent group-hover:underline">
-                      <span>Tindak Lanjuti</span>
-                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+
+                    {/* Notification Body */}
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span
+                          className={`text-xs leading-snug line-clamp-1 ${
+                            !isRead ? 'font-black text-ink' : 'font-semibold text-ink-muted'
+                          }`}
+                        >
+                          {item.title}
+                        </span>
+                      </div>
+
+                      <p
+                        className={`text-[11px] leading-relaxed line-clamp-2 ${
+                          !isRead ? 'text-ink font-medium' : 'text-ink-muted'
+                        }`}
+                      >
+                        {item.pesan}
+                      </p>
+
+                      <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                        <span className="font-mono text-ink-subtle">
+                          {formatNotificationTime(item.created_at)}
+                        </span>
+
+                        <span className="font-bold text-accent group-hover:underline flex items-center gap-0.5">
+                          <span>Buka</span>
+                          <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Facebook Blue Dot for Unread Notifications OR Mark Read Quick Action */}
+                    <div className="shrink-0 flex items-center self-center pl-1">
+                      {!isRead ? (
+                        <div className="flex items-center gap-1.5">
+                          {/* Facebook Blue Indicator Dot */}
+                          <span
+                            className="w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-accent/30 shadow-xs"
+                            title="Belum dibaca"
+                          />
+                          {/* Quick button to mark read */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markReadMutation.mutate(item.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-full text-ink-subtle hover:text-accent hover:bg-surface transition-all"
+                            title="Tandai sudah dibaca"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="w-2.5 h-2.5" />
+                      )}
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="py-10 px-4 text-center">
-                <div className="w-12 h-12 rounded-md bg-status-green-bg text-status-green flex items-center justify-center mx-auto mb-2.5">
-                  <CheckCircle2 className="w-6 h-6" />
+              /* Empty State */
+              <div className="py-12 px-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-accent-subtle text-accent flex items-center justify-center mx-auto mb-3">
+                  {filterTab === 'unread' ? (
+                    <CheckCircle2 className="w-6 h-6 text-status-green" />
+                  ) : (
+                    <Inbox className="w-6 h-6 text-accent" />
+                  )}
                 </div>
-                <h5 className="text-xs font-bold text-ink">Semua Tugas Beres</h5>
-                <p className="text-[11px] text-ink-subtle mt-1">Tidak ada tindakan mendesak atau pekerjaan yang menunggu di role Anda saat ini.</p>
+                <h5 className="text-sm font-bold text-ink">
+                  {filterTab === 'unread' ? 'Semua Notifikasi Sudah Dibaca' : 'Belum Ada Notifikasi'}
+                </h5>
+                <p className="text-xs text-ink-subtle mt-1 max-w-xs mx-auto">
+                  {filterTab === 'unread'
+                    ? 'Bagus! Tidak ada notifikasi baru yang belum Anda baca saat ini.'
+                    : 'Pemberitahuan operasional resmi dan alur bengkel akan muncul di sini secara otomatis.'}
+                </p>
+                {filterTab === 'unread' && notifikasiList.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterTab('all')}
+                    className="mt-3 text-xs text-accent font-bold hover:underline"
+                  >
+                    Lihat semua riwayat notifikasi ({notifikasiList.length})
+                  </button>
+                )}
               </div>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="p-2.5 bg-surface border-t border-border text-center">
-            <span className="text-[10px] text-ink-subtle font-mono">
-              KIM3 Workshop Shell • Backendless API
+          {/* Facebook Footer: Notification Center Status */}
+          <div className="shrink-0 p-3 bg-surface border-t border-border flex items-center justify-between text-[11px] text-ink-subtle">
+            <span className="font-mono flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-accent" />
+              KIM 3 Live Workshop Hub
+            </span>
+            <span className="font-medium">
+              {unreadCount > 0 ? `${unreadCount} belum dibaca` : 'Semua telah dibaca'}
             </span>
           </div>
 

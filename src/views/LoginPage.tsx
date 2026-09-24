@@ -19,6 +19,7 @@ import {
   Truck,
   ArrowRight
 } from 'lucide-react';
+import { toast } from '../components/common/Toast';
 
 export const LoginPage: React.FC = () => {
   const { loginUser } = useAppStore();
@@ -383,7 +384,7 @@ export const LoginPage: React.FC = () => {
                     </label>
                     <button
                       type="button"
-                      onClick={() => alert('Untuk reset kata sandi, hubungi Helpdesk Bengkel KIM 3.')}
+                      onClick={() => toast.info('Untuk reset kata sandi, hubungi Helpdesk Bengkel KIM 3.')}
                       className="text-xs text-ink-muted hover:text-accent cursor-pointer transition-colors"
                     >
                       Lupa kata sandi?

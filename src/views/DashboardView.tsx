@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { isSpkAssignedToMechanic } from '../utils/spkAccess';
 import { 
   Truck, 
   Wrench, 
@@ -29,7 +30,7 @@ import {
 import { SpkService, AntrianKunjungan, PurchaseRequestPart, InvoicePembayaran, PekerjaanTambahan } from '../types';
 
 export const DashboardView: React.FC = () => {
-  const { currentRole, currentUser, setActiveTab, setRole, setSaPendingAntrianId } = useAppStore();
+  const { currentRole, currentUser, authUser, setActiveTab, setRole, setSaPendingAntrianId } = useAppStore();
   const [viewMode, setViewMode] = useState<'role' | 'global'>('role');
 
   // Queries
@@ -533,11 +534,12 @@ export const DashboardView: React.FC = () => {
   // RENDER: Mekanik Dashboard
   // ==========================================
   const renderMekanikDashboard = () => {
-    // Filter SPK assigned to this mechanic or in progress
-    const mySpks = spkList.filter(
-      (s) => (s.nama_mekanik && s.nama_mekanik.toLowerCase().includes(currentUser.toLowerCase())) || s.status_spk === 'Dalam Pengerjaan'
-    );
-    const spkDone = spkList.filter((s) => s.status_spk === 'Waiting QC' || s.status_spk === 'QC Passed' || s.status_spk === 'FIR Closed');
+    // Strict: hanya WO yang ditugaskan ke mekanik login (by ID, fallback nama persis).
+    // WO milik mekanik lain atau yang belum ditugaskan TIDAK tampil di sini.
+    const mySpks = spkList.filter((s) => isSpkAssignedToMechanic(s, authUser, currentUser));
+    const mySpkIds = new Set(mySpks.map((s) => s.id));
+    const spkDone = mySpks.filter((s) => s.status_spk === 'Waiting QC' || s.status_spk === 'QC Passed' || s.status_spk === 'FIR Closed');
+    const tambahanSaya = tambahanList.filter((t) => mySpkIds.has(t.id_spk));
 
     return (
       <div className="space-y-6">
@@ -618,7 +620,7 @@ export const DashboardView: React.FC = () => {
               </div>
               <span className="text-[10px] font-bold text-status-red uppercase bg-status-red-bg px-2 py-0.5 rounded-md">Temuan</span>
             </div>
-            <div className="text-2xl font-black text-ink">{tambahanList.length}</div>
+            <div className="text-2xl font-black text-ink">{tambahanSaya.length}</div>
             <div className="text-xs font-semibold text-ink-muted mt-0.5">Temuan Tambahan</div>
           </div>
         </div>

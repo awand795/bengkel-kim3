@@ -191,6 +191,22 @@ class RealtimeNotificationHub {
       }
     }
 
+    // Persist to server backend database so notifications are saved permanently
+    if (typeof window !== 'undefined') {
+      import('../api/client').then(({ api }) => {
+        (event.targetRoles || ['ALL']).forEach((role) => {
+          api.kirimNotifikasi({
+            target_role: role,
+            target_user_id: event.targetUserId,
+            title: event.title,
+            pesan: event.message,
+            link_tab: event.linkTab,
+            urgency: event.urgency || 'info',
+          }).catch(() => {});
+        });
+      }).catch(() => {});
+    }
+
     // Process in current tab
     this.handleIncomingEvent(fullEvent, true);
   }

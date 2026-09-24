@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Kendaraan, BookingService } from '../types';
+import { Kendaraan, BookingService, SpkService } from '../types';
+import { PaginationBar } from '../components/common/PaginationBar';
 import { useAppStore } from '../store/useAppStore';
 import { realtimeHub } from '../services/realtimeService';
+import { ModalPortal } from '../components/common/ModalPortal';
+import { toast } from '../components/common/Toast';
+import { TimePickerInput } from '../components/common/TimePickerInput';
 import { 
   Truck, 
   Calendar, 
@@ -29,7 +33,8 @@ import {
   Package,
   FileCheck,
   Check,
-  Info
+  Info,
+  Edit3
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
@@ -51,15 +56,50 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Booking Wizard Step (image5.png Mockup 1)
   const [bookingStep, setBookingStep] = useState<number>(1);
+  const [isCustomService, setIsCustomService] = useState(false);
+  const [customServiceText, setCustomServiceText] = useState('');
   const [bookingForm, setBookingForm] = useState({
     no_polisi: '',
-    jenis_layanan: 'Service Berkala',
+    jenis_layanan: 'Service Berkala (Ganti Oli & Filter)',
     tanggal_booking: new Date().toISOString().slice(0, 10),
-    jam_booking: '09:00',
+    jam_booking: '08:30',
     keluhan: '',
     catatan: '',
   });
 
+  // ── Pagination & pencarian server-side (API Builder) ────────────────────────
+  // Endpoint /kim3/kendaraan & /kim3/spk sudah memakai "Automatic SQL Pagination",
+  // jadi daftar armada & riwayat service diambil per halaman (page + limit) dan
+  // pencariannya dikirim ke server lewat parameter `q` (ILIKE di SQL).
+  const [armadaPage, setArmadaPage] = useState(1);
+  const [armadaLimit, setArmadaLimit] = useState(10);
+  const [armadaSearch, setArmadaSearch] = useState('');
+  const [armadaQuery, setArmadaQuery] = useState('');
+
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLimit, setHistoryLimit] = useState(10);
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyQuery, setHistoryQuery] = useState('');
+
+  // Debounce input pencarian supaya tidak membanjiri server setiap ketikan
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      setArmadaQuery(armadaSearch.trim());
+      setArmadaPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [armadaSearch]);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      setHistoryQuery(historySearch.trim());
+      setHistoryPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [historySearch]);
+
+  // Kalau jumlah data menyusut (mis. filter aktif) sampai halaman aktif melewati
+  // halaman terakhir, tarik kembali ke halaman terakhir yang valid.
   // Queries
   const { data: kendaraanList } = useQuery({
     queryKey: ['kendaraan-list'],
@@ -104,31 +144,72 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryFn: api.getPartSpk,
   });
 
+  // Daftar armada per halaman (server-side pagination + search)
+  const { data: armadaPageData, isFetching: armadaFetching } = useQuery({
+    queryKey: ['kendaraan-page', armadaPage, armadaLimit, armadaQuery],
+    queryFn: () => api.getKendaraanPage({ page: armadaPage, limit: armadaLimit, q: armadaQuery }),
+    placeholderData: (prev) => prev,
+  });
+
+  // Riwayat service per halaman (server-side pagination + search)
+  const { data: historyPageData, isFetching: historyFetching } = useQuery({
+    queryKey: ['spk-page', historyPage, historyLimit, historyQuery],
+    queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: historyQuery }),
+    placeholderData: (prev) => prev,
+  });
+
   // Multi-tenant Customer Scoping:
   // Pelanggan ID & Nama Perusahaan dari sesi login akun mitra aktif
   const myPelangganId = authUser?.id_pelanggan || null;
   const myCompanyName = (authUser?.nama_perusahaan || authUser?.nama_lengkap || '').toLowerCase().trim();
 
-  // Filter Kendaraan milik armada customer yang sedang login
-  const myKendaraanList = (kendaraanList || []).filter((k) => {
+  // Predikat kepemilikan armada (guard tambahan di atas filter tenant SQL)
+  const isMyKendaraan = (k: Kendaraan) => {
     if (myPelangganId && k.id_pelanggan === myPelangganId) return true;
     if (myCompanyName && (
       (k.nama_pemilik && k.nama_pemilik.toLowerCase().trim() === myCompanyName) ||
       (k.nama_perusahaan && k.nama_perusahaan.toLowerCase().trim() === myCompanyName)
     )) return true;
     return false;
-  });
+  };
+
+  // Filter Kendaraan milik armada customer yang sedang login
+  const myKendaraanList = (kendaraanList || []).filter((k) => isMyKendaraan(k));
 
   // Himpunan plat nomor kendaraan armada customer
   const myPlateSet = new Set(myKendaraanList.map((k) => k.no_polisi.toUpperCase().replace(/\s+/g, '')));
 
   // Filter SPK khusus armada customer yang sedang login
-  const mySpkList = (spkList || []).filter((s) => {
+  const isMySpk = (s: SpkService) => {
     if (myPelangganId && s.id_pelanggan === myPelangganId) return true;
     if (myCompanyName && s.nama_customer && s.nama_customer.toLowerCase().trim() === myCompanyName) return true;
     if (s.no_polisi && myPlateSet.has(s.no_polisi.toUpperCase().replace(/\s+/g, ''))) return true;
     return false;
-  });
+  };
+
+  const mySpkList = (spkList || []).filter((s) => isMySpk(s));
+
+  // Baris yang sedang ditampilkan pada daftar armada & riwayat service.
+  // Server sudah memfilter per tenant di SQL, guard di sini hanya jaring pengaman
+  // agar data mitra lain tidak pernah ikut tampil.
+  const armadaRows = (armadaPageData?.rows || []).filter((k) => isMyKendaraan(k));
+  const historyRows = (historyPageData?.rows || []).filter((s) => isMySpk(s));
+
+  // Kalau jumlah data menyusut (mis. filter pencarian aktif) sampai halaman aktif
+  // melewati halaman terakhir, tarik kembali ke halaman terakhir yang valid.
+  React.useEffect(() => {
+    const meta = armadaPageData?.pagination;
+    if (meta && meta.total_pages > 0 && armadaPage > meta.total_pages) {
+      setArmadaPage(meta.total_pages);
+    }
+  }, [armadaPageData, armadaPage]);
+
+  React.useEffect(() => {
+    const meta = historyPageData?.pagination;
+    if (meta && meta.total_pages > 0 && historyPage > meta.total_pages) {
+      setHistoryPage(meta.total_pages);
+    }
+  }, [historyPageData, historyPage]);
 
   // Filter Booking khusus customer yang sedang login
   const myBookingList = (bookingList || []).filter((b) => {
@@ -176,18 +257,33 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     onSuccess: (_res, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tambahan-pekerjaan'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      alert(
-        variables.status_approval_customer === 'Disetujui'
-          ? 'Pekerjaan tambahan DISETUJUI. Mekanik akan melanjutkan pengerjaan.'
-          : 'Pekerjaan tambahan DITOLAK. Bengkel akan melanjutkan sesuai SPK awal.'
-      );
+      if (variables.status_approval_customer === 'Disetujui') {
+        toast.success('Pekerjaan Tambahan Disetujui', 'Mekanik akan segera melanjutkan pengerjaan unit.');
+      } else {
+        toast.info('Pekerjaan Tambahan Ditolak', 'Bengkel akan melanjutkan pengerjaan sesuai SPK awal.');
+      }
     },
-    onError: (err: any) => alert('Gagal mengirim keputusan approval: ' + (err?.message || 'Coba lagi.')),
+    onError: (err: any) =>
+      toast.error('Gagal Mengirim Keputusan', err?.message || 'Coba beberapa saat lagi.'),
   });
 
   // Booking Mutation
   const createBookingMutation = useMutation({
     mutationFn: async () => {
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+      if (bookingForm.tanggal_booking < todayStr) {
+        throw new Error('Tanggal rencana masuk tidak boleh di masa lampau.');
+      }
+      if (bookingForm.tanggal_booking === todayStr) {
+        const [h, m] = (bookingForm.jam_booking || '00:00').split(':').map(Number);
+        const curH = now.getHours();
+        const curM = now.getMinutes();
+        if (h < curH || (h === curH && m <= curM)) {
+          throw new Error(`Jam kedatangan untuk hari ini tidak boleh di jam yang sudah terlewat.`);
+        }
+      }
+
       const bookNo = `BK${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
       return api.tambahBooking({
         no_booking: bookNo,
@@ -211,10 +307,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         linkTab: 'security-booking',
         urgency: 'info',
       });
-      alert('Booking Service Berhasil Dibuat! Jadwal otomatis masuk ke sistem bengkel prioritas.');
+      toast.success(
+        'Booking Service Berhasil Dibuat!',
+        `Armada ${bookingForm.no_polisi} dijadwalkan pada ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking} WIB.`
+      );
       setBookingStep(1);
       setFleetMenu('history');
     },
+    onError: (err: any) =>
+      toast.error('Gagal Membuat Booking', err?.message || 'Periksa kembali koneksi atau data formulir Anda.'),
   });
 
   // Tambah Armada State & Mutation
@@ -250,7 +351,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
-      alert('Unit armada berhasil ditambahkan ke sistem Bengkel KIM 3!');
+      queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
+      toast.success('Unit Armada Ditambahkan', `Kendaraan ${armadaForm.no_polisi} berhasil didaftarkan ke sistem.`);
       setOpenTambahArmadaModal(false);
       setArmadaForm({
         no_polisi: '',
@@ -265,7 +367,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         masa_berlaku_asuransi: '',
       });
     },
-    onError: (err: any) => alert('Gagal menambahkan unit armada: ' + (err?.message || 'Periksa kembali data Anda.')),
+    onError: (err: any) =>
+      toast.error('Gagal Menambahkan Unit', err?.message || 'Periksa kembali kelengkapan data armada Anda.'),
   });
 
   // Tambah Dokumen State & Mutation
@@ -293,7 +396,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dokumen-list'] });
-      alert('Dokumen digital armada berhasil disimpan!');
+      toast.success('Dokumen Berhasil Disimpan', `Berkas ${dokumenForm.nama_dokumen} untuk armada ${dokumenForm.no_polisi} aman tersimpan.`);
       setOpenTambahDokumenModal(false);
       setDokumenForm({
         no_polisi: '',
@@ -304,7 +407,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         file_url: 'https://bengkelkim3.com/dokumen/sample-doc.pdf',
       });
     },
-    onError: (err: any) => alert('Gagal mengunggah dokumen: ' + (err?.message || 'Periksa kembali data Anda.')),
+    onError: (err: any) =>
+      toast.error('Gagal Mengunggah Dokumen', err?.message || 'Periksa kembali data Anda.'),
   });
 
   return (
@@ -314,14 +418,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {fleetMenu === 'dashboard' && (
         <div className="space-y-6">
           {/* Welcome Banner */}
-          <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-2xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-accent rounded-md p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-200 text-xs font-semibold mb-2">
-                <Truck className="w-3.5 h-3.5 text-blue-300" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-raised/10 text-white/70 text-xs font-semibold mb-2">
+                <Truck className="w-3.5 h-3.5 text-white/70" />
                 Portal Monitoring Fleet KIM 3 Medan
               </div>
               <h1 className="text-xl md:text-2xl font-black tracking-tight">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
-              <p className="text-xs text-blue-200 mt-1 max-w-xl leading-relaxed">
+              <p className="text-xs text-white/70 mt-1 max-w-xl leading-relaxed">
                 Pantau status perbaikan armada, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK & KIR secara realtime.
               </p>
             </div>
@@ -332,7 +436,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   setFleetMenu('booking');
                   setActiveTab('fleet-booking');
                 }}
-                className="px-4 py-2.5 bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2"
+                className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-md transition-all shadow-sm flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" /> Booking Service
               </button>
@@ -341,79 +445,79 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="bg-surface-raised p-4 sm:p-5 rounded-md border border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Total Armada Truk</span>
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <span className="text-xs font-semibold text-ink-muted">Total Armada Truk</span>
+                <div className="w-8 h-8 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
                   <Truck className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-slate-900">{myKendaraanList.length}</span>
-                <span className="text-[11px] text-slate-400 ml-2 font-medium">Unit Terdaftar</span>
+                <span className="text-2xl font-black text-ink">{myKendaraanList.length}</span>
+                <span className="text-[11px] text-ink-subtle ml-2 font-medium">Unit Terdaftar</span>
               </div>
             </div>
 
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="bg-surface-raised p-4 sm:p-5 rounded-md border border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Sedang Diservis</span>
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <span className="text-xs font-semibold text-ink-muted">Sedang Diservis</span>
+                <div className="w-8 h-8 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
                   <Wrench className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-amber-600">
+                <span className="text-2xl font-black text-status-amber">
                   {mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length}
                 </span>
-                <span className="text-[11px] text-slate-400 ml-2 font-medium">Di Bengkel KIM 3</span>
+                <span className="text-[11px] text-ink-subtle ml-2 font-medium">Di Bengkel KIM 3</span>
               </div>
             </div>
 
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="bg-surface-raised p-4 sm:p-5 rounded-md border border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Booking Terjadwal</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <span className="text-xs font-semibold text-ink-muted">Booking Terjadwal</span>
+                <div className="w-8 h-8 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
                   <Calendar className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-emerald-600">
+                <span className="text-2xl font-black text-status-green">
                   {myBookingList.length}
                 </span>
-                <span className="text-[11px] text-slate-400 ml-2 font-medium">Antrian Masuk</span>
+                <span className="text-[11px] text-ink-subtle ml-2 font-medium">Antrian Masuk</span>
               </div>
             </div>
 
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="bg-surface-raised p-4 sm:p-5 rounded-md border border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Dokumen Digital</span>
-                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <span className="text-xs font-semibold text-ink-muted">Dokumen Digital</span>
+                <div className="w-8 h-8 rounded-md bg-status-red-bg text-status-red flex items-center justify-center">
                   <FileText className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-slate-900">{myDokumenList.length}</span>
-                <span className="text-[11px] text-slate-400 ml-2 font-medium">STNK & KIR</span>
+                <span className="text-2xl font-black text-ink">{myDokumenList.length}</span>
+                <span className="text-[11px] text-ink-subtle ml-2 font-medium">STNK & KIR</span>
               </div>
             </div>
           </div>
 
           {/* Active Unit Live Tracker Highlight */}
           {activeTrackSpk ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                  <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-black">
                     <Truck className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-black text-slate-900">{activeTrackSpk.no_polisi}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold animate-pulse">
+                      <span className="text-base font-black text-ink">{activeTrackSpk.no_polisi}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent text-[10px] font-bold animate-pulse">
                         Sedang Dikerjakan
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 font-semibold">{activeTrackSpk.no_spk} • {activeTrackSpk.keluhan_customer}</p>
+                    <p className="text-xs text-ink-muted font-semibold">{activeTrackSpk.no_spk} • {activeTrackSpk.keluhan_customer}</p>
                   </div>
                 </div>
                 <button
@@ -422,34 +526,34 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     setFleetMenu('status');
                     setActiveTab('fleet-status');
                   }}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 self-start sm:self-auto"
+                  className="px-3.5 py-2 bg-surface hover:bg-surface text-ink text-xs font-bold rounded-md transition-all flex items-center gap-1.5 self-start sm:self-auto"
                 >
                   Lihat Detail Tracker <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <span className="text-slate-400 text-[10px] block">Status SPK:</span>
-                  <span className="font-bold text-slate-800">{activeTrackSpk.status_spk}</span>
+                <div className="p-3 bg-surface rounded-md">
+                  <span className="text-ink-subtle text-[10px] block">Status SPK:</span>
+                  <span className="font-bold text-ink">{activeTrackSpk.status_spk}</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <span className="text-slate-400 text-[10px] block">Estimasi Lead Time:</span>
-                  <span className="font-bold text-blue-700">{activeTrackSpk.lead_time_jam || 6} Jam Pengerjaan</span>
+                <div className="p-3 bg-surface rounded-md">
+                  <span className="text-ink-subtle text-[10px] block">Estimasi Lead Time:</span>
+                  <span className="font-bold text-accent">{activeTrackSpk.lead_time_jam || 6} Jam Pengerjaan</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl">
-                  <span className="text-slate-400 text-[10px] block">Estimasi Biaya:</span>
-                  <span className="font-bold text-emerald-700">Rp {Number(activeTrackSpk.estimasi_biaya || 0).toLocaleString()}</span>
+                <div className="p-3 bg-surface rounded-md">
+                  <span className="text-ink-subtle text-[10px] block">Estimasi Biaya:</span>
+                  <span className="font-bold text-status-green">Rp {Number(activeTrackSpk.estimasi_biaya || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center shadow-xs">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+            <div className="bg-surface-raised rounded-md border border-border p-6 text-center shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-status-green-bg text-status-green flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-slate-800">Semua Unit Armada Beroperasi Prima</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              <h3 className="text-sm font-bold text-ink">Semua Unit Armada Beroperasi Prima</h3>
+              <p className="text-xs text-ink-muted mt-1 max-w-md mx-auto">
                 Saat ini tidak ada unit armada Anda yang sedang menginap atau diservis di bengkel KIM 3.
               </p>
             </div>
@@ -458,10 +562,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {/* Quick Previews: Jadwal Booking & Unit Terdaftar */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Upcoming Bookings */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-600" /> Jadwal Booking Terdekat
+            <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
+                <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-accent" /> Jadwal Booking Terdekat
                 </h3>
                 <button
                   type="button"
@@ -469,7 +573,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     setFleetMenu('booking');
                     setActiveTab('fleet-booking');
                   }}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                  className="text-xs font-bold text-accent hover:text-accent-hover"
                 >
                   + Buat Baru
                 </button>
@@ -478,16 +582,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {myBookingList.length > 0 ? (
                 <div className="space-y-2.5">
                   {myBookingList.slice(0, 3).map((b) => (
-                    <div key={b.id} className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <div key={b.id} className="p-3 rounded-md border border-border bg-surface flex items-center justify-between">
                       <div>
-                        <span className="font-bold text-slate-900 text-xs">{b.no_polisi}</span>
-                        <p className="text-[11px] text-slate-500">{b.jenis_layanan}</p>
+                        <span className="font-bold text-ink text-xs">{b.no_polisi}</span>
+                        <p className="text-[11px] text-ink-muted">{b.jenis_layanan}</p>
                       </div>
                       <div className="text-right">
-                        <span className="font-mono text-xs font-semibold text-blue-700 block">
+                        <span className="font-mono text-xs font-semibold text-accent block">
                           {b.tanggal_booking} {b.jam_booking}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-subtle text-accent font-bold">
                           {b.status}
                         </span>
                       </div>
@@ -495,15 +599,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 py-4 text-center">Belum ada booking service terjadwal.</p>
+                <p className="text-xs text-ink-subtle py-4 text-center">Belum ada booking service terjadwal.</p>
               )}
             </div>
 
             {/* Quick Fleet Units */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-blue-600" /> Armada Truk Anda
+            <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
+                <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-accent" /> Armada Truk Anda
                 </h3>
                 <button
                   type="button"
@@ -511,7 +615,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     setFleetMenu('kendaraan');
                     setActiveTab('fleet-kendaraan');
                   }}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                  className="text-xs font-bold text-accent hover:text-accent-hover"
                 >
                   Lihat Semua
                 </button>
@@ -520,19 +624,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {myKendaraanList.length > 0 ? (
                 <div className="space-y-2.5">
                   {myKendaraanList.slice(0, 3).map((k) => (
-                    <div key={k.id} className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <div key={k.id} className="p-3 rounded-md border border-border bg-surface flex items-center justify-between">
                       <div>
-                        <span className="font-bold text-slate-900 text-xs">{k.no_polisi}</span>
-                        <p className="text-[11px] text-slate-500">{k.merk} {k.model} • {k.jenis_armada}</p>
+                        <span className="font-bold text-ink text-xs">{k.no_polisi}</span>
+                        <p className="text-[11px] text-ink-muted">{k.merk} {k.model} • {k.jenis_armada}</p>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-status-green-bg text-status-green font-bold">
                         Aktif
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 py-4 text-center">Belum ada armada terdaftar.</p>
+                <p className="text-xs text-ink-subtle py-4 text-center">Belum ada armada terdaftar.</p>
               )}
             </div>
           </div>
@@ -541,13 +645,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* Empty State for Status if no active SPK */}
       {fleetMenu === 'status' && !activeTrackSpk && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-xs max-w-lg mx-auto space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+        <div className="bg-surface-raised rounded-md border border-border p-8 text-center shadow-xs max-w-lg mx-auto space-y-4">
+          <div className="w-16 h-16 rounded-md bg-accent-subtle text-accent flex items-center justify-center mx-auto">
             <Truck className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-900">Tidak Ada Servis Berjalan</h2>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+            <h2 className="text-base font-bold text-ink">Tidak Ada Servis Berjalan</h2>
+            <p className="text-xs text-ink-muted mt-1 leading-relaxed">
               Saat ini tidak ada unit armada Anda yang sedang dalam proses pengerjaan di Bengkel KIM 3 Medan.
             </p>
           </div>
@@ -557,7 +661,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               setFleetMenu('booking');
               setActiveTab('fleet-booking');
             }}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all inline-flex items-center gap-2"
+            className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-md shadow-xs transition-all inline-flex items-center gap-2"
           >
             <Calendar className="w-4 h-4" /> Jadwalkan Booking Service
           </button>
@@ -569,72 +673,72 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         <div className="space-y-6">
           
           {/* Active Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-black text-sm">
+                <div className="w-12 h-12 rounded-md bg-surface text-ink-muted flex items-center justify-center font-black text-sm">
                   🚚
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-slate-900">{activeTrackSpk.no_polisi}</h2>
-                    <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">Service Berjalan</span>
+                    <h2 className="text-lg font-black text-ink">{activeTrackSpk.no_polisi}</h2>
+                    <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent text-[10px] font-bold">Service Berjalan</span>
                   </div>
-                  <p className="text-xs text-slate-500 font-semibold">{activeTrackSpk.nama_customer || '-'} | {activeTrackSpk.no_spk}</p>
+                  <p className="text-xs text-ink-muted font-semibold">{activeTrackSpk.nama_customer || '-'} | {activeTrackSpk.no_spk}</p>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-4 text-xs font-semibold">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Layanan:</span>
-                  <span className="text-slate-800">{activeTrackSpk.jenis_layanan || 'Service Kendaraan'}</span>
+                  <span className="text-ink-subtle block text-[10px]">Layanan:</span>
+                  <span className="text-ink">{activeTrackSpk.jenis_layanan || 'Service Kendaraan'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Waktu Check In:</span>
-                  <span className="text-slate-800">{activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
+                  <span className="text-ink-subtle block text-[10px]">Waktu Check In:</span>
+                  <span className="text-ink">{activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Estimasi Selesai (ETA):</span>
-                  <span className="text-blue-700 font-bold">{activeTrackSpk.estimasi_waktu_jam ? `${activeTrackSpk.estimasi_waktu_jam} Jam` : `${activeTrackSpk.lead_time_jam || '-'} Jam`}</span>
+                  <span className="text-ink-subtle block text-[10px]">Estimasi Selesai (ETA):</span>
+                  <span className="text-accent font-bold">{activeTrackSpk.estimasi_waktu_jam ? `${activeTrackSpk.estimasi_waktu_jam} Jam` : `${activeTrackSpk.lead_time_jam || '-'} Jam`}</span>
                 </div>
               </div>
             </div>
 
             {/* Banner Menunggu Part / Pending (Kotak 6 & 9 Excel, Memo Poin 4 & 5) */}
             {activeTrackSpk.status_spk === 'Waiting Part' && (
-              <div className="mt-4 p-4 sm:p-5 rounded-2xl border-2 border-purple-300 bg-purple-50/90 text-purple-900 shadow-xs space-y-2.5">
+              <div className="mt-4 p-4 sm:p-5 rounded-md border-2 border-status-red/50 bg-status-red-bg text-status-red shadow-xs space-y-2.5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-purple-200 text-purple-800 flex items-center justify-center font-bold text-lg shrink-0">
+                  <div className="w-10 h-10 rounded-md bg-status-red/30 text-status-red flex items-center justify-center font-bold text-lg shrink-0">
                     📦
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-black text-purple-950">
+                      <h3 className="text-sm font-black text-status-red">
                         Status Kendaraan: Menunggu Ketersediaan Sparepart (Pending)
                       </h3>
-                      <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 text-[10px] font-black animate-pulse">
+                      <span className="px-2 py-0.5 rounded-full bg-status-red/30 text-status-red text-[10px] font-black animate-pulse">
                         Waiting Part
                       </span>
                     </div>
-                    <span className="text-[11px] text-purple-700 font-semibold">
+                    <span className="text-[11px] text-status-red font-semibold">
                       Pengadaan suku cadang resmi sedang diproses oleh Tim Purchasing Bengkel KIM 3 (Alur Kotak Merah).
                     </span>
                   </div>
                 </div>
 
-                <p className="text-xs text-purple-900/90 leading-relaxed font-medium">
+                <p className="text-xs text-status-red leading-relaxed font-medium">
                   Pekerjaan perbaikan armada Anda sementara dijeda karena memerlukan suku cadang yang sedang dalam proses pengadaan vendor distributor. Estimasi waktu selesai akan diperbarui secara otomatis saat barang telah ready di bengkel.
                 </p>
 
                 {activePr && (
-                  <div className="mt-2 pt-2 border-t border-purple-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
-                      <span className="text-[10px] text-slate-500 block font-semibold">Suku Cadang Dipesan:</span>
-                      <span className="font-bold text-slate-800">{activePr.catatan_pr || 'Sparepart Indent Khusus'}</span>
+                  <div className="mt-2 pt-2 border-t border-status-red/30 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="bg-surface-raised/80 p-2.5 rounded-md border border-status-red/30">
+                      <span className="text-[10px] text-ink-muted block font-semibold">Suku Cadang Dipesan:</span>
+                      <span className="font-bold text-ink">{activePr.catatan_pr || 'Sparepart Indent Khusus'}</span>
                     </div>
-                    <div className="bg-white/80 p-2.5 rounded-xl border border-purple-100">
-                      <span className="text-[10px] text-purple-600 block font-semibold">Estimasi Kedatangan Barang (ETA):</span>
-                      <span className="font-mono font-bold text-purple-900">
+                    <div className="bg-surface-raised/80 p-2.5 rounded-md border border-status-red/30">
+                      <span className="text-[10px] text-status-red block font-semibold">Estimasi Kedatangan Barang (ETA):</span>
+                      <span className="font-mono font-bold text-status-red">
                         {activePr.estimasi_tanggal_ready_eta
                           ? `${activePr.estimasi_tanggal_ready_eta} ${activePr.estimasi_jam_ready_eta ? `(${activePr.estimasi_jam_ready_eta} WIB)` : ''}`
                           : 'Dalam Konfirmasi Penawaran Vendor'}
@@ -651,48 +755,48 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 {approvalTambahanList.map((t) => (
                   <div
                     key={t.id}
-                    className="rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-4 sm:p-5"
+                    className="rounded-md border-2 border-status-amber/50 bg-status-amber-bg p-4 sm:p-5"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
                         <AlertCircle className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-sm font-black text-amber-900">
+                          <h3 className="text-sm font-black text-status-amber">
                             Ada Pekerjaan Tambahan Perlu Persetujuan
                           </h3>
-                          <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold animate-pulse">
+                          <span className="px-2 py-0.5 rounded-full bg-status-amber/30 text-status-amber text-[10px] font-bold animate-pulse">
                             Menunggu Approval
                           </span>
                         </div>
 
-                        <p className="text-xs text-amber-900/90 mt-1.5 leading-relaxed font-medium">
+                        <p className="text-xs text-status-amber mt-1.5 leading-relaxed font-medium">
                           {t.deskripsi_tambahan}
                         </p>
                         {t.rekomendasi_perbaikan && (
-                          <p className="text-[11px] text-amber-700 mt-1 italic">
+                          <p className="text-[11px] text-status-amber mt-1 italic">
                             Rekomendasi: {t.rekomendasi_perbaikan}
                           </p>
                         )}
 
                         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                          <div className="bg-white/80 rounded-xl border border-amber-200 p-2.5">
-                            <span className="text-amber-600/80 text-[10px] block">Estimasi Biaya Tambahan</span>
-                            <span className="font-black text-amber-900">
+                          <div className="bg-surface-raised/80 rounded-md border border-status-amber/30 p-2.5">
+                            <span className="text-status-amber/80 text-[10px] block">Estimasi Biaya Tambahan</span>
+                            <span className="font-black text-status-amber">
                               Rp {Number(t.estimasi_biaya_tambahan || 0).toLocaleString('id-ID')}
                             </span>
                           </div>
-                          <div className="bg-white/80 rounded-xl border border-amber-200 p-2.5">
-                            <span className="text-amber-600/80 text-[10px] block">Estimasi Waktu Tambahan</span>
-                            <span className="font-black text-amber-900">
+                          <div className="bg-surface-raised/80 rounded-md border border-status-amber/30 p-2.5">
+                            <span className="text-status-amber/80 text-[10px] block">Estimasi Waktu Tambahan</span>
+                            <span className="font-black text-status-amber">
                               {t.estimasi_waktu_tambahan_jam || 0} Jam
                             </span>
                           </div>
                         </div>
 
                         {(t.diajukan_oleh_mekanik || t.diverifikasi_foreman) && (
-                          <p className="text-[10px] text-amber-600 mt-2">
+                          <p className="text-[10px] text-status-amber mt-2">
                             {t.diajukan_oleh_mekanik ? `Diajukan mekanik: ${t.diajukan_oleh_mekanik}` : ''}
                             {t.diajukan_oleh_mekanik && t.diverifikasi_foreman ? ' • ' : ''}
                             {t.diverifikasi_foreman ? `Diverifikasi foreman: ${t.diverifikasi_foreman}` : ''}
@@ -706,7 +810,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             onClick={() =>
                               approvalTambahanMutation.mutate({ id: t.id, status_approval_customer: 'Disetujui' })
                             }
-                            className="flex-1 min-h-[44px] py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
+                            className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
                           >
                             <CheckCircle2 className="w-4 h-4" /> Setujui Pekerjaan Tambahan
                           </button>
@@ -716,7 +820,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             onClick={() =>
                               approvalTambahanMutation.mutate({ id: t.id, status_approval_customer: 'Ditolak' })
                             }
-                            className="flex-1 min-h-[44px] py-2.5 px-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-1.5"
+                            className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-1.5"
                           >
                             <XCircle className="w-4 h-4" /> Tolak
                           </button>
@@ -750,22 +854,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="flex flex-col items-center flex-1 text-center">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
                         s.isWaitingPart
-                          ? 'bg-purple-600 text-white ring-4 ring-purple-100 shadow-md scale-110'
+                          ? 'bg-status-red text-white ring-4 ring-status-red/20 shadow-md scale-110'
                           : s.current 
-                          ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-md scale-110' 
+                          ? 'bg-accent text-white ring-4 ring-accent/20 shadow-md scale-110' 
                           : s.done 
-                          ? 'bg-emerald-600 text-white' 
-                          : 'bg-slate-100 text-slate-400 border border-slate-200'
+                          ? 'bg-status-green text-white' 
+                          : 'bg-surface text-ink-subtle border border-border'
                       }`}>
                         {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
                       </div>
-                      <div className={`text-xs font-bold ${s.isWaitingPart ? 'text-purple-700' : s.current ? 'text-blue-600' : 'text-slate-800'}`}>
+                      <div className={`text-xs font-bold ${s.isWaitingPart ? 'text-status-red' : s.current ? 'text-accent' : 'text-ink'}`}>
                         {s.title}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{s.desc}</div>
+                      <div className="text-[10px] text-ink-subtle mt-0.5">{s.desc}</div>
                     </div>
                     {idx < 5 && (
-                      <div className={`h-1 flex-1 mx-2 rounded-full ${s.done ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+                      <div className={`h-1 flex-1 mx-2 rounded-full ${s.done ? 'bg-status-green' : 'bg-surface'}`}></div>
                     )}
                   </div>
                 ))}
@@ -773,16 +877,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
 
             {/* 4 Detail Tabs di bawah Tracker Status Service */}
-            <div className="border-t border-slate-200 pt-5 space-y-4">
+            <div className="border-t border-border pt-5 space-y-4">
               {/* Tab Navigation */}
-              <div className="flex border-b border-slate-200 gap-2 overflow-x-auto pb-px">
+              <div className="flex border-b border-border gap-2 overflow-x-auto pb-px">
                 <button
                   type="button"
                   onClick={() => setStatusSubTab('progress')}
                   className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
                     statusSubTab === 'progress'
-                      ? 'border-blue-600 text-blue-600 bg-blue-50/50'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      ? 'border-accent text-accent bg-accent-subtle'
+                      : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
                   }`}
                 >
                   <Clock className="w-4 h-4" />
@@ -793,14 +897,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   onClick={() => setStatusSubTab('detail')}
                   className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
                     statusSubTab === 'detail'
-                      ? 'border-blue-600 text-blue-600 bg-blue-50/50'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      ? 'border-accent text-accent bg-accent-subtle'
+                      : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
                   }`}
                 >
                   <Package className="w-4 h-4" />
                   Detail Pekerjaan & Part
                   {(activePekerjaan.length > 0 || activeParts.length > 0) && (
-                    <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-700">
+                    <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-accent-subtle text-accent">
                       {activePekerjaan.length + activeParts.length}
                     </span>
                   )}
@@ -810,8 +914,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   onClick={() => setStatusSubTab('catatan')}
                   className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
                     statusSubTab === 'catatan'
-                      ? 'border-blue-600 text-blue-600 bg-blue-50/50'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      ? 'border-accent text-accent bg-accent-subtle'
+                      : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
                   }`}
                 >
                   <FileCheck className="w-4 h-4" />
@@ -822,14 +926,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   onClick={() => setStatusSubTab('dokumen')}
                   className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
                     statusSubTab === 'dokumen'
-                      ? 'border-blue-600 text-blue-600 bg-blue-50/50'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      ? 'border-accent text-accent bg-accent-subtle'
+                      : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
                   }`}
                 >
                   <Camera className="w-4 h-4" />
                   Dokumen & Foto Kendaraan
                   {activeArmadaDocs.length > 0 && (
-                    <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200 text-slate-700">
+                    <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-surface text-ink-muted">
                       {activeArmadaDocs.length}
                     </span>
                   )}
@@ -839,58 +943,58 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {/* TAB 1: Progress Pekerjaan */}
               {statusSubTab === 'progress' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-                  <div className="space-y-3 bg-slate-50/60 p-4 rounded-xl border border-slate-200">
-                    <span className="font-bold text-slate-800 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-blue-600" />
+                  <div className="space-y-3 bg-surface/60 p-4 rounded-md border border-border">
+                    <span className="font-bold text-ink flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-accent" />
                       Timeline Riwayat Aktivitas Service:
                     </span>
-                    <div className="space-y-3 relative pl-4 border-l-2 border-slate-200 ml-2">
+                    <div className="space-y-3 relative pl-4 border-l-2 border-border ml-2">
                       <div className="relative">
-                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-white"></div>
-                        <div className="font-semibold text-slate-900">Kendaraan Masuk di Pos Security</div>
-                        <div className="text-[11px] text-slate-500">Pukul {activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | Pos Security KIM 3</div>
+                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                        <div className="font-semibold text-ink">Kendaraan Masuk di Pos Security</div>
+                        <div className="text-[11px] text-ink-muted">Pukul {activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | Pos Security KIM 3</div>
                       </div>
                       <div className="relative">
-                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-white"></div>
-                        <div className="font-semibold text-slate-900">Penerimaan & Cek Awal oleh SA</div>
-                        <div className="text-[11px] text-slate-500">Pukul {activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | SA: {activeTrackSpk.nama_sa || '-'} | Odometer: {activeTrackSpk.odometer_km ? `${activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</div>
+                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-accent ring-4 ring-white"></div>
+                        <div className="font-semibold text-ink">Penerimaan & Cek Awal oleh SA</div>
+                        <div className="text-[11px] text-ink-muted">Pukul {activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | SA: {activeTrackSpk.nama_sa || '-'} | Odometer: {activeTrackSpk.odometer_km ? `${activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</div>
                       </div>
                       <div className="relative">
-                        <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${activeTrackSpk.status_spk === 'Waiting Part' ? 'bg-purple-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`}></div>
-                        <div className="font-semibold text-slate-900">
+                        <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${activeTrackSpk.status_spk === 'Waiting Part' ? 'bg-status-red animate-pulse' : 'bg-status-amber animate-pulse'}`}></div>
+                        <div className="font-semibold text-ink">
                           {activeTrackSpk.status_spk === 'Waiting Part'
                             ? 'Menunggu Ketersediaan Sparepart (Timer Ditunda)'
                             : activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai'
                             ? 'Pengerjaan Service Teknisi Selesai'
                             : 'Pengerjaan Sedang Dilakukan oleh Mekanik'}
                         </div>
-                        <div className="text-[11px] text-slate-500">
-                          Mekanik: {activeTrackSpk.nama_mekanik || 'Belum Ditugaskan'} | Status SPK: <span className="font-medium text-slate-800">{activeTrackSpk.status_spk}</span>
+                        <div className="text-[11px] text-ink-muted">
+                          Mekanik: {activeTrackSpk.nama_mekanik || 'Belum Ditugaskan'} | Status SPK: <span className="font-medium text-ink">{activeTrackSpk.status_spk}</span>
                         </div>
                       </div>
                       {(activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai') && (
                         <div className="relative">
-                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-emerald-600 ring-4 ring-white"></div>
-                          <div className="font-semibold text-slate-900">Quality Control (QC) Lulus</div>
-                          <div className="text-[11px] text-slate-500">Inspeksi kualitas pengerjaan disetujui Foreman</div>
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                          <div className="font-semibold text-ink">Quality Control (QC) Lulus</div>
+                          <div className="text-[11px] text-ink-muted">Inspeksi kualitas pengerjaan disetujui Foreman</div>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="space-y-3 bg-blue-50/40 p-4 rounded-xl border border-blue-100">
-                    <span className="font-bold text-slate-800 flex items-center gap-2">
-                      <Info className="w-4 h-4 text-blue-600" />
+                  <div className="space-y-3 bg-accent-subtle p-4 rounded-md border border-accent/20">
+                    <span className="font-bold text-ink flex items-center gap-2">
+                      <Info className="w-4 h-4 text-accent" />
                       Status Terkini & Petunjuk:
                     </span>
-                    <p className="text-slate-600 leading-relaxed">
-                      Kendaraan <span className="font-semibold text-slate-900">{activeTrackSpk.no_polisi}</span> saat ini berada pada tahap pengerjaan <span className="font-semibold text-blue-700">{activeTrackSpk.status_spk}</span>.
+                    <p className="text-ink-muted leading-relaxed">
+                      Kendaraan <span className="font-semibold text-ink">{activeTrackSpk.no_polisi}</span> saat ini berada pada tahap pengerjaan <span className="font-semibold text-accent">{activeTrackSpk.status_spk}</span>.
                     </p>
-                    <div className="bg-white p-3 rounded-lg border border-blue-200/60 text-slate-600 space-y-1">
-                      <div className="font-medium text-slate-800">Estimasi Selesai:</div>
+                    <div className="bg-surface-raised p-3 rounded-md border border-accent/30 text-ink-muted space-y-1">
+                      <div className="font-medium text-ink">Estimasi Selesai:</div>
                       <div>{activeTrackSpk.estimasi_waktu_jam ? `${activeTrackSpk.estimasi_waktu_jam} Jam kerja` : 'Hari ini, estimasi 2-3 jam kerja'}</div>
                     </div>
-                    <div className="text-[11px] text-slate-500 pt-1">
+                    <div className="text-[11px] text-ink-muted pt-1">
                       Pembaruan status sistem berjalan realtime tanpa perlu konfirmasi manual via chat/telepon.
                     </div>
                   </div>
@@ -901,29 +1005,29 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {statusSubTab === 'detail' && (
                 <div className="space-y-4 pt-1 text-xs">
                   {/* Daftar Jasa */}
-                  <div className="border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="bg-slate-100 px-4 py-2.5 font-bold text-slate-800 flex justify-between items-center">
+                  <div className="border border-border rounded-md overflow-hidden">
+                    <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
                       <span>Daftar Pekerjaan / Jasa Service</span>
-                      <span className="text-[11px] text-slate-500 font-normal">
+                      <span className="text-[11px] text-ink-muted font-normal">
                         {activePekerjaan.length > 0 ? `${activePekerjaan.length} Item Jasa` : 'Estimasi Paket'}
                       </span>
                     </div>
-                    <div className="divide-y divide-slate-100 bg-white">
+                    <div className="divide-y divide-border bg-surface-raised">
                       {activePekerjaan.length > 0 ? (
                         activePekerjaan.map((p, idx) => (
                           <div key={idx} className="p-3 flex justify-between items-center">
                             <div>
-                              <div className="font-semibold text-slate-800">{p.nama_pekerjaan || p.kategori}</div>
-                              <div className="text-[11px] text-slate-400">Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}</div>
+                              <div className="font-semibold text-ink">{p.nama_pekerjaan || p.kategori}</div>
+                              <div className="text-[11px] text-ink-subtle">Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}</div>
                             </div>
                             <div className="text-right">
-                              <div className="font-bold text-slate-900">Rp {(p.biaya_jasa || 0).toLocaleString('id-ID')}</div>
-                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
+                              <div className="font-bold text-ink">Rp {(p.biaya_jasa || 0).toLocaleString('id-ID')}</div>
+                              <span className="text-[10px] text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <div className="p-4 text-center text-xs text-slate-400">
+                        <div className="p-4 text-center text-xs text-ink-subtle">
                           Belum ada rincian jasa pengerjaan untuk unit ini.
                         </div>
                       )}
@@ -931,29 +1035,29 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   </div>
 
                   {/* Daftar Part */}
-                  <div className="border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="bg-slate-100 px-4 py-2.5 font-bold text-slate-800 flex justify-between items-center">
+                  <div className="border border-border rounded-md overflow-hidden">
+                    <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
                       <span>Daftar Sparepart & Material</span>
-                      <span className="text-[11px] text-slate-500 font-normal">
+                      <span className="text-[11px] text-ink-muted font-normal">
                         {activeParts.length > 0 ? `${activeParts.length} Item Part` : '0 Item Part'}
                       </span>
                     </div>
-                    <div className="divide-y divide-slate-100 bg-white">
+                    <div className="divide-y divide-border bg-surface-raised">
                       {activeParts.length > 0 ? (
                         activeParts.map((pt, idx) => (
                           <div key={idx} className="p-3 flex justify-between items-center">
                             <div>
-                              <div className="font-semibold text-slate-800">{pt.nama_part}</div>
-                              <div className="text-[11px] text-slate-400">Jumlah: {pt.jumlah} {pt.satuan || 'pcs'}</div>
+                              <div className="font-semibold text-ink">{pt.nama_part}</div>
+                              <div className="text-[11px] text-ink-subtle">Jumlah: {pt.jumlah} {pt.satuan || 'pcs'}</div>
                             </div>
                             <div className="text-right">
-                              <div className="font-bold text-slate-900">Rp {((pt.harga_satuan || 0) * (pt.jumlah || 1)).toLocaleString('id-ID')}</div>
-                              <span className="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
+                              <div className="font-bold text-ink">Rp {((pt.harga_satuan || 0) * (pt.jumlah || 1)).toLocaleString('id-ID')}</div>
+                              <span className="text-[10px] text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <div className="p-4 text-center text-xs text-slate-400">
+                        <div className="p-4 text-center text-xs text-ink-subtle">
                           Belum ada rincian sparepart untuk unit ini.
                         </div>
                       )}
@@ -965,45 +1069,45 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {/* TAB 3: Catatan SA & Mekanik */}
               {statusSubTab === 'catatan' && (
                 <div className="space-y-3 pt-1 text-xs">
-                  <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200/80 space-y-1.5">
-                    <div className="font-bold text-amber-900 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                  <div className="bg-status-amber-bg p-4 rounded-md border border-status-amber/30 space-y-1.5">
+                    <div className="font-bold text-status-amber flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-status-amber" />
                       Keluhan Awal Customer (Driver / PIC Armada):
                     </div>
-                    <p className="text-slate-800 font-medium italic pl-6">
+                    <p className="text-ink font-medium italic pl-6">
                       "{activeTrackSpk.keluhan_customer || '-'}"
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                      <div className="font-bold text-slate-800 flex items-center gap-2">
-                        <FileCheck className="w-4 h-4 text-blue-600" />
+                    <div className="bg-surface p-4 rounded-md border border-border space-y-2">
+                      <div className="font-bold text-ink flex items-center gap-2">
+                        <FileCheck className="w-4 h-4 text-accent" />
                         Catatan Service Advisor (SA):
                       </div>
-                      <div className="text-slate-700 text-xs">
+                      <div className="text-ink-muted text-xs">
                         {activeTrackSpk.catatan_sa || activeTrackSpk.catatan_kondisi_awal || 'Belum ada catatan dari Service Advisor.'}
                       </div>
                       {activeTrackSpk.odometer_km ? (
-                        <div className="text-[11px] text-slate-500 pt-1.5 border-t border-slate-200/60">
+                        <div className="text-[11px] text-ink-muted pt-1.5 border-t border-border">
                           Odometer tercatat: <strong>{activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM</strong>
                         </div>
                       ) : null}
                     </div>
 
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                      <div className="font-bold text-slate-800 flex items-center gap-2">
-                        <Wrench className="w-4 h-4 text-slate-700" />
+                    <div className="bg-surface p-4 rounded-md border border-border space-y-2">
+                      <div className="font-bold text-ink flex items-center gap-2">
+                        <Wrench className="w-4 h-4 text-ink-muted" />
                         Catatan & Temuan Teknisi / Foreman:
                       </div>
-                      <div className="text-slate-700 text-xs">
+                      <div className="text-ink-muted text-xs">
                         {activeTrackSpk.catatan_foreman || 'Belum ada catatan temuan teknisi untuk unit ini.'}
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-emerald-50/50 p-3 rounded-lg border border-emerald-200 text-slate-600 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="bg-status-green-bg p-3 rounded-md border border-status-green/30 text-ink-muted flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-status-green shrink-0" />
                     <span>Garansi pekerjaan service KIM3 berlaku selama 14 hari kerja atau 1.000 KM sejak kendaraan keluar.</span>
                   </div>
                 </div>
@@ -1014,11 +1118,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <div className="space-y-4 pt-1 text-xs">
                   {/* Foto Kendaraan (Before / After) */}
                   <div className="space-y-2">
-                    <span className="font-bold text-slate-800 block">Dokumentasi Visual Kendaraan (Foto Fisik):</span>
+                    <span className="font-bold text-ink block">Dokumentasi Visual Kendaraan (Foto Fisik):</span>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-center">
-                        <div className="text-[11px] font-semibold text-slate-700">Foto Masuk Pos Security</div>
-                        <div className="h-32 bg-slate-200 rounded-lg flex flex-col items-center justify-center text-slate-400 gap-1 overflow-hidden">
+                      <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
+                        <div className="text-[11px] font-semibold text-ink-muted">Foto Masuk Pos Security</div>
+                        <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1 overflow-hidden">
                           {(activeTrackSpk as any).foto_kendaraan_masuk ? (
                             <img src={(activeTrackSpk as any).foto_kendaraan_masuk} alt="Kendaraan Masuk" className="h-full w-full object-cover" />
                           ) : (
@@ -1028,54 +1132,54 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             </>
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-500">Tampak Depan & Nopol</div>
+                        <div className="text-[10px] text-ink-muted">Tampak Depan & Nopol</div>
                       </div>
 
-                      <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-center">
-                        <div className="text-[11px] font-semibold text-slate-700">Foto Sebelum Pengerjaan</div>
-                        <div className="h-32 bg-slate-200 rounded-lg flex flex-col items-center justify-center text-slate-400 gap-1">
+                      <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
+                        <div className="text-[11px] font-semibold text-ink-muted">Foto Sebelum Pengerjaan</div>
+                        <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1">
                           <Camera className="w-6 h-6" />
                           <span className="text-[10px]">Kondisi Awal Komponen</span>
                         </div>
-                        <div className="text-[10px] text-slate-500">Dokumentasi SA / Mekanik</div>
+                        <div className="text-[10px] text-ink-muted">Dokumentasi SA / Mekanik</div>
                       </div>
 
-                      <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 text-center">
-                        <div className="text-[11px] font-semibold text-slate-700">Foto Setelah Pengerjaan</div>
-                        <div className="h-32 bg-slate-200 rounded-lg flex flex-col items-center justify-center text-slate-400 gap-1">
+                      <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
+                        <div className="text-[11px] font-semibold text-ink-muted">Foto Setelah Pengerjaan</div>
+                        <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1">
                           {activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai' ? (
                             <>
-                              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-                              <span className="text-[10px] text-emerald-700 font-medium">Verifikasi QC Disetujui</span>
+                              <CheckCircle2 className="w-6 h-6 text-status-green" />
+                              <span className="text-[10px] text-status-green font-medium">Verifikasi QC Disetujui</span>
                             </>
                           ) : (
                             <>
-                              <Clock className="w-6 h-6 text-slate-400" />
+                              <Clock className="w-6 h-6 text-ink-subtle" />
                               <span className="text-[10px]">Menunggu Pekerjaan Selesai</span>
                             </>
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-500">Inspeksi Akhir Foreman</div>
+                        <div className="text-[10px] text-ink-muted">Inspeksi Akhir Foreman</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Dokumen Terkait Armada */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <span className="font-bold text-slate-800 block">Berkas & Dokumen Armada Ini:</span>
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <span className="font-bold text-ink block">Berkas & Dokumen Armada Ini:</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-colors">
+                      <div className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised hover:border-accent/30 transition-colors">
                         <div className="flex items-center gap-2.5">
-                          <FileText className="w-5 h-5 text-blue-600" />
+                          <FileText className="w-5 h-5 text-accent" />
                           <div>
-                            <div className="font-semibold text-slate-900">SPK_{activeTrackSpk.no_spk}.pdf</div>
-                            <div className="text-[10px] text-slate-400">Surat Perintah Kerja Resmi</div>
+                            <div className="font-semibold text-ink">SPK_{activeTrackSpk.no_spk}.pdf</div>
+                            <div className="text-[10px] text-ink-subtle">Surat Perintah Kerja Resmi</div>
                           </div>
                         </div>
                         <button
                           type="button"
-                          onClick={() => alert(`Mengunduh salinan Surat Perintah Kerja ${activeTrackSpk.no_spk}`)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          onClick={() => toast.info('Mengunduh Berkas', `Salinan Surat Perintah Kerja ${activeTrackSpk.no_spk} sedang diunduh.`)}
+                          className="p-1.5 text-accent hover:bg-accent-subtle rounded-md"
                           title="Unduh SPK"
                         >
                           <Download className="w-4 h-4" />
@@ -1083,18 +1187,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       </div>
 
                       {activeArmadaDocs.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-colors">
+                        <div key={doc.id} className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised hover:border-accent/30 transition-colors">
                           <div className="flex items-center gap-2.5">
-                            <FileCheck className="w-5 h-5 text-emerald-600" />
+                            <FileCheck className="w-5 h-5 text-status-green" />
                             <div>
-                              <div className="font-semibold text-slate-900">{doc.nama_dokumen || doc.jenis_dokumen}</div>
-                              <div className="text-[10px] text-slate-400">Berlaku s/d: {doc.masa_berlaku || '-'}</div>
+                              <div className="font-semibold text-ink">{doc.nama_dokumen || doc.jenis_dokumen}</div>
+                              <div className="text-[10px] text-ink-subtle">Berlaku s/d: {doc.masa_berlaku || '-'}</div>
                             </div>
                           </div>
                           <button
                             type="button"
-                            onClick={() => alert(`Mengunduh dokumen ${doc.nama_dokumen}`)}
-                            className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                            onClick={() => toast.info('Mengunduh Berkas', `Dokumen ${doc.nama_dokumen} sedang diunduh.`)}
+                            className="p-1.5 text-ink-muted hover:bg-surface rounded-md"
                             title="Unduh Dokumen"
                           >
                             <Download className="w-4 h-4" />
@@ -1103,18 +1207,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       ))}
 
                       {activeArmadaDocs.length === 0 && (
-                        <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-white">
+                        <div className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised">
                           <div className="flex items-center gap-2.5">
-                            <FileCheck className="w-5 h-5 text-slate-500" />
+                            <FileCheck className="w-5 h-5 text-ink-muted" />
                             <div>
-                              <div className="font-semibold text-slate-900">Kartu_Riwayat_Service.pdf</div>
-                              <div className="text-[10px] text-slate-400">Riwayat Perawatan Rutin Bengkel KIM3</div>
+                              <div className="font-semibold text-ink">Kartu_Riwayat_Service.pdf</div>
+                              <div className="text-[10px] text-ink-subtle">Riwayat Perawatan Rutin Bengkel KIM3</div>
                             </div>
                           </div>
                           <button
                             type="button"
-                            onClick={() => alert(`Mengunduh riwayat service armada ${activeTrackSpk.no_polisi}`)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            onClick={() => toast.info('Mengunduh Riwayat', `Riwayat service armada ${activeTrackSpk.no_polisi} sedang disiapkan.`)}
+                            className="p-1.5 text-accent hover:bg-accent-subtle rounded-md"
                             title="Unduh Riwayat"
                           >
                             <Download className="w-4 h-4" />
@@ -1134,10 +1238,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 2: BOOKING SERVICE 4-STEP WIZARD (image5.png Mockup 1) */}
       {fleetMenu === 'booking' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs max-w-2xl mx-auto space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h2 className="text-base font-bold text-slate-900">Booking Service Armada Perusahaan</h2>
-            <p className="text-xs text-slate-500">Jadwalkan service armada Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3</p>
+        <div className="bg-surface-raised rounded-md border border-border p-6 shadow-xs max-w-2xl mx-auto space-y-6">
+          <div className="border-b border-border pb-4">
+            <h2 className="text-base font-bold text-ink">Booking Service Armada Perusahaan</h2>
+            <p className="text-xs text-ink-muted">Jadwalkan service armada Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3</p>
           </div>
 
           {/* 4 Steps Indicator */}
@@ -1150,11 +1254,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             ].map((step) => (
               <div key={step.num} className="flex items-center gap-2">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
-                  bookingStep === step.num ? 'bg-blue-600 text-white shadow-xs' : bookingStep > step.num ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
+                  bookingStep === step.num ? 'bg-accent text-white shadow-xs' : bookingStep > step.num ? 'bg-status-green text-white' : 'bg-surface text-ink-muted'
                 }`}>
                   {step.num}
                 </div>
-                <span className={`hidden sm:inline ${bookingStep === step.num ? 'text-blue-600 font-bold' : 'text-slate-600'}`}>
+                <span className={`hidden sm:inline ${bookingStep === step.num ? 'text-accent font-bold' : 'text-ink-muted'}`}>
                   {step.label}
                 </span>
               </div>
@@ -1165,11 +1269,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {bookingStep === 1 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800">Pilih armada yang akan diservice:</span>
+                <span className="text-xs font-bold text-ink">Pilih armada yang akan diservice:</span>
                 <button
                   type="button"
                   onClick={() => setOpenTambahArmadaModal(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-subtle hover:bg-accent-subtle text-accent text-xs font-bold rounded-md border border-accent/30 transition cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Tambah Kendaraan</span>
@@ -1180,10 +1284,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   myKendaraanList.map((k) => (
                     <label
                       key={k.id}
-                      className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      className={`flex items-center justify-between p-3.5 rounded-md border cursor-pointer transition-all ${
                         bookingForm.no_polisi === k.no_polisi
-                          ? 'border-blue-600 bg-blue-50/60 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                          ? 'border-accent bg-accent-subtle shadow-xs'
+                          : 'border-border hover:border-border bg-surface-raised'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -1192,25 +1296,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           name="booking_kendaraan"
                           checked={bookingForm.no_polisi === k.no_polisi}
                           onChange={() => setBookingForm({ ...bookingForm, no_polisi: k.no_polisi })}
-                          className="text-blue-600"
+                          className="text-accent"
                         />
                         <div>
-                          <div className="text-sm font-black text-slate-900">{k.no_polisi}</div>
-                          <div className="text-xs text-slate-500">{k.merk} {k.model} ({k.tahun})</div>
+                          <div className="text-sm font-black text-ink">{k.no_polisi}</div>
+                          <div className="text-xs text-ink-muted">{k.merk} {k.model} ({k.tahun})</div>
                         </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                      <span className="px-2 py-0.5 rounded-md bg-status-green-bg text-status-green font-bold text-[10px] border border-status-green/30">
                         Armada Aktif
                       </span>
                     </label>
                   ))
                 ) : (
-                  <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 space-y-2">
-                    <p className="text-xs text-slate-500">Belum ada armada terdaftar untuk akun fleet Anda.</p>
+                  <div className="p-6 text-center border-2 border-dashed border-border rounded-md bg-surface space-y-2">
+                    <p className="text-xs text-ink-muted">Belum ada armada terdaftar untuk akun fleet Anda.</p>
                     <button
                       type="button"
                       onClick={() => setOpenTambahArmadaModal(true)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-md transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" /> Daftarkan Truk Sekarang
                     </button>
@@ -1222,7 +1326,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 type="button"
                 disabled={!bookingForm.no_polisi || myKendaraanList.length === 0}
                 onClick={() => setBookingStep(2)}
-                className="w-full mt-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full mt-4 py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 Lanjut: Pilih Layanan <ArrowRight className="w-4 h-4" />
               </button>
@@ -1232,7 +1336,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {/* STEP 2: PILIH LAYANAN */}
           {bookingStep === 2 && (
             <div className="space-y-3">
-              <span className="text-xs font-bold text-slate-800 block">Pilih jenis perbaikan atau service berkala:</span>
+              <span className="text-xs font-bold text-ink block">Pilih jenis perbaikan atau service berkala:</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
                   'Service Berkala (Ganti Oli & Filter)',
@@ -1245,26 +1349,74 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <button
                     key={srv}
                     type="button"
-                    onClick={() => setBookingForm({ ...bookingForm, jenis_layanan: srv })}
-                    className={`p-3 rounded-xl border text-left text-xs font-semibold transition-all ${
-                      bookingForm.jenis_layanan === srv
-                        ? 'border-blue-600 bg-blue-50 text-blue-900 font-bold shadow-xs'
-                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    onClick={() => {
+                      setIsCustomService(false);
+                      setBookingForm({ ...bookingForm, jenis_layanan: srv });
+                    }}
+                    className={`p-3 rounded-md border text-left text-xs font-semibold transition-all cursor-pointer ${
+                      !isCustomService && bookingForm.jenis_layanan === srv
+                        ? 'border-accent bg-accent-subtle text-accent font-bold shadow-xs'
+                        : 'border-border text-ink-muted hover:bg-surface'
                     }`}
                   >
                     {srv}
                   </button>
                 ))}
+
+                {/* Option 7: Custom Input */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomService(true);
+                    setBookingForm({
+                      ...bookingForm,
+                      jenis_layanan: customServiceText.trim() || 'Perbaikan Kustom',
+                    });
+                  }}
+                  className={`p-3 rounded-md border text-left text-xs font-semibold transition-all cursor-pointer flex items-center justify-between ${
+                    isCustomService
+                      ? 'border-accent bg-accent-subtle text-accent font-bold shadow-xs'
+                      : 'border-dashed border-accent/40 text-accent hover:bg-accent-subtle/30'
+                  }`}
+                >
+                  <span>+ Lainnya / Perbaikan Kustom (Ketik Sendiri)</span>
+                  <Edit3 className="w-4 h-4" />
+                </button>
               </div>
 
+              {/* Free-text input field when custom service is selected */}
+              {isCustomService && (
+                <div className="p-3.5 rounded-md bg-accent-subtle/30 border border-accent/40 animate-in fade-in zoom-in-98 duration-150">
+                  <label className="block text-xs font-bold text-accent mb-1.5">
+                    Tuliskan Jenis Layanan / Perbaikan Kustom Anda: <span className="text-status-red">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="Contoh: Perbaikan Hidrolik Dump Truk, Las Bak, Spooring Truk, Servis AC..."
+                    value={customServiceText}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCustomServiceText(val);
+                      setBookingForm({ ...bookingForm, jenis_layanan: val.trim() || 'Perbaikan Kustom' });
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-md border border-accent/50 text-xs focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
+                  />
+                  <p className="text-[11px] text-ink-subtle mt-1.5">
+                    Tulis jenis pekerjaan atau modifikasi khusus yang dibutuhkan armada Anda.
+                  </p>
+                </div>
+              )}
+
               <div className="mt-3">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Jelaskan Keluhan Kendaraan:</label>
+                <label className="block text-xs font-bold text-ink-muted mb-1">Jelaskan Keluhan Kendaraan:</label>
                 <textarea
                   rows={2}
                   value={bookingForm.keluhan}
                   onChange={(e) => setBookingForm({ ...bookingForm, keluhan: e.target.value })}
                   placeholder="Contoh: Rem bunyi saat pengereman dan tarikan mesin agak berat..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
 
@@ -1272,14 +1424,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setBookingStep(1)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                  className="flex-1 py-2.5 bg-surface hover:bg-surface text-ink-muted font-bold text-xs rounded-md cursor-pointer border border-border"
                 >
                   Kembali
                 </button>
                 <button
                   type="button"
-                  onClick={() => setBookingStep(3)}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                  onClick={() => {
+                    if (isCustomService && !customServiceText.trim()) {
+                      toast.warning('Isi Jenis Layanan Kustom', 'Silakan ketik jenis perbaikan kustom Anda terlebih dahulu.');
+                      return;
+                    }
+                    setBookingStep(3);
+                  }}
+                  className="flex-1 py-2.5 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-md shadow-xs cursor-pointer"
                 >
                   Lanjut: Jadwal
                 </button>
@@ -1292,26 +1450,40 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tanggal Rencana Masuk</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">
+                    Tanggal Rencana Masuk <span className="text-status-red">*</span>
+                  </label>
                   <input
                     type="date"
+                    min={new Date().toISOString().slice(0, 10)}
                     value={bookingForm.tanggal_booking}
-                    onChange={(e) => setBookingForm({ ...bookingForm, tanggal_booking: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-mono text-xs focus:outline-none"
+                    onChange={(e) => {
+                      const todayStr = new Date().toISOString().slice(0, 10);
+                      if (e.target.value && e.target.value < todayStr) {
+                        toast.warning('Tanggal Tidak Valid', 'Tanggal rencana masuk tidak boleh di masa lampau.');
+                        setBookingForm({ ...bookingForm, tanggal_booking: todayStr });
+                        return;
+                      }
+                      setBookingForm({ ...bookingForm, tanggal_booking: e.target.value });
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-md border border-border font-mono text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
                   />
+                  <div className="text-[10px] text-ink-subtle mt-1">
+                    Pilih hari ini atau tanggal kedatangan berikutnya
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Pilih Jam Kedatangan (Slot)</label>
-                  <select
+                  {/* Gmail/Calendar style Interactive Time Picker */}
+                  <TimePickerInput
+                    label="Pilih Jam Kedatangan (Slot)"
+                    required
+                    selectedDate={bookingForm.tanggal_booking}
                     value={bookingForm.jam_booking}
-                    onChange={(e) => setBookingForm({ ...bookingForm, jam_booking: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none bg-white"
-                  >
-                    <option value="08:00">08:00 WIB (Slot Pagi Awal)</option>
-                    <option value="09:00">09:00 WIB (Slot Pagi)</option>
-                    <option value="10:30">10:30 WIB (Slot Menjelang Siang)</option>
-                    <option value="13:30">13:30 WIB (Slot Siang)</option>
-                  </select>
+                    onChange={(time) => setBookingForm({ ...bookingForm, jam_booking: time })}
+                  />
+                  <div className="text-[10px] text-ink-subtle mt-1">
+                    Jam operasional bengkel: 07:30 - 17:00 WIB
+                  </div>
                 </div>
               </div>
 
@@ -1319,14 +1491,38 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setBookingStep(2)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                  className="flex-1 py-2.5 bg-surface hover:bg-surface text-ink-muted font-bold text-xs rounded-md cursor-pointer border border-border"
                 >
                   Kembali
                 </button>
                 <button
                   type="button"
-                  onClick={() => setBookingStep(4)}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                  onClick={() => {
+                    const now = new Date();
+                    const todayStr = now.toISOString().slice(0, 10);
+                    if (!bookingForm.tanggal_booking) {
+                      toast.error('Tanggal Belum Dipilih', 'Silakan pilih tanggal rencana masuk.');
+                      return;
+                    }
+                    if (bookingForm.tanggal_booking < todayStr) {
+                      toast.error('Tanggal Tidak Valid', 'Tanggal rencana masuk tidak boleh di masa lampau.');
+                      return;
+                    }
+                    if (bookingForm.tanggal_booking === todayStr) {
+                      const [h, m] = (bookingForm.jam_booking || '00:00').split(':').map(Number);
+                      const curH = now.getHours();
+                      const curM = now.getMinutes();
+                      if (h < curH || (h === curH && m <= curM)) {
+                        toast.error(
+                          'Jam Tidak Valid',
+                          `Jam kedatangan untuk hari ini tidak boleh di jam yang sudah terlewat (${String(curH).padStart(2, '0')}:${String(curM).padStart(2, '0')} WIB).`
+                        );
+                        return;
+                      }
+                    }
+                    setBookingStep(4);
+                  }}
+                  className="flex-1 py-2.5 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-md shadow-xs cursor-pointer"
                 >
                   Lanjut: Konfirmasi
                 </button>
@@ -1337,21 +1533,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {/* STEP 4: KONFIRMASI */}
           {bookingStep === 4 && (
             <div className="space-y-4">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2">
-                <div className="font-bold text-sm text-slate-900 border-b border-slate-200 pb-2">Ringkasan Pemesanan Booking Service</div>
+              <div className="bg-surface p-4 rounded-md border border-border text-xs space-y-2">
+                <div className="font-bold text-sm text-ink border-b border-border pb-2">Ringkasan Pemesanan Booking Service</div>
                 <div className="flex justify-between py-1">
-                  <span className="text-slate-500">Armada:</span>
-                  <span className="font-bold text-slate-800">{bookingForm.no_polisi}</span>
+                  <span className="text-ink-muted">Armada:</span>
+                  <span className="font-bold text-ink">{bookingForm.no_polisi}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-slate-500">Jenis Layanan:</span>
-                  <span className="font-bold text-slate-800">{bookingForm.jenis_layanan}</span>
+                  <span className="text-ink-muted">Jenis Layanan:</span>
+                  <span className="font-bold text-ink">{bookingForm.jenis_layanan}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-slate-500">Jadwal Masuk:</span>
-                  <span className="font-mono font-bold text-blue-600">{bookingForm.tanggal_booking} ({bookingForm.jam_booking} WIB)</span>
+                  <span className="text-ink-muted">Jadwal Masuk:</span>
+                  <span className="font-mono font-bold text-accent">{bookingForm.tanggal_booking} ({bookingForm.jam_booking} WIB)</span>
                 </div>
-                <div className="pt-2 border-t border-slate-200 text-slate-600 italic">
+                <div className="pt-2 border-t border-border text-ink-muted italic">
                   "{bookingForm.keluhan}"
                 </div>
               </div>
@@ -1360,7 +1556,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setBookingStep(3)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                  className="flex-1 py-2.5 bg-surface hover:bg-surface text-ink-muted font-bold text-xs rounded-md"
                 >
                   Kembali
                 </button>
@@ -1368,7 +1564,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   type="button"
                   disabled={createBookingMutation.isPending}
                   onClick={() => createBookingMutation.mutate()}
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20"
+                  className="flex-1 py-2.5 bg-status-green hover:bg-status-green/90 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20"
                 >
                   {createBookingMutation.isPending ? 'Menyimpan...' : 'KONFIRMASI BOOKING'}
                 </button>
@@ -1384,60 +1580,84 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Armada Kendaraan Perusahaan</h2>
-              <p className="text-xs text-slate-500">Daftar unit truk dan kendaraan operasional armada Anda</p>
+              <h2 className="text-base font-bold text-ink">Armada Kendaraan Perusahaan</h2>
+              <p className="text-xs text-ink-muted">Daftar unit truk dan kendaraan operasional armada Anda</p>
             </div>
             <button
               type="button"
               onClick={() => setOpenTambahArmadaModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-md shadow-xs transition cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Unit Armada</span>
             </button>
           </div>
 
-          {myKendaraanList.length > 0 ? (
+          {/* Pencarian armada (server-side lewat parameter `q`) */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={armadaSearch}
+              onChange={(e) => setArmadaSearch(e.target.value)}
+              placeholder="Cari no. polisi, merk, model, atau jenis armada..."
+              aria-label="Cari armada"
+              className="w-full pl-9 pr-9 py-2.5 rounded-md border border-border bg-surface-raised text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
+            />
+            {armadaSearch && (
+              <button
+                type="button"
+                onClick={() => setArmadaSearch('')}
+                aria-label="Bersihkan pencarian armada"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-ink-subtle hover:text-ink transition cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {armadaRows.length > 0 ? (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {myKendaraanList.map((k) => (
-                <div key={k.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+              {armadaRows.map((k) => (
+                <div key={k.id} className="bg-surface-raised rounded-md border border-border p-5 shadow-xs flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="text-base font-black text-slate-900">{k.no_polisi}</span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      <span className="text-base font-black text-ink">{k.no_polisi}</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-status-green-bg text-status-green text-[10px] font-bold">
                         Aktif
                       </span>
                     </div>
-                    <div className="text-xs text-slate-600 font-bold mt-0.5">{k.merk} {k.model} ({k.jenis_armada})</div>
+                    <div className="text-xs text-ink-muted font-bold mt-0.5">{k.merk} {k.model} ({k.jenis_armada})</div>
 
-                    <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
+                    <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Tahun Pembuatan:</span>
-                        <span className="font-semibold text-slate-800">{k.tahun || '-'}</span>
+                        <span className="text-ink-subtle block text-[10px]">Tahun Pembuatan:</span>
+                        <span className="font-semibold text-ink">{k.tahun || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Asuransi:</span>
-                        <span className="font-semibold text-slate-800">{k.asuransi || '-'}</span>
+                        <span className="text-ink-subtle block text-[10px]">Asuransi:</span>
+                        <span className="font-semibold text-ink">{k.asuransi || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">No. Rangka:</span>
-                        <span className="font-mono text-[11px] text-slate-600">{k.no_rangka || '-'}</span>
+                        <span className="text-ink-subtle block text-[10px]">No. Rangka:</span>
+                        <span className="font-mono text-[11px] text-ink-muted">{k.no_rangka || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">No. Mesin:</span>
-                        <span className="font-mono text-[11px] text-slate-600">{k.no_mesin || '-'}</span>
+                        <span className="text-ink-subtle block text-[10px]">No. Mesin:</span>
+                        <span className="font-mono text-[11px] text-ink-muted">{k.no_mesin || '-'}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                  <div className="mt-4 pt-3 border-t border-border flex gap-2">
                     <button
                       type="button"
                       onClick={() => {
                         setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
                         setFleetMenu('booking');
                       }}
-                      className="w-full py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-2 bg-accent-subtle text-accent hover:bg-accent-subtle font-bold text-xs rounded-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Calendar className="w-3.5 h-3.5" /> Jadwalkan Service
                     </button>
@@ -1445,21 +1665,55 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
               ))}
             </div>
+            <PaginationBar
+              page={armadaPage}
+              totalPages={armadaPageData?.pagination?.total_pages ?? 1}
+              totalRecords={armadaPageData?.pagination?.total_records ?? armadaRows.length}
+              limit={armadaLimit}
+              label="armada"
+              isLoading={armadaFetching}
+              onPageChange={setArmadaPage}
+              onLimitChange={(l) => {
+                setArmadaLimit(l);
+                setArmadaPage(1);
+              }}
+            />
+            </>
+          ) : armadaQuery ? (
+            <div className="bg-surface-raised rounded-md border border-border p-8 text-center shadow-xs max-w-lg mx-auto space-y-4">
+              <div className="w-14 h-14 rounded-md bg-surface text-ink-subtle flex items-center justify-center mx-auto">
+                <Search className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-ink">Armada Tidak Ditemukan</h3>
+                <p className="text-xs text-ink-muted mt-1">
+                  Tidak ada unit yang cocok dengan pencarian{' '}
+                  <span className="font-semibold text-ink">"{armadaQuery}"</span>. Coba kata kunci lain.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setArmadaSearch('')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-subtle text-accent text-xs font-bold rounded-md transition cursor-pointer"
+              >
+                <X className="w-4 h-4" /> Bersihkan Pencarian
+              </button>
+            </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center shadow-xs max-w-lg mx-auto space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+            <div className="bg-surface-raised rounded-md border border-border p-8 text-center shadow-xs max-w-lg mx-auto space-y-4">
+              <div className="w-14 h-14 rounded-md bg-accent-subtle text-accent flex items-center justify-center mx-auto">
                 <Truck className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Belum Ada Armada Terdaftar</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <h3 className="text-base font-bold text-ink">Belum Ada Armada Terdaftar</h3>
+                <p className="text-xs text-ink-muted mt-1">
                   Daftarkan kendaraan operasional atau armada truk perusahaan Anda untuk mulai memanfaatkan fitur pemantauan & booking service.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpenTambahArmadaModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-md shadow-xs transition cursor-pointer"
               >
                 <Plus className="w-4 h-4" /> Daftarkan Unit Sekarang
               </button>
@@ -1470,11 +1724,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 4: DOKUMEN SAYA (image5.png Mockup 5) */}
       {fleetMenu === 'dokumen' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
+        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Dokumen Digital Armada (STNK, BPKB, KIR, Asuransi)</h2>
-              <p className="text-xs text-slate-500">Kelola dan unduh berkas perizinan kendaraan secara terpusat</p>
+              <h2 className="text-base font-bold text-ink">Dokumen Digital Armada (STNK, BPKB, KIR, Asuransi)</h2>
+              <p className="text-xs text-ink-muted">Kelola dan unduh berkas perizinan kendaraan secara terpusat</p>
             </div>
             <button
               type="button"
@@ -1484,7 +1738,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }
                 setOpenTambahDokumenModal(true);
               }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-md shadow-xs transition cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Unggah Dokumen Baru</span>
@@ -1495,7 +1749,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <>
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
+                  <thead className="bg-surface text-ink-muted border-y border-border">
                     <tr>
                       <th className="py-2.5 px-3 font-semibold">Nama Dokumen</th>
                       <th className="py-2.5 px-3 font-semibold">Jenis</th>
@@ -1504,17 +1758,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {myDokumenList.map((doc) => (
-                      <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-3 font-semibold text-slate-900">{doc.nama_dokumen}</td>
+                      <tr key={doc.id} className="hover:bg-surface transition-colors">
+                        <td className="py-3 px-3 font-semibold text-ink">{doc.nama_dokumen}</td>
                         <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">
+                          <span className="px-2 py-0.5 bg-surface text-ink-muted rounded text-[10px] font-bold">
                             {doc.jenis_dokumen}
                           </span>
                         </td>
-                        <td className="py-3 px-3 font-mono font-bold text-slate-800">{doc.no_polisi}</td>
-                        <td className="py-3 px-3 text-slate-600 font-mono">
+                        <td className="py-3 px-3 font-mono font-bold text-ink">{doc.no_polisi}</td>
+                        <td className="py-3 px-3 text-ink-muted font-mono">
                           {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
                         </td>
                         <td className="py-3 px-3 text-right">
@@ -1522,7 +1776,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             href={doc.file_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-md text-xs font-bold transition-colors"
                           >
                             <Download className="w-3.5 h-3.5" /> Unduh
                           </a>
@@ -1536,20 +1790,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
               <div className="block md:hidden space-y-2.5">
                 {myDokumenList.map((doc) => (
-                  <div key={doc.id} className="rounded-xl border border-slate-200 p-3.5">
+                  <div key={doc.id} className="rounded-md border border-border p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="text-sm font-bold text-slate-900 leading-snug">{doc.nama_dokumen}</div>
-                        <div className="font-mono text-[11px] font-bold text-slate-500 mt-0.5">{doc.no_polisi}</div>
+                        <div className="text-sm font-bold text-ink leading-snug">{doc.nama_dokumen}</div>
+                        <div className="font-mono text-[11px] font-bold text-ink-muted mt-0.5">{doc.no_polisi}</div>
                       </div>
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold shrink-0">
+                      <span className="px-2 py-0.5 bg-surface text-ink-muted rounded text-[10px] font-bold shrink-0">
                         {doc.jenis_dokumen}
                       </span>
                     </div>
 
-                    <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                    <div className="mt-2.5 pt-2.5 border-t border-border flex items-center justify-between text-[11px] text-ink-subtle">
                       <span>Masa Berlaku</span>
-                      <span className="font-mono font-semibold text-slate-600">
+                      <span className="font-mono font-semibold text-ink-muted">
                         {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
                       </span>
                     </div>
@@ -1558,7 +1812,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       href={doc.file_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-700 active:bg-blue-100 rounded-xl text-xs font-bold transition-colors"
+                      className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent-subtle text-accent active:bg-accent-subtle rounded-md text-xs font-bold transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" /> Unduh Dokumen
                     </a>
@@ -1567,13 +1821,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </>
           ) : (
-            <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+            <div className="p-8 text-center border-2 border-dashed border-border rounded-md bg-surface space-y-3">
+              <div className="w-12 h-12 rounded-md bg-status-red-bg text-status-red flex items-center justify-center mx-auto">
                 <FileText className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Belum Ada Dokumen Digital</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <h3 className="text-sm font-bold text-ink">Belum Ada Dokumen Digital</h3>
+                <p className="text-xs text-ink-muted mt-1">
                   Unggah berkas STNK, KIR, atau polis asuransi armada Anda agar tersimpan rapi dan mudah diakses.
                 </p>
               </div>
@@ -1585,7 +1839,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   }
                   setOpenTambahDokumenModal(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-md transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Unggah Dokumen Baru
               </button>
@@ -1596,57 +1850,57 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 5: PROFIL PERUSAHAAN (image5.png Mockup 6) */}
       {fleetMenu === 'profil' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs max-w-2xl mx-auto space-y-6">
-          <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-base font-bold text-slate-900">Profil Pelanggan Fleet</h2>
-            <p className="text-xs text-slate-500">Informasi entitas perusahaan dan kontak PIC penanggung jawab</p>
+        <div className="bg-surface-raised rounded-md border border-border p-6 shadow-xs max-w-2xl mx-auto space-y-6">
+          <div className="border-b border-border pb-3">
+            <h2 className="text-base font-bold text-ink">Profil Pelanggan Fleet</h2>
+            <p className="text-xs text-ink-muted">Informasi entitas perusahaan dan kontak PIC penanggung jawab</p>
           </div>
 
           <div className="space-y-4 text-xs">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <span className="font-bold text-slate-900 block text-sm">Informasi Perusahaan:</span>
+            <div className="p-4 rounded-md bg-surface border border-border space-y-3">
+              <span className="font-bold text-ink block text-sm">Informasi Perusahaan:</span>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Nama Perusahaan / Entitas:</span>
-                  <span className="font-bold text-slate-800">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || 'Customer Fleet'}</span>
+                  <span className="text-ink-subtle block text-[10px]">Nama Perusahaan / Entitas:</span>
+                  <span className="font-bold text-ink">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || 'Customer Fleet'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">ID Pelanggan / Kemitraan:</span>
-                  <span className="font-mono font-bold text-blue-700">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || 1).padStart(4, '0')}</span>
+                  <span className="text-ink-subtle block text-[10px]">ID Pelanggan / Kemitraan:</span>
+                  <span className="font-mono font-bold text-accent">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || 1).padStart(4, '0')}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Tipe Kemitraan:</span>
-                  <span className="font-semibold text-slate-800">Prioritas Bengkel Mitra KIM 3</span>
+                  <span className="text-ink-subtle block text-[10px]">Tipe Kemitraan:</span>
+                  <span className="font-semibold text-ink">Prioritas Bengkel Mitra KIM 3</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Status Akun:</span>
-                  <span className="font-semibold text-emerald-700">Aktif Terverifikasi</span>
+                  <span className="text-ink-subtle block text-[10px]">Status Akun:</span>
+                  <span className="font-semibold text-status-green">Aktif Terverifikasi</span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-slate-400 block text-[10px]">Area Operasional:</span>
-                  <span className="font-semibold text-slate-800">Kawasan Industri Medan (KIM 1, 2, 3) & Sekitarnya</span>
+                  <span className="text-ink-subtle block text-[10px]">Area Operasional:</span>
+                  <span className="font-semibold text-ink">Kawasan Industri Medan (KIM 1, 2, 3) & Sekitarnya</span>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <span className="font-bold text-slate-900 block text-sm">Kontak PIC / Penanggung Jawab:</span>
+            <div className="p-4 rounded-md bg-surface border border-border space-y-3">
+              <span className="font-bold text-ink block text-sm">Kontak PIC / Penanggung Jawab:</span>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Nama PIC:</span>
-                  <span className="font-bold text-slate-800">{authUser?.nama_lengkap || currentUser || '-'}</span>
+                  <span className="text-ink-subtle block text-[10px]">Nama PIC:</span>
+                  <span className="font-bold text-ink">{authUser?.nama_lengkap || currentUser || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Email Login:</span>
-                  <span className="font-mono font-semibold text-slate-800">{authUser?.email || '-'}</span>
+                  <span className="text-ink-subtle block text-[10px]">Email Login:</span>
+                  <span className="font-mono font-semibold text-ink">{authUser?.email || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Peran Pengguna:</span>
-                  <span className="font-semibold text-slate-800">Customer Fleet</span>
+                  <span className="text-ink-subtle block text-[10px]">Peran Pengguna:</span>
+                  <span className="font-semibold text-ink">Customer Fleet</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Notifikasi Terhubung:</span>
-                  <span className="font-semibold text-slate-800">Web Portal & Realtime Push</span>
+                  <span className="text-ink-subtle block text-[10px]">Notifikasi Terhubung:</span>
+                  <span className="font-semibold text-ink">Web Portal & Realtime Push</span>
                 </div>
               </div>
             </div>
@@ -1656,17 +1910,40 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 6: HISTORY SERVICE (image5.png Mockup 3) */}
       {fleetMenu === 'history' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="border-b border-slate-100 pb-3 mb-4">
-            <h2 className="text-base font-bold text-slate-900">Riwayat Service Armada (History)</h2>
-            <p className="text-xs text-slate-500">Histori lengkap pengerjaan service dan penggantian part armada Anda</p>
+        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+          <div className="border-b border-border pb-3 mb-4">
+            <h2 className="text-base font-bold text-ink">Riwayat Service Armada (History)</h2>
+            <p className="text-xs text-ink-muted">Histori lengkap pengerjaan service dan penggantian part armada Anda</p>
           </div>
 
-          {mySpkList.length > 0 ? (
+          {/* Pencarian riwayat (server-side lewat parameter `q`) */}
+          <div className="relative mb-4">
+            <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={historySearch}
+              onChange={(e) => setHistorySearch(e.target.value)}
+              placeholder="Cari no. SPK, no. polisi, keluhan, atau status..."
+              aria-label="Cari riwayat service"
+              className="w-full pl-9 pr-9 py-2.5 rounded-md border border-border bg-surface-raised text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
+            />
+            {historySearch && (
+              <button
+                type="button"
+                onClick={() => setHistorySearch('')}
+                aria-label="Bersihkan pencarian riwayat"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-ink-subtle hover:text-ink transition cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {historyRows.length > 0 ? (
             <>
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 border-y border-slate-200">
+                  <thead className="bg-surface text-ink-muted border-y border-border">
                     <tr>
                       <th className="py-2.5 px-3 font-semibold">No. Booking / SPK</th>
                       <th className="py-2.5 px-3 font-semibold">Kendaraan</th>
@@ -1676,14 +1953,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <th className="py-2.5 px-3 font-semibold">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {mySpkList.map((spk) => (
-                      <tr key={spk.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-blue-600">{spk.no_spk}</td>
-                        <td className="py-3 px-3 font-bold text-slate-900">{spk.no_polisi}</td>
-                        <td className="py-3 px-3 text-slate-700">{spk.keluhan_customer}</td>
-                        <td className="py-3 px-3 font-mono text-slate-500">{new Date(spk.created_at).toLocaleDateString('id-ID')}</td>
-                        <td className="py-3 px-3 font-mono font-bold text-slate-900">Rp {Number(spk.estimasi_biaya || 0).toLocaleString()}</td>
+                  <tbody className="divide-y divide-border">
+                    {historyRows.map((spk) => (
+                      <tr key={spk.id} className="hover:bg-surface transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
+                        <td className="py-3 px-3 font-bold text-ink">{spk.no_polisi}</td>
+                        <td className="py-3 px-3 text-ink-muted">{spk.keluhan_customer}</td>
+                        <td className="py-3 px-3 font-mono text-ink-muted">{new Date(spk.created_at).toLocaleDateString('id-ID')}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-ink">Rp {Number(spk.estimasi_biaya || 0).toLocaleString()}</td>
                         <td className="py-3 px-3">
                           <StatusBadge status={spk.status_spk} size="sm" />
                         </td>
@@ -1695,27 +1972,27 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
               <div className="block md:hidden space-y-2.5">
-                {mySpkList.map((spk) => (
-                  <div key={spk.id} className="rounded-xl border border-slate-200 p-3.5">
+                {historyRows.map((spk) => (
+                  <div key={spk.id} className="rounded-md border border-border p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="font-mono text-[11px] font-bold text-blue-600">{spk.no_spk}</div>
-                        <div className="text-base font-black text-slate-900 mt-0.5">{spk.no_polisi}</div>
+                        <div className="font-mono text-[11px] font-bold text-accent">{spk.no_spk}</div>
+                        <div className="text-base font-black text-ink mt-0.5">{spk.no_polisi}</div>
                       </div>
                       <StatusBadge status={spk.status_spk} size="sm" />
                     </div>
 
-                    <div className="mt-2.5 pt-2.5 border-t border-slate-100 space-y-1.5">
-                      <p className="text-xs text-slate-700 leading-relaxed">{spk.keluhan_customer}</p>
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <div className="mt-2.5 pt-2.5 border-t border-border space-y-1.5">
+                      <p className="text-xs text-ink-muted leading-relaxed">{spk.keluhan_customer}</p>
+                      <div className="flex items-center justify-between text-[11px] text-ink-subtle">
                         <span>Tanggal Masuk</span>
-                        <span className="font-mono font-semibold text-slate-600">
+                        <span className="font-mono font-semibold text-ink-muted">
                           {new Date(spk.created_at).toLocaleDateString('id-ID')}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <div className="flex items-center justify-between text-[11px] text-ink-subtle">
                         <span>Biaya</span>
-                        <span className="font-mono font-bold text-slate-900">
+                        <span className="font-mono font-bold text-ink">
                           Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
                         </span>
                       </div>
@@ -1723,15 +2000,49 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   </div>
                 ))}
               </div>
+
+              <PaginationBar
+                page={historyPage}
+                totalPages={historyPageData?.pagination?.total_pages ?? 1}
+                totalRecords={historyPageData?.pagination?.total_records ?? historyRows.length}
+                limit={historyLimit}
+                label="riwayat service"
+                isLoading={historyFetching}
+                onPageChange={setHistoryPage}
+                onLimitChange={(l) => {
+                  setHistoryLimit(l);
+                  setHistoryPage(1);
+                }}
+              />
             </>
+          ) : historyQuery ? (
+            <div className="p-8 text-center border-2 border-dashed border-border rounded-md bg-surface space-y-3">
+              <div className="w-12 h-12 rounded-md bg-surface-raised text-ink-subtle flex items-center justify-center mx-auto">
+                <Search className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-ink">Riwayat Tidak Ditemukan</h3>
+                <p className="text-xs text-ink-muted mt-1">
+                  Tidak ada riwayat service yang cocok dengan pencarian{' '}
+                  <span className="font-semibold text-ink">"{historyQuery}"</span>.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistorySearch('')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-subtle text-accent text-xs font-bold rounded-md transition cursor-pointer"
+              >
+                <X className="w-4 h-4" /> Bersihkan Pencarian
+              </button>
+            </div>
           ) : (
-            <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+            <div className="p-8 text-center border-2 border-dashed border-border rounded-md bg-surface space-y-3">
+              <div className="w-12 h-12 rounded-md bg-accent-subtle text-accent flex items-center justify-center mx-auto">
                 <Wrench className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Belum Ada Riwayat Service</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Service</h3>
+                <p className="text-xs text-ink-muted mt-1">
                   Seluruh riwayat pengerjaan service armada Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.
                 </p>
               </div>
@@ -1744,23 +2055,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* MODAL 1: TAMBAH ARMADA KENDARAAN BARU                                     */}
       {/* ========================================================================= */}
       {openTambahArmadaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <ModalPortal onClose={() => setOpenTambahArmadaModal(false)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs">
+            <div className="bg-surface-raised rounded-md border border-border shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Tambah Unit Armada Baru</h3>
-                  <p className="text-[11px] text-slate-500">Daftarkan kendaraan operasional ke database Bengkel KIM 3</p>
+                  <h3 className="text-sm font-bold text-ink">Tambah Unit Armada Baru</h3>
+                  <p className="text-[11px] text-ink-muted">Daftarkan kendaraan operasional ke database Bengkel KIM 3</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setOpenTambahArmadaModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1771,7 +2083,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!armadaForm.no_polisi.trim()) {
-                  alert('Nomor Polisi wajib diisi.');
+                  toast.warning('Nomor Polisi wajib diisi.');
                   return;
                 }
                 tambahArmadaMutation.mutate(armadaForm);
@@ -1780,8 +2092,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    No. Polisi <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">
+                    No. Polisi <span className="text-status-red">*</span>
                   </label>
                   <input
                     type="text"
@@ -1789,18 +2101,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     placeholder="Contoh: BK 9999 XX"
                     value={armadaForm.no_polisi}
                     onChange={(e) => setArmadaForm({ ...armadaForm, no_polisi: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Jenis Armada <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">
+                    Jenis Armada <span className="text-status-red">*</span>
                   </label>
                   <select
                     value={armadaForm.jenis_armada}
                     onChange={(e) => setArmadaForm({ ...armadaForm, jenis_armada: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
+                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
                   >
                     <option value="Truk">Truk Engkel / Box</option>
                     <option value="Tronton">Tronton / Wingbox</option>
@@ -1813,11 +2125,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Merk</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Merk</label>
                   <select
                     value={armadaForm.merk}
                     onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
+                    className="w-full px-3 py-2 rounded-md border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
                   >
                     <option value="">-- Pilih Merk --</option>
                     <option value="Hino">Hino</option>
@@ -1831,89 +2143,89 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Model / Seri</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Model / Seri</label>
                   <input
                     type="text"
                     placeholder="Contoh: Dutro 130HD"
                     value={armadaForm.model}
                     onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                    className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tahun Pembuatan</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Tahun Pembuatan</label>
                   <input
                     type="number"
                     min="1995"
                     max={new Date().getFullYear() + 1}
                     value={armadaForm.tahun}
                     onChange={(e) => setArmadaForm({ ...armadaForm, tahun: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                    className="w-full px-3 py-2 rounded-md border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Rangka (VIN)</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Nomor Rangka (VIN)</label>
                   <input
                     type="text"
                     placeholder="MHKHINO..."
                     value={armadaForm.no_rangka}
                     onChange={(e) => setArmadaForm({ ...armadaForm, no_rangka: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden uppercase"
+                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden uppercase"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Mesin</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Nomor Mesin</label>
                   <input
                     type="text"
                     placeholder="J08E-..."
                     value={armadaForm.no_mesin}
                     onChange={(e) => setArmadaForm({ ...armadaForm, no_mesin: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden uppercase"
+                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden uppercase"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nama Asuransi (Opsional)</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Nama Asuransi (Opsional)</label>
                   <input
                     type="text"
                     placeholder="Asuransi Astra / Sinarmas"
                     value={armadaForm.asuransi}
                     onChange={(e) => setArmadaForm({ ...armadaForm, asuransi: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Masa Berlaku Asuransi</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku Asuransi</label>
                   <input
                     type="date"
                     value={armadaForm.masa_berlaku_asuransi}
                     onChange={(e) => setArmadaForm({ ...armadaForm, masa_berlaku_asuransi: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setOpenTambahArmadaModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-md border border-border text-xs font-bold text-ink-muted hover:bg-surface transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={tambahArmadaMutation.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Armada'}</span>
@@ -1922,29 +2234,31 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 2: UNGGAH DOKUMEN DIGITAL ARMADA                                   */}
       {/* ========================================================================= */}
       {openTambahDokumenModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <ModalPortal onClose={() => setOpenTambahDokumenModal(false)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs">
+            <div className="bg-surface-raised rounded-md border border-border shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Unggah Dokumen Digital Armada</h3>
-                  <p className="text-[11px] text-slate-500">Simpan arsip STNK, KIR, BPKB, atau polis asuransi unit</p>
+                  <h3 className="text-sm font-bold text-ink">Unggah Dokumen Digital Armada</h3>
+                  <p className="text-[11px] text-ink-muted">Simpan arsip STNK, KIR, BPKB, atau polis asuransi unit</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setOpenTambahDokumenModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1955,7 +2269,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!dokumenForm.no_polisi || !dokumenForm.nama_dokumen.trim()) {
-                  alert('Pilih armada dan isi nama dokumen.');
+                  toast.warning('Pilih armada dan isi nama dokumen.');
                   return;
                 }
                 tambahDokumenMutation.mutate(dokumenForm);
@@ -1963,14 +2277,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               className="p-6 overflow-y-auto space-y-4"
             >
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Pilih Unit Armada <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-ink-muted mb-1">
+                  Pilih Unit Armada <span className="text-status-red">*</span>
                 </label>
                 <select
                   required
                   value={dokumenForm.no_polisi}
                   onChange={(e) => setDokumenForm({ ...dokumenForm, no_polisi: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
+                  className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
                 >
                   <option value="">-- Pilih Nomor Polisi --</option>
                   {myKendaraanList.map((k) => (
@@ -1983,13 +2297,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Jenis Dokumen <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">
+                    Jenis Dokumen <span className="text-status-red">*</span>
                   </label>
                   <select
                     value={dokumenForm.jenis_dokumen}
                     onChange={(e) => setDokumenForm({ ...dokumenForm, jenis_dokumen: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-hidden bg-white"
+                    className="w-full px-3 py-2 rounded-md border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
                   >
                     <option value="STNK">STNK (Pajak Tahunan / 5 Tahunan)</option>
                     <option value="KIR">KIR (Uji Berkala Dishub)</option>
@@ -2000,19 +2314,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Masa Berlaku Dokumen</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku Dokumen</label>
                   <input
                     type="date"
                     value={dokumenForm.masa_berlaku}
                     onChange={(e) => setDokumenForm({ ...dokumenForm, masa_berlaku: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                    className="w-full px-3 py-2 rounded-md border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nama Dokumen / Keterangan Berkas <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-ink-muted mb-1">
+                  Nama Dokumen / Keterangan Berkas <span className="text-status-red">*</span>
                 </label>
                 <input
                   type="text"
@@ -2020,34 +2334,34 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   placeholder="Contoh: STNK Pajak Berlaku s/d Mei 2027"
                   value={dokumenForm.nama_dokumen}
                   onChange={(e) => setDokumenForm({ ...dokumenForm, nama_dokumen: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                  className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+                <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Tambahan (Opsional)</label>
                 <input
                   type="text"
                   placeholder="Catatan nomor seri atau barcode dokumen"
                   value={dokumenForm.keterangan}
                   onChange={(e) => setDokumenForm({ ...dokumenForm, keterangan: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-hidden"
+                  className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
                 />
               </div>
 
               {/* Modal Footer */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setOpenTambahDokumenModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-md border border-border text-xs font-bold text-ink-muted hover:bg-surface transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={tambahDokumenMutation.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{tambahDokumenMutation.isPending ? 'Menyimpan...' : 'Simpan Dokumen'}</span>
@@ -2056,6 +2370,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
     </div>

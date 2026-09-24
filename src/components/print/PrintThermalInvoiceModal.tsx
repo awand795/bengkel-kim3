@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { InvoicePembayaran } from '../../types';
 import { Printer, X, CheckCircle2 } from 'lucide-react';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface PrintThermalInvoiceModalProps {
   invoice: InvoicePembayaran;
@@ -27,7 +28,8 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
   const formattedTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs printable-container">
+    <ModalPortal onClose={onClose}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs printable-container">
       {/* Modal Card */}
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
         
@@ -187,6 +189,7 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
 
       </div>
     </div>
+    </ModalPortal>
   );
 };
 

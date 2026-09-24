@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { SpkService, SpkItemPekerjaan, SpkItemPart } from '../../types';
 import { Printer, X, FileText, CheckCircle2, Wrench } from 'lucide-react';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface PrintSpkModalProps {
   spk: SpkService;
@@ -27,7 +28,8 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
     : new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs printable-container">
+    <ModalPortal onClose={onClose}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs printable-container">
       {/* Modal Card */}
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col max-h-[95vh]">
         
@@ -315,6 +317,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
 
       </div>
     </div>
+    </ModalPortal>
   );
 };
 

@@ -28,6 +28,7 @@ import {
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { toast } from '../components/common/Toast';
+import { realtimeHub } from '../services/realtimeService';
 
 export const ForemanView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -124,9 +125,25 @@ export const ForemanView: React.FC = () => {
         catatan_foreman: `Ditugaskan oleh Foreman ke ${selectedMekanik}`,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, spk) => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       toast.success(`Mekanik ${selectedMekanik} berhasil ditugaskan untuk SPK ini!`);
+
+      // Notifikasi personal: WO baru masuk HANYA ke mekanik yang ditugaskan.
+      // Mekanik lain tidak menerima apa pun (isolasi WO).
+      const assignedId = mekanikList.find((m) => m.nama_lengkap === selectedMekanik)?.id;
+      if (assignedId) {
+        realtimeHub.publish({
+          type: 'SPK_STATUS_CHANGED',
+          targetRoles: ['Mekanik'],
+          targetUserId: assignedId,
+          title: 'WO Baru Ditugaskan ke Anda',
+          message: `SPK ${spk.no_spk} unit ${spk.no_polisi} ditugaskan Foreman ke Anda. Buka lembar kerja & jalankan stopwatch.`,
+          linkTab: 'mekanik',
+          urgency: 'urgent',
+        });
+      }
+
       setSelectedSpk(null);
     },
     onError: (err: any) => toast.error('Gagal menugaskan mekanik: ' + getApiErrorMessage(err)),

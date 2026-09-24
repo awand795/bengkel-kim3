@@ -6,6 +6,7 @@ import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
 import { realtimeHub } from '../services/realtimeService';
 import { useAppStore } from '../store/useAppStore';
+import { resolveMechanicId } from '../utils/spkAccess';
 import { 
   ClipboardList, 
   Wrench, 
@@ -247,12 +248,14 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
-      // 1. Notifikasi untuk Tim Produksi (Foreman & Mekanik)
+      // 1. Notifikasi untuk Foreman (distribusi pekerjaan).
+      // Mekanik BELUM diberi tahu di tahap ini: WO baru masuk antrian Foreman,
+      // notif personal ke mekanik dikirim saat Foreman menugaskan (assign).
       realtimeHub.publish({
         type: 'SPK_CREATED',
-        targetRoles: ['Foreman', 'Mekanik'],
+        targetRoles: ['Foreman'],
         title: 'SPK Penerimaan Dibuat',
-        message: `SPK untuk unit ${formPenerimaan.no_polisi} (${formPenerimaan.nama_customer || 'Armada'}) siap untuk dicek Mekanik/Foreman.`,
+        message: `SPK untuk unit ${formPenerimaan.no_polisi} (${formPenerimaan.nama_customer || 'Armada'}) siap untuk dicek dan didistribusikan ke Mekanik.`,
         linkTab: 'foreman',
         urgency: 'info',
       });
@@ -436,13 +439,27 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
 
-      // 1. Notifikasi untuk Mekanik & Foreman
+      // 1a. Notifikasi personal ke mekanik ter-assign (hanya dia yang menerima).
+      const mechanicId = resolveMechanicId(spkList, pr.id_spk);
+      if (mechanicId) {
+        realtimeHub.publish({
+          type: 'PART_READY',
+          targetRoles: ['Mekanik'],
+          targetUserId: mechanicId,
+          title: 'Sparepart Tiba / Ready Stock',
+          message: `Part untuk unit telah tiba di bengkel. Pekerjaan dapat dilanjutkan kembali.`,
+          linkTab: 'mekanik',
+          urgency: 'success',
+        });
+      }
+
+      // 1b. Notifikasi untuk Foreman (koordinator mekanik).
       realtimeHub.publish({
         type: 'PART_READY',
-        targetRoles: ['Mekanik', 'Foreman'],
+        targetRoles: ['Foreman'],
         title: 'Sparepart Tiba / Ready Stock',
         message: `Part untuk unit telah tiba di bengkel. Pekerjaan dapat dilanjutkan kembali.`,
-        linkTab: 'mekanik',
+        linkTab: 'foreman',
         urgency: 'success',
       });
 

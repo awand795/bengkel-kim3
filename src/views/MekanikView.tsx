@@ -20,6 +20,9 @@ import {
   Printer
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
+import { ModalPortal } from '../components/common/ModalPortal';
+import { toast } from '../components/common/Toast';
+import { isSpkAssignedToMechanic } from '../utils/spkAccess';
 
 export const MekanikView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -55,19 +58,11 @@ export const MekanikView: React.FC = () => {
     queryFn: () => api.getPartSpk(),
   });
 
-  // Filter SPK spesifik untuk Mekanik yang bertugas (kecuali Super Admin atau Foreman yang dapat melihat seluruh antrian bengkel)
+  // Filter SPK spesifik untuk Mekanik yang bertugas (kecuali Super Admin atau Foreman yang dapat melihat seluruh antrian bengkel).
+  // Strict: hanya WO yang ditugaskan ke mekanik login (by ID, fallback nama persis).
   const mySpkList = (spkList || []).filter((s) => {
     if (currentRole === 'Super Admin' || currentRole === 'Foreman') return true;
-    if (authUser?.id && s.id_mekanik) {
-      return s.id_mekanik === authUser.id;
-    }
-    if (authUser?.nama_lengkap && s.nama_mekanik) {
-      return s.nama_mekanik.toLowerCase().includes(authUser.nama_lengkap.toLowerCase());
-    }
-    if (currentUser && s.nama_mekanik) {
-      return s.nama_mekanik.toLowerCase().includes(currentUser.toLowerCase());
-    }
-    return false;
+    return isSpkAssignedToMechanic(s, authUser, currentUser);
   });
 
   // Auto select active job dynamically from mySpkList
@@ -155,8 +150,9 @@ export const MekanikView: React.FC = () => {
       setAutoPausedReason(null);
       setTimerRunning(true);
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      alert('Pekerjaan dimulai/dilanjutkan! Timer pengerjaan berjalan otomatis.');
+      toast.success('Pekerjaan dimulai/dilanjutkan! Timer pengerjaan berjalan otomatis.');
     },
+    onError: (err: any) => toast.error('Gagal memulai pekerjaan: ' + (err?.message || 'Terjadi kesalahan.')),
   });
 
   // Finish Job Mutation
@@ -172,8 +168,9 @@ export const MekanikView: React.FC = () => {
       setAutoPausedReason(null);
       setTimerRunning(false);
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      alert('Pekerjaan Selesai (Finish Job)! Status otomatis beralih ke "Waiting QC" untuk diperiksa Foreman.');
+      toast.success('Pekerjaan Selesai (Finish Job)! Status beralih ke "Waiting QC" untuk diperiksa Foreman.');
     },
+    onError: (err: any) => toast.error('Gagal menyelesaikan pekerjaan: ' + (err?.message || 'Terjadi kesalahan.')),
   });
 
   // Pause / Pending Part Mutation (Tahap 9 Excel)
@@ -188,9 +185,9 @@ export const MekanikView: React.FC = () => {
       setTimerRunning(false);
       setAutoPausedReason('Waiting Part');
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      alert('Pekerjaan dijeda (Pause)! Status unit dialihkan ke "Waiting Part (Pending)" untuk menunggu suku cadang.');
+      toast.warning('Pekerjaan dijeda (Pause)! Status unit dialihkan ke "Waiting Part" menunggu suku cadang.');
     },
-    onError: (err: any) => alert('Gagal menjeda pekerjaan: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal menjeda pekerjaan: ' + (err?.message || 'Terjadi kesalahan.')),
   });
 
   // Submit Tambahan Pekerjaan
@@ -212,47 +209,48 @@ export const MekanikView: React.FC = () => {
     onSuccess: () => {
       setShowTambahanModal(false);
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      alert('Pekerjaan Tambahan berhasil disubmit dan menunggu approval.');
+      toast.success('Pekerjaan Tambahan berhasil disubmit dan menunggu approval.');
     },
+    onError: (err: any) => toast.error('Gagal mengajukan pekerjaan tambahan: ' + (err?.message || 'Terjadi kesalahan.')),
   });
 
   return (
-    <div className="space-y-4 max-w-[480px] mx-auto mb-20 bg-slate-50 min-h-screen relative shadow-[0_0_15px_rgba(0,0,0,0.05)]">
+    <div className="space-y-4 max-w-[480px] mx-auto mb-20 bg-surface min-h-screen relative shadow-[0_0_15px_rgba(0,0,0,0.05)]">
       
       {/* Header Mobile App Style */}
-      <div className="bg-white px-4 py-3 shadow-xs border-b border-slate-200 sticky top-0 z-10">
+      <div className="bg-surface-raised px-4 py-3 shadow-xs border-b border-border sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-base sm:text-lg font-black text-slate-900">Mekanik Bengkel (Tablet / HP)</h1>
-            <p className="text-xs text-slate-500">Mekanik: {currentUser} | Mode Touchscreen</p>
+            <h1 className="text-base sm:text-lg font-black text-ink">Mekanik Bengkel (Tablet / HP)</h1>
+            <p className="text-xs text-ink-muted">Mekanik: {currentUser} | Mode Touchscreen</p>
           </div>
         </div>
 
         {/* Live Job Timer Badge */}
-        <div className="flex items-center justify-between bg-slate-900 text-white px-3.5 py-2 rounded-xl font-mono text-xs sm:text-sm font-bold shadow-xs mt-2">
+        <div className="flex items-center justify-between bg-ink text-white px-3.5 py-2 rounded-md font-mono text-xs sm:text-sm font-bold shadow-xs mt-2">
           <div className="flex items-center gap-2">
             {timerRunning ? (
-              <Clock className="w-4 h-4 text-emerald-400 animate-spin" />
+              <Clock className="w-4 h-4 text-status-green animate-spin" />
             ) : (
-              <Pause className="w-4 h-4 text-amber-400" />
+              <Pause className="w-4 h-4 text-status-amber" />
             )}
             <span>{formatTimer(jobTimerSeconds)}</span>
           </div>
           <div>
             {timerRunning ? (
-              <span className="text-[10px] uppercase font-bold tracking-wider bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] uppercase font-bold tracking-wider bg-status-green/30 text-status-green border border-status-green/40 px-2 py-0.5 rounded-full">
                 ● Berjalan
               </span>
             ) : myJob?.status_spk === 'Waiting Part' || myJob?.status_spk === 'Pending' ? (
-              <span className="text-[10px] uppercase font-bold tracking-wider bg-amber-500/30 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full animate-pulse">
+              <span className="text-[10px] uppercase font-bold tracking-wider bg-status-amber/30 text-status-amber border border-status-amber/40 px-2 py-0.5 rounded-full animate-pulse">
                 Auto-Paused ({myJob.status_spk})
               </span>
             ) : isManualPaused ? (
-              <span className="text-[10px] uppercase font-bold tracking-wider bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] uppercase font-bold tracking-wider bg-ink/80 text-surface/80 px-2 py-0.5 rounded-full">
                 Dijeda Manual
               </span>
             ) : (
-              <span className="text-[10px] uppercase font-bold tracking-wider bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] uppercase font-bold tracking-wider bg-ink/80 text-surface/70 px-2 py-0.5 rounded-full">
                 Siap
               </span>
             )}
@@ -263,7 +261,7 @@ export const MekanikView: React.FC = () => {
       {/* Quick Job Switcher (Chips Carousel) */}
       {mySpkList && mySpkList.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Pilih Pekerjaan:</span>
+          <span className="text-xs font-bold text-ink-muted whitespace-nowrap">Pilih Pekerjaan:</span>
           {mySpkList.map((job) => {
             const isSelected = (activeJobId || myJob?.id) === job.id;
             return (
@@ -277,15 +275,15 @@ export const MekanikView: React.FC = () => {
                   setAutoPausedReason(null);
                   setTimerRunning(job.status_spk === 'Dalam Pengerjaan');
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                    : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                    ? 'bg-ink text-white border-ink shadow-xs'
+                    : 'bg-surface-raised text-ink-muted border-border hover:border-border'
                 }`}
               >
                 <span>{job.no_polisi}</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                  job.status_spk === 'Dalam Pengerjaan' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-800'
+                  job.status_spk === 'Dalam Pengerjaan' ? 'bg-status-blue text-white' : 'bg-surface text-ink'
                 }`}>
                   {job.status_spk}
                 </span>
@@ -296,20 +294,20 @@ export const MekanikView: React.FC = () => {
       )}
 
       {myJob ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-5">
+        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-5">
           
           {/* WO Header Banner */}
-          <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 to-blue-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-md bg-ink text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <span className="text-[10px] text-blue-300 uppercase tracking-widest font-bold">Active Work Order</span>
+              <span className="text-[10px] text-white/70 uppercase tracking-widest font-bold">Active Work Order</span>
               <div className="text-xl sm:text-2xl font-black font-mono mt-0.5">{myJob.no_spk}</div>
-              <div className="text-xs text-slate-300 font-semibold">{myJob.no_polisi} - {myJob.nama_customer}</div>
+              <div className="text-xs text-white/70 font-semibold">{myJob.no_polisi} - {myJob.nama_customer}</div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowPrintSpk(myJob)}
-                className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                className="px-3 py-1.5 rounded-md bg-surface-raised/20 hover:bg-surface-raised/30 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
                 title="Cetak SPK / Lembar Kerja A4"
               >
                 <Printer className="w-3.5 h-3.5" /> Cetak SPK (A4)
@@ -319,12 +317,12 @@ export const MekanikView: React.FC = () => {
           </div>
 
           {/* Keluhan & Detail Instruksi */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2">
-            <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">Keluhan dari Customer & SA:</span>
-            <p className="text-sm font-semibold text-slate-900 leading-relaxed">
+          <div className="bg-surface p-4 rounded-md border border-border text-xs space-y-2">
+            <span className="font-bold text-ink-muted uppercase tracking-wider text-[10px] block">Keluhan dari Customer & SA:</span>
+            <p className="text-sm font-semibold text-ink leading-relaxed">
               "{myJob.keluhan_customer || 'Pemeriksaan rem dan pergantian oli berkala'}"
             </p>
-            <div className="pt-2 border-t border-slate-200 flex flex-wrap gap-4 text-slate-600">
+            <div className="pt-2 border-t border-border flex flex-wrap gap-4 text-ink-muted">
               <span>Odometer: <strong>{myJob.odometer_km?.toLocaleString()} KM</strong></span>
               <span>Foreman: <strong>{myJob.nama_foreman || 'Belum Ditugaskan'}</strong></span>
               <span>Lead Time: <strong>{myJob.lead_time_jam} Jam</strong></span>
@@ -333,18 +331,18 @@ export const MekanikView: React.FC = () => {
 
           {/* Banner Menunggu Part / Pending (Tahap 9 Excel) */}
           {(myJob.status_spk === 'Waiting Part' || myJob.status_spk === 'Pending') && (
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
-                <Pause className="w-5 h-5 text-amber-600" />
+            <div className="p-4 rounded-md bg-status-amber-bg border border-status-amber/30 text-status-amber flex items-start gap-3">
+              <div className="w-8 h-8 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0 mt-0.5">
+                <Pause className="w-5 h-5 text-status-amber" />
               </div>
               <div className="space-y-1">
                 <div className="font-bold text-sm flex items-center gap-2">
                   <span>Pekerjaan Dijeda: Menunggu Part ({myJob.status_spk})</span>
-                  <span className="text-[10px] bg-amber-200 text-amber-900 font-extrabold px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-status-amber/20 text-status-amber font-extrabold px-2 py-0.5 rounded-full">
                     TIMER AUTO-PAUSED
                   </span>
                 </div>
-                <p className="text-xs text-amber-800 leading-relaxed">
+                <p className="text-xs text-status-amber leading-relaxed">
                   Status unit dialihkan ke <strong>{myJob.status_spk}</strong> karena menunggu ketersediaan suku cadang. Timer pengerjaan otomatis dijeda dan akan melanjutkan otomatis saat status kembali ke <strong>Dalam Pengerjaan</strong>.
                 </p>
               </div>
@@ -362,7 +360,7 @@ export const MekanikView: React.FC = () => {
                   setAutoPausedReason(null);
                   startJobMutation.mutate(myJob);
                 }}
-                className="py-3.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-sm shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-2"
+                className="py-3.5 rounded-md bg-accent hover:bg-accent-hover text-white font-black text-sm shadow-md shadow-accent/20 transition-all flex items-center justify-center gap-2"
               >
                 <Play className="w-5 h-5 fill-current" /> RESUME JOB (LANJUTKAN PEKERJAAN)
               </button>
@@ -379,7 +377,7 @@ export const MekanikView: React.FC = () => {
                     startJobMutation.mutate(myJob);
                   }
                 }}
-                className="py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                className="py-3.5 rounded-md bg-accent hover:bg-accent-hover text-white font-black text-sm shadow-md shadow-accent/20 transition-all flex items-center justify-center gap-2"
               >
                 <Play className="w-5 h-5 fill-current" /> {isManualPaused ? 'RESUME JOB (LANJUTKAN)' : 'START JOB (MULAI PEKERJAAN)'}
               </button>
@@ -389,7 +387,7 @@ export const MekanikView: React.FC = () => {
                   type="button"
                   disabled={finishJobMutation.isPending}
                   onClick={() => finishJobMutation.mutate(myJob)}
-                  className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3.5 rounded-md bg-status-green hover:bg-status-green/90 text-white font-black text-xs sm:text-sm shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle className="w-4 h-4" /> FINISH (QC)
                 </button>
@@ -399,7 +397,7 @@ export const MekanikView: React.FC = () => {
                     setIsManualPaused(true);
                     setTimerRunning(false);
                   }}
-                  className="py-3.5 px-3 rounded-xl bg-slate-600 hover:bg-slate-700 text-white font-bold text-xs shadow-md shadow-slate-600/20 transition-all flex items-center justify-center gap-1"
+                  className="py-3.5 px-3 rounded-md bg-surface border border-border hover:bg-surface-raised text-ink-muted font-bold text-xs transition-all flex items-center justify-center gap-1"
                   title="Pause manual (istirahat / kendala teknis)"
                 >
                   <Pause className="w-4 h-4" /> PAUSE
@@ -408,7 +406,7 @@ export const MekanikView: React.FC = () => {
                   type="button"
                   disabled={pauseJobMutation.isPending}
                   onClick={() => pauseJobMutation.mutate(myJob)}
-                  className="py-3.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-1"
+                  className="py-3.5 px-3 rounded-md bg-status-amber hover:bg-status-amber/90 text-white font-bold text-xs shadow-md shadow-status-amber/20 transition-all flex items-center justify-center gap-1"
                   title="Pause / Pending karena menunggu sparepart"
                 >
                   <Pause className="w-4 h-4" /> NUNGGU PART
@@ -422,38 +420,38 @@ export const MekanikView: React.FC = () => {
                 setActiveJob(myJob);
                 setShowTambahanModal(true);
               }}
-              className="py-3.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-black text-sm shadow-xs transition-all flex items-center justify-center gap-2"
+              className="py-3.5 rounded-md bg-status-amber-bg hover:bg-status-amber/10 text-status-amber border border-status-amber/30 font-black text-sm shadow-xs transition-all flex items-center justify-center gap-2"
             >
-              <PlusCircle className="w-5 h-5 text-amber-700" /> + TAMBAHAN PEKERJAAN
+              <PlusCircle className="w-5 h-5 text-status-amber" /> + TAMBAHAN PEKERJAAN
             </button>
           </div>
 
           {/* Permintaan Sparepart Tab (image1.png Mockup Mekanik) */}
-          <div className="pt-4 border-t border-slate-200">
+          <div className="pt-4 border-t border-border">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <Package className="w-4 h-4 text-blue-600" /> Sparepart Terkait Pekerjaan Ini:
+              <span className="text-xs font-bold text-ink flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-accent" /> Sparepart Terkait Pekerjaan Ini:
               </span>
-              <span className="text-[11px] text-slate-400">Ambil di Gudang KIM3</span>
+              <span className="text-[11px] text-ink-subtle">Ambil di Gudang KIM3</span>
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-md bg-surface border border-border text-xs">
                 <div>
-                  <div className="font-bold text-slate-900">Brake Pad / Kampas Rem Depan (Canter)</div>
-                  <div className="text-[11px] text-slate-500 font-mono">Kode: SP-001 | Qty: 2 Set</div>
+                  <div className="font-bold text-ink">Brake Pad / Kampas Rem Depan (Canter)</div>
+                  <div className="text-[11px] text-ink-muted font-mono">Kode: SP-001 | Qty: 2 Set</div>
                 </div>
-                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-xs flex items-center gap-1">
+                <span className="px-2.5 py-1 bg-status-green-bg text-status-green font-bold rounded-md text-xs flex items-center gap-1">
                   <Check className="w-3.5 h-3.5" /> Ready di Stock
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-md bg-surface border border-border text-xs">
                 <div>
-                  <div className="font-bold text-slate-900">Oli Rimula R4 10W-40 (4L)</div>
-                  <div className="text-[11px] text-slate-500 font-mono">Kode: SP-045 | Qty: 1 Galon</div>
+                  <div className="font-bold text-ink">Oli Rimula R4 10W-40 (4L)</div>
+                  <div className="text-[11px] text-ink-muted font-mono">Kode: SP-045 | Qty: 1 Galon</div>
                 </div>
-                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-xs flex items-center gap-1">
+                <span className="px-2.5 py-1 bg-status-green-bg text-status-green font-bold rounded-md text-xs flex items-center gap-1">
                   <Check className="w-3.5 h-3.5" /> Ready di Stock
                 </span>
               </div>
@@ -462,23 +460,24 @@ export const MekanikView: React.FC = () => {
 
         </div>
       ) : (
-        <div className="p-12 bg-white rounded-2xl border border-slate-200 text-center text-slate-400 text-xs">
+        <div className="p-12 bg-surface-raised rounded-md border border-border text-center text-ink-subtle text-xs">
           Belum ada SPK yang ditugaskan ke Anda hari ini.
         </div>
       )}
 
       {/* MODAL TAMBAHAN PEKERJAAN (image1.png Tahap 8) */}
       {showTambahanModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <ModalPortal onClose={() => setShowTambahanModal(false)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-surface-raised rounded-t-md sm:rounded-md p-5 sm:p-6 max-w-lg w-full shadow-xl border border-border space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900">Form Tambahan Pekerjaan (If Needed)</h3>
-                <p className="text-xs text-slate-500">Mekanik menemukan kerusakan tambahan saat pengerjaan</p>
+                <h3 className="text-base font-bold text-ink">Form Tambahan Pekerjaan (If Needed)</h3>
+                <p className="text-xs text-ink-muted">Mekanik menemukan kerusakan tambahan saat pengerjaan</p>
               </div>
               <button
                 onClick={() => setShowTambahanModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-surface"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -486,7 +485,7 @@ export const MekanikView: React.FC = () => {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-ink-muted mb-1">
                   Deskripsi Temuan Kerusakan Tambahan:
                 </label>
                 <textarea
@@ -494,12 +493,12 @@ export const MekanikView: React.FC = () => {
                   placeholder="Contoh: Ditemukan kebocoran oli pada seal power steering & as roda"
                   value={tambahanForm.deskripsi_tambahan}
                   onChange={(e) => setTambahanForm({ ...tambahanForm, deskripsi_tambahan: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-ink-muted mb-1">
                   Rekomendasi Tindakan & Part:
                 </label>
                 <textarea
@@ -507,41 +506,41 @@ export const MekanikView: React.FC = () => {
                   placeholder="Contoh: 1. Ganti Seal Oli Power Steering&#10;2. Kuras & Tambah Oli Power Steering"
                   value={tambahanForm.rekomendasi_perbaikan}
                   onChange={(e) => setTambahanForm({ ...tambahanForm, rekomendasi_perbaikan: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Estimasi Biaya Tambahan (Rp)</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Estimasi Biaya Tambahan (Rp)</label>
                   <input
                     type="number"
                     placeholder="Contoh: 290000"
                     value={tambahanForm.estimasi_biaya_tambahan || ''}
                     onChange={(e) => setTambahanForm({ ...tambahanForm, estimasi_biaya_tambahan: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-xs focus:outline-none"
+                    className="w-full px-3 py-2 rounded-md border border-border font-mono font-bold text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Waktu Tambahan (Jam)</label>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Waktu Tambahan (Jam)</label>
                   <input
                     type="number"
                     placeholder="Contoh: 1"
                     value={tambahanForm.estimasi_waktu_tambahan_jam || ''}
                     onChange={(e) => setTambahanForm({ ...tambahanForm, estimasi_waktu_tambahan_jam: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold text-xs focus:outline-none"
+                    className="w-full px-3 py-2 rounded-md border border-border font-mono font-bold text-xs focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan untuk Customer & SA</label>
+                <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Tambahan untuk Customer & SA</label>
                 <input
                   type="text"
                   placeholder="Contoh: Perlu diganti agar tidak merembes ke belt alternator."
                   value={tambahanForm.catatan}
                   onChange={(e) => setTambahanForm({ ...tambahanForm, catatan: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none"
+                  className="w-full px-3 py-2 rounded-md border border-border text-xs focus:outline-none"
                 />
               </div>
             </div>
@@ -550,7 +549,7 @@ export const MekanikView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowTambahanModal(false)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                className="flex-1 py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted font-bold text-xs rounded-md"
               >
                 Batal
               </button>
@@ -558,13 +557,14 @@ export const MekanikView: React.FC = () => {
                 type="button"
                 disabled={submitTambahanMutation.isPending}
                 onClick={() => submitTambahanMutation.mutate()}
-                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-600/20"
+                className="flex-1 py-2.5 bg-status-amber hover:bg-status-amber/90 text-white font-bold text-xs rounded-md shadow-md shadow-status-amber/20"
               >
                 {submitTambahanMutation.isPending ? 'Mengirim...' : 'KIRIM KE FOREMAN & SA'}
               </button>
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Printable SPK A4 Modal */}
