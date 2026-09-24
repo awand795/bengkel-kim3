@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, getApiErrorMessage } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { SpkService, BookingService } from '../types';
@@ -26,6 +26,8 @@ import {
   Info
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
+import { PaginationBar } from '../components/common/PaginationBar';
+import { toast } from '../components/common/Toast';
 
 export const ForemanView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -37,6 +39,8 @@ export const ForemanView: React.FC = () => {
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'Semua' | 'Perlu Ditugaskan' | 'Dalam Pengerjaan' | 'Waiting QC'>('Semua');
+  const [spkPage, setSpkPage] = useState(1);
+  const [spkLimit, setSpkLimit] = useState(10);
 
   // Assign Mekanik State
   const [selectedMekanik, setSelectedMekanik] = useState('');
@@ -109,19 +113,23 @@ export const ForemanView: React.FC = () => {
   // Mutations
   const assignMekanikMutation = useMutation({
     mutationFn: async (spk: SpkService) => {
+      const mekanikId = mekanikList.find((m) => m.nama_lengkap === selectedMekanik)?.id;
       return api.updateSpkStatus({
         id: spk.id,
         status_spk: 'Dalam Pengerjaan',
         nama_foreman: currentUser,
         nama_mekanik: selectedMekanik,
+        // ID mekanik agar MekanikView bisa mencocokkan SPK secara akurat (fallback: pencocokan nama)
+        ...(mekanikId ? { id_mekanik: mekanikId } : {}),
         catatan_foreman: `Ditugaskan oleh Foreman ke ${selectedMekanik}`,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      alert(`Mekanik ${selectedMekanik} berhasil ditugaskan untuk SPK ini!`);
+      toast.success(`Mekanik ${selectedMekanik} berhasil ditugaskan untuk SPK ini!`);
       setSelectedSpk(null);
     },
+    onError: (err: any) => toast.error('Gagal menugaskan mekanik: ' + getApiErrorMessage(err)),
   });
 
   const submitHasilPengecekanMutation = useMutation({
@@ -134,9 +142,10 @@ export const ForemanView: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      alert('Rekomendasi perbaikan & estimasi berhasil disubmit ke SA!');
+      toast.success('Rekomendasi perbaikan & estimasi berhasil disubmit ke SA!');
       setActiveTab('dashboard');
     },
+    onError: (err: any) => toast.error('Gagal submit hasil pengecekan: ' + getApiErrorMessage(err)),
   });
 
   const submitQcMutation = useMutation({
@@ -173,10 +182,15 @@ export const ForemanView: React.FC = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
-      alert(variables.passed ? 'QC Passed! Diserahkan ke SA untuk Final Check & FIR Closed.' : 'QC Tidak Sesuai. SPK dikembalikan ke Mekanik.');
+      if (variables.passed) {
+        toast.success('QC Passed! Diserahkan ke SA untuk Final Check & FIR Closed.');
+      } else {
+        toast.warning('QC Tidak Sesuai. SPK dikembalikan ke Mekanik.');
+      }
       setSelectedSpk(null);
       setActiveTab('dashboard');
     },
+    onError: (err: any) => toast.error('Gagal memproses QC: ' + getApiErrorMessage(err)),
   });
 
   // Derived statistics and filtering
@@ -207,43 +221,47 @@ export const ForemanView: React.FC = () => {
     return true;
   });
 
+  const totalSpkRecords = filteredSpkList.length;
+  const totalSpkPages = Math.ceil(totalSpkRecords / spkLimit) || 1;
+  const paginatedSpkList = filteredSpkList.slice((spkPage - 1) * spkLimit, spkPage * spkLimit);
+
   return (
     <div className="space-y-6">
       
       {/* Top Header */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold">
             <Wrench className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-slate-900">Dashboard Foreman</h1>
-            <p className="text-xs text-slate-500">Distribusi Pekerjaan, Pengecekan Mekanik, dan Quality Control (FIR)</p>
+            <h1 className="text-lg font-black text-ink">Dashboard Foreman</h1>
+            <p className="text-xs text-ink-muted">Distribusi Pekerjaan, Pengecekan Mekanik, dan Quality Control (FIR)</p>
           </div>
         </div>
 
         {/* Subtabs */}
-        <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
+        <div className="flex flex-wrap gap-1 bg-surface p-1 rounded-md">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'dashboard' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'dashboard' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
             Dashboard SPK
           </button>
           <button
             onClick={() => setActiveTab('hasil-pengecekan')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'hasil-pengecekan' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'hasil-pengecekan' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
             Input Perbaikan (Hasil Cek)
           </button>
           <button
             onClick={() => setActiveTab('qc-fir')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'qc-fir' ? 'bg-white text-emerald-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'qc-fir' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
             Quality Control (QC / FIR)
@@ -255,66 +273,66 @@ export const ForemanView: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div 
           onClick={() => setStatusFilter('Semua')}
-          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Semua' ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            statusFilter === 'Semua' ? 'bg-accent-subtle border-accent/30 ring-2 ring-accent/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Total SPK</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-ink-muted">Total SPK</span>
+            <div className="w-7 h-7 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
               <Wrench className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalSpkCount}</div>
-          <span className="text-[10px] text-slate-400">Seluruh SPK aktif</span>
+          <div className="text-xl sm:text-2xl font-black text-accent mt-1">{totalSpkCount}</div>
+          <span className="text-[10px] text-ink-subtle">Seluruh SPK aktif</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Perlu Ditugaskan')}
-          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Perlu Ditugaskan' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            statusFilter === 'Perlu Ditugaskan' ? 'bg-status-amber-bg border-status-amber/30 ring-2 ring-status-amber/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-700">Perlu Ditugaskan</span>
-            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-status-amber">Perlu Ditugaskan</span>
+            <div className="w-7 h-7 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
               <UserCheck className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-900 mt-1">{unassignedCount}</div>
-          <span className="text-[10px] text-amber-700">Belum ada mekanik</span>
+          <div className="text-xl sm:text-2xl font-black text-status-amber mt-1">{unassignedCount}</div>
+          <span className="text-[10px] text-status-amber">Belum ada mekanik</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Dalam Pengerjaan')}
-          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Dalam Pengerjaan' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            statusFilter === 'Dalam Pengerjaan' ? 'bg-status-blue-bg border-status-blue/30 ring-2 ring-status-blue/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-blue-700">Dalam Pengerjaan</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-status-blue">Dalam Pengerjaan</span>
+            <div className="w-7 h-7 rounded-md bg-status-blue-bg text-status-blue flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-blue-900 mt-1">{inProgressCount}</div>
-          <span className="text-[10px] text-blue-600">Teknisi aktif di pit</span>
+          <div className="text-xl sm:text-2xl font-black text-status-blue mt-1">{inProgressCount}</div>
+          <span className="text-[10px] text-status-blue">Teknisi aktif di pit</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Waiting QC')}
-          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Waiting QC' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            statusFilter === 'Waiting QC' ? 'bg-status-green-bg border-status-green/30 ring-2 ring-status-green/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-700">Siap QC (FIR)</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-status-green">Siap QC (FIR)</span>
+            <div className="w-7 h-7 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-900 mt-1">{waitingQcCount}</div>
-          <span className="text-[10px] text-emerald-600">Siap diinspeksi</span>
+          <div className="text-xl sm:text-2xl font-black text-status-green mt-1">{waitingQcCount}</div>
+          <span className="text-[10px] text-status-green">Siap diinspeksi</span>
         </div>
       </div>
 
@@ -323,34 +341,34 @@ export const ForemanView: React.FC = () => {
         <div className="space-y-6">
 
           {/* Card: Jadwal Booking Hari Ini (Estimasi Beban Kerja yang Akan Datang) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold shrink-0">
+                <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold shrink-0">
                   <CalendarDays className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-slate-900">Jadwal Booking Hari Ini</h2>
-                    <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-purple-100 text-purple-700 border border-purple-200">
+                    <h2 className="text-base font-bold text-ink">Jadwal Booking Hari Ini</h2>
+                    <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-accent-subtle text-accent border border-accent/30">
                       {todayBookings.length} Armada Terjadwal
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-muted">
                     Beban kerja service yang akan datang (estimasi kedatangan armada di bengkel hari ini)
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-xs text-ink-muted font-medium flex items-center gap-1.5 bg-surface px-3 py-1.5 rounded-md border border-border">
+                  <Clock className="w-3.5 h-3.5 text-ink-subtle" />
                   <span>{todayFormatted}</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsBookingExpanded(!isBookingExpanded)}
-                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface rounded-md transition-colors"
                   title={isBookingExpanded ? 'Ciutkan Card' : 'Perluas Card'}
                 >
                   {isBookingExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -365,15 +383,15 @@ export const ForemanView: React.FC = () => {
                     {todayBookings.map((b) => (
                       <div
                         key={b.id}
-                        className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white hover:border-purple-300 hover:shadow-xs transition-all space-y-2.5"
+                        className="p-3.5 rounded-md border border-border bg-surface/60 hover:bg-surface-raised hover:border-accent/30 hover:shadow-xs transition-all space-y-2.5"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 font-bold text-xs border border-purple-200/60">
-                              <Clock className="w-3.5 h-3.5 text-purple-600" />
+                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-accent-subtle text-accent font-bold text-xs border border-accent/30">
+                              <Clock className="w-3.5 h-3.5 text-accent" />
                               {b.jam_booking || '08:00'} WIB
                             </span>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-200/80 text-slate-700 flex items-center gap-1">
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-surface/80 text-ink-muted flex items-center gap-1">
                               <Truck className="w-3 h-3" />
                               {b.jenis_armada || 'Truk'}
                             </span>
@@ -381,8 +399,8 @@ export const ForemanView: React.FC = () => {
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                               b.status === 'Check In'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-amber-100 text-amber-800'
+                                ? 'bg-status-green-bg text-status-green'
+                                : 'bg-status-amber-bg text-status-amber'
                             }`}
                           >
                             {b.status === 'Check In' ? '✓ Sudah Check-In' : '⏳ Menunggu Masuk'}
@@ -391,53 +409,53 @@ export const ForemanView: React.FC = () => {
 
                         <div className="flex items-baseline justify-between">
                           <div>
-                            <span className="text-base font-black text-slate-900 tracking-tight">{b.no_polisi}</span>
-                            <div className="text-xs font-semibold text-slate-700">{b.nama_perusahaan || b.nama_customer}</div>
+                            <span className="text-base font-black text-ink tracking-tight">{b.no_polisi}</span>
+                            <div className="text-xs font-semibold text-ink-muted">{b.nama_perusahaan || b.nama_customer}</div>
                           </div>
                           {b.prioritas === 'Prioritas Booking' && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-200">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-status-red-bg text-status-red border border-status-red/30">
                               Prioritas
                             </span>
                           )}
                         </div>
 
-                        <div className="text-xs bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-1">
-                          <div className="flex items-center gap-1.5 text-slate-800 font-semibold">
-                            <Wrench className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <div className="text-xs bg-surface-raised p-2.5 rounded-md border border-border space-y-1">
+                          <div className="flex items-center gap-1.5 text-ink font-semibold">
+                            <Wrench className="w-3.5 h-3.5 text-accent shrink-0" />
                             <span>{b.jenis_layanan || 'Service Berkala'}</span>
                           </div>
                           {(b.keluhan || b.keterangan) && (
-                            <p className="text-[11px] text-slate-500 line-clamp-2 italic">
+                            <p className="text-[11px] text-ink-muted line-clamp-2 italic">
                               "{b.keluhan || b.keterangan}"
                             </p>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
-                          <span>Driver: <strong className="text-slate-700">{b.pic_driver || '-'}</strong></span>
+                        <div className="flex items-center justify-between text-[11px] text-ink-muted pt-1 border-t border-border">
+                          <span>Driver: <strong className="text-ink-muted">{b.pic_driver || '-'}</strong></span>
                           {b.no_telepon && (
-                            <span className="font-mono text-slate-600">{b.no_telepon}</span>
+                            <span className="font-mono text-ink-muted">{b.no_telepon}</span>
                           )}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                    <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <div className="p-6 text-center text-ink-subtle text-xs bg-surface rounded-md border border-dashed border-border">
+                    <Calendar className="w-8 h-8 text-ink-subtle mx-auto mb-2" />
                     Belum ada armada booking yang dijadwalkan untuk hari ini.
                   </div>
                 )}
 
-                <div className="text-[11px] text-slate-500 bg-purple-50/50 p-2.5 rounded-lg border border-purple-100 flex items-center gap-2">
-                  <Info className="w-4 h-4 text-purple-600 shrink-0" />
+                <div className="text-[11px] text-ink-muted bg-accent-subtle p-2.5 rounded-md border border-accent/30 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-accent shrink-0" />
                   <span>
                     Armada yang tiba di pos security gerbang dan telah dibuatkan SPK oleh SA akan otomatis muncul pada daftar <strong>SPK Menunggu &amp; On Progress</strong> di bawah untuk didistribusikan ke mekanik.
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+              <div className="text-xs text-ink-muted bg-surface p-3 rounded-md border border-border flex items-center justify-between">
                 <span>
                   <strong>{todayBookings.length} Armada Terjadwal:</strong>{' '}
                   {todayBookings.map((b) => `${b.no_polisi} (${b.jam_booking || '08:00'})`).join(', ')}
@@ -445,7 +463,7 @@ export const ForemanView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsBookingExpanded(true)}
-                  className="text-purple-600 font-bold hover:underline ml-2 shrink-0"
+                  className="text-accent font-bold hover:underline ml-2 shrink-0"
                 >
                   Tampilkan Rincian →
                 </button>
@@ -457,13 +475,13 @@ export const ForemanView: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Daftar SPK (2 Cols) */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="lg:col-span-2 bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Daftar SPK Menunggu &amp; On Progress</h2>
-                <p className="text-xs text-slate-500">Foreman review pekerjaan dan tugaskan mekanik</p>
+                <h2 className="text-base font-bold text-ink">Daftar SPK Menunggu &amp; On Progress</h2>
+                <p className="text-xs text-ink-muted">Foreman review pekerjaan dan tugaskan mekanik</p>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 self-start sm:self-auto">
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-surface text-ink-muted self-start sm:self-auto">
                 {filteredSpkList.length} SPK Ditemukan
               </span>
             </div>
@@ -471,18 +489,24 @@ export const ForemanView: React.FC = () => {
             {/* Live Search & Filter Bar */}
             <div className="flex flex-col sm:flex-row gap-2.5">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-4 h-4 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Cari No. Polisi, No. SPK, Customer, atau Mekanik..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSpkPage(1);
+                  }}
+                  className="w-full pl-9 pr-8 py-2 rounded-md border border-border text-xs bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none transition-all"
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-1"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSpkPage(1);
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-ink-muted text-xs font-bold p-1"
                   >
                     ✕
                   </button>
@@ -494,11 +518,14 @@ export const ForemanView: React.FC = () => {
                 {(['Semua', 'Perlu Ditugaskan', 'Dalam Pengerjaan', 'Waiting QC'] as const).map((st) => (
                   <button
                     key={st}
-                    onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    onClick={() => {
+                      setStatusFilter(st);
+                      setSpkPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-all ${
                       statusFilter === st
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-ink text-surface shadow-xs'
+                        : 'bg-surface text-ink-muted hover:bg-surface-raised'
                     }`}
                   >
                     {st}
@@ -510,72 +537,86 @@ export const ForemanView: React.FC = () => {
             {/* List SPK */}
             <div className="space-y-3">
               {filteredSpkList.length > 0 ? (
-                filteredSpkList.map((spk) => (
+                paginatedSpkList.map((spk) => (
                   <div
                     key={spk.id}
                     onClick={() => setSelectedSpk(spk)}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${
+                    className={`p-4 rounded-md border transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${
                       selectedSpk?.id === spk.id
-                        ? 'border-indigo-600 bg-indigo-50/50 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/80'
+                        ? 'border-accent bg-accent-subtle shadow-xs'
+                        : 'border-border hover:border-border hover:bg-surface/80'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-blue-700">{spk.no_spk}</span>
+                      <span className="font-mono text-xs font-bold text-accent">{spk.no_spk}</span>
                       <StatusBadge status={spk.status_spk} size="sm" />
                     </div>
 
                     <div className="flex items-center justify-between mt-2">
                       <div>
-                        <div className="text-sm font-black text-slate-900">{spk.no_polisi}</div>
-                        <div className="text-xs text-slate-600">{spk.nama_customer}</div>
+                        <div className="text-sm font-black text-ink">{spk.no_polisi}</div>
+                        <div className="text-xs text-ink-muted">{spk.nama_customer}</div>
                       </div>
                       <div className="text-right text-xs">
-                        <span className="text-slate-400 block text-[10px]">Lead Time:</span>
-                        <span className="font-bold text-blue-700">{spk.lead_time_jam ? `${spk.lead_time_jam} Jam` : '6 Jam'}</span>
+                        <span className="text-ink-subtle block text-[10px]">Lead Time:</span>
+                        <span className="font-bold text-accent">{spk.lead_time_jam ? `${spk.lead_time_jam} Jam` : '6 Jam'}</span>
                       </div>
                     </div>
 
-                    <div className="mt-2 text-xs text-slate-600 bg-white/80 p-2 rounded-lg border border-slate-100 line-clamp-1">
-                      <span className="font-semibold text-slate-700">Keluhan:</span> {spk.keluhan_customer}
+                    <div className="mt-2 text-xs text-ink-muted bg-surface-raised/80 p-2 rounded-md border border-border line-clamp-1">
+                      <span className="font-semibold text-ink-muted">Keluhan:</span> {spk.keluhan_customer}
                     </div>
 
-                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                      <span>Mekanik: <strong className="text-slate-800">{spk.nama_mekanik || 'Belum ditugaskan'}</strong></span>
-                      <span className="text-blue-600 font-semibold">Pilih untuk Aksi →</span>
+                    <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-xs text-ink-muted">
+                      <span>Mekanik: <strong className="text-ink">{spk.nama_mekanik || 'Belum ditugaskan'}</strong></span>
+                      <span className="text-accent font-semibold">Pilih untuk Aksi →</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <div className="p-8 text-center text-ink-subtle text-xs bg-surface rounded-md border border-dashed border-border">
                   Tidak ditemukan SPK yang sesuai dengan pencarian atau filter "{statusFilter}".
                 </div>
               )}
             </div>
+
+            {/* Pagination Bar */}
+            <PaginationBar
+              page={spkPage}
+              totalPages={totalSpkPages}
+              totalRecords={totalSpkRecords}
+              limit={spkLimit}
+              onPageChange={setSpkPage}
+              onLimitChange={(newL) => {
+                setSpkLimit(newL);
+                setSpkPage(1);
+              }}
+              label="SPK"
+            />
           </div>
 
           {/* Panel Distribusi & Aksi Foreman (1 Col) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs flex flex-col justify-between">
             {selectedSpk ? (
               <div className="space-y-4">
-                <div className="border-b border-slate-100 pb-3">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Armada Terpilih</span>
-                  <h3 className="text-lg font-black text-slate-900">{selectedSpk.no_polisi}</h3>
-                  <p className="text-xs text-slate-600">{selectedSpk.nama_customer}</p>
+                <div className="border-b border-border pb-3">
+                  <span className="text-[10px] uppercase font-bold text-ink-subtle">Armada Terpilih</span>
+                  <h3 className="text-lg font-black text-ink">{selectedSpk.no_polisi}</h3>
+                  <p className="text-xs text-ink-muted">{selectedSpk.nama_customer}</p>
                 </div>
 
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-500">Status Saat Ini:</span>
+                  <div className="flex justify-between py-1 border-b border-border">
+                    <span className="text-ink-muted">Status Saat Ini:</span>
                     <StatusBadge status={selectedSpk.status_spk} size="sm" />
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-500">Service Advisor:</span>
-                    <span className="font-bold text-slate-800">{selectedSpk.nama_sa}</span>
+                  <div className="flex justify-between py-1 border-b border-border">
+                    <span className="text-ink-muted">Service Advisor:</span>
+                    <span className="font-bold text-ink">{selectedSpk.nama_sa}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block mb-1">Keluhan:</span>
-                    <p className="p-2 bg-slate-50 rounded-lg text-slate-800 font-medium">
+                    <span className="text-ink-muted block mb-1">Keluhan:</span>
+                    <p className="p-2 bg-surface rounded-md text-ink font-medium">
                       {selectedSpk.keluhan_customer}
                     </p>
                   </div>
@@ -583,13 +624,13 @@ export const ForemanView: React.FC = () => {
 
                 {/* Assign Mekanik Section */}
                 <div className="pt-2">
-                  <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  <label className="block text-xs font-bold text-ink mb-1.5">
                     Pilih Mekanik untuk Pengerjaan:
                   </label>
                   <select
                     value={selectedMekanik}
                     onChange={(e) => setSelectedMekanik(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-md border border-border text-xs font-bold bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none"
                   >
                     {mekanikList.length === 0 ? (
                       <option value="">Memuat daftar mekanik...</option>
@@ -606,24 +647,24 @@ export const ForemanView: React.FC = () => {
                     type="button"
                     disabled={assignMekanikMutation.isPending}
                     onClick={() => assignMekanikMutation.mutate(selectedSpk)}
-                    className="w-full mt-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all"
+                    className="w-full mt-3 py-2.5 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-md shadow-xs flex items-center justify-center gap-1.5 transition-all"
                   >
                     <UserCheck className="w-4 h-4" /> TUGASKAN KE MEKANIK
                   </button>
                 </div>
 
                 {/* Quick Link to Hasil Cek or QC */}
-                <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                <div className="pt-2 border-t border-border flex flex-col gap-2">
                   <button
                     onClick={() => setActiveTab('hasil-pengecekan')}
-                    className="w-full py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-bold text-xs transition-colors"
+                    className="w-full py-2 bg-accent-subtle text-accent hover:bg-accent-subtle rounded-md font-bold text-xs transition-colors"
                   >
                     Input Hasil Pengecekan Fisik →
                   </button>
                   {selectedSpk.status_spk === 'Waiting QC' && (
                     <button
                       onClick={() => setActiveTab('qc-fir')}
-                      className="w-full py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl font-bold text-xs transition-colors shadow-xs"
+                      className="w-full py-2 bg-status-green text-white hover:bg-status-green/90 rounded-md font-bold text-xs transition-colors shadow-xs"
                     >
                       Buka Form Quality Control (QC) →
                     </button>
@@ -631,15 +672,15 @@ export const ForemanView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowPrintSpk(selectedSpk)}
-                    className="w-full py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-xl font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-1.5"
+                    className="w-full py-2 bg-surface text-ink-muted hover:bg-surface-raised border border-border rounded-md font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
                   >
                     <Printer className="w-3.5 h-3.5" /> Cetak Lembar SPK (A4)
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
-                <Wrench className="w-10 h-10 text-slate-300 mb-2" />
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 text-ink-subtle">
+                <Wrench className="w-10 h-10 text-ink-subtle mb-2" />
                 <p className="text-xs font-semibold">Pilih salah satu SPK di sebelah kiri untuk menugaskan mekanik atau melakukan inspeksi.</p>
               </div>
             )}
@@ -652,22 +693,22 @@ export const ForemanView: React.FC = () => {
 
       {/* TAB 2: INPUT PERBAIKAN HASIL PENGECEKAN (image1.png Mockup 5) */}
       {activeTab === 'hasil-pengecekan' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs max-w-2xl mx-auto">
-          <div className="border-b border-slate-100 pb-3 mb-4">
-            <h2 className="text-base font-bold text-slate-900">Input Perbaikan Hasil Pengecekan Mekanik & Foreman</h2>
-            <p className="text-xs text-slate-500">Pengecekan fisik komponen yang perlu diperbaiki / diganti untuk disubmit ke SA</p>
+        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs max-w-2xl mx-auto">
+          <div className="border-b border-border pb-3 mb-4">
+            <h2 className="text-base font-bold text-ink">Input Perbaikan Hasil Pengecekan Mekanik & Foreman</h2>
+            <p className="text-xs text-ink-muted">Pengecekan fisik komponen yang perlu diperbaiki / diganti untuk disubmit ke SA</p>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Pilih SPK Armada:</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1">Pilih SPK Armada:</label>
               <select
                 value={selectedSpk?.id || ''}
                 onChange={(e) => {
                   const spk = spkList?.find(s => s.id === Number(e.target.value));
                   setSelectedSpk(spk || null);
                 }}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-bold bg-surface-raised focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">-- Pilih SPK Armada --</option>
                 {spkList?.map(s => (
@@ -679,14 +720,14 @@ export const ForemanView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-ink-muted mb-1">
                 Hasil Pengecekan & Rekomendasi Perbaikan
               </label>
               <textarea
                 rows={4}
                 value={hasilPengecekan.rekomendasi}
                 onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, rekomendasi: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
               />
             </div>
 
@@ -695,12 +736,12 @@ export const ForemanView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Tambahan Foreman</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Tambahan Foreman</label>
               <textarea
                 rows={2}
                 value={hasilPengecekan.catatan_tambahan}
                 onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, catatan_tambahan: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
               />
             </div>
 
@@ -708,7 +749,7 @@ export const ForemanView: React.FC = () => {
               type="button"
               disabled={!selectedSpk || submitHasilPengecekanMutation.isPending}
               onClick={() => selectedSpk && submitHasilPengecekanMutation.mutate(selectedSpk)}
-              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-md bg-accent hover:bg-accent-hover disabled:bg-surface text-white font-bold text-sm shadow-md shadow-accent/20 transition-all flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" /> SUBMIT KE SA BY SISTEM
             </button>
@@ -718,25 +759,25 @@ export const ForemanView: React.FC = () => {
 
       {/* TAB 3: QUALITY CONTROL (QC) & FIR (image1.png Mockup QC) */}
       {activeTab === 'qc-fir' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs max-w-2xl mx-auto">
-          <div className="border-b border-slate-100 pb-3 mb-4">
+        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs max-w-2xl mx-auto">
+          <div className="border-b border-border pb-3 mb-4">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <h2 className="text-base font-bold text-slate-900">Final Inspection Report (FIR) - Quality Control</h2>
+              <span className="w-2.5 h-2.5 rounded-full bg-status-green"></span>
+              <h2 className="text-base font-bold text-ink">Final Inspection Report (FIR) - Quality Control</h2>
             </div>
-            <p className="text-xs text-slate-500">Foreman periksa hasil kerja mekanik sebelum diserahkan ke SA</p>
+            <p className="text-xs text-ink-muted">Foreman periksa hasil kerja mekanik sebelum diserahkan ke SA</p>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Pilih SPK Armada untuk QC:</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1">Pilih SPK Armada untuk QC:</label>
               <select
                 value={selectedSpk?.id || ''}
                 onChange={(e) => {
                   const spk = spkList?.find(s => s.id === Number(e.target.value));
                   setSelectedSpk(spk || null);
                 }}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-bold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-bold bg-surface-raised focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">-- Pilih SPK Selesai Dikerjakan --</option>
                 {spkList?.map(s => (
@@ -748,8 +789,8 @@ export const ForemanView: React.FC = () => {
             </div>
 
             {/* Checklist FIR */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <span className="block text-xs font-bold text-slate-800">5 Parameter Wajib Inspeksi Akhir:</span>
+            <div className="p-4 rounded-md bg-surface border border-border space-y-3">
+              <span className="block text-xs font-bold text-ink">5 Parameter Wajib Inspeksi Akhir:</span>
               
               {[
                 { key: 'pekerjaan_sesuai_wo', label: '1. Pekerjaan Sesuai WO', desc: 'Item jasa & part terpasang sesuai SPK' },
@@ -758,28 +799,28 @@ export const ForemanView: React.FC = () => {
                 { key: 'test_jalan', label: '4. Test Jalan', desc: 'Uji jalan singkat tidak ada getaran dan bunyi abnormal' },
                 { key: 'kebersihan', label: '5. Kebersihan', desc: 'Kabin, ruang mesin, dan bodi armada bersih dari oli mekanik' },
               ].map((param) => (
-                <label key={param.key} className="flex items-start gap-3 p-2 bg-white rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                <label key={param.key} className="flex items-start gap-3 p-2 bg-surface-raised rounded-md border border-border cursor-pointer hover:bg-surface transition-colors">
                   <input
                     type="checkbox"
                     checked={(firForm as any)[param.key]}
                     onChange={(e) => setFirForm({ ...firForm, [param.key]: e.target.checked })}
-                    className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
+                    className="w-4 h-4 mt-0.5 rounded text-status-green focus:ring-status-green"
                   />
                   <div>
-                    <div className="text-xs font-bold text-slate-900">{param.label}</div>
-                    <div className="text-[11px] text-slate-500">{param.desc}</div>
+                    <div className="text-xs font-bold text-ink">{param.label}</div>
+                    <div className="text-[11px] text-ink-muted">{param.desc}</div>
                   </div>
                 </label>
               ))}
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Hasil QC Foreman</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Hasil QC Foreman</label>
               <textarea
                 rows={2}
                 value={firForm.catatan_foreman}
                 onChange={(e) => setFirForm({ ...firForm, catatan_foreman: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
               />
             </div>
 
@@ -788,7 +829,7 @@ export const ForemanView: React.FC = () => {
                 type="button"
                 disabled={!selectedSpk || submitQcMutation.isPending}
                 onClick={() => selectedSpk && submitQcMutation.mutate({ spk: selectedSpk, passed: false })}
-                className="py-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                className="py-3 rounded-md bg-status-red-bg hover:bg-status-red/10 text-status-red border border-status-red/30 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
               >
                 <XCircle className="w-4 h-4" /> TIDAK SESUAI (KEMBALIKAN)
               </button>
@@ -797,7 +838,7 @@ export const ForemanView: React.FC = () => {
                 type="button"
                 disabled={!selectedSpk || submitQcMutation.isPending}
                 onClick={() => selectedSpk && submitQcMutation.mutate({ spk: selectedSpk, passed: true })}
-                className="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5"
+                className="py-3 rounded-md bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" /> QC PASSED (KE SA)
               </button>

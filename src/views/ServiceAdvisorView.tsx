@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
@@ -26,14 +26,26 @@ import {
   Plus,
   Search,
   Filter,
-  ShieldCheck
+  ShieldCheck,
+  Car,
+  Zap
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
+import { PaginationBar } from '../components/common/PaginationBar';
+import { ModalPortal } from '../components/common/ModalPortal';
+import { toast } from '../components/common/Toast';
 
-export const ServiceAdvisorView: React.FC = () => {
+export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' }> = ({ initialTab = 'spk-list' }) => {
   const queryClient = useQueryClient();
-  const { currentUser } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed'>('spk-list');
+  const { currentUser, saPendingAntrianId, setSaPendingAntrianId } = useAppStore();
+  const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed'>(initialTab);
+
+  // Sinkron tab internal saat navigasi deep-link (mis. Dashboard "Buat SPK" -> penerimaan)
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrModal, setShowPrModal] = useState<SpkService | null>(null);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
@@ -65,6 +77,8 @@ export const ServiceAdvisorView: React.FC = () => {
   // Search & Filter State for SPK List
   const [saSearchQuery, setSaSearchQuery] = useState('');
   const [saStatusFilter, setSaStatusFilter] = useState<'Semua' | 'Dalam Pengerjaan' | 'Waiting Part' | 'QC Passed' | 'FIR Closed'>('Semua');
+  const [spkPage, setSpkPage] = useState(1);
+  const [spkLimit, setSpkLimit] = useState(10);
 
   // Form Penerimaan State (Create SPK awal)
   const [formPenerimaan, setFormPenerimaan] = useState({
@@ -118,7 +132,7 @@ export const ServiceAdvisorView: React.FC = () => {
     queryFn: api.getStokPart,
   });
 
-  const { data: antrianList } = useQuery({
+  const { data: antrianList, isError: antrianError, error: antrianErrorDetail, refetch: refetchAntrian, isFetching: antrianFetching } = useQuery({
     queryKey: ['antrian-list'],
     queryFn: api.getAntrian,
     refetchInterval: 8000,
@@ -127,6 +141,38 @@ export const ServiceAdvisorView: React.FC = () => {
   const antrianMenungguSA = (antrianList || []).filter(
     a => a.status_kunjungan === 'Check In' && a.tujuan_kedatangan === 'Service'
   );
+
+  // Helper: populate formPenerimaan from an antrian record
+  const fillAntrianToForm = useCallback((antrian: typeof antrianMenungguSA[0]) => {
+    setFormPenerimaan(prev => ({
+      ...prev,
+      id_antrian: antrian.id,
+      no_polisi: antrian.no_polisi,
+      nama_customer: antrian.nama_customer || '',
+      no_hp_customer: antrian.no_hp_customer || '',
+      keluhan_customer: antrian.keperluan || antrian.catatan_security || '',
+      foto_kendaraan_masuk: antrian.foto_kendaraan_masuk || '',
+    }));
+  }, []);
+
+  // Auto-select antrian when opening "penerimaan" tab and no vehicle is selected yet
+  useEffect(() => {
+    if (activeTab === 'penerimaan' && !formPenerimaan.id_antrian && antrianMenungguSA.length > 0) {
+      fillAntrianToForm(antrianMenungguSA[0]);
+    }
+  }, [activeTab, antrianMenungguSA.length, formPenerimaan.id_antrian, fillAntrianToForm]);
+
+  // Deep-link dari Dashboard: pilihan "Buat SPK" pada baris antrian tertentu
+  // langsung mengisi form penerimaan dengan antrian tersebut (konsumsi sekali).
+  useEffect(() => {
+    if (saPendingAntrianId && antrianMenungguSA.length > 0) {
+      const target = antrianMenungguSA.find(a => a.id === saPendingAntrianId);
+      if (target) {
+        fillAntrianToForm(target);
+      }
+      setSaPendingAntrianId(null);
+    }
+  }, [saPendingAntrianId, antrianMenungguSA, fillAntrianToForm, setSaPendingAntrianId]);
 
   const { data: purchasingList } = useQuery({
     queryKey: ['purchasing-list'],
@@ -166,12 +212,14 @@ export const ServiceAdvisorView: React.FC = () => {
   const partsSubtotal = selectedParts.reduce((acc, p) => acc + (p.harga_satuan * p.jumlah), 0);
   const totalEstimasiBiaya = 250000 + partsSubtotal; // Jasa dasar + sparepart
 
-  // Submit Penerimaan Kendaraan ke Foreman
+  // Submit Penerimaan Kendaraan ke Foreman.
+  // Status awal 'Menunggu Pengecekan Mekanik' ditulis langsung oleh API
+  // /kim3/spk-buat (satu panggilan), sesuai alur: SA -> Foreman.
   const createSpkMutation = useMutation({
     mutationFn: async (data: typeof formPenerimaan) => {
       const spkNo = `SPK-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      const spkRes = await api.buatSpk({
+      await api.buatSpk({
         no_spk: spkNo,
         id_antrian: data.id_antrian,
         no_polisi: data.no_polisi,
@@ -192,16 +240,6 @@ export const ServiceAdvisorView: React.FC = () => {
         catatan_sa: data.catatan_sa,
       });
 
-      const spkId = spkRes?.data?.id || (await api.getSpkList()).find(s => s.no_spk === spkNo)?.id;
-
-      if (spkId) {
-        // Automatically set it to Menunggu Pengecekan Mekanik (or Check In) so Foreman can see it.
-        await api.updateSpkStatus({
-          id: spkId,
-          status_spk: 'Check In', // Or 'Menunggu Pengecekan Mekanik'
-        });
-      }
-
       return { spkNo };
     },
     onSuccess: (result) => {
@@ -209,15 +247,26 @@ export const ServiceAdvisorView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
+      // 1. Notifikasi untuk Tim Produksi (Foreman & Mekanik)
       realtimeHub.publish({
         type: 'SPK_CREATED',
-        targetRoles: ['Foreman', 'Mekanik', 'Customer Fleet'],
+        targetRoles: ['Foreman', 'Mekanik'],
         title: 'SPK Penerimaan Dibuat',
         message: `SPK untuk unit ${formPenerimaan.no_polisi} (${formPenerimaan.nama_customer || 'Armada'}) siap untuk dicek Mekanik/Foreman.`,
         linkTab: 'foreman',
         urgency: 'info',
       });
-      alert('SPK Penerimaan Kendaraan berhasil dibuat! Kendaraan diserahkan ke Foreman untuk Pengecekan.');
+
+      // 2. Notifikasi untuk Customer Fleet
+      realtimeHub.publish({
+        type: 'SPK_CREATED',
+        targetRoles: ['Customer Fleet'],
+        title: 'SPK Penerimaan Armada Diterbitkan',
+        message: `Unit ${formPenerimaan.no_polisi} telah diinspeksi awal oleh Service Advisor dan SPK resmi telah diterbitkan.`,
+        linkTab: 'fleet-status',
+        urgency: 'info',
+      });
+      toast.success('SPK Penerimaan Kendaraan berhasil dibuat! Kendaraan diserahkan ke Foreman untuk Pengecekan.');
 
       setFormPenerimaan({
         id_antrian: undefined,
@@ -242,7 +291,7 @@ export const ServiceAdvisorView: React.FC = () => {
       });
       setActiveTab('spk-list');
     },
-    onError: (err: any) => alert('Gagal membuat SPK: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal membuat SPK: ' + getApiErrorMessage(err)),
   });
 
   // Submit Estimasi Biaya (Setelah Pengecekan Mekanik)
@@ -296,20 +345,20 @@ export const ServiceAdvisorView: React.FC = () => {
       if (result.hasEmptyStock) {
         realtimeHub.publish({
           type: 'PURCHASE_REQUEST_CREATED',
-          targetRoles: ['Admin Purchasing', 'SA', 'Customer Fleet'],
+          targetRoles: ['Admin Purchasing', 'SA'],
           title: 'PR Part Masuk (Kotak Merah)',
           message: `Estimasi SPK ${spk.no_spk} memerlukan [${result.emptyNames}] yang kosong di gudang. Status kendaraan: Waiting Part.`,
           linkTab: 'purchasing',
           urgency: 'warning',
         });
-        alert(`Estimasi Berhasil!\n\nPerhatian: Karena sparepart [${result.emptyNames}] stoknya KOSONG, PR diajukan dan status armada diset ke "Waiting Part".`);
+        toast.warning(`Estimasi Berhasil! Sparepart [${result.emptyNames}] stoknya KOSONG di gudang, PR diajukan dan status armada diset ke "Waiting Part".`);
       } else {
-        alert('Estimasi Biaya berhasil disubmit ke Customer untuk Approval.');
+        toast.success('Estimasi Biaya berhasil disubmit ke Customer untuk Approval.');
       }
       setShowEstimasiModal(null);
       setSelectedParts([]);
     },
-    onError: (err: any) => alert('Gagal submit estimasi: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal submit estimasi: ' + getApiErrorMessage(err)),
   });
 
   // Kirim Estimasi ke Customer (Waiting Approval)
@@ -329,13 +378,13 @@ export const ServiceAdvisorView: React.FC = () => {
         targetRoles: ['Customer Fleet'],
         title: 'Estimasi Biaya Service Tersedia',
         message: `Estimasi biaya untuk unit ${spk.no_polisi} (SPK: ${spk.no_spk}) telah siap. Mohon persetujuan Anda.`,
-        linkTab: 'web-fleet',
+        linkTab: 'fleet-status',
         urgency: 'urgent',
       });
 
-      alert(`Estimasi SPK ${spk.no_spk} berhasil dikirim ke Pelanggan Fleet!\nStatus sekarang: Waiting Approval.`);
+      toast.success(`Estimasi SPK ${spk.no_spk} berhasil dikirim ke Pelanggan Fleet! Status sekarang: Waiting Approval.`);
     },
-    onError: (err: any) => alert('Gagal mengirim estimasi: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal mengirim estimasi: ' + getApiErrorMessage(err)),
   });
 
   // Buat PR (Purchase Request) jika Sparepart tidak Ready
@@ -352,11 +401,11 @@ export const ServiceAdvisorView: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
-      alert('Purchase Request berhasil diajukan ke Admin Purchasing (Kotak Merah)!');
+      toast.success('Purchase Request berhasil diajukan ke Admin Purchasing!');
       setShowPrModal(null);
       setPrNote('');
     },
-    onError: (err: any) => alert('Gagal mengajukan PR: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal mengajukan PR: ' + getApiErrorMessage(err)),
   });
 
   // Konfirmasi SA terhadap Penawaran PO & ETA dari Purchasing
@@ -370,7 +419,7 @@ export const ServiceAdvisorView: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      alert('Respon konfirmasi ketersediaan barang berhasil diperbarui!');
+      toast.success('Respon konfirmasi ketersediaan barang berhasil diperbarui!');
     },
   });
 
@@ -387,18 +436,28 @@ export const ServiceAdvisorView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
 
-      // Publish Realtime Event
+      // 1. Notifikasi untuk Mekanik & Foreman
       realtimeHub.publish({
         type: 'PART_READY',
-        targetRoles: ['Mekanik', 'Foreman', 'Customer Fleet'],
+        targetRoles: ['Mekanik', 'Foreman'],
         title: 'Sparepart Tiba / Ready Stock',
         message: `Part untuk unit telah tiba di bengkel. Pekerjaan dapat dilanjutkan kembali.`,
         linkTab: 'mekanik',
         urgency: 'success',
       });
-      alert('Barang dikonfirmasi READY! Status SPK dikembalikan ke "Dalam Pengerjaan" untuk pengerjaan teknisi.');
+
+      // 2. Notifikasi untuk Customer Fleet
+      realtimeHub.publish({
+        type: 'PART_READY',
+        targetRoles: ['Customer Fleet'],
+        title: 'Part Armada Tersedia di Bengkel',
+        message: `Kebutuhan sparepart armada Anda telah ready di bengkel dan pengerjaan mekanik sedang dilanjutkan.`,
+        linkTab: 'fleet-status',
+        urgency: 'info',
+      });
+      toast.success('Barang dikonfirmasi READY! Status SPK dikembalikan ke "Dalam Pengerjaan" untuk teknisi.');
     },
-    onError: (err: any) => alert('Gagal konfirmasi barang ready: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal konfirmasi barang ready: ' + getApiErrorMessage(err)),
   });
 
   // SA FIR Closed & Terbitkan Invoice Otomatis
@@ -434,10 +493,10 @@ export const ServiceAdvisorView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
-      alert('Pemeriksaan Akhir (Final Check SA) Selesai!\n\nFIR Closed berhasil, Work Order resmi selesai, dan Invoice Pembayaran otomatis diterbitkan ke Modul Kasir.');
+      toast.success('Pemeriksaan Akhir Selesai! FIR Closed berhasil & Invoice otomatis diterbitkan ke Kasir.');
       setShowFinalCheckModal(null);
     },
-    onError: (err: any) => alert('Gagal menutup FIR: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal menutup FIR: ' + getApiErrorMessage(err)),
   });
 
   // Derived statistics and filtering for SA
@@ -463,6 +522,10 @@ export const ServiceAdvisorView: React.FC = () => {
     if (saStatusFilter === 'FIR Closed') return spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai';
     return true;
   });
+
+  const totalSpkRecords = filteredSpkList.length;
+  const totalSpkPages = Math.ceil(totalSpkRecords / spkLimit) || 1;
+  const paginatedSpkList = filteredSpkList.slice((spkPage - 1) * spkLimit, spkPage * spkLimit);
 
   return (
     <div className="space-y-6">
@@ -597,12 +660,18 @@ export const ServiceAdvisorView: React.FC = () => {
                 type="text"
                 placeholder="Cari No. SPK, No. Polisi, Customer, Mekanik, atau Keluhan..."
                 value={saSearchQuery}
-                onChange={(e) => setSaSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSaSearchQuery(e.target.value);
+                  setSpkPage(1);
+                }}
                 className="w-full pl-9 pr-8 py-2 rounded-md border border-border text-xs bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none transition-all"
               />
               {saSearchQuery && (
                 <button
-                  onClick={() => setSaSearchQuery('')}
+                  onClick={() => {
+                    setSaSearchQuery('');
+                    setSpkPage(1);
+                  }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-ink text-xs font-bold p-1"
                 >
                   ✕
@@ -615,7 +684,10 @@ export const ServiceAdvisorView: React.FC = () => {
               {(['Semua', 'Dalam Pengerjaan', 'Waiting Part', 'QC Passed', 'FIR Closed'] as const).map((st) => (
                 <button
                   key={st}
-                  onClick={() => setSaStatusFilter(st)}
+                  onClick={() => {
+                    setSaStatusFilter(st);
+                    setSpkPage(1);
+                  }}
                   className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-all ${
                     saStatusFilter === st
                       ? 'bg-ink text-surface shadow-xs'
@@ -643,7 +715,7 @@ export const ServiceAdvisorView: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredSpkList.length > 0 ? (
-                  filteredSpkList.map((spk) => (
+                  paginatedSpkList.map((spk) => (
                     <tr key={spk.id} className="hover:bg-surface/60 transition-colors">
                       <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
                       <td className="py-3 px-3 font-bold text-ink">{spk.no_polisi}</td>
@@ -723,7 +795,7 @@ export const ServiceAdvisorView: React.FC = () => {
           {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
           <div className="block md:hidden space-y-2.5">
             {filteredSpkList.length > 0 ? (
-              filteredSpkList.map((spk) => (
+              paginatedSpkList.map((spk) => (
               <div key={spk.id} className="rounded-md border border-border p-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -796,6 +868,21 @@ export const ServiceAdvisorView: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Pagination Bar */}
+          <PaginationBar
+            page={spkPage}
+            totalPages={totalSpkPages}
+            totalRecords={totalSpkRecords}
+            limit={spkLimit}
+            onPageChange={setSpkPage}
+            onLimitChange={(newLimit) => {
+              setSpkLimit(newLimit);
+              setSpkPage(1);
+            }}
+            label="SPK"
+            isLoading={loadingSpk}
+          />
         </div>
       )}
 
@@ -803,8 +890,83 @@ export const ServiceAdvisorView: React.FC = () => {
 
       {/* TAB 2: FORM PENERIMAAN KENDARAAN (image1.png Mockup 2 & 3) */}
       {activeTab === 'penerimaan' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+        <div className="space-y-4">
+
+          {/* Banner: Antrian Siap Di-SPK */}
+          {antrianMenungguSA.length > 0 ? (
+            <div className="bg-surface-raised rounded-md border border-accent/30 p-4 shadow-xs">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-ink">
+                    {antrianMenungguSA.length} Antrian Siap Di-SPK
+                  </h3>
+                  <p className="text-[11px] text-ink-muted">Kendaraan berikut sudah Check-In di pos security dan menunggu penerimaan SA</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {antrianMenungguSA.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => fillAntrianToForm(a)}
+                    className={`text-left p-3 rounded-md border transition-all flex items-start gap-3 ${
+                      formPenerimaan.id_antrian === a.id
+                        ? 'border-accent bg-accent-subtle ring-2 ring-accent/20'
+                        : 'border-border bg-surface hover:border-accent/50 hover:bg-accent-subtle/50'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-md bg-accent-subtle text-accent flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Car className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-black text-sm text-ink">{a.no_polisi}</div>
+                      <div className="text-[11px] text-ink-muted font-semibold truncate">{a.nama_customer || 'Pelanggan'}</div>
+                      <div className="text-[11px] text-ink-subtle mt-0.5 line-clamp-1">{a.keperluan || a.catatan_security || 'Service Umum'}</div>
+                      <div className="text-[10px] text-ink-subtle mt-0.5">
+                        Masuk: {a.waktu_masuk ? new Date(a.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'} WIB
+                      </div>
+                    </div>
+                    {formPenerimaan.id_antrian === a.id && (
+                      <div className="ml-auto flex-shrink-0">
+                        <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">Dipilih ✓</span>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : antrianError ? (
+            <div className="bg-status-red-bg rounded-md border border-status-red/30 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-3 text-status-red flex-1">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <div className="text-sm">
+                  <span className="font-semibold">Gagal memuat antrian dari server.</span>{' '}
+                  {getApiErrorMessage(antrianErrorDetail, 'Periksa koneksi atau hubungi admin.')}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => refetchAntrian()}
+                disabled={antrianFetching}
+                className="px-4 py-2 rounded-md bg-status-red hover:bg-status-red/90 disabled:opacity-50 text-white text-xs font-bold transition-all flex-shrink-0"
+              >
+                {antrianFetching ? 'Memuat...' : 'Coba Lagi'}
+              </button>
+            </div>
+          ) : (
+            <div className="bg-surface-raised rounded-md border border-border p-4 flex items-center gap-3 text-ink-muted">
+              <AlertCircle className="w-5 h-5 text-ink-subtle flex-shrink-0" />
+              <div className="text-sm">
+                <span className="font-semibold text-ink">Tidak ada antrian kendaraan</span> yang menunggu penerimaan SA saat ini.
+                Tunggu Pos Security melakukan Check-In kendaraan terlebih dahulu.
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form Input Penerimaan (2 Cols) */}
           <div className="lg:col-span-2 bg-surface-raised rounded-md border border-border p-5 shadow-xs">
             <div className="border-b border-border pb-3 mb-4">
@@ -829,19 +991,17 @@ export const ServiceAdvisorView: React.FC = () => {
                       const id = Number(e.target.value);
                       const antrian = antrianMenungguSA.find(a => a.id === id);
                       if (antrian) {
-                        setFormPenerimaan({
-                          ...formPenerimaan,
-                          id_antrian: id,
-                          no_polisi: antrian.no_polisi,
-                          nama_customer: antrian.nama_customer || '',
-                        });
+                        fillAntrianToForm(antrian);
                       } else {
-                        setFormPenerimaan({
-                          ...formPenerimaan,
+                        setFormPenerimaan(prev => ({
+                          ...prev,
                           id_antrian: undefined,
                           no_polisi: '',
                           nama_customer: '',
-                        });
+                          no_hp_customer: '',
+                          keluhan_customer: '',
+                          foto_kendaraan_masuk: '',
+                        }));
                       }
                     }}
                     className="w-full px-3.5 py-2.5 rounded-md border border-border font-bold text-sm focus:ring-2 focus:ring-accent focus:outline-none"
@@ -998,6 +1158,7 @@ export const ServiceAdvisorView: React.FC = () => {
           </div>
 
         </div>
+        </div>
       )}
 
       {/* TAB 3: KOTAK MERAH PURCHASING INTEGRASI (image1.png Kotak Merah) */}
@@ -1114,8 +1275,9 @@ export const ServiceAdvisorView: React.FC = () => {
 
       {/* MODAL BUAT ESTIMASI BIAYA */}
       {showEstimasiModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface-raised rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl border border-border">
+        <ModalPortal onClose={() => setShowEstimasiModal(null)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-surface-raised rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl border border-border">
             <div className="sticky top-0 bg-surface-raised/90 backdrop-blur px-6 py-4 border-b border-border flex items-center justify-between z-10">
               <div>
                 <h3 className="text-lg font-black text-ink">Buat Estimasi Biaya &amp; Waktu</h3>
@@ -1244,13 +1406,15 @@ export const ServiceAdvisorView: React.FC = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
 
       {/* MODAL AJUKAN PR PART */}
       {showPrModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-surface-raised rounded-t-md sm:rounded-md p-5 sm:p-6 max-w-md w-full shadow-xl border border-border space-y-4">
+        <ModalPortal onClose={() => setShowPrModal(null)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-surface-raised rounded-t-md sm:rounded-md p-5 sm:p-6 max-w-md w-full shadow-xl border border-border space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
                 <h3 className="text-base font-bold text-ink">Ajukan Purchase Request (PR)</h3>
@@ -1302,13 +1466,15 @@ export const ServiceAdvisorView: React.FC = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
 
       {/* MODAL PEMERIKSAAN AKHIR (FINAL CHECK SA) SEBELUM FIR CLOSED */}
       {showFinalCheckModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-surface-raised rounded-md max-w-lg w-full shadow-2xl border border-border overflow-hidden my-auto animate-in fade-in zoom-in duration-150">
+        <ModalPortal onClose={() => setShowFinalCheckModal(null)}>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-surface-raised rounded-md max-w-lg w-full shadow-2xl border border-border overflow-hidden my-auto animate-in fade-in zoom-in duration-150">
             {/* Modal Header */}
             <div className="bg-accent p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1520,6 +1686,7 @@ export const ServiceAdvisorView: React.FC = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
 

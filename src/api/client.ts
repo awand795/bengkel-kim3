@@ -19,7 +19,8 @@ import {
   LoginResponse,
   AuthUser,
   PengaturanSistem,
-  PeranUser
+  PeranUser,
+  Notifikasi
 } from '../types';
 import { useAppStore } from '../store/useAppStore';
 
@@ -131,17 +132,89 @@ apiClient.interceptors.response.use(
   }
 );
 
+// ── Pagination-aware list helper ───────────────────────────────────────────
+// Endpoint di API Builder yang punya "Automatic SQL Pagination" aktif
+// mengembalikan { pagination: {...}, data: [...] }.
+// Yang tidak aktif tetap mengembalikan array biasa. Helper di bawah
+// menormalkan kedua bentuk tersebut sehingga view lama tidak perlu berubah.
+export interface PaginationMeta {
+  current_page: number;
+  limit: number;
+  offset: number;
+  total_records: number;
+  total_pages: number;
+}
+
+export interface PaginatedResult<T> {
+  rows: T[];
+  pagination: PaginationMeta | null;
+}
+
+export interface ListQuery {
+  page?: number;
+  limit?: number;
+  /** Kata kunci pencarian server-side (param `q` di API Builder). */
+  q?: string;
+}
+
+// Standar batas pengambilan data di aplikasi KIM 3:
+// - DEFAULT_PAGE_LIMIT: Batas default baris per halaman untuk tampilan tabel operasional
+// - LOOKUP_LIST_LIMIT: Batas aman untuk daftar dropdown referensi (nopol armada, sparepart, dll.)
+//   sehingga tidak membebani browser dengan ribuan DOM sekaligus.
+export const DEFAULT_PAGE_LIMIT = 10;
+export const LOOKUP_LIST_LIMIT = 150;
+
+const normalizeList = <T,>(payload: any): PaginatedResult<T> => {
+  if (Array.isArray(payload)) {
+    return { rows: payload, pagination: null };
+  }
+  const rows = Array.isArray(payload?.data) ? payload.data : [];
+  return { rows, pagination: payload?.pagination ?? null };
+};
+
+const fetchList = async <T,>(url: string, query: ListQuery = {}): Promise<PaginatedResult<T>> => {
+  const params: Record<string, string | number> = {};
+  if (query.q !== undefined) params.q = query.q;
+  if (query.page !== undefined) params.page = query.page;
+  if (query.limit !== undefined) params.limit = query.limit;
+  const res = await apiClient.get(url, { params });
+  return normalizeList<T>(res.data);
+};
+
+// Helper: ambil pesan error paling informatif dari respons API Builder
+// (validasi parameter 400 / business rule / DB error) agar tidak tertutup
+// pesan generik "Terjadi kesalahan."
+export const getApiErrorMessage = (err: any, fallback = 'Terjadi kesalahan.'): string => {
+  const data = err?.response?.data;
+  if (data) {
+    if (typeof data.message === 'string' && data.message.trim()) return data.message;
+    if (Array.isArray(data.errors) && data.errors.length > 0) {
+      return data.errors.map((e: any) => (typeof e === 'string' ? e : JSON.stringify(e))).join('; ');
+    }
+    if (typeof data.error === 'string' && data.error.trim()) return data.error;
+  }
+  if (typeof err?.message === 'string' && err.message.trim()) return err.message;
+  return fallback;
+};
+
 // Storage upload client (already built into server backend)
 export const uploadFileToStorage = async (file: File, bucket: 'foto_kendaraan' | 'foto_barang' | 'dokumen_armada' = 'foto_kendaraan'): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('bucket', bucket);
 
+  const jwt = localStorage.getItem('bengkel_jwt_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'multipart/form-data',
+    'x-api-key': KIM3_STATIC_TOKEN,
+  };
+  if (jwt) {
+    headers['Authorization'] = `Bearer ${jwt}`;
+  }
+
   try {
     const res = await axios.post(`${API_BASE}/api/storage/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers,
     });
 
     if (res.data?.url) {
@@ -179,52 +252,50 @@ export const api = {
   },
 
   // Pengguna & Tim
-  getPengguna: async (): Promise<Pengguna[]> => {
-    const res = await apiClient.get<Pengguna[]>('/kim3/pengguna');
-    return res.data;
-  },
+  getPengguna: async (): Promise<Pengguna[]> =>
+    (await fetchList<Pengguna>('/kim3/pengguna', { limit: LOOKUP_LIST_LIMIT })).rows,
 
   // Pelanggan
-  getPelanggan: async (): Promise<Pelanggan[]> => {
-    const res = await apiClient.get<Pelanggan[]>('/kim3/pelanggan');
-    return res.data;
-  },
+  getPelanggan: async (): Promise<Pelanggan[]> =>
+    (await fetchList<Pelanggan>('/kim3/pelanggan', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getPelangganPage: (query: ListQuery = {}): Promise<PaginatedResult<Pelanggan>> =>
+    fetchList<Pelanggan>('/kim3/pelanggan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
 
   // Kendaraan
-  getKendaraan: async (): Promise<Kendaraan[]> => {
-    const res = await apiClient.get<Kendaraan[]>('/kim3/kendaraan');
-    return res.data;
-  },
+  getKendaraan: async (): Promise<Kendaraan[]> =>
+    (await fetchList<Kendaraan>('/kim3/kendaraan', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
+    fetchList<Kendaraan>('/kim3/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
     const res = await apiClient.post('/kim3/kendaraan-tambah', data);
     return res.data;
   },
 
   // Dokumen
-  getDokumen: async (): Promise<DokumenKendaraan[]> => {
-    const res = await apiClient.get<DokumenKendaraan[]>('/kim3/dokumen');
-    return res.data;
-  },
+  getDokumen: async (): Promise<DokumenKendaraan[]> =>
+    (await fetchList<DokumenKendaraan>('/kim3/dokumen', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getDokumenPage: (query: ListQuery = {}): Promise<PaginatedResult<DokumenKendaraan>> =>
+    fetchList<DokumenKendaraan>('/kim3/dokumen', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahDokumen: async (data: Partial<DokumenKendaraan>): Promise<any> => {
     const res = await apiClient.post('/kim3/dokumen-tambah', data);
     return res.data;
   },
 
   // Booking Service
-  getBooking: async (): Promise<BookingService[]> => {
-    const res = await apiClient.get<BookingService[]>('/kim3/booking');
-    return res.data;
-  },
+  getBooking: async (): Promise<BookingService[]> =>
+    (await fetchList<BookingService>('/kim3/booking', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getBookingPage: (query: ListQuery = {}): Promise<PaginatedResult<BookingService>> =>
+    fetchList<BookingService>('/kim3/booking', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahBooking: async (data: Partial<BookingService>): Promise<any> => {
     const res = await apiClient.post('/kim3/booking-tambah', data);
     return res.data;
   },
 
   // Antrian Security
-  getAntrian: async (): Promise<AntrianKunjungan[]> => {
-    const res = await apiClient.get<AntrianKunjungan[]>('/kim3/antrian');
-    return res.data;
-  },
+  getAntrian: async (): Promise<AntrianKunjungan[]> =>
+    (await fetchList<AntrianKunjungan>('/kim3/antrian', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getAntrianPage: (query: ListQuery = {}): Promise<PaginatedResult<AntrianKunjungan>> =>
+    fetchList<AntrianKunjungan>('/kim3/antrian', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   checkInSecurity: async (data: Partial<AntrianKunjungan>): Promise<any> => {
     const res = await apiClient.post('/kim3/antrian-checkin', data);
     return res.data;
@@ -239,48 +310,44 @@ export const api = {
   },
 
   // SPK Service
-  getSpkList: async (): Promise<SpkService[]> => {
-    const res = await apiClient.get<SpkService[]>('/kim3/spk');
-    return res.data;
-  },
+  getSpkList: async (): Promise<SpkService[]> =>
+    (await fetchList<SpkService>('/kim3/spk', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
+    fetchList<SpkService>('/kim3/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   buatSpk: async (data: Partial<SpkService>): Promise<any> => {
     const res = await apiClient.post('/kim3/spk-buat', data);
     return res.data;
   },
-  updateSpkStatus: async (data: { id: number; status_spk?: string; nama_foreman?: string; nama_mekanik?: string; estimasi_biaya?: number; estimasi_waktu_jam?: number; catatan_foreman?: string; catatan_sa?: string }): Promise<any> => {
+  updateSpkStatus: async (data: { id: number; status_spk?: string; nama_foreman?: string; nama_mekanik?: string; id_mekanik?: number; estimasi_biaya?: number; estimasi_waktu_jam?: number; catatan_foreman?: string; catatan_sa?: string }): Promise<any> => {
     const res = await apiClient.post('/kim3/spk-status', data);
     return res.data;
   },
 
   // Pekerjaan & Part SPK
-  getPekerjaanSpk: async (): Promise<SpkItemPekerjaan[]> => {
-    const res = await apiClient.get<SpkItemPekerjaan[]>('/kim3/spk-pekerjaan');
-    return res.data;
-  },
+  getPekerjaanSpk: async (): Promise<SpkItemPekerjaan[]> =>
+    (await fetchList<SpkItemPekerjaan>('/kim3/spk-pekerjaan', { limit: LOOKUP_LIST_LIMIT })).rows,
   tambahPekerjaanSpk: async (data: Partial<SpkItemPekerjaan>): Promise<any> => {
     const res = await apiClient.post('/kim3/spk-pekerjaan-tambah', data);
     return res.data;
   },
-  getPartSpk: async (): Promise<SpkItemPart[]> => {
-    const res = await apiClient.get<SpkItemPart[]>('/kim3/spk-part');
-    return res.data;
-  },
+  getPartSpk: async (): Promise<SpkItemPart[]> =>
+    (await fetchList<SpkItemPart>('/kim3/spk-part', { limit: LOOKUP_LIST_LIMIT })).rows,
   tambahPartSpk: async (data: Partial<SpkItemPart>): Promise<any> => {
     const res = await apiClient.post('/kim3/spk-part-tambah', data);
     return res.data;
   },
 
   // Stok Sparepart
-  getStokPart: async (): Promise<StokSparepart[]> => {
-    const res = await apiClient.get<StokSparepart[]>('/kim3/stok-part');
-    return res.data;
-  },
+  getStokPart: async (): Promise<StokSparepart[]> =>
+    (await fetchList<StokSparepart>('/kim3/stok-part', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getStokPartPage: (query: ListQuery = {}): Promise<PaginatedResult<StokSparepart>> =>
+    fetchList<StokSparepart>('/kim3/stok-part', { limit: DEFAULT_PAGE_LIMIT, ...query }),
 
   // Purchasing & PR
-  getPurchasingList: async (): Promise<PurchaseRequestPart[]> => {
-    const res = await apiClient.get<PurchaseRequestPart[]>('/kim3/purchasing');
-    return res.data;
-  },
+  getPurchasingList: async (): Promise<PurchaseRequestPart[]> =>
+    (await fetchList<PurchaseRequestPart>('/kim3/purchasing', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getPurchasingListPage: (query: ListQuery = {}): Promise<PaginatedResult<PurchaseRequestPart>> =>
+    fetchList<PurchaseRequestPart>('/kim3/purchasing', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   ajukanPR: async (data: { no_pr: string; id_spk: number; nama_sa_pemohon: string; catatan_pr?: string }): Promise<any> => {
     const res = await apiClient.post('/kim3/purchase-request', data);
     return res.data;
@@ -309,10 +376,8 @@ export const api = {
   },
 
   // Tambahan Pekerjaan
-  getTambahanPekerjaan: async (): Promise<PekerjaanTambahan[]> => {
-    const res = await apiClient.get<PekerjaanTambahan[]>('/kim3/pekerjaan-tambahan');
-    return res.data;
-  },
+  getTambahanPekerjaan: async (): Promise<PekerjaanTambahan[]> =>
+    (await fetchList<PekerjaanTambahan>('/kim3/pekerjaan-tambahan', { limit: LOOKUP_LIST_LIMIT })).rows,
   ajukanTambahanPekerjaan: async (data: Partial<PekerjaanTambahan>): Promise<any> => {
     const res = await apiClient.post('/kim3/pekerjaan-tambahan-tambah', data);
     return res.data;
@@ -340,10 +405,10 @@ export const api = {
   },
 
   // Beli Part Langsung
-  getBeliPartList: async (): Promise<TransaksiBeliPart[]> => {
-    const res = await apiClient.get<TransaksiBeliPart[]>('/kim3/beli-part');
-    return res.data;
-  },
+  getBeliPartList: async (): Promise<TransaksiBeliPart[]> =>
+    (await fetchList<TransaksiBeliPart>('/kim3/beli-part', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getBeliPartListPage: (query: ListQuery = {}): Promise<PaginatedResult<TransaksiBeliPart>> =>
+    fetchList<TransaksiBeliPart>('/kim3/beli-part', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   buatBeliPart: async (data: Partial<TransaksiBeliPart>): Promise<any> => {
     const res = await apiClient.post('/kim3/beli-part-buat', data);
     return res.data;
@@ -359,10 +424,10 @@ export const api = {
   },
 
   // Invoice & Pembayaran
-  getInvoiceList: async (): Promise<InvoicePembayaran[]> => {
-    const res = await apiClient.get<InvoicePembayaran[]>('/kim3/invoice');
-    return res.data;
-  },
+  getInvoiceList: async (): Promise<InvoicePembayaran[]> =>
+    (await fetchList<InvoicePembayaran>('/kim3/invoice', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getInvoiceListPage: (query: ListQuery = {}): Promise<PaginatedResult<InvoicePembayaran>> =>
+    fetchList<InvoicePembayaran>('/kim3/invoice', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   buatInvoice: async (data: Partial<InvoicePembayaran>): Promise<any> => {
     const res = await apiClient.post('/kim3/invoice-buat', data);
     return res.data;
@@ -373,10 +438,10 @@ export const api = {
   },
 
   // Memo Keluar
-  getMemoKeluarList: async (): Promise<MemoKeluar[]> => {
-    const res = await apiClient.get<MemoKeluar[]>('/kim3/memo-keluar');
-    return res.data;
-  },
+  getMemoKeluarList: async (): Promise<MemoKeluar[]> =>
+    (await fetchList<MemoKeluar>('/kim3/memo-keluar', { limit: LOOKUP_LIST_LIMIT })).rows,
+  getMemoKeluarListPage: (query: ListQuery = {}): Promise<PaginatedResult<MemoKeluar>> =>
+    fetchList<MemoKeluar>('/kim3/memo-keluar', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   buatMemoKeluar: async (data: Partial<MemoKeluar>): Promise<any> => {
     const res = await apiClient.post('/kim3/memo-keluar-buat', data);
     return res.data;
@@ -494,6 +559,33 @@ export const api = {
     status_aktif: boolean;
   }): Promise<any> => {
     const res = await apiClient.post('/kim3/pengguna-toggle-status', data);
+    return res.data;
+  },
+
+  // Pusat Notifikasi Resmi (Direct Database Sync)
+  getNotifikasi: async (): Promise<Notifikasi[]> =>
+    (await fetchList<Notifikasi>('/kim3/notifikasi', { limit: 100 })).rows,
+
+  tandaiNotifikasiBaca: async (id: number): Promise<any> => {
+    const res = await apiClient.post('/kim3/notifikasi-baca', { id });
+    return res.data;
+  },
+
+  tandaiSemuaNotifikasiBaca: async (): Promise<any> => {
+    const res = await apiClient.post('/kim3/notifikasi-baca-semua', {});
+    return res.data;
+  },
+
+  kirimNotifikasi: async (data: {
+    target_role: string;
+    target_user_id?: number | null;
+    target_pelanggan_id?: number | null;
+    title: string;
+    pesan: string;
+    link_tab?: string;
+    urgency?: 'urgent' | 'warning' | 'info' | 'success';
+  }): Promise<any> => {
+    const res = await apiClient.post('/kim3/notifikasi-kirim', data);
     return res.data;
   },
 };

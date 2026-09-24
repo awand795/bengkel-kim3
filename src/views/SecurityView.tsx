@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { useAppStore } from '../store/useAppStore';
@@ -36,6 +36,9 @@ import {
 import { AntrianKunjungan, BookingService, MemoKeluar } from '../types';
 import { realtimeHub } from '../services/realtimeService';
 import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
+import { PaginationBar } from '../components/common/PaginationBar';
+import { ModalPortal } from '../components/common/ModalPortal';
+import { toast } from '../components/common/Toast';
 
 interface SecurityViewProps {
   initialTab?: 'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo';
@@ -69,6 +72,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 10));
   const [selesaiTimeRange, setSelesaiTimeRange] = useState<'Semua' | 'Hari Ini' | 'Kemarin' | 'Minggu Ini' | 'Bulan Ini'>('Semua');
+
+  // Pagination states
+  const [onProgressPage, setOnProgressPage] = useState(1);
+  const [onProgressLimit, setOnProgressLimit] = useState(10);
+  const [selesaiPage, setSelesaiPage] = useState(1);
+  const [selesaiLimit, setSelesaiLimit] = useState(10);
+  const [memoPage, setMemoPage] = useState(1);
+  const [memoLimit, setMemoLimit] = useState(10);
 
   const todayFormatted = new Date().toLocaleDateString('id-ID', {
     day: '2-digit',
@@ -118,6 +129,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   const { data: rawBookingList } = useQuery({
     queryKey: ['booking-list'],
     queryFn: api.getBooking,
+    refetchInterval: 4000,
   });
 
   const { data: rawMemoList } = useQuery({
@@ -185,6 +197,27 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     (m.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalOnProgress = filteredOnProgressList.length;
+  const totalOnProgressPages = Math.ceil(totalOnProgress / onProgressLimit) || 1;
+  const paginatedOnProgressList = filteredOnProgressList.slice(
+    (onProgressPage - 1) * onProgressLimit,
+    onProgressPage * onProgressLimit
+  );
+
+  const totalSelesai = filteredSelesaiList.length;
+  const totalSelesaiPages = Math.ceil(totalSelesai / selesaiLimit) || 1;
+  const paginatedSelesaiList = filteredSelesaiList.slice(
+    (selesaiPage - 1) * selesaiLimit,
+    selesaiPage * selesaiLimit
+  );
+
+  const totalMemo = filteredMemoList.length;
+  const totalMemoPages = Math.ceil(totalMemo / memoLimit) || 1;
+  const paginatedMemoList = filteredMemoList.slice(
+    (memoPage - 1) * memoLimit,
+    memoPage * memoLimit
+  );
+
   // Check-In Mutation
   const checkinMutation = useMutation({
     mutationFn: async (data: typeof formCheckin) => {
@@ -221,17 +254,28 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           urgency: 'info',
         });
       } else {
+        // 1. Notifikasi untuk Service Advisor (Internal Staff)
         realtimeHub.publish({
           type: 'VEHICLE_CHECKED_IN',
-          targetRoles: ['SA', 'Customer Fleet'],
-          title: 'Kendaraan Masuk Bengkel',
-          message: `Unit ${formCheckin.no_polisi} (${formCheckin.nama_customer || 'Pelanggan'}) telah di-check in di pos security. Siap untuk inspeksi SA.`,
+          targetRoles: ['SA'],
+          title: 'Kendaraan Masuk (Perlu SPK)',
+          message: `Unit ${formCheckin.no_polisi} (${formCheckin.nama_customer || 'Pelanggan'}) telah di-check in di pos security. Siap untuk inspeksi awal & pembuatan SPK.`,
           linkTab: 'sa',
           urgency: 'urgent',
         });
+
+        // 2. Notifikasi untuk Customer Fleet (Pemilik Armada)
+        realtimeHub.publish({
+          type: 'VEHICLE_CHECKED_IN',
+          targetRoles: ['Customer Fleet'],
+          title: 'Armada Tiba di Pos Gerbang',
+          message: `Unit ${formCheckin.no_polisi} telah berhasil di-check in di Pos Security KIM 3 dan sedang menunggu antrian inspeksi awal.`,
+          linkTab: 'fleet-status',
+          urgency: 'info',
+        });
       }
 
-      alert('Kendaraan berhasil di-Check In oleh Pos Security KIM 3!');
+      toast.success('Kendaraan berhasil di-Check In oleh Pos Security KIM 3!');
       setShowCheckinModal(false);
       setFormCheckin({
         no_polisi: '',
@@ -248,7 +292,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       });
       changeTab('onprogress');
     },
-    onError: (err: any) => alert('Gagal check in: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal check in: ' + getApiErrorMessage(err)),
   });
 
   // Check-Out Mutation
@@ -291,25 +335,56 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       queryClient.invalidateQueries({ queryKey: ['memo-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
+      // 1. Notifikasi untuk Customer Fleet
       realtimeHub.publish({
         type: 'VEHICLE_CHECKED_OUT',
-        targetRoles: ['Customer Fleet', 'SA'],
+        targetRoles: ['Customer Fleet'],
         title: 'Kendaraan Telah Keluar Bengkel',
         message: `Unit ${showCheckoutModal?.no_polisi || 'kendaraan'} telah resmi check-out & keluar melalui pos Security.`,
         linkTab: 'fleet-status',
         urgency: 'success',
       });
 
-      alert('Kendaraan berhasil Check Out dan Memo Keluar resmi diterbitkan!');
+      // 2. Notifikasi untuk Service Advisor
+      realtimeHub.publish({
+        type: 'VEHICLE_CHECKED_OUT',
+        targetRoles: ['SA'],
+        title: 'Kendaraan Selesai & Keluar Gerbang',
+        message: `Unit ${showCheckoutModal?.no_polisi || 'kendaraan'} telah selesai dan keluar melalui pos Security.`,
+        linkTab: 'sa',
+        urgency: 'info',
+      });
+
+      toast.success('Kendaraan berhasil Check Out dan Memo Keluar resmi diterbitkan!');
       setShowCheckoutModal(null);
       changeTab('memo');
     },
-    onError: (err: any) => alert('Gagal check out: ' + err?.message),
+    onError: (err: any) => toast.error('Gagal check out: ' + getApiErrorMessage(err)),
   });
 
   const changeTab = (tab: 'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo') => {
     setCurrentTab(tab);
     setActiveTab(`security-${tab}`);
+  };
+
+  const handleFillFromBooking = (b: BookingService) => {
+    const saUser = picPetugasList.find((p) => p.peran === 'SA');
+    setFormCheckin({
+      no_polisi: b.no_polisi,
+      nama_customer: b.nama_perusahaan || b.nama_customer || '',
+      no_hp_customer: b.no_telepon || '',
+      jenis_armada: (b.jenis_armada as any) || 'Truk',
+      tujuan_kedatangan: 'Service',
+      pic_tujuan: saUser ? `${saUser.nama_lengkap} (SA)` : 'Service Advisor',
+      id_pic: saUser?.id || null,
+      keperluan: b.keluhan ? b.keluhan.trim() : (b.keterangan || b.jenis_layanan || 'Service Kendaraan'),
+      foto_kendaraan_masuk: '',
+      catatan_security: `Booking #${b.no_booking || b.id} - ${b.jenis_layanan || 'Service'}${b.keluhan ? ` (${b.keluhan.trim()})` : ''}`,
+      id_booking: b.id,
+    });
+    setSelectedBooking(b);
+    changeTab('checkin');
+    toast.success(`Data booking armada ${b.no_polisi} (${b.nama_perusahaan || b.nama_customer || 'Pelanggan'}) berhasil diisi otomatis ke formulir check-in!`);
   };
 
   return (
@@ -550,11 +625,62 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </div>
                 </div>
                 {formCheckin.id_booking && (
-                  <span className="px-2.5 py-1 rounded bg-accent-subtle text-accent border border-accent/30 text-[11px] font-bold">
-                    Terkait Booking #{formCheckin.id_booking}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded bg-accent-subtle text-accent border border-accent/30 text-[11px] font-bold">
+                      Terkait Booking #{formCheckin.id_booking}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormCheckin({
+                        no_polisi: '',
+                        nama_customer: '',
+                        no_hp_customer: '',
+                        jenis_armada: 'Truk',
+                        tujuan_kedatangan: 'Service',
+                        pic_tujuan: '',
+                        id_pic: undefined,
+                        keperluan: '',
+                        foto_kendaraan_masuk: '',
+                        catatan_security: '',
+                        id_booking: undefined,
+                      })}
+                      className="text-xs text-status-red hover:underline font-bold"
+                    >
+                      Reset Form
+                    </button>
+                  </div>
                 )}
               </div>
+
+              {/* Quick Booking Selector: Tarik Langsung dari Booking Terdaftar */}
+              {bookingList.length > 0 && (
+                <div className="p-3 bg-accent-subtle/30 rounded-md border border-accent/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-accent shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold text-ink">Ada {bookingList.length} Booking Terdaftar</div>
+                      <div className="text-[11px] text-ink-muted">Tarik data booking armada agar tidak perlu mengetik manual</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      onChange={(e) => {
+                        const b = bookingList.find((item) => String(item.id) === e.target.value);
+                        if (b) handleFillFromBooking(b);
+                      }}
+                      value={formCheckin.id_booking || ''}
+                      className="w-full sm:w-auto px-3 py-1.5 rounded-md border border-border bg-surface text-xs font-bold text-ink focus:ring-1 focus:ring-accent focus:outline-none"
+                    >
+                      <option value="">-- Pilih Booking untuk Isi Otomatis --</option>
+                      {bookingList.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.no_polisi} - {b.nama_customer || b.nama_perusahaan} ({b.jam_booking || 'Hari Ini'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <form
                 onSubmit={(e) => {
@@ -919,12 +1045,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <th className="py-2.5 px-3 font-bold">Tgl Booking</th>
                     <th className="py-2.5 px-3 font-bold">Jam Booking</th>
                     <th className="py-2.5 px-3 font-bold text-center">Status</th>
+                    <th className="py-2.5 px-3 font-bold text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredBookingList.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-ink-subtle font-medium">
+                      <td colSpan={9} className="py-8 text-center text-ink-subtle font-medium">
                         Tidak ada data booking kendaraan.
                       </td>
                     </tr>
@@ -950,6 +1077,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             <span className="inline-block px-2.5 py-0.5 rounded bg-accent-subtle text-accent border border-accent/30 font-bold text-[11px]">
                               {b.status}
                             </span>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFillFromBooking(b);
+                              }}
+                              className="px-2.5 py-1 rounded bg-accent hover:bg-accent-hover text-white text-[11px] font-bold shadow-xs transition-colors inline-flex items-center gap-1"
+                            >
+                              <PlusCircle className="w-3.5 h-3.5" />
+                              Isi Check-In
+                            </button>
                           </td>
                         </tr>
                       );
@@ -1014,23 +1154,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <div className="shrink-0 flex items-center">
                   <button
                     type="button"
-                    onClick={() => {
-                      const saUser = picPetugasList.find((p) => p.peran === 'SA');
-                      setFormCheckin({
-                        no_polisi: selectedBooking.no_polisi,
-                        nama_customer: selectedBooking.nama_customer || selectedBooking.nama_perusahaan || '',
-                        no_hp_customer: selectedBooking.no_telepon || '',
-                        jenis_armada: selectedBooking.jenis_armada || 'Truk',
-                        tujuan_kedatangan: (selectedBooking.tujuan_kunjungan as any) || 'Service',
-                        pic_tujuan: saUser ? `${saUser.nama_lengkap} (SA)` : '',
-                        id_pic: saUser?.id || null,
-                        keperluan: selectedBooking.keterangan || selectedBooking.jenis_layanan || '',
-                        foto_kendaraan_masuk: '',
-                        catatan_security: `Booking ID: ${selectedBooking.no_booking}`,
-                        id_booking: selectedBooking.id,
-                      });
-                      changeTab('checkin');
-                    }}
+                    onClick={() => handleFillFromBooking(selectedBooking)}
                     className="w-full sm:w-auto px-5 py-3 rounded-md bg-accent hover:bg-accent-hover text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2"
                   >
                     <PlusCircle className="w-4 h-4" />
@@ -1164,9 +1288,9 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       </td>
                     </tr>
                   ) : (
-                    filteredOnProgressList.map((item, idx) => (
+                    paginatedOnProgressList.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-surface/80 transition-colors">
-                        <td className="py-3 px-3 text-ink-muted font-semibold">{idx + 1}</td>
+                        <td className="py-3 px-3 text-ink-muted font-semibold">{(onProgressPage - 1) * onProgressLimit + idx + 1}</td>
                         <td className="py-3 px-3 font-black text-ink tracking-wide">{item.no_polisi}</td>
                         <td className="py-3 px-3 text-ink font-medium">{item.nama_customer}</td>
                         <td className="py-3 px-3 text-ink-muted">{item.jenis_armada}</td>
@@ -1217,16 +1341,18 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-ink-muted">
-              <div>Menampilkan 1 - {filteredOnProgressList.length} dari {onProgressList.length} data</div>
-              <div className="flex items-center gap-1">
-                <button className="px-2 py-1 rounded-md border border-border text-ink-subtle hover:bg-surface">&lt;</button>
-                <button className="px-2.5 py-1 rounded-md bg-accent text-white font-bold">1</button>
-                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">2</button>
-                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">3</button>
-                <button className="px-2 py-1 rounded-md border border-border text-ink-subtle hover:bg-surface">&gt;</button>
-              </div>
-            </div>
+            <PaginationBar
+              page={onProgressPage}
+              totalPages={totalOnProgressPages}
+              totalRecords={totalOnProgress}
+              limit={onProgressLimit}
+              onPageChange={setOnProgressPage}
+              onLimitChange={(l) => {
+                setOnProgressLimit(l);
+                setOnProgressPage(1);
+              }}
+              label="kendaraan di bengkel"
+            />
 
           </div>
         </div>
@@ -1321,9 +1447,9 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       </td>
                     </tr>
                   ) : (
-                    filteredSelesaiList.map((item, idx) => (
+                    paginatedSelesaiList.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-surface/80 transition-colors">
-                        <td className="py-3 px-3 text-ink-muted font-semibold">{idx + 1}</td>
+                        <td className="py-3 px-3 text-ink-muted font-semibold">{(selesaiPage - 1) * selesaiLimit + idx + 1}</td>
                         <td className="py-3 px-3 font-black text-ink tracking-wide">{item.no_polisi}</td>
                         <td className="py-3 px-3 text-ink font-medium">{item.nama_customer}</td>
                         <td className="py-3 px-3 text-ink-muted">{item.jenis_armada}</td>
@@ -1358,18 +1484,18 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-ink-muted">
-              <div>Menampilkan 1 - {filteredSelesaiList.length} dari {selesaiList.length} data</div>
-              <div className="flex items-center gap-1">
-                <button className="px-2 py-1 rounded-md border border-border text-ink-subtle hover:bg-surface">&lt;</button>
-                <button className="px-2.5 py-1 rounded-md bg-accent text-white font-bold">1</button>
-                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">2</button>
-                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">3</button>
-                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">4</button>
-                <button className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface">5</button>
-                <button className="px-2 py-1 rounded-md border border-border text-ink-subtle hover:bg-surface">&gt;</button>
-              </div>
-            </div>
+            <PaginationBar
+              page={selesaiPage}
+              totalPages={totalSelesaiPages}
+              totalRecords={totalSelesai}
+              limit={selesaiLimit}
+              onPageChange={setSelesaiPage}
+              onLimitChange={(l) => {
+                setSelesaiLimit(l);
+                setSelesaiPage(1);
+              }}
+              label="riwayat keluar"
+            />
 
           </div>
         </div>
@@ -1448,7 +1574,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         </td>
                       </tr>
                     ) : (
-                      filteredMemoList.map((m, idx) => {
+                      paginatedMemoList.map((m, idx) => {
                         const isSelected = selectedMemo?.id === m.id;
                         return (
                           <tr 
@@ -1458,7 +1584,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                               isSelected ? 'bg-accent-subtle/80 font-medium' : 'hover:bg-surface/70'
                             }`}
                           >
-                            <td className="py-2.5 px-2.5 text-ink-muted font-semibold">{idx + 1}</td>
+                            <td className="py-2.5 px-2.5 text-ink-muted font-semibold">{(memoPage - 1) * memoLimit + idx + 1}</td>
                             <td className="py-2.5 px-2.5 font-mono font-bold text-accent">{m.no_memo}</td>
                             <td className="py-2.5 px-2.5 font-bold text-ink">{m.no_polisi}</td>
                             <td className="py-2.5 px-2.5 text-ink">{m.nama_customer}</td>
@@ -1501,17 +1627,18 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between pt-2 border-t border-border text-[11px] text-ink-muted">
-                <div>Menampilkan 1 - {filteredMemoList.length} dari {memoList.length} data</div>
-                <div className="flex items-center gap-1">
-                  <button className="px-2 py-0.5 rounded-md border border-border text-ink-subtle hover:bg-surface">&lt;</button>
-                  <button className="px-2.5 py-0.5 rounded-md bg-accent text-white font-bold">1</button>
-                  <button className="px-2.5 py-0.5 rounded-md border border-border text-ink hover:bg-surface">2</button>
-                  <button className="px-2.5 py-0.5 rounded-md border border-border text-ink hover:bg-surface">3</button>
-                  <button className="px-2.5 py-0.5 rounded-md border border-border text-ink hover:bg-surface">4</button>
-                  <button className="px-2.5 py-0.5 rounded-md border border-border text-ink-subtle hover:bg-surface">&gt;</button>
-                </div>
-              </div>
+              <PaginationBar
+                page={memoPage}
+                totalPages={totalMemoPages}
+                totalRecords={totalMemo}
+                limit={memoLimit}
+                onPageChange={setMemoPage}
+                onLimitChange={(l) => {
+                  setMemoLimit(l);
+                  setMemoPage(1);
+                }}
+                label="memo keluar"
+              />
             </div>
 
             {/* Right Pane: PREVIEW MEMO KELUAR (Formal Letter Format) (6 cols on lg) */}
@@ -1663,8 +1790,9 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* MODAL: CHECK-IN KENDARAAN MASUK                            */}
       {/* ========================================================= */}
       {showCheckinModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-surface-raised rounded-md max-w-2xl w-full p-6 shadow-2xl border border-border space-y-5 my-8">
+        <ModalPortal onClose={() => setShowCheckinModal(false)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-surface-raised rounded-md max-w-2xl w-full p-6 shadow-2xl border border-border space-y-5 my-8">
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-accent-subtle rounded-md text-accent">
@@ -1682,6 +1810,33 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 ✕
               </button>
             </div>
+
+            {bookingList.length > 0 && (
+              <div className="p-3 bg-accent-subtle/50 rounded-md border border-accent/30 flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-accent shrink-0" />
+                  <div>
+                    <div className="text-xs font-bold text-ink">Ada {bookingList.length} Booking Terdaftar</div>
+                    <div className="text-[11px] text-ink-muted">Pilih armada untuk mengisi formulir otomatis</div>
+                  </div>
+                </div>
+                <select
+                  onChange={(e) => {
+                    const b = bookingList.find((item) => String(item.id) === e.target.value);
+                    if (b) handleFillFromBooking(b);
+                  }}
+                  value={formCheckin.id_booking || ''}
+                  className="w-full sm:w-auto px-3 py-1.5 rounded-md border border-border bg-surface text-xs font-bold text-ink focus:ring-1 focus:ring-accent focus:outline-none"
+                >
+                  <option value="">-- Pilih Booking untuk Isi Otomatis --</option>
+                  {bookingList.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.no_polisi} - {b.nama_customer || b.nama_perusahaan} ({b.jam_booking || 'Hari Ini'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <form onSubmit={(e) => { e.preventDefault(); checkinMutation.mutate(formCheckin); }} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1866,14 +2021,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ========================================================= */}
       {/* MODAL: CHECK-OUT KENDARAAN (Mencatat barang & terbit memo) */}
       {/* ========================================================= */}
       {showCheckoutModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-border space-y-4 my-8">
+        <ModalPortal onClose={() => setShowCheckoutModal(null)}>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-border space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
                 <h3 className="text-base font-black text-ink">Proses Check Out Kendaraan</h3>
@@ -1967,14 +2124,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ========================================================= */}
       {/* MODAL: DETAIL HISTORI KENDARAAN                            */}
       {/* ========================================================= */}
       {showDetailModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-border space-y-4 my-8">
+        <ModalPortal onClose={() => setShowDetailModal(null)}>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-border space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
                 <h3 className="text-base font-black text-ink">Rincian Histori Kunjungan Kendaraan</h3>
@@ -2066,6 +2225,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Printable Memo Keluar A4 Modal */}

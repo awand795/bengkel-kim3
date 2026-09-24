@@ -7,6 +7,9 @@ interface AppState {
   authUser: AuthUser | null;
   activeTab: string;
   selectedSpkId: number | null;
+  // Deep-link: antrian yang harus langsung dibuka di form penerimaan SA
+  // (diisi dari Dashboard "Buat SPK", dikonsumsi sekali oleh ServiceAdvisorView)
+  saPendingAntrianId: number | null;
   notificationCount: number;
   mobileMenuOpen: boolean;
   jwtToken: string | null;
@@ -16,6 +19,7 @@ interface AppState {
   setRole: (role: PeranUser, user?: string) => void;
   setActiveTab: (tab: string) => void;
   setSelectedSpkId: (id: number | null) => void;
+  setSaPendingAntrianId: (id: number | null) => void;
   setMobileMenuOpen: (open: boolean) => void;
   setJwtToken: (token: string | null) => void;
   setIsVerifyingSession: (verifying: boolean) => void;
@@ -61,6 +65,7 @@ export const useAppStore = create<AppState>((set) => ({
   authUser: initialAuthUser,
   activeTab: roleDefaultTabs[initialRole] || 'dashboard',
   selectedSpkId: null,
+  saPendingAntrianId: null,
   notificationCount: 0,
   mobileMenuOpen: false,
   jwtToken: savedToken,
@@ -118,6 +123,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   setActiveTab: (tab: string) => set({ activeTab: tab, mobileMenuOpen: false }),
   setSelectedSpkId: (id: number | null) => set({ selectedSpkId: id }),
+  setSaPendingAntrianId: (id: number | null) => set({ saPendingAntrianId: id }),
   setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),
   setJwtToken: (token: string | null) => set({ jwtToken: token, isLoggedIn: !!token }),
   decrementNotification: () => set((state) => ({ notificationCount: Math.max(0, state.notificationCount - 1) })),

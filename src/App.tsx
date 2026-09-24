@@ -18,10 +18,12 @@ import { KasirInvoiceView } from './views/KasirInvoiceView';
 import { WebFleetCustomerView } from './views/WebFleetCustomerView';
 import { PicTerkaitView } from './views/PicTerkaitView';
 import { AdminPanelView } from './views/AdminPanelView';
+import { ToastContainer } from './components/common/Toast';
 
 export const App: React.FC = () => {
   const {
     activeTab,
+    currentRole,
     isLoggedIn,
     isVerifyingSession,
     setIsVerifyingSession,
@@ -83,8 +85,70 @@ export const App: React.FC = () => {
   }
 
   const renderActiveView = () => {
+    // ── ROLE-BASED ACCESS CONTROL (RBAC) GUARD ──────────────────────────────
+    // Mencegah kebocoran modul internal ke role yang tidak berhak (misal: Customer Fleet masuk ke menu SA/SPK)
+    if (currentRole === 'Customer Fleet') {
+      if (activeTab === 'fleet-booking') return <WebFleetCustomerView initialMenu="booking" />;
+      if (activeTab === 'fleet-status') return <WebFleetCustomerView initialMenu="status" />;
+      if (activeTab === 'fleet-history') return <WebFleetCustomerView initialMenu="history" />;
+      if (activeTab === 'fleet-kendaraan') return <WebFleetCustomerView initialMenu="kendaraan" />;
+      if (activeTab === 'fleet-dokumen') return <WebFleetCustomerView initialMenu="dokumen" />;
+      if (activeTab === 'fleet-profil') return <WebFleetCustomerView initialMenu="profil" />;
+      return <WebFleetCustomerView initialMenu="dashboard" />;
+    }
+
+    if (currentRole === 'Security') {
+      if (activeTab === 'security-checkin') return <SecurityView initialTab="checkin" />;
+      if (activeTab === 'security-booking') return <SecurityView initialTab="booking" />;
+      if (activeTab === 'security-onprogress') return <SecurityView initialTab="onprogress" />;
+      if (activeTab === 'security-selesai') return <SecurityView initialTab="selesai" />;
+      if (activeTab === 'security-memo') return <SecurityView initialTab="memo" />;
+      if (activeTab === 'dashboard') return <DashboardView />;
+      return <SecurityView initialTab="dashboard" />;
+    }
+
+    if (currentRole === 'SA') {
+      if (activeTab === 'sa-penerimaan') return <ServiceAdvisorView initialTab="penerimaan" />;
+      if (activeTab === 'sa') return <ServiceAdvisorView initialTab="spk-list" />;
+      if (activeTab === 'dashboard') return <DashboardView />;
+      return <ServiceAdvisorView initialTab="spk-list" />;
+    }
+
+    if (currentRole === 'Foreman') {
+      if (activeTab === 'foreman') return <ForemanView />;
+      if (activeTab === 'dashboard') return <DashboardView />;
+      return <ForemanView />;
+    }
+
+    if (currentRole === 'Mekanik') {
+      if (activeTab === 'mekanik') return <MekanikView />;
+      if (activeTab === 'dashboard') return <DashboardView />;
+      return <MekanikView />;
+    }
+
+    if (currentRole === 'Admin Purchasing') {
+      if (activeTab === 'purchasing') return <PurchasingView />;
+      if (activeTab === 'beli-part') return <BeliPartView />;
+      if (activeTab === 'dashboard') return <DashboardView />;
+      return <PurchasingView />;
+    }
+
+    if (currentRole === 'Admin Invoice') {
+      if (activeTab === 'kasir') return <KasirInvoiceView />;
+      if (activeTab === 'dashboard') return <DashboardView />;
+      return <KasirInvoiceView />;
+    }
+
+    if (currentRole === 'PIC Terkait') {
+      if (activeTab === 'pic-terkait') return <PicTerkaitView />;
+      if (activeTab === 'dashboard') return <DashboardView />;
+      return <PicTerkaitView />;
+    }
+
+    // Super Admin: Akses penuh ke seluruh modul sistem
     switch (activeTab) {
       case 'admin-panel':
+      case 'pengaturan':
         return <AdminPanelView />;
       case 'dashboard':
         return <DashboardView />;
@@ -102,7 +166,9 @@ export const App: React.FC = () => {
       case 'security-memo':
         return <SecurityView initialTab="memo" />;
       case 'sa':
-        return <ServiceAdvisorView />;
+        return <ServiceAdvisorView initialTab="spk-list" />;
+      case 'sa-penerimaan':
+        return <ServiceAdvisorView initialTab="penerimaan" />;
       case 'foreman':
         return <ForemanView />;
       case 'mekanik':
@@ -113,33 +179,8 @@ export const App: React.FC = () => {
         return <BeliPartView />;
       case 'kasir':
         return <KasirInvoiceView />;
-      // Customer Fleet Sub-menus
-      case 'fleet-dashboard':
-        return <WebFleetCustomerView initialMenu="dashboard" />;
-      case 'fleet-booking':
-        return <WebFleetCustomerView initialMenu="booking" />;
-      case 'fleet-status':
-        return <WebFleetCustomerView initialMenu="status" />;
-      case 'fleet-history':
-        return <WebFleetCustomerView initialMenu="history" />;
-      case 'fleet-kendaraan':
-        return <WebFleetCustomerView initialMenu="kendaraan" />;
-      case 'fleet-dokumen':
-        return <WebFleetCustomerView initialMenu="dokumen" />;
-      case 'fleet-profil':
-        return <WebFleetCustomerView initialMenu="profil" />;
-
-      // PIC Terkait (Konfirmasi kunjungan tamu dari Pos Security)
       case 'pic-terkait':
         return <PicTerkaitView />;
-
-      // Fallbacks
-      case 'fleet':
-        return <WebFleetCustomerView initialMenu="dashboard" />;
-      case 'dokumen':
-        return <WebFleetCustomerView initialMenu="dokumen" />;
-      case 'kendaraan':
-        return <WebFleetCustomerView initialMenu="kendaraan" />;
       default:
         return <DashboardView />;
     }
@@ -156,7 +197,16 @@ export const App: React.FC = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto max-h-[calc(100vh-3.5rem)] md:max-h-[calc(100vh-4rem)]">
-          <div key={activeTab} className="app-page-transition w-full">
+          <div
+            key={
+              activeTab.startsWith('security-')
+                ? 'module-security'
+                : activeTab.startsWith('fleet-')
+                ? 'module-fleet'
+                : activeTab
+            }
+            className="app-page-transition w-full"
+          >
             {renderActiveView()}
           </div>
         </main>
@@ -164,6 +214,9 @@ export const App: React.FC = () => {
 
       {/* Floating Bottom Nav for Smartphone Viewport (< 768px) */}
       <MobileBottomNav />
+
+      {/* Global Toast Notification System */}
+      <ToastContainer />
     </div>
   );
 };

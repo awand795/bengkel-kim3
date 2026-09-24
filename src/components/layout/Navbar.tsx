@@ -38,6 +38,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'security-memo': { title: 'Memo Keluar Resmi', subtitle: 'Pos Security' },
   'security': { title: 'Pos Gerbang Security', subtitle: 'Security' },
   'sa': { title: 'Service Advisor (SPK)', subtitle: 'Estimasi & SPK' },
+  'sa-penerimaan': { title: 'Penerimaan & Buat SPK', subtitle: 'Service Advisor' },
   'foreman': { title: 'Foreman (QC & Penugasan)', subtitle: 'Workshop Control' },
   'mekanik': { title: 'Pekerjaan Saya', subtitle: 'Mekanik Stopwatch' },
   'purchasing': { title: 'Purchasing & Part', subtitle: 'PR, PO & Kotak Merah' },

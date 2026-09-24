@@ -105,7 +105,9 @@ export const Sidebar: React.FC = () => {
         <nav className="space-y-1">
           {roleMenus.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            // Prefix-match agar sub-tab deep-link (mis. sa-penerimaan, security-checkin)
+            // tetap menyorot menu induknya.
+            const isActive = activeTab === item.id || activeTab.startsWith(`${item.id}-`);
 
             return (
               <button
