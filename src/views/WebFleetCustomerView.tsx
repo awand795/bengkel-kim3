@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, normalizePlat, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Kendaraan, BookingService, SpkService } from '../types';
+import { Kendaraan, BookingService, SpkService, InvoicePembayaran } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { useAppStore } from '../store/useAppStore';
+import { usePpnRate } from '../hooks/usePpnRate';
 import { realtimeHub } from '../services/realtimeService';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
@@ -144,6 +145,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryFn: api.getPartSpk,
   });
 
+  // Faktur milik customer (untuk seksi Faktur & Pembayaran di History)
+  const { data: invoiceList } = useQuery({
+    queryKey: ['invoice-list'],
+    queryFn: api.getInvoiceList,
+    refetchInterval: 15000,
+  });
+
   // Daftar armada per halaman (server-side pagination + search)
   const { data: armadaPageData, isFetching: armadaFetching } = useQuery({
     queryKey: ['kendaraan-page', armadaPage, armadaLimit, armadaQuery],
@@ -188,6 +196,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   };
 
   const mySpkList = (spkList || []).filter((s) => isMySpk(s));
+
+  // Filter faktur milik armada customer yang sedang login
+  const myInvoiceList = (invoiceList || []).filter((inv) => {
+    if (inv.id_spk && mySpkList.some((s) => s.id === inv.id_spk)) return true;
+    if (myPelangganId && inv.id_pelanggan === myPelangganId) return true;
+    if (inv.no_polisi && myPlateSet.has(inv.no_polisi.toUpperCase().replace(/\s+/g, ''))) return true;
+    return false;
+  });
 
   // Baris yang sedang ditampilkan pada daftar armada & riwayat service.
   // Server sudah memfilter per tenant di SQL, guard di sini hanya jaring pengaman
@@ -314,10 +330,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Active SPK being monitored: ambil SPK aktif milik customer yang sedang berjalan
   const activeTrackSpk = mySpkList.find(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed') || mySpkList[0];
 
+  // Tarif PPN DB untuk approval (tanpa fallback): angka approve = angka tagihan
+  const { rate: ppnRateCustomer } = usePpnRate();
+  const approvalSubtotal = Number(activeTrackSpk?.estimasi_biaya || 0);
+  const approvalPpn = ppnRateCustomer === null ? null : Math.round(approvalSubtotal * (ppnRateCustomer / 100));
+  const approvalTotal = approvalPpn === null ? null : approvalSubtotal + approvalPpn;
+
   // Active PR untuk SPK yang sedang dimonitor
   const activePr = purchasingList?.find(
     (p) => p.id_spk === activeTrackSpk?.id || p.no_polisi === activeTrackSpk?.no_polisi
   );
+
+  // Faktur untuk SPK yang sedang dimonitor (entri pembayaran di timeline).
+  // Didefinisikan SETELAH activeTrackSpk (hindari TDZ crash).
+  const activeInvoice = myInvoiceList.find((inv) => inv.id_spk === activeTrackSpk?.id) || null;
+  const activeInvoiceLunas = !!activeInvoice && (activeInvoice.status_pembayaran === 'Paid' || activeInvoice.status_pembayaran === 'Lunas');
 
   // Filter detail pekerjaan, part, dan dokumen armada aktif
   const activePekerjaan = (pekerjaanList || []).filter(p => p.id_spk === activeTrackSpk?.id);
@@ -489,8 +516,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   const tambahArmadaMutation = useMutation({
     mutationFn: async (data: typeof armadaForm) => {
-      return api.tambahKendaraan({
-        no_polisi: data.no_polisi.trim().toUpperCase(),
+      // Plat dinormalisasi (primary key walk-in); konflik pemilik ditolak server.
+      const plat = normalizePlat(data.no_polisi);
+      if (!plat) throw new Error('Nomor polisi wajib diisi.');
+      const res = await api.tambahKendaraan({
+        no_polisi: plat,
         jenis_armada: data.jenis_armada as any,
         merk: data.merk,
         model: data.model,
@@ -502,11 +532,39 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         masa_berlaku_asuransi: data.masa_berlaku_asuransi || undefined,
         id_pelanggan: myPelangganId || undefined,
       });
+      return { res, plat };
     },
-    onSuccess: () => {
+    onSuccess: ({ plat }) => {
       queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
       queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
-      toast.success('Unit Armada Ditambahkan', `Kendaraan ${armadaForm.no_polisi} berhasil didaftarkan ke sistem.`);
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-list'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
+      toast.success('Unit Armada Ditambahkan', `Kendaraan ${plat} berhasil didaftarkan ke sistem.`);
+
+      // Klaim plat walk-in: bila ada riwayat (SPK/booking/invoice) untuk plat ini,
+      // kirim 1 notif ringkasan personal ke diri sendiri.
+      const norm = (s?: string) => (s || '').toUpperCase().replace(/\s+/g, '');
+      const nSpk = (spkList || []).filter((s) => norm(s.no_polisi) === plat).length;
+      const nBooking = (bookingList || []).filter((b) => norm(b.no_polisi) === plat).length;
+      const nInv = (invoiceList || []).filter((i) => norm(i.no_polisi) === plat).length;
+      const total = nSpk + nBooking + nInv;
+      if (total > 0 && authUser?.id) {
+        const parts: string[] = [];
+        if (nSpk > 0) parts.push(`${nSpk} SPK`);
+        if (nBooking > 0) parts.push(`${nBooking} booking`);
+        if (nInv > 0) parts.push(`${nInv} faktur`);
+        realtimeHub.publish({
+          type: 'SPK_STATUS_CHANGED',
+          targetRoles: ['Customer Fleet'],
+          targetUserId: authUser.id,
+          targetPelangganId: myPelangganId,
+          title: 'Riwayat Armada Ditemukan',
+          message: `Plat ${plat} memiliki riwayat (${parts.join(', ')}) yang kini masuk ke akun Anda.`,
+          linkTab: 'fleet-status',
+          urgency: 'success',
+        });
+      }
       setOpenTambahArmadaModal(false);
       setArmadaForm({
         no_polisi: '',
@@ -522,7 +580,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       });
     },
     onError: (err: any) =>
-      toast.error('Gagal Menambahkan Unit', err?.message || 'Periksa kembali kelengkapan data armada Anda.'),
+      toast.error('Gagal Menambahkan Unit', getApiErrorMessage(err, 'Periksa kembali kelengkapan data armada Anda.')),
   });
 
   // Tambah Dokumen State & Mutation
@@ -953,6 +1011,27 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       </div>
                     </div>
 
+                    {/* PPN + Total Bayar: angka yang disetujui = angka yang ditagihkan */}
+                    <div className="mt-2 bg-surface-raised/80 rounded-md border border-accent/30 p-2.5 text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">Subtotal:</span>
+                        <span className="font-bold text-ink font-mono">Rp {approvalSubtotal.toLocaleString('id-ID')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">PPN{ppnRateCustomer !== null ? ` ${ppnRateCustomer}%` : ''}:</span>
+                        <span className="font-bold text-ink font-mono">Rp {approvalPpn !== null ? approvalPpn.toLocaleString('id-ID') : '-'}</span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-border">
+                        <span className="font-black text-ink">Total Bayar:</span>
+                        <span className="font-black text-status-green font-mono">Rp {approvalTotal !== null ? approvalTotal.toLocaleString('id-ID') : '-'}</span>
+                      </div>
+                      {approvalTotal === null && (
+                        <p className="text-[11px] text-status-red font-bold">
+                          Tarif PPN belum diatur — tombol Setujui terkunci sampai admin mengisi Pengaturan Sistem.
+                        </p>
+                      )}
+                    </div>
+
                     {activeParts.length > 0 && (
                       <div className="mt-2 bg-surface-raised/80 rounded-md border border-border p-2.5 text-xs">
                         <span className="text-ink-subtle text-[10px] block font-semibold mb-1">Rincian Sparepart</span>
@@ -980,11 +1059,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="mt-3.5 flex flex-col sm:flex-row gap-2">
                       <button
                         type="button"
-                        disabled={approvalEstimasiMutation.isPending}
+                        disabled={approvalEstimasiMutation.isPending || approvalTotal === null}
+                        title={approvalTotal === null ? 'Tarif PPN belum diatur — hubungi bengkel' : `Setujui total Rp ${approvalTotal.toLocaleString('id-ID')}`}
                         onClick={() => approvalEstimasiMutation.mutate(true)}
                         className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
                       >
-                        <CheckCircle2 className="w-4 h-4" /> Setujui Estimasi
+                        <CheckCircle2 className="w-4 h-4" /> Setujui Estimasi{approvalTotal !== null ? ` Rp ${approvalTotal.toLocaleString('id-ID')}` : ''}
                       </button>
                       <button
                         type="button"
@@ -1099,7 +1179,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai', current: activeTrackSpk.status_spk === 'Waiting QC' },
                   { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai' },
                   { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: activeTrackSpk.status_spk === 'Selesai' },
-                  { step: 6, title: 'Check Out', desc: 'Armada Keluar', done: false },
+                  { step: 6, title: 'Check Out', desc: 'Armada Keluar', done: !!activeTrackSpk.waktu_check_out },
                 ].map((s, idx) => (
                   <div key={s.step} className="flex-1 flex items-center">
                     <div className="flex flex-col items-center flex-1 text-center">
@@ -1242,7 +1322,40 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <div className="relative">
                           <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
                           <div className="font-semibold text-ink">Quality Control (QC) Lulus</div>
-                          <div className="text-[11px] text-ink-muted">Inspeksi kualitas pengerjaan disetujui Foreman</div>
+                          <div className="text-[11px] text-ink-muted">
+                            Inspeksi kualitas pengerjaan disetujui Foreman
+                            {activeTrackSpk.tanggal_qc ? ` • ${new Date(activeTrackSpk.tanggal_qc).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(activeTrackSpk.tanggal_qc).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                          </div>
+                        </div>
+                      )}
+                      {(activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai') && (
+                        <div className="relative">
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                          <div className="font-semibold text-ink">FIR Closed — Final Check SA</div>
+                          <div className="text-[11px] text-ink-muted">
+                            Pemeriksaan akhir lolos, invoice diterbitkan
+                            {activeTrackSpk.waktu_fir_closed ? ` • ${new Date(activeTrackSpk.waktu_fir_closed).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(activeTrackSpk.waktu_fir_closed).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                          </div>
+                        </div>
+                      )}
+                      {activeInvoiceLunas && activeInvoice && (
+                        <div className="relative">
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                          <div className="font-semibold text-ink">Pembayaran Lunas</div>
+                          <div className="text-[11px] text-ink-muted">
+                            {activeInvoice.no_invoice} • Rp {Number(activeInvoice.grand_total || 0).toLocaleString('id-ID')}
+                            {activeInvoice.tanggal_bayar ? ` • ${new Date(activeInvoice.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(activeInvoice.tanggal_bayar).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                            {activeInvoice.metode_pembayaran ? ` • ${activeInvoice.metode_pembayaran}` : ''}
+                          </div>
+                        </div>
+                      )}
+                      {activeTrackSpk.waktu_check_out && (
+                        <div className="relative">
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                          <div className="font-semibold text-ink">Armada Keluar Bengkel</div>
+                          <div className="text-[11px] text-ink-muted">
+                            Check-out pos Security • {new Date(activeTrackSpk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(activeTrackSpk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1255,7 +1368,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     </span>
                     <p className="text-ink-muted leading-relaxed">
                       Kendaraan <span className="font-semibold text-ink">{activeTrackSpk.no_polisi}</span>{' '}
-                      {activeTrackSpk.status_spk === 'Waiting QC' ? (
+                      {activeTrackSpk.waktu_check_out ? (
+                        <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> pada {new Date(activeTrackSpk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(activeTrackSpk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB. Terima kasih telah menggunakan Bengkel KIM 3.</>
+                      ) : activeTrackSpk.status_spk === 'Waiting QC' ? (
                         <>selesai dikerjakan dan <span className="font-semibold text-accent">sedang menunggu inspeksi QC oleh Foreman</span>. Tidak perlu tindakan apa pun.</>
                       ) : activeTrackSpk.status_spk === 'QC Passed' ? (
                         <>lulus inspeksi QC dan <span className="font-semibold text-accent">menunggu final check oleh SA</span>. Tidak perlu tindakan apa pun.</>
@@ -2356,6 +2471,59 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
           )}
+
+          {/* Faktur & Pembayaran milik customer */}
+          <div className="mt-6 border-t border-border pt-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-ink">Faktur & Pembayaran</h3>
+              <span className="text-[11px] font-bold text-ink-muted">{myInvoiceList.length} faktur</span>
+            </div>
+            {myInvoiceList.length > 0 ? (
+              <div className="space-y-2.5">
+                {myInvoiceList.map((inv: InvoicePembayaran) => {
+                  const lunas = inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas';
+                  return (
+                    <div key={inv.id} className="rounded-md border border-border p-3.5 bg-surface-raised">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-mono text-[11px] font-bold text-accent">{inv.no_invoice}</div>
+                          <div className="text-base font-black text-ink mt-0.5">{inv.no_polisi}</div>
+                          <div className="text-[11px] text-ink-subtle">
+                            {inv.tanggal_invoice ? new Date(inv.tanggal_invoice).toLocaleDateString('id-ID') : '-'}
+                            {inv.tanggal_bayar ? ` • Lunas ${new Date(inv.tanggal_bayar).toLocaleDateString('id-ID')}` : ''}
+                          </div>
+                        </div>
+                        <StatusBadge status={inv.status_pembayaran} size="sm" />
+                      </div>
+                      <div className="mt-2.5 pt-2.5 border-t border-border space-y-1 text-[11px]">
+                        <div className="flex items-center justify-between text-ink-muted">
+                          <span>Subtotal</span>
+                          <span className="font-mono font-semibold">Rp {Number(inv.subtotal || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-ink-muted">
+                          <span>PPN</span>
+                          <span className="font-mono font-semibold">Rp {Number(inv.ppn_nominal || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-ink">Grand Total</span>
+                          <span className="font-mono font-black text-status-green">Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                      </div>
+                      {!lunas && (
+                        <p className="mt-2 text-[11px] text-status-amber font-semibold">
+                          Menunggu pembayaran — tunjukkan nomor faktur ini ke Kasir.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-ink-subtle text-center py-4 border border-dashed border-border rounded-md bg-surface">
+                Belum ada faktur untuk armada Anda.
+              </p>
+            )}
+          </div>
         </div>
       )}
 

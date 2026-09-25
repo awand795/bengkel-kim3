@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
-import { realtimeHub } from '../services/realtimeService';
+import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar, AntrianKunjungan } from '../types';
@@ -10,6 +10,7 @@ import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoic
 import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { toast } from '../components/common/Toast';
+import { usePpnRate } from '../hooks/usePpnRate';
 import { 
   Package, 
   PlusCircle, 
@@ -110,10 +111,11 @@ export const BeliPartView: React.FC = () => {
     queryFn: api.getKendaraan,
   });
 
-  // Cart Calculations
+  // Cart Calculations — PPN strictly dari database (tanpa fallback)
+  const { rate: ppnRate } = usePpnRate();
   const subtotal = cartItems.reduce((acc, curr) => acc + curr.qty * curr.harga, 0);
-  const ppn11 = Math.round(subtotal * 0.11);
-  const grandTotal = subtotal + ppn11;
+  const ppn11 = ppnRate === null ? null : Math.round(subtotal * (ppnRate / 100));
+  const grandTotal = ppn11 === null ? null : subtotal + ppn11;
 
   // Add Item to Cart
   const handleAddToCart = (part: StokSparepart) => {
@@ -158,6 +160,9 @@ export const BeliPartView: React.FC = () => {
   // Mutation: Buat Transaksi Beli Part Baru
   const buatTransaksiMutation = useMutation({
     mutationFn: async () => {
+      if (ppnRate === null || ppn11 === null || grandTotal === null) {
+        throw new Error('Tarif PPN belum diatur — hubungi Super Admin untuk mengisi Pengaturan Sistem.');
+      }
       const now = new Date();
       const estNo = `EST-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(100 + Math.random() * 900))}`;
       const prPick = `PR-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(100 + Math.random() * 900))}`;
@@ -190,6 +195,15 @@ export const BeliPartView: React.FC = () => {
     mutationFn: async ({ item, metode }: { item: TransaksiBeliPart; metode: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC' }) => {
       const now = new Date();
       const invNo = `INV-PART-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+      // Nilai tersimpan dipakai apa adanya; baris lama tanpa ppn dihitung
+      // dari tarif DB saat ini (tanpa angka hardcoded).
+      const sub = Number(item.subtotal ?? 0);
+      const ppnStored = item.ppn_11 != null ? Number(item.ppn_11) : null;
+      const ppn = ppnStored ?? (ppnRate !== null ? Math.round(sub * (ppnRate / 100)) : null);
+      if (ppn === null) {
+        throw new Error('Tarif PPN belum diatur — hubungi Super Admin untuk mengisi Pengaturan Sistem.');
+      }
+      const grand = Number(item.total_biaya ?? (sub + ppn));
 
       // 1. Panggil api.buatInvoice agar masuk rekap kasir & keuangan
       await api.buatInvoice({
@@ -198,10 +212,10 @@ export const BeliPartView: React.FC = () => {
         no_polisi: item.no_polisi,
         nama_customer: item.nama_customer,
         tanggal_invoice: now.toISOString(),
-        subtotal: Number(item.subtotal || item.total_biaya * 0.89),
-        ppn_nominal: Number(item.ppn_11 || item.total_biaya * 0.11),
+        subtotal: sub,
+        ppn_nominal: ppn,
         diskon: 0,
-        grand_total: Number(item.total_biaya),
+        grand_total: grand,
         metode_pembayaran: metode,
         status_pembayaran: 'Paid',
         kasir_pic: currentUser || 'Kasir',
@@ -215,7 +229,7 @@ export const BeliPartView: React.FC = () => {
 
       return { invNo, item, metode };
     },
-    onSuccess: ({ invNo, item }) => {
+    onSuccess: async ({ invNo, item }) => {
       queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
@@ -230,14 +244,14 @@ export const BeliPartView: React.FC = () => {
         urgency: 'success',
       });
 
-      // 2. Notifikasi untuk Customer Fleet
-      realtimeHub.publish({
+      // 2. Notifikasi untuk Customer pemilik plat SAJA (anti-bocor antar akun)
+      await publishKeCustomer({
         type: 'INVOICE_PAID',
-        targetRoles: ['Customer Fleet'],
         title: 'Pembayaran Pembelian Part Berhasil',
         message: `Faktur ${invNo} untuk pembelian sparepart telah tercatat lunas. Silakan lakukan pengambilan barang di gudang/pos.`,
         linkTab: 'fleet-status',
         urgency: 'success',
+        noPolisi: item.no_polisi,
       });
 
       toast.success(`Pembayaran berhasil dicatat! Invoice resmi ${invNo} telah diterbitkan dan tercatat di Kasir & Keuangan.`);
@@ -293,7 +307,7 @@ export const BeliPartView: React.FC = () => {
 
       return { memoNo, trx };
     },
-    onSuccess: ({ memoNo, trx }) => {
+    onSuccess: async ({ memoNo, trx }) => {
       queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
       queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
       queryClient.invalidateQueries({ queryKey: ['memo-list'] });
@@ -309,14 +323,14 @@ export const BeliPartView: React.FC = () => {
         urgency: 'success',
       });
 
-      // 2. Notifikasi untuk Customer Fleet
-      realtimeHub.publish({
+      // 2. Notifikasi untuk Customer pemilik plat SAJA (anti-bocor antar akun)
+      await publishKeCustomer({
         type: 'VEHICLE_CHECKED_OUT',
-        targetRoles: ['Customer Fleet'],
         title: 'Pengambilan Part Selesai',
         message: `Barang untuk ${trx.no_polisi} telah diserahkan dan Memo Keluar resmi telah diterbitkan di Pos Security.`,
         linkTab: 'fleet-status',
         urgency: 'success',
+        noPolisi: trx.no_polisi,
       });
 
       toast.success(`Barang resmi diserahkan ke Customer! Memo Keluar ${memoNo} telah dikirim ke Pos Security.`);
@@ -351,18 +365,28 @@ export const BeliPartView: React.FC = () => {
 
   const activeTransaksi = selectedTransaksi || filteredTransaksi[0];
 
-  // Helper function to create thermal invoice object on the fly for printing
+  // Helper function to create thermal invoice object on the fly for printing.
+  // Nilai tersimpan dipakai apa adanya; baris lama tanpa ppn dihitung dari
+  // tarif DB (tanpa angka hardcoded). Gagal bila tarif belum diatur.
   const handlePrintReceipt = (item: TransaksiBeliPart) => {
+    const sub = Number(item.subtotal ?? 0);
+    const ppn = item.ppn_11 != null
+      ? Number(item.ppn_11)
+      : (ppnRate !== null ? Math.round(sub * (ppnRate / 100)) : null);
+    if (ppn === null) {
+      toast.error('Tarif PPN belum diatur — hubungi Super Admin untuk mengisi Pengaturan Sistem.');
+      return;
+    }
     const invoiceObj: InvoicePembayaran = {
       id: item.id,
       no_invoice: `INV-PART-${item.no_transaksi}`,
       no_polisi: item.no_polisi,
       nama_customer: item.nama_customer,
       tanggal_invoice: item.created_at || new Date().toISOString(),
-      subtotal: item.subtotal || item.total_biaya * 0.89,
-      ppn_nominal: item.ppn_11 || item.total_biaya * 0.11,
+      subtotal: sub,
+      ppn_nominal: ppn,
       diskon: 0,
-      grand_total: item.total_biaya,
+      grand_total: Number(item.total_biaya ?? (sub + ppn)),
       metode_pembayaran: metodeBayarKasir,
       status_pembayaran: 'Paid',
       kasir_pic: currentUser || 'Kasir',
@@ -615,15 +639,15 @@ export const BeliPartView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ringkasan Biaya */}
+                {/* Ringkasan Biaya (nilai tersimpan apa adanya, tanpa rekayasa fallback) */}
                 <div className="p-3.5 bg-surface rounded-md border border-border space-y-1.5 font-semibold">
                   <div className="flex justify-between text-ink-muted">
                     <span>Subtotal Barang:</span>
-                    <span className="font-mono">Rp {Number(activeTransaksi.subtotal || activeTransaksi.total_biaya * 0.89).toLocaleString('id-ID')}</span>
+                    <span className="font-mono">Rp {activeTransaksi.subtotal != null ? Number(activeTransaksi.subtotal).toLocaleString('id-ID') : '-'}</span>
                   </div>
                   <div className="flex justify-between text-ink-muted">
-                    <span>PPN 11%:</span>
-                    <span className="font-mono">Rp {Number(activeTransaksi.ppn_11 || activeTransaksi.total_biaya * 0.11).toLocaleString('id-ID')}</span>
+                    <span>PPN{ppnRate !== null ? ` ${ppnRate}%` : ''}:</span>
+                    <span className="font-mono">Rp {activeTransaksi.ppn_11 != null ? Number(activeTransaksi.ppn_11).toLocaleString('id-ID') : '-'}</span>
                   </div>
                   <div className="flex justify-between text-ink text-sm font-black pt-2 border-t border-border">
                     <span>Total Tagihan:</span>
@@ -931,17 +955,22 @@ export const BeliPartView: React.FC = () => {
 
               {/* Total Calculation & Submit Box */}
               <div className="p-4 bg-surface rounded-md border border-border space-y-2">
+                {ppnRate === null ? (
+                  <p className="text-[11px] text-status-red font-bold text-center">
+                    Tarif PPN belum diatur — hubungi Super Admin untuk mengisi Pengaturan Sistem sebelum transaksi.
+                  </p>
+                ) : null}
                 <div className="flex justify-between text-xs text-ink-muted font-medium">
                   <span>Subtotal Sparepart:</span>
                   <span className="font-mono font-bold">Rp {subtotal.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex justify-between text-xs text-ink-muted font-medium">
-                  <span>PPN 11%:</span>
-                  <span className="font-mono font-bold">Rp {ppn11.toLocaleString('id-ID')}</span>
+                  <span>PPN{ppnRate !== null ? ` ${ppnRate}%` : ''}:</span>
+                  <span className="font-mono font-bold">Rp {ppn11 !== null ? ppn11.toLocaleString('id-ID') : '-'}</span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-ink pt-2 border-t border-border">
                   <span>Total Estimasi Biaya:</span>
-                  <span className="font-mono text-status-green text-base">Rp {grandTotal.toLocaleString('id-ID')}</span>
+                  <span className="font-mono text-status-green text-base">Rp {grandTotal !== null ? grandTotal.toLocaleString('id-ID') : '-'}</span>
                 </div>
               </div>
 
@@ -956,7 +985,7 @@ export const BeliPartView: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  disabled={buatTransaksiMutation.isPending || cartItems.length === 0}
+                  disabled={buatTransaksiMutation.isPending || cartItems.length === 0 || ppnRate === null}
                   onClick={() => buatTransaksiMutation.mutate()}
                   className="flex-1 py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-md shadow-accent/20 flex items-center justify-center gap-2 cursor-pointer"
                 >

@@ -4,8 +4,9 @@ import { api, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
-import { realtimeHub } from '../services/realtimeService';
+import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
 import { useAppStore } from '../store/useAppStore';
+import { usePpnRate } from '../hooks/usePpnRate';
 import { 
   ClipboardList, 
   Wrench, 
@@ -379,7 +380,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
       return { spkNo };
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
@@ -396,14 +397,14 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         urgency: 'info',
       });
 
-      // 2. Notifikasi untuk Customer Fleet
-      realtimeHub.publish({
+      // 2. Notifikasi untuk Customer PEMILIK plat saja (anti-bocor antar akun)
+      await publishKeCustomer({
         type: 'SPK_CREATED',
-        targetRoles: ['Customer Fleet'],
         title: 'SPK Penerimaan Armada Diterbitkan',
         message: `Unit ${formPenerimaan.no_polisi} telah diinspeksi awal oleh Service Advisor dan SPK resmi telah diterbitkan.`,
         linkTab: 'fleet-status',
         urgency: 'info',
+        noPolisi: formPenerimaan.no_polisi,
       });
       toast.success('SPK Penerimaan Kendaraan berhasil dibuat! Kendaraan diserahkan ke Foreman untuk Pengecekan.');
 
@@ -600,9 +601,15 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     },
   });
 
+  // Tarif PPN dari database (tanpa fallback): wajib ada untuk terbitkan invoice
+  const { rate: ppnRate } = usePpnRate();
+
   // SA FIR Closed & Terbitkan Invoice Otomatis
   const firClosedMutation = useMutation({
     mutationFn: async (spk: SpkService) => {
+      if (ppnRate === null) {
+        throw new Error('Tarif PPN belum diatur — hubungi Super Admin untuk mengisi Pengaturan Sistem.');
+      }
       // 1. Update SPK to FIR Closed with SA final check notes
       await api.updateSpkStatus({
         id: spk.id,
@@ -610,15 +617,18 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         catatan_sa: `[Final Check SA Disetujui]: Kebersihan (OK), Uji Fisik/Tes Jalan (OK), Dokumen & Surat (OK). Catatan: ${finalCheckForm.catatan_final}`,
       });
 
-      // 2. Buat Invoice otomatis
+      // 2. Buat Invoice otomatis (PPN dari database)
       const invNo = `INV-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
       const subtotal = Number(spk.estimasi_biaya || 0);
-      const ppn = subtotal * 0.11;
+      const ppn = Math.round(subtotal * (ppnRate / 100));
       const grandTotal = subtotal + ppn;
 
-      return api.buatInvoice({
+      await api.buatInvoice({
         no_invoice: invNo,
         id_spk: spk.id,
+        // Tenant linkage agar faktur terlihat customer (filter id_pelanggan di API).
+        // Bila SPK tak punya id_pelanggan, server fallback dari SPK itu sendiri.
+        id_pelanggan: spk.id_pelanggan ?? undefined,
         no_polisi: spk.no_polisi,
         nama_customer: spk.nama_customer,
         subtotal: subtotal,
@@ -628,11 +638,34 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         metode_pembayaran: 'Transfer Bank',
         kasir_pic: 'Kasir',
       });
+
+      return { invNo, grandTotal };
     },
-    onSuccess: () => {
+    onSuccess: async (result, spk) => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      // 3. Notifikasi invoice terbit ke customer pemilik SAJA
+      // (sebelumnya hilang total; broadcast mentah juga bocor antar akun)
+      await publishKeCustomer({
+        type: 'SPK_STATUS_CHANGED',
+        title: 'Invoice Service Terbit',
+        message: `Invoice ${result.invNo} untuk unit ${spk.no_polisi} (SPK: ${spk.no_spk}) sebesar Rp ${Number(result.grandTotal || 0).toLocaleString('id-ID')} telah terbit. Silakan lakukan pembayaran di Kasir.`,
+        linkTab: 'fleet-history',
+        urgency: 'urgent',
+        noPolisi: spk.no_polisi,
+        pelangganId: spk.id_pelanggan ?? null,
+      });
+      realtimeHub.publish({
+        type: 'SPK_STATUS_CHANGED',
+        targetRoles: ['Admin Invoice'],
+        title: 'Invoice Baru Masuk Kasir',
+        message: `Invoice ${result.invNo} (${spk.no_polisi}) Rp ${Number(result.grandTotal || 0).toLocaleString('id-ID')} menunggu pembayaran.`,
+        linkTab: 'kasir',
+        urgency: 'info',
+      });
+
       toast.success('Pemeriksaan Akhir Selesai! FIR Closed berhasil & Invoice otomatis diterbitkan ke Kasir.');
       setShowFinalCheckModal(null);
     },

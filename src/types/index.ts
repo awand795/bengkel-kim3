@@ -210,6 +210,7 @@ export interface SpkService {
   waktu_qc?: string;
   waktu_fir_closed?: string;
   waktu_check_out?: string;
+  tanggal_qc?: string;
   lead_time_jam?: number;
   jenis_layanan?: string;
   catatan_sa?: string;

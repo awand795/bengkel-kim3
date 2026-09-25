@@ -7,6 +7,8 @@ import { InvoicePembayaran } from '../types';
 import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { toast } from '../components/common/Toast';
+import { usePpnRate } from '../hooks/usePpnRate';
+import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
 import { 
   Receipt, 
   CreditCard, 
@@ -27,6 +29,9 @@ export const KasirInvoiceView: React.FC = () => {
   const [metodeBayar, setMetodeBayar] = useState<'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC'>('Transfer Bank');
   const [showPrintModal, setShowPrintModal] = useState(false);
 
+  // Tarif PPN DB hanya untuk label (nilai faktur yang tampil = tersimpan apa adanya)
+  const { rate: ppnRate } = usePpnRate();
+
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'Semua' | 'Belum Lunas' | 'Lunas'>('Semua');
@@ -46,7 +51,8 @@ export const KasirInvoiceView: React.FC = () => {
     refetchInterval: 8000,
   });
 
-  // Pelunasan Mutation
+  // Pelunasan Mutation: invoice lunas -> SPK Selesai + notifikasi.
+  // Tanpa ini SPK stuck di FIR Closed selamanya (tidak ada penulis status Selesai).
   const bayarMutation = useMutation({
     mutationFn: async (inv: InvoicePembayaran) => {
       return api.bayarInvoice({
@@ -55,9 +61,41 @@ export const KasirInvoiceView: React.FC = () => {
         kasir_pic: currentUser,
       });
     },
-    onSuccess: () => {
+    onSuccess: async (_res, inv) => {
+      // 1. Tutup WO service: invoice service (ada id_spk) -> SPK Selesai.
+      //    Invoice beli-part langsung (tanpa id_spk) dilewati.
+      if (inv.id_spk) {
+        try {
+          await api.updateSpkStatus({ id: inv.id_spk, status_spk: 'Selesai' });
+        } catch (e: any) {
+          toast.error('Pembayaran tercatat, tetapi SPK gagal di-closed: ' + (e?.message || 'Terjadi kesalahan.'));
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+
+      // 2. Notifikasi pelunasan ke customer PEMILIK saja (anti-bocor antar akun)
+      const lunasMsg = `Pembayaran ${inv.no_invoice} (${inv.no_polisi}) Rp ${Number(inv.grand_total || 0).toLocaleString('id-ID')} telah diterima secara ${metodeBayar}.`;
+      await publishKeCustomer({
+        type: 'INVOICE_PAID',
+        title: 'Pembayaran Lunas',
+        message: `${lunasMsg} Unit bisa diambil — check-out di Pos Security.`,
+        linkTab: 'fleet-status',
+        urgency: 'success',
+        noPolisi: inv.no_polisi,
+        pelangganId: inv.id_pelanggan ?? null,
+      });
+      if (inv.id_spk) {
+        realtimeHub.publish({
+          type: 'INVOICE_PAID',
+          targetRoles: ['SA', 'Security'],
+          title: 'Unit Lunas, Siap Check-Out',
+          message: `${lunasMsg} SPK closed (Selesai).`,
+          linkTab: 'security-onprogress',
+          urgency: 'info',
+        });
+      }
       toast.success('Pembayaran berhasil diterima! Faktur lunas dan kendaraan dapat check-out di Security.');
     },
     onError: (err: any) => toast.error('Gagal mencatat pembayaran: ' + (err?.message || 'Terjadi kesalahan.')),
@@ -101,7 +139,7 @@ export const KasirInvoiceView: React.FC = () => {
           </div>
           <div>
             <h1 className="text-lg font-black text-ink">Admin Invoice &amp; Pembayaran (Kasir)</h1>
-            <p className="text-xs text-ink-muted">Penerbitan Faktur, Perhitungan PPN 11%, dan Konfirmasi Pelunasan</p>
+            <p className="text-xs text-ink-muted">Penerbitan Faktur, Perhitungan PPN{ppnRate !== null ? ` ${ppnRate}%` : ''}, dan Konfirmasi Pelunasan</p>
           </div>
         </div>
       </div>
@@ -350,7 +388,7 @@ export const KasirInvoiceView: React.FC = () => {
                   <span className="font-mono">Rp {Number(activeInv.subtotal).toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex justify-between text-ink-muted">
-                  <span>PPN 11%:</span>
+                  <span>PPN{ppnRate !== null ? ` ${ppnRate}%` : ''}:</span>
                   <span className="font-mono">Rp {Number(activeInv.ppn_nominal).toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex justify-between text-ink text-sm font-black pt-1.5 border-t border-border">

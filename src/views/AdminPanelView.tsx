@@ -329,7 +329,7 @@ export const AdminPanelView: React.FC = () => {
           }`}
         >
           <Percent className="w-4 h-4" />
-          <span>Pengaturan PPN ({settings?.ppn_persen || 11}%)</span>
+          <span>Pengaturan PPN ({settings?.ppn_persen != null ? `${settings.ppn_persen}%` : 'belum diatur'})</span>
         </button>
 
         <button
@@ -568,8 +568,8 @@ export const AdminPanelView: React.FC = () => {
                     step="0.01"
                     min="0"
                     max="100"
-                    value={settingsForm.ppn_persen ?? 11}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, ppn_persen: parseFloat(e.target.value) || 0 })}
+                    value={settingsForm.ppn_persen ?? ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, ppn_persen: e.target.value === '' ? undefined : parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2 text-sm font-bold text-ink rounded-md border border-border bg-surface-raised focus:outline-none focus:border-accent"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle font-bold text-xs">%</span>
@@ -584,12 +584,12 @@ export const AdminPanelView: React.FC = () => {
                   <span className="font-mono">Rp 1.000.000</span>
                 </div>
                 <div className="flex justify-between text-accent font-semibold">
-                  <span>PPN ({settingsForm.ppn_persen ?? 11}%):</span>
-                  <span className="font-mono">Rp {(1000000 * ((settingsForm.ppn_persen ?? 11) / 100)).toLocaleString('id-ID')}</span>
+                  <span>PPN ({settingsForm.ppn_persen != null ? `${settingsForm.ppn_persen}%` : 'belum diatur'}):</span>
+                  <span className="font-mono">Rp {settingsForm.ppn_persen != null ? (1000000 * (settingsForm.ppn_persen / 100)).toLocaleString('id-ID') : '-'}</span>
                 </div>
                 <div className="border-t border-border pt-1 flex justify-between font-bold text-ink">
                   <span>Grand Total Invoice:</span>
-                  <span className="font-mono">Rp {(1000000 + 1000000 * ((settingsForm.ppn_persen ?? 11) / 100)).toLocaleString('id-ID')}</span>
+                  <span className="font-mono">Rp {settingsForm.ppn_persen != null ? (1000000 + 1000000 * (settingsForm.ppn_persen / 100)).toLocaleString('id-ID') : '-'}</span>
                 </div>
               </div>
             </div>

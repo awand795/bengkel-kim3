@@ -120,23 +120,23 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
 
             <div className="border-b border-dashed border-slate-400 my-2"></div>
 
-            {/* Total Perhitungan */}
+            {/* Total Perhitungan (nilai tersimpan apa adanya, tanpa angka contoh) */}
             <div className="space-y-1 text-[10px]">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span>Rp {(invoice.subtotal || 1500000).toLocaleString('id-ID')}</span>
+                <span>Rp {invoice.subtotal != null ? Number(invoice.subtotal).toLocaleString('id-ID') : '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span>PPN 11%:</span>
-                <span>Rp {(invoice.ppn_nominal || 165000).toLocaleString('id-ID')}</span>
+                <span>PPN{settings?.ppn_persen != null ? ` ${settings.ppn_persen}%` : ''}:</span>
+                <span>Rp {invoice.ppn_nominal != null ? Number(invoice.ppn_nominal).toLocaleString('id-ID') : '-'}</span>
               </div>
               <div className="flex justify-between font-black text-xs pt-1 border-t border-slate-300">
                 <span>TOTAL AKHIR:</span>
-                <span>Rp {(invoice.grand_total || 1665000).toLocaleString('id-ID')}</span>
+                <span>Rp {invoice.grand_total != null ? Number(invoice.grand_total).toLocaleString('id-ID') : '-'}</span>
               </div>
               <div className="flex justify-between pt-1">
                 <span>Metode Bayar:</span>
-                <span className="font-bold uppercase">{invoice.metode_pembayaran || 'TUNAI / CASH'}</span>
+                <span className="font-bold uppercase">{invoice.metode_pembayaran || '-'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Status Bayar:</span>

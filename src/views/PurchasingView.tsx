@@ -21,7 +21,7 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { realtimeHub } from '../services/realtimeService';
+import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
 import { toast } from '../components/common/Toast';
 import { resolveMechanicId } from '../utils/spkAccess';
 
@@ -154,7 +154,7 @@ export const PurchasingView: React.FC = () => {
         id_spk: pr.id_spk,
       });
     },
-    onSuccess: (_, pr) => {
+    onSuccess: async (_, pr) => {
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
@@ -183,14 +183,14 @@ export const PurchasingView: React.FC = () => {
         urgency: 'success',
       });
 
-      // 2. Notifikasi untuk Customer Fleet
-      realtimeHub.publish({
+      // 2. Notifikasi untuk Customer pemilik plat SAJA (anti-bocor antar akun)
+      await publishKeCustomer({
         type: 'SPK_STATUS_CHANGED',
-        targetRoles: ['Customer Fleet'],
         title: 'Sparepart Armada Tersedia',
         message: `Sparepart untuk armada ${pr.no_polisi} telah tiba di bengkel. SA sedang finalisasi estimasi untuk persetujuan Anda.`,
         linkTab: 'fleet-status',
         urgency: 'info',
+        noPolisi: pr.no_polisi,
       });
       toast.success(`Barang untuk ${pr.no_polisi} telah dikonfirmasi READY! Status SPK kembali ke "Estimasi Dibuat" untuk finalisasi SA.`);
     },

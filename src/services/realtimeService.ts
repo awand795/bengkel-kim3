@@ -34,6 +34,9 @@ export interface RealtimeEvent {
   targetRoles: NotificationRole[];
   targetUserId?: number;
   targetUserEmail?: string;
+  // Pelanggan pemilik (walk-in by plat): diteruskan ke target_pelanggan_id
+  // agar baris notif terikat tenant walau user-nya belum login.
+  targetPelangganId?: number | null;
   title: string;
   message: string;
   timestamp: string;
@@ -198,6 +201,7 @@ class RealtimeNotificationHub {
           api.kirimNotifikasi({
             target_role: role,
             target_user_id: event.targetUserId,
+            target_pelanggan_id: event.targetPelangganId ?? undefined,
             title: event.title,
             pesan: event.message,
             link_tab: event.linkTab,
@@ -247,3 +251,51 @@ class RealtimeNotificationHub {
 
 // Singleton instance
 export const realtimeHub = new RealtimeNotificationHub();
+
+export interface CustomerNotifOpts {
+  title: string;
+  message: string;
+  linkTab?: string;
+  urgency?: 'urgent' | 'warning' | 'info' | 'success';
+  type?: EventType;
+  /** Plat kendaraan: dipakai resolve tenant bila userId/pelangganId tak diberikan. */
+  noPolisi?: string;
+  /** Bila sudah diketahui (mis. dari baris SPK/invoice), langsung dipakai. */
+  userId?: number;
+  pelangganId?: number | null;
+}
+
+/**
+ * Kirim notifikasi ke customer PEMILIK SAJA (anti-bocor antar akun).
+ * Resolusi tenant by plat via /kim3/kendaraan-cari-pemilik bila perlu.
+ * Tidak mengirim apa pun bila pemilik tak ditemukan (return false).
+ */
+export const publishKeCustomer = async (opts: CustomerNotifOpts): Promise<boolean> => {
+  let userId = opts.userId;
+  let pelangganId = opts.pelangganId ?? null;
+  if ((userId == null || pelangganId == null) && opts.noPolisi) {
+    try {
+      const { api } = await import('../api/client');
+      const rows = await api.cariPemilikPlat(opts.noPolisi);
+      const r = rows[0];
+      if (r) {
+        if (userId == null && r.user_id != null) userId = r.user_id;
+        if (pelangganId == null && r.id_pelanggan != null) pelangganId = r.id_pelanggan;
+      }
+    } catch {
+      /* lookup gagal -> perlakukan sebagai tak ketemu */
+    }
+  }
+  if (userId == null && pelangganId == null) return false;
+  realtimeHub.publish({
+    type: opts.type || 'SPK_STATUS_CHANGED',
+    targetRoles: ['Customer Fleet'],
+    targetUserId: userId,
+    targetPelangganId: pelangganId,
+    title: opts.title,
+    message: opts.message,
+    linkTab: opts.linkTab,
+    urgency: opts.urgency || 'info',
+  });
+  return true;
+};

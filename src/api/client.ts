@@ -181,6 +181,11 @@ const fetchList = async <T,>(url: string, query: ListQuery = {}): Promise<Pagina
   return normalizeList<T>(res.data);
 };
 
+// Normalisasi plat: primary key walk-in — huruf besar tanpa spasi.
+// dipakai di semua pengiriman no_polisi agar cocok dengan data tersimpan.
+export const normalizePlat = (nopol: string | null | undefined): string =>
+  (nopol || '').toUpperCase().replace(/\s+/g, '');
+
 // Helper: ambil pesan error paling informatif dari respons API Builder
 // (validasi parameter 400 / business rule / DB error) agar tidak tertutup
 // pesan generik "Terjadi kesalahan."
@@ -264,6 +269,24 @@ export const api = {
   // Kendaraan
   getKendaraan: async (): Promise<Kendaraan[]> =>
     (await fetchList<Kendaraan>('/kim3/kendaraan', { limit: LOOKUP_LIST_LIMIT })).rows,
+
+  // Cari pemilik kendaraan by plat (walk-in): tenant + user customer aktif.
+  // Mengembalikan array (biasanya 0-1 baris). Plat dinormalisasi dulu.
+  cariPemilikPlat: async (noPolisi: string): Promise<Array<{
+    id_kendaraan: number;
+    no_polisi: string;
+    id_pelanggan: number | null;
+    nama_perusahaan: string | null;
+    user_id: number | null;
+    nama_lengkap: string | null;
+    email: string | null;
+  }>> => {
+    const plat = normalizePlat(noPolisi);
+    if (!plat) return [];
+    const res = await apiClient.get('/kim3/kendaraan-cari-pemilik', { params: { no_polisi: plat } });
+    const data = res.data;
+    return Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+  },
   getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
     fetchList<Kendaraan>('/kim3/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
@@ -584,6 +607,11 @@ export const api = {
 
   tandaiNotifikasiBaca: async (id: number): Promise<any> => {
     const res = await apiClient.post('/kim3/notifikasi-baca', { id });
+    return res.data;
+  },
+
+  hapusNotifikasi: async (id: number): Promise<any> => {
+    const res = await apiClient.post('/kim3/notifikasi-hapus', { id });
     return res.data;
   },
 

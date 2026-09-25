@@ -13,6 +13,7 @@ import {
   Check,
   Inbox,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { realtimeHub, RealtimeEvent } from '../../services/realtimeService';
 import { toast } from '../common/Toast';
@@ -83,13 +84,39 @@ export const NotificationDropdown: React.FC = () => {
     },
   });
 
-  // 4. Real-time Subscription to trigger instant re-fetch & audio alert
+  // 3b. Delete Single Notification (milik sendiri / broadcast terlihat)
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.hapusNotifikasi(id),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
+      if (res?.rows_affected === 0) {
+        toast.warning('Notifikasi tidak terhapus', 'Mungkin sudah dihapus atau bukan milik Anda.');
+      } else {
+        toast.success('Notifikasi dihapus.');
+      }
+    },
+    onError: (err: any) => {
+      toast.error('Gagal menghapus notifikasi', err?.message);
+    },
+  });
+
+  // 4. Real-time Subscription to trigger instant re-fetch & audio alert.
+  // Anti-bocor antar akun/tab: event personal hanya untuk user/pelanggan yang dituju,
+  // walau role-nya sama (mis. dua akun Customer Fleet di browser yang sama).
   useEffect(() => {
     const unsubscribe = realtimeHub.subscribe((evt: RealtimeEvent) => {
-      const isForMe =
-        evt.targetRoles.includes('ALL') ||
-        (currentRole && evt.targetRoles.includes(currentRole as any)) ||
-        (authUser?.id && evt.targetUserId === authUser.id);
+      const myId = authUser?.id ?? null;
+      const myPelangganId = authUser?.id_pelanggan ?? null;
+      let isForMe = false;
+      if (evt.targetUserId != null) {
+        isForMe = myId != null && evt.targetUserId === myId;
+      } else if (evt.targetPelangganId != null) {
+        isForMe = myPelangganId != null && evt.targetPelangganId === myPelangganId;
+      } else {
+        isForMe =
+          evt.targetRoles.includes('ALL') ||
+          (currentRole != null && evt.targetRoles.includes(currentRole as any));
+      }
 
       if (isForMe) {
         // Play chime sound
@@ -344,8 +371,9 @@ export const NotificationDropdown: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Facebook Blue Dot for Unread Notifications OR Mark Read Quick Action */}
-                    <div className="shrink-0 flex items-center self-center pl-1">
+                    {/* Aksi item: selalu terlihat (tanpa hover) agar ketahuan di
+                        layar sentuh & oleh pengguna lansia. Target sentuh min. 36px. */}
+                    <div className="shrink-0 flex items-center self-center pl-1 gap-1">
                       {!isRead ? (
                         <div className="flex items-center gap-1.5">
                           {/* Facebook Blue Indicator Dot */}
@@ -360,15 +388,31 @@ export const NotificationDropdown: React.FC = () => {
                               e.stopPropagation();
                               markReadMutation.mutate(item.id);
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded-full text-ink-subtle hover:text-accent hover:bg-surface transition-all"
+                            className="min-w-[36px] min-h-[36px] p-2 rounded-full text-ink-subtle hover:text-accent hover:bg-surface active:bg-accent-subtle transition-all sm:opacity-0 sm:group-hover:opacity-100 sm:min-w-0 sm:min-h-0 sm:p-1"
                             title="Tandai sudah dibaca"
+                            aria-label="Tandai sudah dibaca"
                           >
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                           </button>
                         </div>
                       ) : (
                         <span className="w-2.5 h-2.5" />
                       )}
+                      {/* Delete notification */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Hapus notifikasi "${item.title}"?`)) {
+                            deleteMutation.mutate(item.id);
+                          }
+                        }}
+                        className="min-w-[36px] min-h-[36px] p-2 rounded-full text-ink-subtle hover:text-status-red hover:bg-status-red-bg active:bg-status-red-bg transition-all"
+                        title="Hapus notifikasi ini"
+                        aria-label="Hapus notifikasi ini"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 );

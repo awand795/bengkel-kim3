@@ -49,6 +49,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'paid':
       case 'selesai':
       case 'fir closed':
+      case 'selesai — siap check-out':
+      case 'fir closed — siap check-out':
+      case 'qc passed — siap check-out':
         return 'bg-status-green-bg text-status-green border-status-green/20';
 
       // Red (Ditolak / Dibatalkan / Error / Unpaid)

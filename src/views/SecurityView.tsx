@@ -34,7 +34,8 @@ import {
   Camera
 } from 'lucide-react';
 import { AntrianKunjungan, BookingService, MemoKeluar } from '../types';
-import { realtimeHub } from '../services/realtimeService';
+import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
+import { usePemilikPlat } from '../hooks/usePemilikPlat';
 import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { ModalPortal } from '../components/common/ModalPortal';
@@ -137,6 +138,43 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     queryFn: api.getMemoKeluarList,
   });
 
+  // Daftar SPK (cache bersama) untuk overlay status bengkel pada antrian:
+  // status antrian berhenti di 'Sedang Dikerjakan', sedangkan progres real
+  // (QC / FIR / Selesai) hanya ada di SPK.
+  const { data: spkListSecurity } = useQuery({
+    queryKey: ['spk-list'],
+    queryFn: api.getSpkList,
+    refetchInterval: 8000,
+  });
+
+  // Invoice (cache bersama) untuk titik "Bayar Lunas" di progres checkout Detail.
+  const { data: invoiceListSecurity } = useQuery({
+    queryKey: ['invoice-list'],
+    queryFn: api.getInvoiceList,
+    refetchInterval: 15000,
+  });
+
+  // SPK terkait sebuah antrian (relasi id_antrian, fallback id_booking)
+  const spkUntukAntrian = (a: AntrianKunjungan) =>
+    (spkListSecurity || []).find((s) => s.id_antrian === a.id) ||
+    (a.id_booking ? (spkListSecurity || []).find((s) => s.id_booking === a.id_booking) : undefined);
+
+  // Label status gabungan untuk Security: bila SPK sudah selesai/FIR/QC,
+  // tampilkan itu (siap check-out) alih-alih status antrian yang basi.
+  const labelStatusAntrian = (a: AntrianKunjungan): string => {
+    const spk = spkUntukAntrian(a);
+    if (!spk) return a.status_kunjungan;
+    if (spk.status_spk === 'Selesai') return 'Selesai — Siap Check-Out';
+    if (spk.status_spk === 'FIR Closed' || spk.status_spk === 'QC Passed') return `${spk.status_spk} — Siap Check-Out`;
+    if (spk.status_spk === 'Waiting QC') return 'Menunggu QC';
+    return a.status_kunjungan;
+  };
+
+  const siapCheckout = (a: AntrianKunjungan): boolean => {
+    const spk = spkUntukAntrian(a);
+    return !!spk && (spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'QC Passed');
+  };
+
   // Query dynamic user/officer list for PIC Tujuan
   const { data: penggunaList } = useQuery({
     queryKey: ['pengguna-list'],
@@ -220,15 +258,26 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   );
 
   // Check-In Mutation
+  // Pemilik plat di-resolve fresh by plat (walk-in primary key): bila ketemu,
+  // notif customer dikirim personal (bukan broadcast ke semua customer).
+  const lookupCustomerFlow =
+    formCheckin.tujuan_kedatangan === 'Service' || formCheckin.tujuan_kedatangan === 'Beli Part';
+  const { pemilik: pemilikPlat, loading: pemilikLoading } = usePemilikPlat(
+    formCheckin.no_polisi,
+    lookupCustomerFlow
+  );
+
   const checkinMutation = useMutation({
     mutationFn: async (data: typeof formCheckin) => {
       const ticketNo = `ANT-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
-      return api.checkInSecurity({
+      const pemilikRows = lookupCustomerFlow ? await api.cariPemilikPlat(data.no_polisi).catch(() => []) : [];
+      const res = await api.checkInSecurity({
         no_tiket: ticketNo,
         ...data,
       });
+      return { res, pemilik: pemilikRows[0] || null };
     },
-    onSuccess: () => {
+    onSuccess: ({ pemilik }) => {
       queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
@@ -265,15 +314,21 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           urgency: 'urgent',
         });
 
-        // 2. Notifikasi untuk Customer Fleet (Pemilik Armada)
-        realtimeHub.publish({
-          type: 'VEHICLE_CHECKED_IN',
-          targetRoles: ['Customer Fleet'],
-          title: 'Armada Tiba di Pos Gerbang',
-          message: `Unit ${formCheckin.no_polisi} telah berhasil di-check in di Pos Security KIM 3 dan sedang menunggu antrian inspeksi awal.`,
-          linkTab: 'fleet-status',
-          urgency: 'info',
-        });
+        // 2. Notifikasi untuk Customer Fleet (Pemilik Armada).
+        // HANYA bila pemilik plat terdaftar (personal by user + tenant).
+        // Tanpa pemilik: tidak broadcast (hentikan bocor ke semua customer).
+        if (pemilik?.user_id) {
+          realtimeHub.publish({
+            type: 'VEHICLE_CHECKED_IN',
+            targetRoles: ['Customer Fleet'],
+            targetUserId: pemilik.user_id,
+            targetPelangganId: pemilik.id_pelanggan,
+            title: 'Armada Tiba di Pos Gerbang',
+            message: `Unit ${formCheckin.no_polisi} telah berhasil di-check in di Pos Security KIM 3 dan sedang menunggu antrian inspeksi awal.`,
+            linkTab: 'fleet-status',
+            urgency: 'info',
+          });
+        }
       }
 
       toast.success('Kendaraan berhasil di-Check In oleh Pos Security KIM 3!');
@@ -331,19 +386,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
         petugas_security: currentUser || 'Petugas Security',
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
       queryClient.invalidateQueries({ queryKey: ['memo-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
-      // 1. Notifikasi untuk Customer Fleet
-      realtimeHub.publish({
+      // 1. Notifikasi untuk Customer PEMILIK plat saja (anti-bocor antar akun)
+      await publishKeCustomer({
         type: 'VEHICLE_CHECKED_OUT',
-        targetRoles: ['Customer Fleet'],
         title: 'Kendaraan Telah Keluar Bengkel',
         message: `Unit ${showCheckoutModal?.no_polisi || 'kendaraan'} telah resmi check-out & keluar melalui pos Security.`,
         linkTab: 'fleet-status',
         urgency: 'success',
+        noPolisi: showCheckoutModal?.no_polisi,
       });
 
       // 2. Notifikasi untuk Service Advisor
@@ -560,7 +615,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <StatusBadge status={item.status_kunjungan} size="sm" />
+                    <StatusBadge status={labelStatusAntrian(item)} size="sm" />
                     <button
                       type="button"
                       onClick={() => setShowDetailModal(item)}
@@ -727,6 +782,44 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     </div>
                   </div>
                 </div>
+
+                {/* Pemilik terdaftar by plat (walk-in primary key) */}
+                {lookupCustomerFlow && formCheckin.no_polisi.trim().length >= 3 && (
+                  <div className={`p-3.5 rounded-md border text-xs flex items-start gap-2.5 ${
+                    pemilikLoading
+                      ? 'bg-surface border-border text-ink-muted'
+                      : pemilikPlat
+                      ? 'bg-status-green-bg border-status-green/30 text-status-green'
+                      : 'bg-surface border-dashed border-border text-ink-muted'
+                  }`}>
+                    {pemilikLoading ? (
+                      <span className="font-semibold">Mencari pemilik plat...</span>
+                    ) : pemilikPlat ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-bold">
+                            Pemilik terdaftar: {pemilikPlat.nama_perusahaan || pemilikPlat.nama_lengkap || '-'}
+                            {pemilikPlat.user_id ? ' (akun terhubung — notif otomatis terkirim)' : ' (belum ada akun user)'}
+                          </div>
+                          <div className="text-[11px] opacity-80 mt-0.5">
+                            Plat sebagai kunci: riwayat check-in, SPK & invoice tercatat untuk plat ini.
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-semibold">Plat belum terdaftar di akun mana pun.</div>
+                          <div className="text-[11px] opacity-80 mt-0.5">
+                            Tetap diproses & tercatat by plat. Saat pemilik mendaftar + klaim plat ini, riwayat ikut masuk.
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Bagian 2: Detail Kedatangan */}
                 <div className="bg-surface p-4 sm:p-5 rounded-md border border-border">
@@ -1301,7 +1394,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           <div className="text-ink-subtle font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <StatusBadge status={item.status_kunjungan} size="sm" />
+                          <StatusBadge status={labelStatusAntrian(item)} size="sm" />
                         </td>
                         <td className="py-3 px-3 font-medium text-ink">
                           {item.nama_mekanik || item.pic_tujuan || '-'}
@@ -1328,7 +1421,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                                   no_memo_keluar: '',
                                 });
                               }}
-                              className="px-2.5 py-1 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1"
+                              title={siapCheckout(item) ? 'SPK selesai — unit siap dikeluarkan' : 'Check-out kendaraan'}
+                              className={`px-2.5 py-1 rounded-md font-bold text-xs shadow-xs transition-colors flex items-center gap-1 ${
+                                siapCheckout(item)
+                                  ? 'bg-status-green hover:bg-status-green/90 text-white'
+                                  : 'bg-accent hover:bg-accent-hover text-white'
+                              }`}
                             >
                               <LogOut className="w-3 h-3" /> Check Out
                             </button>
@@ -2174,8 +2272,68 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
               <div>
                 <span className="text-ink-subtle text-[10px] block mb-1">Status Kunjungan</span>
-                <StatusBadge status={showDetailModal.status_kunjungan} />
+                <StatusBadge status={labelStatusAntrian(showDetailModal)} />
               </div>
+
+              {(() => {
+                const spk = spkUntukAntrian(showDetailModal);
+                if (!spk) return null;
+                const inv = (invoiceListSecurity || []).find((i) => i.id_spk === spk.id);
+                const lunas = !!inv && (inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas');
+                const keluar = !!showDetailModal.waktu_keluar;
+                const steps = [
+                  { label: 'Check-In', done: true },
+                  { label: 'SPK Selesai', done: ['Selesai', 'FIR Closed', 'QC Passed'].includes(spk.status_spk as string) },
+                  { label: 'Bayar Lunas', done: lunas },
+                  { label: 'Keluar', done: keluar },
+                ];
+                return (
+                  <>
+                    <div>
+                      <span className="text-ink-subtle text-[10px] block mb-1">Progress Checkout (alur Excel)</span>
+                      <div className="flex items-center gap-1">
+                        {steps.map((s, idx) => (
+                          <div key={s.label} className="flex-1 flex items-center gap-1 last:flex-none">
+                            <div className="flex flex-col items-center gap-1 flex-1">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${s.done ? 'bg-status-green text-white' : 'bg-surface text-ink-subtle border border-border'}`}>
+                                {s.done ? '✓' : idx + 1}
+                              </span>
+                              <span className={`text-[9px] font-bold text-center leading-tight ${s.done ? 'text-status-green' : 'text-ink-subtle'}`}>{s.label}</span>
+                            </div>
+                            {idx < steps.length - 1 && (
+                              <div className={`h-0.5 flex-1 rounded-full mb-5 ${s.done ? 'bg-status-green' : 'bg-border'}`} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {lunas && spk.status_spk === 'Selesai' && !keluar && (
+                      <div className="p-3 rounded-md bg-status-green-bg border border-status-green/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="text-[11px] text-status-green font-bold">
+                          Pekerjaan lunas & selesai — unit siap dikeluarkan.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDetailModal(null);
+                            setShowCheckoutModal(showDetailModal);
+                            setFormCheckout({
+                              barang_dibawa_keluar: false,
+                              detail_barang_keluar: '',
+                              foto_kendaraan_keluar: '',
+                              foto_barang: '',
+                              no_memo_keluar: '',
+                            });
+                          }}
+                          className="px-3 py-1.5 rounded-md bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
+                        >
+                          Check Out Sekarang →
+                        </button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               <div>
                 <span className="text-ink-subtle text-[10px] block mb-1">Keperluan / Penugasan PIC</span>
