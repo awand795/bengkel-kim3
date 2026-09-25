@@ -6,7 +6,6 @@ import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
 import { realtimeHub } from '../services/realtimeService';
 import { useAppStore } from '../store/useAppStore';
-import { resolveMechanicId } from '../utils/spkAccess';
 import { 
   ClipboardList, 
   Wrench, 
@@ -38,7 +37,7 @@ import { toast } from '../components/common/Toast';
 
 export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' }> = ({ initialTab = 'spk-list' }) => {
   const queryClient = useQueryClient();
-  const { currentUser, saPendingAntrianId, setSaPendingAntrianId } = useAppStore();
+  const { currentUser, saPendingAntrianId, setSaPendingAntrianId, navTick, activeTab: storeActiveTab } = useAppStore();
   const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed'>(initialTab);
 
   // Sinkron tab internal saat navigasi deep-link (mis. Dashboard "Buat SPK" -> penerimaan)
@@ -47,6 +46,14 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       setActiveTab(initialTab);
     }
   }, [initialTab]);
+
+  // Reset ke tab utama saat menu sidebar diklik (termasuk klik ulang menu yang sama)
+  useEffect(() => {
+    if (!navTick) return;
+    if (storeActiveTab === 'sa-penerimaan') setActiveTab('penerimaan');
+    else if (storeActiveTab === 'purchasing') setActiveTab('estimasi-pr');
+    else if (storeActiveTab === 'sa') setActiveTab('spk-list');
+  }, [navTick, storeActiveTab]);
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrModal, setShowPrModal] = useState<SpkService | null>(null);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
@@ -117,9 +124,63 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
   const [partPickerId, setPartPickerId] = useState<string>('');
   const [partPickerQty, setPartPickerQty] = useState<number>(1);
   const [estimasiWaktu, setEstimasiWaktu] = useState<number>(6);
+  // Picker tambahan SA tersembunyi di balik tombol (sumber utama = inputan Foreman)
+  const [showPartPicker, setShowPartPicker] = useState<boolean>(false);
+
+  // Jasa Servis Dasar: pilihan sistem — sertakan atau tidak + nominal bisa diisi.
+  // Default ikut & Rp 250.000 (mempertahankan perilaku lama).
+  const [jasaTermasuk, setJasaTermasuk] = useState<boolean>(true);
+  const [jasaNominal, setJasaNominal] = useState<number>(250000);
+
+  const resetEstimasiForm = () => {
+    setSelectedParts([]);
+    setPartPickerId('');
+    setPartPickerQty(1);
+    setShowPartPicker(false);
+    setEstimasiWaktu(6);
+    setJasaTermasuk(true);
+    setJasaNominal(250000);
+  };
 
   // Form PR (Purchase Request)
   const [prNote, setPrNote] = useState('');
+
+  // Picker part PR manual: select + jumlah, bisa beberapa item (sesuai kondisi)
+  const [prParts, setPrParts] = useState<Array<{
+    kode_part: string;
+    nama_part: string;
+    jumlah: number;
+    satuan: string;
+    stok: number;
+  }>>([]);
+  const [prPickerId, setPrPickerId] = useState<string>('');
+  const [prPickerQty, setPrPickerQty] = useState<number>(1);
+
+  const resetPrForm = () => {
+    setPrParts([]);
+    setPrPickerId('');
+    setPrPickerQty(1);
+    setPrNote('');
+  };
+
+  // Prefill PR dari part SPK yang tidak ready (SA tinggal tambah/kurangi)
+  useEffect(() => {
+    if (!showPrModal) return;
+    resetPrForm();
+    const indent = (spkPartList || [])
+      .filter((p) => p.id_spk === showPrModal.id && (p.status_ketersediaan || '') !== 'Ready di Stock')
+      .map((ep) => {
+        const master = masterStokPart?.find((m) => m.kode_part === ep.kode_part);
+        return {
+          kode_part: ep.kode_part || '',
+          nama_part: ep.nama_part,
+          jumlah: ep.jumlah,
+          satuan: ep.satuan || '',
+          stok: master ? master.stok : 0,
+        };
+      });
+    if (indent.length > 0) setPrParts(indent);
+  }, [showPrModal]);
 
   // Queries
   const { data: spkList, isLoading: loadingSpk } = useQuery({
@@ -132,6 +193,64 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     queryKey: ['stok-part'],
     queryFn: api.getStokPart,
   });
+
+  // Part inputan Foreman (sumber utama kebutuhan SPK — SA tinggal verifikasi
+  // harga/jumlah, bukan input ulang dari nol)
+  const { data: spkPartList } = useQuery({
+    queryKey: ['part-spk-list'],
+    queryFn: api.getPartSpk,
+    refetchInterval: 8000,
+  });
+
+  // Baris pekerjaan SPK (untuk prefill & sinkron Jasa Servis Dasar)
+  const { data: spkPekerjaanList } = useQuery({
+    queryKey: ['pekerjaan-spk-list'],
+    queryFn: api.getPekerjaanSpk,
+    refetchInterval: 8000,
+  });
+
+  // Nama baku baris jasa (sama persis di submit & prefill agar tidak ganda)
+  const JASA_NAMA = 'Jasa Servis Dasar';
+
+  // Prefill modal estimasi saat dibuka: part foreman tampil read-only (derivasi),
+  // buffer tambahan SA dikosongkan, picker tertutup.
+  useEffect(() => {
+    if (!showEstimasiModal) return;
+    setSelectedParts([]);
+    setPartPickerId('');
+    setPartPickerQty(1);
+    setShowPartPicker(false);
+    if (showEstimasiModal.estimasi_waktu_jam) setEstimasiWaktu(showEstimasiModal.estimasi_waktu_jam);
+    // Prefill jasa dari baris tersimpan (bila ada); default ikut Rp 250.000
+    const existingJasa = (spkPekerjaanList || []).find(
+      (p) => p.id_spk === showEstimasiModal.id && (p.nama_pekerjaan || '').trim().toLowerCase() === JASA_NAMA.toLowerCase()
+    );
+    if (existingJasa) {
+      const nominal = Number(existingJasa.biaya_jasa) || 0;
+      setJasaTermasuk(nominal > 0);
+      setJasaNominal(nominal > 0 ? nominal : 250000);
+    } else {
+      setJasaTermasuk(true);
+      setJasaNominal(250000);
+    }
+  }, [showEstimasiModal, spkPekerjaanList]);
+
+  // Part inputan Foreman (sumber utama, read-only): stok live dari master gudang,
+  // fallback status ketersediaan tersimpan bila master belum termuat.
+  const foremanParts = (spkPartList || [])
+    .filter((p) => p.id_spk === showEstimasiModal?.id)
+    .map((ep) => {
+      const master = masterStokPart?.find((m) => m.kode_part === ep.kode_part);
+      const stok = master ? master.stok : (ep.status_ketersediaan === 'Ready di Stock' ? ep.jumlah : 0);
+      return {
+        kode_part: ep.kode_part || '',
+        nama_part: ep.nama_part,
+        jumlah: ep.jumlah,
+        satuan: ep.satuan || '',
+        harga_satuan: Number(ep.harga_satuan) || 0,
+        stok,
+      };
+    });
 
   const { data: antrianList, isError: antrianError, error: antrianErrorDetail, refetch: refetchAntrian, isFetching: antrianFetching } = useQuery({
     queryKey: ['antrian-list'],
@@ -180,6 +299,20 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     queryFn: api.getPurchasingList,
   });
 
+  // PR aktif untuk sebuah SPK (belum selesai barangnya): kunci ajuan PR ganda
+  // dan jadi penanda bahwa estimasi sudah terkirim (bagian "ketutup").
+  const prAktifUntukSpk = (idSpk: number) =>
+    (purchasingList || []).find(
+      (p) => p.id_spk === idSpk && p.status_pr !== 'Barang Ready' && (p.status_pr || '') !== 'Ditolak'
+    );
+
+  // Tab Kotak Merah SA: default sembunyikan PR yang sudah selesai (Barang Ready).
+  // Toggle untuk melihat riwayat selesai (read-only).
+  const [prShowSelesai, setPrShowSelesai] = useState<boolean>(false);
+  const prListSA = (purchasingList || []).filter((p) =>
+    prShowSelesai ? p.status_pr === 'Barang Ready' : p.status_pr !== 'Barang Ready'
+  );
+
   const handleAddPartToEstimasi = () => {
     if (!partPickerId) return;
     const item = masterStokPart?.find(p => p.kode_part === partPickerId);
@@ -208,10 +341,13 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     setSelectedParts(selectedParts.filter(p => p.kode_part !== kode));
   };
 
-  const hasEmptyStock = selectedParts.some(p => p.stok === 0 || p.jumlah > p.stok);
-  const emptyPartsList = selectedParts.filter(p => p.stok === 0 || p.jumlah > p.stok);
-  const partsSubtotal = selectedParts.reduce((acc, p) => acc + (p.harga_satuan * p.jumlah), 0);
-  const totalEstimasiBiaya = 250000 + partsSubtotal; // Jasa dasar + sparepart
+  // Total & cek stok gabungan: part foreman (utama) + tambahan SA.
+  const allEstimasiParts = [...foremanParts, ...selectedParts];
+  const hasEmptyStock = allEstimasiParts.some(p => p.stok === 0 || p.jumlah > p.stok);
+  const emptyPartsList = allEstimasiParts.filter(p => p.stok === 0 || p.jumlah > p.stok);
+  const partsSubtotal = allEstimasiParts.reduce((acc, p) => acc + (p.harga_satuan * p.jumlah), 0);
+  const jasaAktif = jasaTermasuk ? Math.max(0, jasaNominal || 0) : 0;
+  const totalEstimasiBiaya = jasaAktif + partsSubtotal; // Jasa servis dasar (opsional) + sparepart
 
   // Submit Penerimaan Kendaraan ke Foreman.
   // Status awal 'Menunggu Pengecekan Mekanik' ditulis langsung oleh API
@@ -300,8 +436,22 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
   // Submit Estimasi Biaya (Setelah Pengecekan Mekanik)
   const submitEstimasiMutation = useMutation({
     mutationFn: async (spk: SpkService) => {
-      // 1. Simpan item part yang dipilih ke SPK
+      // Kunci kirim ganda: verifikasi status fresh dari server. Modal basi
+      // (dibuka saat Estimasi Dibuat, disubmit setelah status berubah) ditolak.
+      const freshList = await api.getSpkList();
+      const fresh = freshList.find((s) => s.id === spk.id);
+      if (!fresh) throw new Error('SPK tidak ditemukan di server. Muat ulang halaman.');
+      if (fresh.status_spk !== 'Estimasi Dibuat') {
+        throw new Error(`Estimasi sudah diproses (status kini: ${fresh.status_spk}). Muat ulang untuk status terbaru.`);
+      }
+      // 1. Simpan item part yang dipilih ke SPK.
+      // Anti-duplikat: lewati kode_part yang sudah ada (revisi/re-submit aman).
+      const existingParts = await api.getPartSpk();
+      const existingCodes = new Set(
+        (existingParts || []).filter((ep) => ep.id_spk === spk.id && ep.kode_part).map((ep) => ep.kode_part as string)
+      );
       for (const p of selectedParts) {
+        if (p.kode_part && existingCodes.has(p.kode_part)) continue;
         await api.tambahPartSpk({
           id_spk: spk.id,
           kode_part: p.kode_part,
@@ -311,6 +461,33 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           harga_satuan: p.harga_satuan,
           subtotal: p.harga_satuan * p.jumlah,
           status_ketersediaan: p.stok > 0 ? 'Ready di Stock' : 'Tidak Ready di Stock',
+        });
+      }
+
+      // 1b. Sinkron baris Jasa Servis Dasar (rinci terpisah, tampil di approval customer).
+      // Upsert: update bila baris sudah ada, insert bila belum. Dicentang -> nominal,
+      // tidak dicentang -> Rp 0 bila baris sudah ada (jujur tampil), lewati bila belum ada.
+      if (jasaAktif > 0) {
+        const simpanRes = await api.simpanPekerjaanSpk({
+          id_spk: spk.id,
+          nama_pekerjaan: JASA_NAMA,
+          biaya_jasa: jasaAktif,
+          estimasi_durasi_jam: estimasiWaktu,
+        });
+        if (!(simpanRes?.rows_affected > 0)) {
+          await api.tambahPekerjaanSpk({
+            id_spk: spk.id,
+            nama_pekerjaan: JASA_NAMA,
+            kategori: 'Jasa',
+            biaya_jasa: jasaAktif,
+            estimasi_durasi_jam: estimasiWaktu,
+          });
+        }
+      } else {
+        await api.simpanPekerjaanSpk({
+          id_spk: spk.id,
+          nama_pekerjaan: JASA_NAMA,
+          biaya_jasa: 0,
         });
       }
 
@@ -344,6 +521,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     onSuccess: (result, spk) => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
+      queryClient.invalidateQueries({ queryKey: ['pekerjaan-spk-list'] });
       
       if (result.hasEmptyStock) {
         realtimeHub.publish({
@@ -359,46 +537,42 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         toast.success('Estimasi Biaya berhasil disubmit ke Customer untuk Approval.');
       }
       setShowEstimasiModal(null);
-      setSelectedParts([]);
+      resetEstimasiForm();
     },
     onError: (err: any) => toast.error('Gagal submit estimasi: ' + getApiErrorMessage(err)),
   });
 
-  // Kirim Estimasi ke Customer (Waiting Approval)
-  const kirimEstimasiMutation = useMutation({
-    mutationFn: async (spk: SpkService) => {
-      return api.updateSpkStatus({
-        id: spk.id,
-        status_spk: 'Waiting Approval',
-      });
-    },
-    onSuccess: (_, spk) => {
-      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-
-      // Publish Realtime Event
-      realtimeHub.publish({
-        type: 'SPK_STATUS_CHANGED',
-        targetRoles: ['Customer Fleet'],
-        title: 'Estimasi Biaya Service Tersedia',
-        message: `Estimasi biaya untuk unit ${spk.no_polisi} (SPK: ${spk.no_spk}) telah siap. Mohon persetujuan Anda.`,
-        linkTab: 'fleet-status',
-        urgency: 'urgent',
-      });
-
-      toast.success(`Estimasi SPK ${spk.no_spk} berhasil dikirim ke Pelanggan Fleet! Status sekarang: Waiting Approval.`);
-    },
-    onError: (err: any) => toast.error('Gagal mengirim estimasi: ' + getApiErrorMessage(err)),
-  });
-
-  // Buat PR (Purchase Request) jika Sparepart tidak Ready
+  // Buat PR (Purchase Request) jika Sparepart tidak Ready.
+  // Rincian disusun otomatis dari part terpilih (multi-item) + catatan SA.
   const prMutation = useMutation({
     mutationFn: async (spk: SpkService) => {
+      if (prParts.length === 0) {
+        throw new Error('Pilih minimal 1 sparepart yang dibutuhkan sebelum mengirim PR.');
+      }
+      // Kunci PR ganda: verifikasi fresh — tolak bila SPK sudah lewat tahap
+      // estimasi atau sudah ada PR aktif.
+      const [freshSpkList, freshPrList] = await Promise.all([api.getSpkList(), api.getPurchasingList()]);
+      const fresh = freshSpkList.find((s) => s.id === spk.id);
+      if (!fresh) throw new Error('SPK tidak ditemukan di server. Muat ulang halaman.');
+      if (fresh.status_spk !== 'Estimasi Dibuat') {
+        throw new Error(`PR hanya bisa diajukan saat "Estimasi Dibuat" (status kini: ${fresh.status_spk}).`);
+      }
+      const prAktif = (freshPrList || []).find(
+        (p) => p.id_spk === spk.id && p.status_pr !== 'Barang Ready' && (p.status_pr || '') !== 'Ditolak'
+      );
+      if (prAktif) {
+        throw new Error(`SPK ini sudah memiliki PR aktif ${prAktif.no_pr} (${prAktif.status_pr}).`);
+      }
       const prNo = `PR-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
+      const lines = prParts.map((p, i) =>
+        `${i + 1}. ${p.nama_part}${p.kode_part ? ` (${p.kode_part})` : ''} — butuh ${p.jumlah} ${p.satuan} (stok gudang: ${p.stok})`
+      );
+      const catatan = `Kebutuhan sparepart (${prParts.length} item):\n${lines.join('\n')}${prNote.trim() ? `\nCatatan SA: ${prNote.trim()}` : ''}`;
       return api.ajukanPR({
         no_pr: prNo,
         id_spk: spk.id,
         nama_sa_pemohon: currentUser,
-        catatan_pr: prNote || `Kebutuhan sparepart tidak ready untuk armada ${spk.no_polisi}`,
+        catatan_pr: catatan,
       });
     },
     onSuccess: () => {
@@ -406,7 +580,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       toast.success('Purchase Request berhasil diajukan ke Admin Purchasing!');
       setShowPrModal(null);
-      setPrNote('');
+      resetPrForm();
     },
     onError: (err: any) => toast.error('Gagal mengajukan PR: ' + getApiErrorMessage(err)),
   });
@@ -424,57 +598,6 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       toast.success('Respon konfirmasi ketersediaan barang berhasil diperbarui!');
     },
-  });
-
-  // Konfirmasi Barang Tiba di Bengkel (Barang Ready)
-  const barangReadyMutation = useMutation({
-    mutationFn: async (pr: any) => {
-      await api.updateSpkStatus({
-        id: pr.id_spk,
-        status_spk: 'Dalam Pengerjaan',
-      });
-      return true;
-    },
-    onSuccess: (_, pr) => {
-      queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
-      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-
-      // 1a. Notifikasi personal ke mekanik ter-assign (hanya dia yang menerima).
-      const mechanicId = resolveMechanicId(spkList, pr.id_spk);
-      if (mechanicId) {
-        realtimeHub.publish({
-          type: 'PART_READY',
-          targetRoles: ['Mekanik'],
-          targetUserId: mechanicId,
-          title: 'Sparepart Tiba / Ready Stock',
-          message: `Part untuk unit telah tiba di bengkel. Pekerjaan dapat dilanjutkan kembali.`,
-          linkTab: 'mekanik',
-          urgency: 'success',
-        });
-      }
-
-      // 1b. Notifikasi untuk Foreman (koordinator mekanik).
-      realtimeHub.publish({
-        type: 'PART_READY',
-        targetRoles: ['Foreman'],
-        title: 'Sparepart Tiba / Ready Stock',
-        message: `Part untuk unit telah tiba di bengkel. Pekerjaan dapat dilanjutkan kembali.`,
-        linkTab: 'foreman',
-        urgency: 'success',
-      });
-
-      // 2. Notifikasi untuk Customer Fleet
-      realtimeHub.publish({
-        type: 'PART_READY',
-        targetRoles: ['Customer Fleet'],
-        title: 'Part Armada Tersedia di Bengkel',
-        message: `Kebutuhan sparepart armada Anda telah ready di bengkel dan pengerjaan mekanik sedang dilanjutkan.`,
-        linkTab: 'fleet-status',
-        urgency: 'info',
-      });
-      toast.success('Barang dikonfirmasi READY! Status SPK dikembalikan ke "Dalam Pengerjaan" untuk teknisi.');
-    },
-    onError: (err: any) => toast.error('Gagal konfirmasi barang ready: ' + getApiErrorMessage(err)),
   });
 
   // SA FIR Closed & Terbitkan Invoice Otomatis
@@ -773,17 +896,34 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                             </button>
                           )}
 
-                          {/* Ajukan PR jika part tidak ready */}
-                          {spk.status_spk !== 'FIR Closed' && spk.status_spk !== 'Selesai' && (
-                            <button
-                              type="button"
-                              onClick={() => setShowPrModal(spk)}
-                              className="px-2.5 py-1 bg-status-red-bg hover:bg-status-red/10 text-status-red rounded-md font-bold text-xs border border-status-red/30 flex items-center gap-1"
-                              title="Ajukan PR ke Purchasing jika part tidak ready"
-                            >
-                              <ShoppingBag className="w-3.5 h-3.5" /> PR Part
-                            </button>
-                          )}
+                          {/* Ajukan PR: hanya saat Estimasi Dibuat & belum ada PR aktif.
+                              Otomatis terkunci setelah approval terkirim / PR berjalan. */}
+                          {(() => {
+                            const prAktif = prAktifUntukSpk(spk.id);
+                            if (prAktif) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('estimasi-pr')}
+                                  className="px-2.5 py-1 bg-surface text-ink-muted rounded-md font-bold text-xs border border-border flex items-center gap-1"
+                                  title={`PR ${prAktif.no_pr} berstatus ${prAktif.status_pr} — lihat di Kotak Merah`}
+                                >
+                                  <ShoppingBag className="w-3.5 h-3.5" /> PR {prAktif.status_pr}
+                                </button>
+                              );
+                            }
+                            if (spk.status_spk !== 'Estimasi Dibuat') return null;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => setShowPrModal(spk)}
+                                className="px-2.5 py-1 bg-status-red-bg hover:bg-status-red/10 text-status-red rounded-md font-bold text-xs border border-status-red/30 flex items-center gap-1"
+                                title="Ajukan PR ke Purchasing jika part tidak ready"
+                              >
+                                <ShoppingBag className="w-3.5 h-3.5" /> PR Part
+                              </button>
+                            );
+                          })()}
 
                           {/* Cetak SPK A4 */}
                           <button
@@ -860,15 +1000,31 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   </button>
                 )}
 
-                {spk.status_spk !== 'FIR Closed' && spk.status_spk !== 'Selesai' && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPrModal(spk)}
-                    className="mt-2 w-full min-h-[44px] py-2.5 bg-status-red-bg active:bg-status-red/10 text-status-red rounded-md font-bold text-xs border border-status-red/30 flex items-center justify-center gap-1.5"
-                  >
-                    <ShoppingBag className="w-4 h-4" /> Ajukan PR Part
-                  </button>
-                )}
+                {(() => {
+                  const prAktif = prAktifUntukSpk(spk.id);
+                  if (prAktif) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('estimasi-pr')}
+                        className="mt-2 w-full min-h-[44px] py-2.5 bg-surface text-ink-muted rounded-md font-bold text-xs border border-border flex items-center justify-center gap-1.5"
+                        title={`PR ${prAktif.no_pr} berstatus ${prAktif.status_pr} — lihat di Kotak Merah`}
+                      >
+                        <ShoppingBag className="w-4 h-4" /> PR {prAktif.status_pr}
+                      </button>
+                    );
+                  }
+                  if (spk.status_spk !== 'Estimasi Dibuat') return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setShowPrModal(spk)}
+                      className="mt-2 w-full min-h-[44px] py-2.5 bg-status-red-bg active:bg-status-red/10 text-status-red rounded-md font-bold text-xs border border-status-red/30 flex items-center justify-center gap-1.5"
+                    >
+                      <ShoppingBag className="w-4 h-4" /> Ajukan PR Part
+                    </button>
+                  );
+                })()}
 
                 <button
                   type="button"
@@ -1182,7 +1338,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       {activeTab === 'estimasi-pr' && (
 
         <div className="space-y-4">
-          <div className="p-4 rounded-md bg-status-red text-white shadow-md flex items-center justify-between">
+          <div className="p-4 rounded-md bg-status-red text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-status-red/80 text-white/80 text-[10px] font-bold uppercase tracking-wider mb-1">
                 Tahap 6: Integrasi Estimasi Part &amp; Purchasing
@@ -1192,10 +1348,34 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 SA mengajukan PR → Purchasing proses penawaran harga min. 2 vendor → SA setuju → Purchasing input ETA ketersediaan barang.
               </p>
             </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-white/80">
+                {prListSA.length} {prShowSelesai ? 'selesai' : 'aktif'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPrShowSelesai((v) => !v)}
+                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all border ${
+                  prShowSelesai
+                    ? 'bg-white text-status-red border-white'
+                    : 'bg-white/10 text-white border-white/30 hover:bg-white/20'
+                }`}
+                title={prShowSelesai ? 'Kembali ke PR aktif' : 'Lihat riwayat PR yang sudah selesai'}
+              >
+                {prShowSelesai ? 'Lihat Aktif' : 'Sudah Selesai'}
+              </button>
+            </div>
           </div>
 
+          {prListSA.length === 0 ? (
+            <div className="p-8 text-center text-ink-subtle text-xs bg-surface-raised rounded-md border border-dashed border-border">
+              {prShowSelesai
+                ? 'Belum ada PR yang selesai.'
+                : 'Tidak ada PR aktif. Semua kebutuhan part sudah beres — PR yang selesai ada di toggle "Sudah Selesai".'}
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {purchasingList?.map((pr) => (
+            {prListSA.map((pr) => (
               <div key={pr.pr_id} className="bg-surface-raised rounded-md border border-status-red/30 p-5 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-bold text-status-red">{pr.no_pr}</span>
@@ -1243,19 +1423,28 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     <div className="pt-2 flex items-center justify-between">
                       <span className="font-semibold text-ink-muted">Konfirmasi SA:</span>
                       {pr.status_konfirmasi_sa === 'Disetujui SA' ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
                           <span className="px-2.5 py-1 bg-status-green-bg text-status-green font-bold rounded-md text-xs flex items-center gap-1">
                             <Check className="w-3.5 h-3.5" /> Disetujui SA
                           </span>
-                          <button
-                            type="button"
-                            disabled={barangReadyMutation.isPending}
-                            onClick={() => barangReadyMutation.mutate(pr)}
-                            className="px-3 py-1 bg-status-green hover:bg-status-green/90 text-white rounded-md font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all"
-                            title="Konfirmasi barang fisik telah tiba di bengkel dan kembalikan status SPK ke Dalam Pengerjaan"
-                          >
-                            <Package className="w-3.5 h-3.5" /> Konfirmasi Barang Sampai
-                          </button>
+                          {pr.status_pr === 'Barang Ready' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const spk = (spkList || []).find((s) => s.id === pr.id_spk);
+                                if (spk) setShowEstimasiModal(spk);
+                                else toast.warning('Data SPK tidak ditemukan di daftar. Muat ulang halaman.');
+                              }}
+                              className="px-3 py-1 bg-accent hover:bg-accent-hover text-white rounded-md font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all"
+                              title="Barang sudah dikonfirmasi tiba oleh Purchasing — buka estimasi untuk finalisasi"
+                            >
+                              <ClipboardList className="w-3.5 h-3.5" /> Buka Estimasi
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-ink-muted italic">
+                              Menunggu konfirmasi barang tiba oleh Admin Purchasing.
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <div className="flex gap-2">
@@ -1286,6 +1475,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -1301,7 +1491,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 <p className="text-xs text-ink-muted">Berdasarkan hasil pengecekan {showEstimasiModal.nama_foreman ? `Foreman (${showEstimasiModal.nama_foreman})` : 'Foreman'} untuk {showEstimasiModal.no_polisi}</p>
               </div>
               <button 
-                onClick={() => { setShowEstimasiModal(null); setSelectedParts([]); }} 
+                onClick={() => { setShowEstimasiModal(null); resetEstimasiForm(); }} 
                 className="w-8 h-8 rounded-full bg-surface text-ink-subtle flex items-center justify-center hover:bg-status-red-bg hover:text-status-red transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -1318,44 +1508,89 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   </div>
                 </div>
 
+                {/* Sparepart inputan Foreman/Mekanik (sumber utama, read-only) */}
+                <div className="bg-surface rounded-md p-4 border border-border">
+                  <h4 className="text-xs font-bold text-ink mb-3 flex items-center gap-1.5">
+                    <Package className="w-4 h-4 text-status-green" /> Sparepart Inputan Foreman/Mekanik
+                    <span className="ml-auto text-[10px] font-bold text-ink-subtle">{foremanParts.length} item</span>
+                  </h4>
+                  {foremanParts.length > 0 ? (
+                    <div className="space-y-2">
+                      {foremanParts.map((p, idx) => (
+                        <div key={`f-${idx}`} className="p-2.5 bg-surface-raised border border-border rounded-md flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-ink truncate">{p.nama_part}</div>
+                            <div className="text-[10px] text-ink-muted flex gap-2 mt-0.5">
+                              <span>{p.jumlah} {p.satuan} x Rp {p.harga_satuan.toLocaleString()}</span>
+                              {p.stok === 0 || p.jumlah > p.stok ? (
+                                <span className="text-status-red font-bold flex items-center gap-0.5"><AlertCircle className="w-3 h-3" /> INDENT</span>
+                              ) : (
+                                <span className="text-status-green font-bold flex items-center gap-0.5"><Check className="w-3 h-3" /> Ready</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-ink-subtle italic text-center p-2 bg-surface-raised/50 rounded-md">
+                      Foreman belum menginput sparepart untuk SPK ini.
+                    </p>
+                  )}
+                </div>
+
+                {/* Tambahan SA (opsional, tersembunyi di balik tombol agar tidak salah paham) */}
                 <div className="bg-accent-subtle rounded-md p-4 border border-accent/20">
-                  <h4 className="text-xs font-bold text-ink mb-3 flex items-center gap-1.5"><Package className="w-4 h-4 text-accent"/> Tambah Sparepart / Jasa Tambahan</h4>
-                  <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPartPicker((v) => !v)}
+                    className="w-full py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {showPartPicker ? 'Tutup Tambah Sparepart' : `Tambah Sparepart Tambahan${selectedParts.length > 0 ? ` (${selectedParts.length})` : ''}`}
+                  </button>
+                  {showPartPicker && (
+                  <>
+                  {/* Susun vertikal agar tidak meluber menimpa kolom kanan di layar sempit */}
+                  <div className="space-y-2 mt-3">
                     <select
                       value={partPickerId}
                       onChange={(e) => setPartPickerId(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                      className="w-full min-w-0 px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none truncate"
                     >
                       <option value="">-- Pilih Sparepart --</option>
                       {masterStokPart?.map(p => (
                         <option key={p.kode_part} value={p.kode_part}>
-                          {p.nama_part} - Stok: {p.stok} {p.satuan} (Rp {p.harga_jual.toLocaleString()})
+                          {p.kode_part} - {p.nama_part} | stok: {p.stok}
                         </option>
                       ))}
                     </select>
-                    <input
-                      type="number"
-                      min="1"
-                      value={partPickerQty}
-                      onChange={(e) => setPartPickerQty(Number(e.target.value))}
-                      className="w-16 px-2 py-2 rounded-md border border-border text-xs text-center focus:ring-2 focus:ring-accent focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddPartToEstimasi}
-                      disabled={!partPickerId}
-                      className="px-3 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center transition-all"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        value={partPickerQty}
+                        onChange={(e) => setPartPickerQty(Number(e.target.value))}
+                        className="w-20 shrink-0 px-2 py-2 rounded-md border border-border text-xs text-center focus:ring-2 focus:ring-accent focus:outline-none"
+                        title="Jumlah"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddPartToEstimasi}
+                        disabled={!partPickerId}
+                        className="flex-1 px-3 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <Plus className="w-4 h-4" /> Tambah ke Estimasi
+                      </button>
+                    </div>
                   </div>
 
-                  {/* List Part Terpilih */}
+                  {/* List Part Tambahan SA */}
                   <div className="mt-3 space-y-2">
                     {selectedParts.map((p, idx) => (
-                      <div key={idx} className="p-2.5 bg-surface-raised border border-border rounded-md flex items-center justify-between">
-                        <div>
-                          <div className="text-xs font-bold text-ink">{p.nama_part}</div>
+                      <div key={idx} className="p-2.5 bg-surface-raised border border-border rounded-md flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-ink truncate">{p.nama_part}</div>
                           <div className="text-[10px] text-ink-muted flex gap-2 mt-0.5">
                             <span>{p.jumlah} {p.satuan} x Rp {p.harga_satuan.toLocaleString()}</span>
                             {p.stok === 0 || p.jumlah > p.stok ? (
@@ -1369,9 +1604,11 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                       </div>
                     ))}
                     {selectedParts.length === 0 && (
-                      <p className="text-[10px] text-ink-subtle italic text-center p-2 bg-surface-raised/50 rounded-md">Belum ada part ditambahkan.</p>
+                      <p className="text-[10px] text-ink-subtle italic text-center p-2 bg-surface-raised/50 rounded-md">Belum ada tambahan dari SA.</p>
                     )}
                   </div>
+                  </>
+                  )}
                 </div>
               </div>
 
@@ -1379,12 +1616,38 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               <div className="space-y-4">
                 <div className="bg-surface rounded-md p-4 border border-border space-y-3">
                   <h4 className="text-xs font-bold text-ink border-b border-border pb-2">Ringkasan Estimasi Customer</h4>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-ink-muted">Jasa Servis Dasar:</span>
-                    <span className="font-semibold text-ink-muted">Rp 250.000</span>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={jasaTermasuk}
+                        onChange={(e) => setJasaTermasuk(e.target.checked)}
+                        className="w-4 h-4 rounded text-accent focus:ring-accent"
+                      />
+                      <span className="font-bold text-ink">Sertakan Jasa Servis Dasar</span>
+                    </label>
+                    {jasaTermasuk && (
+                      <div className="flex justify-between items-center gap-2 text-xs">
+                        <span className="text-ink-muted">Nominal jasa:</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-ink-muted font-bold">Rp</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={jasaNominal}
+                            onChange={(e) => setJasaNominal(Math.max(0, Number(e.target.value) || 0))}
+                            className="w-32 px-2 py-1.5 rounded-md border border-border font-mono text-xs font-bold text-right focus:ring-2 focus:ring-accent focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-ink-muted">Total Sparepart ({selectedParts.length} item):</span>
+                    <span className="text-ink-muted">Jasa Servis Dasar:</span>
+                    <span className="font-semibold text-ink-muted">Rp {jasaAktif.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-ink-muted">Total Sparepart ({allEstimasiParts.length} item):</span>
                     <span className="font-semibold text-ink-muted">Rp {partsSubtotal.toLocaleString('id-ID')}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm pt-2 border-t border-border">
@@ -1438,7 +1701,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 <p className="text-xs text-ink-muted">Kirim permintaan pengadaan sparepart ke Admin Purchasing</p>
               </div>
               <button
-                onClick={() => setShowPrModal(null)}
+                onClick={() => { setShowPrModal(null); resetPrForm(); }}
                 className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface"
               >
                 <X className="w-5 h-5" />
@@ -1451,12 +1714,94 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 <div className="text-ink-muted mt-0.5">{showPrModal.nama_customer}</div>
               </div>
 
+              {/* Pilih sparepart (multi-item, stok live gudang) */}
               <div>
-                <label className="block text-xs font-bold text-ink-muted mb-1">Rincian Kebutuhan Sparepart / Catatan</label>
+                <label className="block text-xs font-bold text-ink-muted mb-1">
+                  Pilih Sparepart <span className="text-status-red">*</span>
+                  <span className="font-normal"> — part indent SPK ini sudah terisi otomatis</span>
+                </label>
+                <div className="space-y-2">
+                  <select
+                    value={prPickerId}
+                    onChange={(e) => setPrPickerId(e.target.value)}
+                    className="w-full min-w-0 px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none truncate"
+                  >
+                    <option value="">-- Pilih sparepart gudang --</option>
+                    {masterStokPart?.map((p) => (
+                      <option key={p.kode_part} value={p.kode_part}>
+                        {p.kode_part} - {p.nama_part} | stok: {p.stok}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={prPickerQty}
+                      onChange={(e) => setPrPickerQty(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-20 shrink-0 px-2 py-2 rounded-md border border-border text-xs text-center focus:ring-2 focus:ring-accent focus:outline-none"
+                      title="Jumlah dibutuhkan"
+                    />
+                    <button
+                      type="button"
+                      disabled={!prPickerId}
+                      onClick={() => {
+                        const item = masterStokPart?.find((p) => p.kode_part === prPickerId);
+                        if (!item) return;
+                        if (prParts.some((p) => p.kode_part === item.kode_part)) {
+                          toast.warning(`${item.nama_part} sudah ada di daftar PR ini.`);
+                          return;
+                        }
+                        setPrParts([...prParts, {
+                          kode_part: item.kode_part,
+                          nama_part: item.nama_part,
+                          jumlah: prPickerQty,
+                          satuan: item.satuan,
+                          stok: item.stok,
+                        }]);
+                        setPrPickerId('');
+                        setPrPickerQty(1);
+                      }}
+                      className="flex-1 px-3 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-md font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah ke PR
+                    </button>
+                  </div>
+                </div>
+
+                {prParts.length > 0 ? (
+                  <div className="mt-2 space-y-1.5">
+                    {prParts.map((p) => (
+                      <div key={p.kode_part} className="flex items-center justify-between px-3 py-2 rounded-md bg-surface border border-border text-xs gap-2">
+                        <div className="min-w-0">
+                          <div className="font-bold text-ink truncate">{p.nama_part}</div>
+                          <div className="text-[11px] text-ink-muted font-mono">
+                            {p.kode_part} | butuh: {p.jumlah} {p.satuan} | stok gudang: {p.stok}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPrParts(prParts.filter((x) => x.kode_part !== p.kode_part))}
+                          className="p-1.5 rounded-md text-status-red hover:bg-status-red-bg transition-colors shrink-0"
+                          title="Hapus dari PR"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[11px] text-ink-subtle italic text-center p-2 bg-surface rounded-md border border-dashed border-border">
+                    Belum ada part dipilih. Pilih dari daftar di atas lalu Tambah (bisa beberapa item).
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Tambahan (Opsional)</label>
                 <textarea
-                  rows={3}
-                  required
-                  placeholder="Sebutkan jenis part, jumlah, spesifikasi, dan estimasi waktu..."
+                  rows={2}
+                  placeholder="Contoh: butuh urgent untuk unit operasional..."
                   value={prNote}
                   onChange={(e) => setPrNote(e.target.value)}
                   className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
@@ -1467,7 +1812,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setShowPrModal(null)}
+                onClick={() => { setShowPrModal(null); resetPrForm(); }}
                 className="flex-1 py-2.5 bg-surface hover:bg-surface-raised text-ink-muted font-bold text-xs rounded-md border border-border"
               >
                 Batal

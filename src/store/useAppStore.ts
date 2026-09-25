@@ -20,6 +20,10 @@ interface AppState {
   setActiveTab: (tab: string) => void;
   setSelectedSpkId: (id: number | null) => void;
   setSaPendingAntrianId: (id: number | null) => void;
+  // Tick navigasi: di-bump setiap klik sidebar agar view bisa reset
+  // ke tab utamanya meski activeTab tidak berubah (klik ulang menu sama).
+  navTick: number;
+  bumpNav: () => void;
   setMobileMenuOpen: (open: boolean) => void;
   setJwtToken: (token: string | null) => void;
   setIsVerifyingSession: (verifying: boolean) => void;
@@ -124,6 +128,8 @@ export const useAppStore = create<AppState>((set) => ({
   setActiveTab: (tab: string) => set({ activeTab: tab, mobileMenuOpen: false }),
   setSelectedSpkId: (id: number | null) => set({ selectedSpkId: id }),
   setSaPendingAntrianId: (id: number | null) => set({ saPendingAntrianId: id }),
+  navTick: 0,
+  bumpNav: () => set((state) => ({ navTick: state.navTick + 1 })),
   setMobileMenuOpen: (open: boolean) => set({ mobileMenuOpen: open }),
   setJwtToken: (token: string | null) => set({ jwtToken: token, isLoggedIn: !!token }),
   decrementNotification: () => set((state) => ({ notificationCount: Math.max(0, state.notificationCount - 1) })),

@@ -30,9 +30,9 @@ export const PurchasingView: React.FC = () => {
   const { currentUser } = useAppStore();
   const [selectedPr, setSelectedPr] = useState<PurchaseRequestPart | null>(null);
 
-  // Search & Filter State
+  // Search & Filter State — default antrian yang belum diproses (chips = menu riwayat proses)
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'Semua' | 'Belum Ada PO' | 'PO Diterbitkan' | 'Barang Ready'>('Semua');
+  const [statusFilter, setStatusFilter] = useState<'Semua' | 'Belum Ada PO' | 'PO Diterbitkan' | 'Barang Ready'>('Belum Ada PO');
 
   // Pagination State
   const [prPage, setPrPage] = useState(1);
@@ -43,6 +43,7 @@ export const PurchasingView: React.FC = () => {
   }, [searchQuery, statusFilter]);
 
   // Form Input Penawaran 2 Vendor & ETA State (image1.png Kotak Merah)
+  // ETA default kosong: diinput TERPISAH setelah SA menyetujui PO (Excel tahap 6).
   const [poForm, setPoForm] = useState({
     vendor_1_nama: '',
     vendor_1_harga: 0,
@@ -50,7 +51,7 @@ export const PurchasingView: React.FC = () => {
     vendor_2_harga: 0,
     vendor_terpilih: '',
     harga_kesepakatan: 0,
-    estimasi_tanggal_ready_eta: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+    estimasi_tanggal_ready_eta: '',
     estimasi_jam_ready_eta: '',
     catatan_purchasing: '',
   });
@@ -71,6 +72,10 @@ export const PurchasingView: React.FC = () => {
   // Submit PO & ETA
   const submitPoMutation = useMutation({
     mutationFn: async (pr: PurchaseRequestPart) => {
+      // Cegah PO ganda: PR yang sudah ber-PO tidak bisa diterbitkan lagi
+      if (pr.no_po) {
+        throw new Error(`PR ${pr.no_pr} sudah memiliki PO ${pr.no_po}. Lihat di filter "PO Diterbitkan".`);
+      }
       const poNo = `PO-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
 
       return api.buatPO({
@@ -92,21 +97,62 @@ export const PurchasingView: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      toast.success('Penawaran 2 Vendor & Input ETA Barang Ready berhasil diterbitkan ke SA!');
+      toast.success('PO berhasil diterbitkan! Status PR menjadi "PO Diterbitkan" — pantau di filter tersebut.');
       setSelectedPr(null);
+      setPoForm({
+        vendor_1_nama: '',
+        vendor_1_harga: 0,
+        vendor_2_nama: '',
+        vendor_2_harga: 0,
+        vendor_terpilih: '',
+        harga_kesepakatan: 0,
+        estimasi_tanggal_ready_eta: '',
+        estimasi_jam_ready_eta: '',
+        catatan_purchasing: '',
+      });
     },
     onError: (err: any) => toast.error('Gagal membuat PO: ' + (err?.message || 'Terjadi kesalahan.')),
   });
 
-  // Konfirmasi Barang Ready / Tiba di Bengkel
+  // Simpan ETA setelah SA menyetujui PO (Excel tahap 6 langkah 5)
+  const updateEtaMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedPr?.po_id) throw new Error('PO belum diterbitkan.');
+      if (!poForm.estimasi_tanggal_ready_eta || !poForm.estimasi_jam_ready_eta) {
+        throw new Error('Isi tanggal & jam ETA terlebih dahulu.');
+      }
+      return api.updatePOETA({
+        id: selectedPr.po_id,
+        estimasi_tanggal_ready_eta: poForm.estimasi_tanggal_ready_eta,
+        estimasi_jam_ready_eta: poForm.estimasi_jam_ready_eta,
+        catatan_purchasing: poForm.catatan_purchasing || undefined,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      realtimeHub.publish({
+        type: 'SPK_STATUS_CHANGED',
+        targetRoles: ['SA'],
+        title: 'ETA Barang Diperbarui',
+        message: `Purchasing menginput ETA barang ready untuk ${selectedPr?.no_pr} (${selectedPr?.no_polisi}): ${poForm.estimasi_tanggal_ready_eta} ${poForm.estimasi_jam_ready_eta}.`,
+        linkTab: 'sa',
+        urgency: 'info',
+      });
+      toast.success('ETA berhasil disimpan! Menunggu barang tiba untuk konfirmasi ready.');
+    },
+    onError: (err: any) => toast.error('Gagal menyimpan ETA: ' + (err?.message || 'Terjadi kesalahan.')),
+  });
+
+  // Konfirmasi Barang Ready / Tiba di Bengkel.
+  // Satu panggilan atomic /kim3/barang-ready: stok += qty indent, part jadi Ready,
+  // PR -> Barang Ready, SPK -> Estimasi Dibuat (finalisasi SA + approval customer).
   const barangReadyMutation = useMutation({
     mutationFn: async (pr: PurchaseRequestPart) => {
-      // Update SPK status to Dalam Pengerjaan
-      await api.updateSpkStatus({
-        id: pr.id_spk,
-        status_spk: 'Dalam Pengerjaan',
+      return api.konfirmasiBarangReady({
+        id_pr: pr.pr_id,
+        id_spk: pr.id_spk,
       });
-      return true;
     },
     onSuccess: (_, pr) => {
       queryClient.invalidateQueries({ queryKey: ['purchasing-list'] });
@@ -121,9 +167,9 @@ export const PurchasingView: React.FC = () => {
           targetRoles: ['Mekanik'],
           targetUserId: mechanicId,
           title: 'Barang Ready di Bengkel KIM3',
-          message: `Sparepart untuk armada ${pr.no_polisi} telah ready di bengkel. Status SPK beralih ke 'Dalam Pengerjaan'.`,
+          message: `Sparepart untuk armada ${pr.no_polisi} telah ready di bengkel. SA finalisasi estimasi untuk approval customer sebelum WO dimulai.`,
           linkTab: 'mekanik',
-          urgency: 'success',
+          urgency: 'info',
         });
       }
 
@@ -132,7 +178,7 @@ export const PurchasingView: React.FC = () => {
         type: 'SPK_STATUS_CHANGED',
         targetRoles: ['Foreman', 'SA'],
         title: 'Barang Ready di Bengkel KIM3',
-        message: `Sparepart untuk armada ${pr.no_polisi} telah ready di bengkel. Status SPK beralih ke 'Dalam Pengerjaan'.`,
+        message: `Sparepart untuk armada ${pr.no_polisi} telah ready di bengkel. SA finalisasi estimasi untuk approval customer.`,
         linkTab: 'foreman',
         urgency: 'success',
       });
@@ -142,11 +188,11 @@ export const PurchasingView: React.FC = () => {
         type: 'SPK_STATUS_CHANGED',
         targetRoles: ['Customer Fleet'],
         title: 'Sparepart Armada Tersedia',
-        message: `Sparepart untuk armada ${pr.no_polisi} telah tiba di bengkel dan pengerjaan mekanik dilanjutkan.`,
+        message: `Sparepart untuk armada ${pr.no_polisi} telah tiba di bengkel. SA sedang finalisasi estimasi untuk persetujuan Anda.`,
         linkTab: 'fleet-status',
         urgency: 'info',
       });
-      toast.success(`Barang untuk ${pr.no_polisi} telah dikonfirmasi READY! Status SPK dikembalikan ke "Dalam Pengerjaan".`);
+      toast.success(`Barang untuk ${pr.no_polisi} telah dikonfirmasi READY! Status SPK kembali ke "Estimasi Dibuat" untuk finalisasi SA.`);
     },
     onError: (err: any) => toast.error('Gagal konfirmasi barang ready: ' + (err?.message || 'Terjadi kesalahan.')),
   });
@@ -154,6 +200,9 @@ export const PurchasingView: React.FC = () => {
   // Derived statistics and filtering
   const allPr = purchasingList || [];
   const totalPrCount = allPr.length;
+  // Status turunan PO terpilih untuk panel berfase (Excel tahap 6)
+  const poApproved = (selectedPr?.status_konfirmasi_sa || '') === 'Disetujui SA';
+  const poHasEta = !!(selectedPr?.estimasi_tanggal_ready_eta);
   const pendingPoCount = allPr.filter(p => !p.no_po).length;
   const poActiveCount = allPr.filter(p => p.no_po && p.status_pr !== 'Barang Ready').length;
   const barangReadyCount = allPr.filter(p => p.status_pr === 'Barang Ready').length;
@@ -365,8 +414,9 @@ export const PurchasingView: React.FC = () => {
                           <span>Konfirmasi SA: <strong className={item.status_konfirmasi_sa === 'Disetujui SA' ? 'text-status-green' : 'text-status-amber'}>{item.status_konfirmasi_sa || 'Menunggu'}</strong></span>
                         </div>
 
-                        {/* Tombol Konfirmasi Barang Ready jika sudah disetujui SA */}
-                        {item.status_konfirmasi_sa === 'Disetujui SA' && (
+                        {/* Tombol Konfirmasi Barang Ready: hanya bila disetujui SA DAN belum ready.
+                            PR yang sudah Barang Ready tidak bisa dikonfirmasi ulang (stok anti-ganda). */}
+                        {item.status_konfirmasi_sa === 'Disetujui SA' && item.status_pr !== 'Barang Ready' && (
                           <div className="flex items-center justify-between pt-1">
                             <span className="text-[11px] text-status-green font-bold flex items-center gap-1">
                               <Check className="w-3.5 h-3.5" /> Disetujui SA
@@ -382,6 +432,12 @@ export const PurchasingView: React.FC = () => {
                             >
                               <PackageCheck className="w-4 h-4" /> KONFIRMASI BARANG READY
                             </button>
+                          </div>
+                        )}
+                        {item.status_pr === 'Barang Ready' && (
+                          <div className="flex items-center gap-1.5 pt-1 text-[11px] text-status-green font-bold">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Barang sudah dikonfirmasi tiba — stok bertambah, SPK kembali ke SA.</span>
                           </div>
                         )}
                       </div>
@@ -423,7 +479,41 @@ export const PurchasingView: React.FC = () => {
 
               <div className="space-y-3 text-xs">
                 
-                {/* Aturan Wajib Min 2 Vendor */}
+                {selectedPr.no_po && poApproved && poHasEta ? (
+                  /* PO lengkap (vendor + disetujui SA + ETA): read-only */
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-md bg-status-green-bg border border-status-green/30 text-status-green text-[11px] font-bold flex items-center gap-2">
+                      <Check className="w-4 h-4 shrink-0" />
+                      <span>PO {selectedPr.no_po} sudah diterbitkan untuk PR ini.</span>
+                    </div>
+                    <div className="p-3 bg-surface rounded-md border border-border space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">Vendor terpilih:</span>
+                        <span className="font-bold text-ink">{selectedPr.vendor_terpilih || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">Harga deal:</span>
+                        <span className="font-mono font-bold text-ink">Rp {Number(selectedPr.harga_kesepakatan || 0).toLocaleString('id-ID')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">ETA ready:</span>
+                        <span className="font-mono font-bold text-ink">{selectedPr.estimasi_tanggal_ready_eta || '-'} {selectedPr.estimasi_jam_ready_eta || ''}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-ink-muted">Konfirmasi SA:</span>
+                        <span className={`font-bold ${selectedPr.status_konfirmasi_sa === 'Disetujui SA' ? 'text-status-green' : 'text-status-amber'}`}>
+                          {selectedPr.status_konfirmasi_sa || 'Menunggu Konfirmasi'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-ink-muted leading-relaxed">
+                      Langkah berikutnya: pantau konfirmasi SA di daftar PR, lalu gunakan tombol <strong>KONFIRMASI BARANG READY</strong> pada kartu PR saat barang tiba.
+                    </p>
+                  </div>
+                ) : (
+                !selectedPr.no_po ? (
+                <>
+                {/* Fase A: penawaran vendor (tanpa ETA — ETA diinput setelah SA setuju) */}
                 <div className="p-2.5 rounded-md bg-status-amber-bg border border-status-amber/30 text-status-amber text-[11px] leading-relaxed">
                   <strong>Aturan SOP:</strong> Purchasing wajib memproses penawaran harga minimal 2 vendor sebelum menerbitkan PO.
                 </div>
@@ -490,30 +580,7 @@ export const PurchasingView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Input Tanggal & Jam ETA (Kotak Merah Tahap 5) */}
-                <div className="p-3 bg-status-red-bg rounded-md border border-status-red/30 space-y-2">
-                  <span className="font-bold text-status-red block flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-status-red" />
-                    Input Tanggal & Jam Barang Ready (ETA):
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="date"
-                      value={poForm.estimasi_tanggal_ready_eta}
-                      onChange={(e) => setPoForm({ ...poForm, estimasi_tanggal_ready_eta: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-md border border-border font-mono text-xs focus:outline-none"
-                    />
-                    <input
-                      type="time"
-                      value={poForm.estimasi_jam_ready_eta}
-                      onChange={(e) => setPoForm({ ...poForm, estimasi_jam_ready_eta: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-md border border-border font-mono text-xs focus:outline-none"
-                    />
-                  </div>
-                  <p className="text-[10px] text-status-red italic">
-                    *Estimasi jam ini otomatis terakumulasi ke estimasi waktu selesai SPK yang dibuat oleh SA.
-                  </p>
-                </div>
+                {/* ETA diinput TERPISAH setelah SA menyetujui PO (lihat form di bawah) */}
 
                 <div>
                   <label className="block text-[10px] font-bold text-ink-muted mb-1">Catatan Purchasing untuk SA</label>
@@ -525,7 +592,6 @@ export const PurchasingView: React.FC = () => {
                     className="w-full px-2.5 py-1.5 rounded-md border border-border text-xs focus:outline-none"
                   />
                 </div>
-              </div>
 
               <button
                 type="button"
@@ -533,8 +599,81 @@ export const PurchasingView: React.FC = () => {
                 onClick={() => submitPoMutation.mutate(selectedPr)}
                 className="w-full mt-4 py-2.5 rounded-md bg-status-red hover:bg-status-red/90 text-white font-bold text-xs shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-2"
               >
-                <Send className="w-4 h-4" /> TERBITKAN PO & KIRIM ETA KE SA
+                <Send className="w-4 h-4" /> TERBITKAN PO & KIRIM PENAWARAN KE SA
               </button>
+                </>
+                ) : !poApproved ? (
+                /* Fase B: PO terbit, menunggu persetujuan SA */
+                <div className="space-y-3">
+                  <div className="p-3 bg-surface rounded-md border border-border space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">No. PO:</span>
+                      <span className="font-mono font-bold text-ink">{selectedPr.no_po}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Vendor terpilih:</span>
+                      <span className="font-bold text-ink">{selectedPr.vendor_terpilih || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Harga deal:</span>
+                      <span className="font-mono font-bold text-ink">Rp {Number(selectedPr.harga_kesepakatan || 0).toLocaleString('id-ID')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Konfirmasi SA:</span>
+                      <span className="font-bold text-status-amber">{selectedPr.status_konfirmasi_sa || 'Menunggu Konfirmasi'}</span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-md bg-status-amber-bg border border-status-amber/30 text-status-amber text-[11px] font-semibold flex items-center gap-2">
+                    <Clock className="w-4 h-4 shrink-0" />
+                    <span>Menunggu SA menyetujui penawaran. Form input ETA terbuka setelah disetujui.</span>
+                  </div>
+                </div>
+                ) : (
+                /* Fase C: SA setuju, belum ada ETA — input tanggal & jam ready */
+                <div className="space-y-3">
+                  <div className="p-3 rounded-md bg-status-green-bg border border-status-green/30 text-status-green text-[11px] font-bold flex items-center gap-2">
+                    <Check className="w-4 h-4 shrink-0" />
+                    <span>SA menyetujui PO {selectedPr.no_po}. Lanjutkan pembelian & input ETA.</span>
+                  </div>
+                  <div className="p-3 bg-status-red-bg rounded-md border border-status-red/30 space-y-2">
+                    <span className="font-bold text-status-red text-xs block flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-status-red" />
+                      Input Tanggal & Jam Barang Ready (ETA):
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={poForm.estimasi_tanggal_ready_eta}
+                        onChange={(e) => setPoForm({ ...poForm, estimasi_tanggal_ready_eta: e.target.value })}
+                        onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                        title="Klik untuk memilih tanggal"
+                        className="w-full px-2.5 py-1.5 rounded-md border border-border font-mono text-xs focus:outline-none cursor-pointer"
+                      />
+                      <input
+                        type="time"
+                        value={poForm.estimasi_jam_ready_eta}
+                        onChange={(e) => setPoForm({ ...poForm, estimasi_jam_ready_eta: e.target.value })}
+                        onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                        title="Klik untuk memilih jam"
+                        className="w-full px-2.5 py-1.5 rounded-md border border-border font-mono text-xs focus:outline-none cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-[10px] text-status-red italic">
+                      *Estimasi ini tampil ke SA & customer sebagai perkiraan barang tiba.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={updateEtaMutation.isPending}
+                    onClick={() => updateEtaMutation.mutate()}
+                    className="w-full py-2.5 rounded-md bg-status-blue hover:bg-status-blue/90 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-status-blue/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" /> SIMPAN ETA & LANJUT PEMBELIAN
+                  </button>
+                </div>
+                )
+                )}
+            </div>
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-8 text-ink-subtle">

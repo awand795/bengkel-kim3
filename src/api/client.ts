@@ -290,6 +290,10 @@ export const api = {
     const res = await apiClient.post('/kim3/booking-tambah', data);
     return res.data;
   },
+  batalkanBooking: async (data: { id: number }): Promise<any> => {
+    const res = await apiClient.post('/kim3/booking-batal', data);
+    return res.data;
+  },
 
   // Antrian Security
   getAntrian: async (): Promise<AntrianKunjungan[]> =>
@@ -328,6 +332,10 @@ export const api = {
     (await fetchList<SpkItemPekerjaan>('/kim3/spk-pekerjaan', { limit: LOOKUP_LIST_LIMIT })).rows,
   tambahPekerjaanSpk: async (data: Partial<SpkItemPekerjaan>): Promise<any> => {
     const res = await apiClient.post('/kim3/spk-pekerjaan-tambah', data);
+    return res.data;
+  },
+  simpanPekerjaanSpk: async (data: { id_spk: number; nama_pekerjaan: string; biaya_jasa: number; estimasi_durasi_jam?: number }): Promise<any> => {
+    const res = await apiClient.post('/kim3/spk-pekerjaan-simpan', data);
     return res.data;
   },
   getPartSpk: async (): Promise<SpkItemPart[]> =>
@@ -372,6 +380,14 @@ export const api = {
   },
   konfirmasiSA: async (data: { id: number; status_konfirmasi_sa: 'Disetujui SA' | 'Ditolak SA' }): Promise<any> => {
     const res = await apiClient.post('/kim3/po-konfirmasi-sa', data);
+    return res.data;
+  },
+  konfirmasiBarangReady: async (data: { id_pr: number; id_spk: number }): Promise<any> => {
+    const res = await apiClient.post('/kim3/barang-ready', data);
+    return res.data;
+  },
+  updatePOETA: async (data: { id: number; estimasi_tanggal_ready_eta: string; estimasi_jam_ready_eta: string; catatan_purchasing?: string }): Promise<any> => {
+    const res = await apiClient.post('/kim3/purchase-order-eta', data);
     return res.data;
   },
 

@@ -46,13 +46,69 @@ export const ForemanView: React.FC = () => {
   // Assign Mekanik State
   const [selectedMekanik, setSelectedMekanik] = useState('');
 
-  // Input Perbaikan Hasil Pengecekan State (image1.png Mockup 5)
-  const [hasilPengecekan, setHasilPengecekan] = useState({
-    rekomendasi: '1. Ganti Kampas Rem Depan\n2. Bubut / Ganti Disc Brake Depan\n3. Ganti Minyak Rem',
-    estimasi_biaya: 1110000,
-    estimasi_waktu_jam: 6,
-    catatan_tambahan: 'Piringan rem sudah beralur dalam, disarankan sekalian ganti kampas dan minyak rem.',
+  // Master stok part (gudang) untuk picker kebutuhan sparepart hasil pengecekan.
+  // Dideklarasikan di atas agar bisa dipakai state/derivasi di bawah.
+  const { data: masterStokPart } = useQuery({
+    queryKey: ['stok-part-list'],
+    queryFn: api.getStokPart,
   });
+
+  // Part yang sudah diinput untuk semua SPK (dibaca, tidak diedit di sini)
+  const { data: spkPartList } = useQuery({
+    queryKey: ['part-spk-list'],
+    queryFn: api.getPartSpk,
+    refetchInterval: 8000,
+  });
+
+  // Input Perbaikan Hasil Pengecekan State (image1.png Mockup 5)
+  // Box sengaja kosong: Foreman wajib mengisi dari hasil cek nyata (tanpa contoh terisi).
+  const [hasilPengecekan, setHasilPengecekan] = useState({
+    rekomendasi: '',
+    catatan_tambahan: '',
+  });
+
+  // Picker kebutuhan sparepart hasil pengecekan (disimpan ke spk-item-part,
+  // dibaca SA saat estimasi & Mekanik sebagai daftar ambil barang — tanpa dummy)
+  const [cekParts, setCekParts] = useState<Array<{
+    kode_part: string;
+    nama_part: string;
+    jumlah: number;
+    satuan: string;
+    harga_satuan: number;
+    stok: number;
+  }>>([]);
+  const [cekPartPickerId, setCekPartPickerId] = useState<string>('');
+  const [cekPartPickerQty, setCekPartPickerQty] = useState<number>(1);
+
+  // Part yang sudah tersimpan untuk SPK terpilih (inputan foreman sebelumnya)
+  const existingCekParts = (spkPartList || []).filter((p) => p.id_spk === selectedSpk?.id);
+
+  // Ganti SPK -> ulangi pilihan part (yang tersimpan tampil dari server)
+  useEffect(() => {
+    setCekParts([]);
+    setCekPartPickerId('');
+    setCekPartPickerQty(1);
+  }, [selectedSpk?.id]);
+
+  const handleAddCekPart = () => {
+    if (!cekPartPickerId) return;
+    const item = masterStokPart?.find((p) => p.kode_part === cekPartPickerId);
+    if (!item) return;
+    if (existingCekParts.some((p) => p.kode_part === item.kode_part) || cekParts.some((p) => p.kode_part === item.kode_part)) {
+      toast.warning(`${item.nama_part} sudah ada di daftar kebutuhan SPK ini.`);
+      return;
+    }
+    setCekParts([...cekParts, {
+      kode_part: item.kode_part,
+      nama_part: item.nama_part,
+      jumlah: cekPartPickerQty,
+      satuan: item.satuan,
+      harga_satuan: Number(item.harga_jual),
+      stok: item.stok,
+    }]);
+    setCekPartPickerId('');
+    setCekPartPickerQty(1);
+  };
 
   // Quality Control FIR State (image1.png Mockup QC)
   const [firForm, setFirForm] = useState({
@@ -61,7 +117,7 @@ export const ForemanView: React.FC = () => {
     bebas_kebocoran: true,
     test_jalan: true,
     kebersihan: true,
-    catatan_foreman: 'Pekerjaan selesai dengan baik, pengereman responsif dan tidak ada getaran lagi.',
+    catatan_foreman: '',
   });
 
   // Card Jadwal Booking State
@@ -115,42 +171,72 @@ export const ForemanView: React.FC = () => {
   const assignMekanikMutation = useMutation({
     mutationFn: async (spk: SpkService) => {
       const mekanikId = mekanikList.find((m) => m.nama_lengkap === selectedMekanik)?.id;
+      // Distribusi pekerjaan (Excel tahap 4): tugaskan mekanik untuk PENGECEKAN.
+      // Status SENGAJA tidak diubah ke 'Dalam Pengerjaan' — WO terbit & timer
+      // start hanya setelah estimasi SA + approval customer (tahap 6-7).
+      // Status eksisting dipertahankan (re-assign aman, tidak memundurkan job).
       return api.updateSpkStatus({
         id: spk.id,
-        status_spk: 'Dalam Pengerjaan',
         nama_foreman: currentUser,
         nama_mekanik: selectedMekanik,
         // ID mekanik agar MekanikView bisa mencocokkan SPK secara akurat (fallback: pencocokan nama)
         ...(mekanikId ? { id_mekanik: mekanikId } : {}),
-        catatan_foreman: `Ditugaskan oleh Foreman ke ${selectedMekanik}`,
+        catatan_foreman: `Ditugaskan oleh Foreman ke ${selectedMekanik} untuk pengecekan awal`,
       });
     },
     onSuccess: (_, spk) => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      toast.success(`Mekanik ${selectedMekanik} berhasil ditugaskan untuk SPK ini!`);
+      toast.success(`Mekanik ${selectedMekanik} ditugaskan untuk pengecekan! Lanjut input hasil pengecekan fisik.`);
 
-      // Notifikasi personal: WO baru masuk HANYA ke mekanik yang ditugaskan.
-      // Mekanik lain tidak menerima apa pun (isolasi WO).
+      // Notifikasi personal: penugasan pengecekan masuk HANYA ke mekanik terpilih.
+      // Mekanik lain tidak menerima apa pun (isolasi WO). Timer/start job
+      // BELUM aktif — dimulai setelah estimasi SA + approval customer.
       const assignedId = mekanikList.find((m) => m.nama_lengkap === selectedMekanik)?.id;
       if (assignedId) {
         realtimeHub.publish({
           type: 'SPK_STATUS_CHANGED',
           targetRoles: ['Mekanik'],
           targetUserId: assignedId,
-          title: 'WO Baru Ditugaskan ke Anda',
-          message: `SPK ${spk.no_spk} unit ${spk.no_polisi} ditugaskan Foreman ke Anda. Buka lembar kerja & jalankan stopwatch.`,
+          title: 'Penugasan Pengecekan Awal',
+          message: `SPK ${spk.no_spk} unit ${spk.no_polisi} ditugaskan Foreman ke Anda untuk pengecekan awal. Hasil cek diinput Foreman ke sistem.`,
           linkTab: 'mekanik',
           urgency: 'urgent',
         });
       }
 
-      setSelectedSpk(null);
+      setSelectedSpk({ ...spk, nama_mekanik: selectedMekanik });
     },
     onError: (err: any) => toast.error('Gagal menugaskan mekanik: ' + getApiErrorMessage(err)),
   });
 
   const submitHasilPengecekanMutation = useMutation({
     mutationFn: async (spk: SpkService) => {
+      // Gerbang Excel tahap 5: hasil pengecekan hanya sah sebelum estimasi SA
+      // (atau revisi saat masih Estimasi Dibuat). Cegah overwrite catatan
+      // foreman setelah WO berjalan / QC / closed.
+      if (spk.status_spk !== 'Menunggu Pengecekan Mekanik' && spk.status_spk !== 'Estimasi Dibuat') {
+        throw new Error(`Hasil pengecekan hanya bisa disubmit saat status "Menunggu Pengecekan Mekanik" (saat ini: ${spk.status_spk}).`);
+      }
+      // Wajib minimal 1 sparepart kebutuhan: tanpa ini mekanik tidak bisa START
+      // (gerbang Excel tahap 5 -> 7) dan SA tidak bisa menyusun estimasi.
+      const totalParts = existingCekParts.length + cekParts.length;
+      if (totalParts === 0) {
+        throw new Error('Belum ada sparepart kebutuhan. Tambahkan minimal 1 sparepart dari gudang sebelum submit ke SA.');
+      }
+      // Simpan part pilihan baru (anti-duplikat vs yang sudah tersimpan)
+      const savedCodes = new Set(existingCekParts.map((p) => p.kode_part));
+      for (const p of cekParts) {
+        if (p.kode_part && savedCodes.has(p.kode_part)) continue;
+        await api.tambahPartSpk({
+          id_spk: spk.id,
+          kode_part: p.kode_part,
+          nama_part: p.nama_part,
+          jumlah: p.jumlah,
+          satuan: p.satuan,
+          harga_satuan: p.harga_satuan,
+          status_ketersediaan: p.stok > 0 ? 'Ready di Stock' : 'Tidak Ready di Stock',
+        });
+      }
       return api.updateSpkStatus({
         id: spk.id,
         status_spk: 'Estimasi Dibuat',
@@ -159,7 +245,10 @@ export const ForemanView: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
-      toast.success('Rekomendasi perbaikan & estimasi berhasil disubmit ke SA!');
+      queryClient.invalidateQueries({ queryKey: ['part-spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['part-list'] });
+      toast.success('Hasil pengecekan + kebutuhan sparepart berhasil disubmit ke SA!');
+      setCekParts([]);
       setActiveTab('dashboard');
     },
     onError: (err: any) => toast.error('Gagal submit hasil pengecekan: ' + getApiErrorMessage(err)),
@@ -576,7 +665,7 @@ export const ForemanView: React.FC = () => {
                       </div>
                       <div className="text-right text-xs">
                         <span className="text-ink-subtle block text-[10px]">Lead Time:</span>
-                        <span className="font-bold text-accent">{spk.lead_time_jam ? `${spk.lead_time_jam} Jam` : '6 Jam'}</span>
+                        <span className="font-bold text-accent">{spk.estimasi_waktu_jam || spk.lead_time_jam ? `${spk.estimasi_waktu_jam || spk.lead_time_jam} Jam` : '-'}</span>
                       </div>
                     </div>
 
@@ -639,7 +728,18 @@ export const ForemanView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Assign Mekanik Section */}
+                {/* Assign Mekanik Section — terkunci bila WO sudah selesai/QC/closed */}
+                {['Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(selectedSpk.status_spk as string) ? (
+                  <div className="pt-2 space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-border">
+                      <span className="text-ink-muted">Mekanik Pelaksana:</span>
+                      <span className="font-bold text-ink">{selectedSpk.nama_mekanik || '-'}</span>
+                    </div>
+                    <p className="p-2.5 rounded-md bg-surface border border-dashed border-border text-ink-muted font-semibold text-center">
+                      Penugasan terkunci — WO sudah selesai dikerjakan ({selectedSpk.status_spk}).
+                    </p>
+                  </div>
+                ) : (
                 <div className="pt-2">
                   <label className="block text-xs font-bold text-ink mb-1.5">
                     Pilih Mekanik untuk Pengerjaan:
@@ -669,15 +769,22 @@ export const ForemanView: React.FC = () => {
                     <UserCheck className="w-4 h-4" /> TUGASKAN KE MEKANIK
                   </button>
                 </div>
+                )}
 
                 {/* Quick Link to Hasil Cek or QC */}
                 <div className="pt-2 border-t border-border flex flex-col gap-2">
-                  <button
-                    onClick={() => setActiveTab('hasil-pengecekan')}
-                    className="w-full py-2 bg-accent-subtle text-accent hover:bg-accent-subtle rounded-md font-bold text-xs transition-colors"
-                  >
-                    Input Hasil Pengecekan Fisik →
-                  </button>
+                  {(selectedSpk.status_spk === 'Menunggu Pengecekan Mekanik' || selectedSpk.status_spk === 'Estimasi Dibuat') ? (
+                    <button
+                      onClick={() => setActiveTab('hasil-pengecekan')}
+                      className="w-full py-2 bg-accent-subtle text-accent hover:bg-accent-subtle rounded-md font-bold text-xs transition-colors"
+                    >
+                      Input Hasil Pengecekan Fisik →
+                    </button>
+                  ) : (
+                    <p className="p-2 rounded-md bg-surface border border-dashed border-border text-ink-muted font-semibold text-[11px] text-center">
+                      Hasil pengecekan sudah difinalisasi.
+                    </p>
+                  )}
                   {selectedSpk.status_spk === 'Waiting QC' && (
                     <button
                       onClick={() => setActiveTab('qc-fir')}
@@ -742,6 +849,7 @@ export const ForemanView: React.FC = () => {
               </label>
               <textarea
                 rows={4}
+                placeholder="Contoh:&#10;1. Ganti Kampas Rem Depan&#10;2. Bubut / Ganti Disc Brake Depan&#10;3. Ganti Minyak Rem"
                 value={hasilPengecekan.rekomendasi}
                 onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, rekomendasi: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
@@ -756,10 +864,99 @@ export const ForemanView: React.FC = () => {
               <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Tambahan Foreman</label>
               <textarea
                 rows={2}
+                placeholder="Contoh: Piringan rem sudah beralur dalam, disarankan sekalian ganti kampas dan minyak rem."
                 value={hasilPengecekan.catatan_tambahan}
                 onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, catatan_tambahan: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
               />
+            </div>
+
+            {/* Kebutuhan Sparepart hasil pengecekan (wajib >= 1: gerbang START mekanik & estimasi SA) */}
+            <div className="bg-surface p-4 rounded-md border border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-ink flex items-center gap-1.5">
+                  <Wrench className="w-4 h-4 text-accent" /> Sparepart yang Dibutuhkan
+                  <span className="text-status-red">*</span>
+                </span>
+                <span className="text-[10px] font-bold text-ink-subtle">
+                  {existingCekParts.length + cekParts.length} item
+                </span>
+              </div>
+
+              {existingCekParts.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-ink-subtle uppercase">Sudah tersimpan (inputan sebelumnya):</span>
+                  {existingCekParts.map((p) => (
+                    <div key={`saved-${p.id}`} className="flex items-center justify-between px-3 py-2 rounded-md bg-surface-raised border border-border text-xs">
+                      <div className="min-w-0">
+                        <div className="font-bold text-ink truncate">{p.nama_part}</div>
+                        <div className="text-[11px] text-ink-muted font-mono">{p.kode_part || '-'} | Qty: {p.jumlah} {p.satuan}</div>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${p.status_ketersediaan === 'Ready di Stock' ? 'bg-status-green-bg text-status-green' : 'bg-status-amber-bg text-status-amber'}`}>
+                        {p.status_ketersediaan || '-'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-[1fr_72px_auto] gap-2">
+                <select
+                  value={cekPartPickerId}
+                  onChange={(e) => setCekPartPickerId(e.target.value)}
+                  className="px-3 py-2 rounded-md border border-border text-xs font-semibold bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none min-w-0 truncate"
+                >
+                  <option value="">-- Pilih sparepart gudang --</option>
+                  {masterStokPart?.map((p) => (
+                    <option key={p.kode_part} value={p.kode_part}>
+                      {p.kode_part} - {p.nama_part} | stok: {p.stok}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  value={cekPartPickerQty}
+                  onChange={(e) => setCekPartPickerQty(Math.max(1, Number(e.target.value) || 1))}
+                  className="px-2 py-2 rounded-md border border-border text-xs font-mono font-bold text-center focus:ring-2 focus:ring-accent focus:outline-none"
+                  title="Jumlah"
+                />
+                <button
+                  type="button"
+                  disabled={!cekPartPickerId}
+                  onClick={handleAddCekPart}
+                  className="px-3 py-2 rounded-md bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs font-bold transition-all flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" /> Tambah
+                </button>
+              </div>
+
+              {cekParts.length > 0 && (
+                <div className="space-y-1.5">
+                  {cekParts.map((p) => (
+                    <div key={`new-${p.kode_part}`} className="flex items-center justify-between px-3 py-2 rounded-md bg-accent-subtle/50 border border-accent/30 text-xs">
+                      <div className="min-w-0">
+                        <div className="font-bold text-ink truncate">{p.nama_part}</div>
+                        <div className="text-[11px] text-ink-muted font-mono">{p.kode_part} | Qty: {p.jumlah} {p.satuan} | Stok gudang: {p.stok}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCekParts(cekParts.filter((x) => x.kode_part !== p.kode_part))}
+                        className="p-1.5 rounded-md text-status-red hover:bg-status-red-bg transition-colors"
+                        title="Hapus dari daftar"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {existingCekParts.length + cekParts.length === 0 && (
+                <p className="text-[11px] text-status-red font-semibold">
+                  Wajib tambah minimal 1 sparepart — tanpa ini SA tidak bisa estimasi & mekanik tidak bisa START.
+                </p>
+              )}
             </div>
 
             <button
@@ -835,6 +1032,7 @@ export const ForemanView: React.FC = () => {
               <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Hasil QC Foreman</label>
               <textarea
                 rows={2}
+                placeholder="Contoh: Pengereman responsif, tidak ada getaran dan kebocoran."
                 value={firForm.catatan_foreman}
                 onChange={(e) => setFirForm({ ...firForm, catatan_foreman: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"

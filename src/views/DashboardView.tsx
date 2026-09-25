@@ -646,7 +646,10 @@ export const DashboardView: React.FC = () => {
 
             <div className="space-y-3">
               {mySpks.length > 0 ? (
-                mySpks.map((spk) => (
+                mySpks.map((spk) => {
+                  const bisaDikerjakan = ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting Part', 'Pending'].includes(spk.status_spk as string);
+                  const sudahSelesai = ['Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(spk.status_spk as string);
+                  return (
                   <div key={spk.id} className="p-4 rounded-md border border-border hover:border-accent/30 transition-all bg-surface/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -658,17 +661,24 @@ export const DashboardView: React.FC = () => {
                         Customer: {spk.nama_customer || '-'} • Keluhan: {spk.keluhan_customer || 'Perbaikan'}
                       </p>
                       <div className="text-[11px] text-ink-subtle">
-                        Lead time estimasi: <span className="font-bold text-ink-muted">{spk.lead_time_jam ? `${spk.lead_time_jam} Jam` : '4 Jam'}</span>
+                        Lead time estimasi: <span className="font-bold text-ink-muted">{spk.estimasi_waktu_jam || spk.lead_time_jam ? `${spk.estimasi_waktu_jam || spk.lead_time_jam} Jam` : '-'}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setActiveTab('mekanik')}
-                      className="px-3.5 py-2 rounded-md bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 shrink-0"
-                    >
-                      <PlayCircle className="w-3.5 h-3.5" /> Kerjakan / Timer
-                    </button>
+                    {bisaDikerjakan ? (
+                      <button
+                        onClick={() => setActiveTab('mekanik')}
+                        className="px-3.5 py-2 rounded-md bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 shrink-0"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" /> Kerjakan / Timer
+                      </button>
+                    ) : (
+                      <span className={`text-[11px] font-bold px-2.5 py-1.5 rounded-md shrink-0 ${sudahSelesai ? 'bg-status-green-bg text-status-green' : 'bg-surface text-ink-subtle border border-border'}`}>
+                        {sudahSelesai ? 'Selesai — menunggu QC Foreman' : 'Menunggu WO terbit'}
+                      </span>
+                    )}
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="p-8 text-center text-ink-subtle text-xs">
                   Tidak ada tugas SPK yang ditugaskan kepada Anda saat ini.
@@ -845,9 +855,9 @@ export const DashboardView: React.FC = () => {
                         <td className="py-3 px-3 text-right">
                           <button
                             onClick={() => setActiveTab('purchasing')}
-                            className="px-2.5 py-1 rounded-md bg-status-red hover:bg-status-red/90 text-white font-bold text-[11px] transition-colors"
+                            className={`px-2.5 py-1 rounded-md font-bold text-[11px] transition-colors ${item.no_po ? 'bg-status-blue hover:bg-status-blue/90 text-white' : 'bg-status-red hover:bg-status-red/90 text-white'}`}
                           >
-                            Proses PO
+                            {item.no_po ? 'Lihat PO' : 'Proses PO'}
                           </button>
                         </td>
                       </tr>
@@ -1400,7 +1410,7 @@ export const DashboardView: React.FC = () => {
                           {spk.nama_mekanik || spk.nama_foreman || 'Menunggu Assign'}
                         </td>
                         <td className="py-3 px-3 text-right font-semibold text-ink-muted">
-                          {spk.lead_time_jam ? `${spk.lead_time_jam} Jam` : '6 Jam'}
+                          {spk.estimasi_waktu_jam || spk.lead_time_jam ? `${spk.estimasi_waktu_jam || spk.lead_time_jam} Jam` : '-'}
                         </td>
                       </tr>
                     ))

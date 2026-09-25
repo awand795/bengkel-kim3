@@ -147,8 +147,9 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     (u) => u.peran !== 'Customer Fleet' && u.status_aktif !== false
   );
 
-  // Murni data dari API server Darkosync
-  const bookingList: BookingService[] = rawBookingList || [];
+  // Murni data dari API server Darkosync — booking yang Dibatalkan customer
+  // disembunyikan agar tidak bisa di-check-in-kan.
+  const bookingList: BookingService[] = (rawBookingList || []).filter((b) => b.status !== 'Dibatalkan');
   const antrianData: AntrianKunjungan[] = rawAntrianList || [];
   const memoList: MemoKeluar[] = rawMemoList || [];
 

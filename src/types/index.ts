@@ -192,6 +192,7 @@ export interface SpkService {
     | 'Pengecekan Mekanik'
     | 'Estimasi Dibuat'
     | 'Menunggu Approval Customer'
+    | 'Estimasi Disetujui'
     | 'Waiting Part'
     | 'Dalam Pengerjaan'
     | 'Pending'

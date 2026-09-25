@@ -111,6 +111,10 @@ export const App: React.FC = () => {
       if (activeTab === 'sa-penerimaan') return <ServiceAdvisorView initialTab="penerimaan" />;
       if (activeTab === 'sa') return <ServiceAdvisorView initialTab="spk-list" />;
       if (activeTab === 'dashboard') return <DashboardView />;
+      // Sidebar SA "Status Part & PO (Kotak Merah)" + notif link_tab 'purchasing':
+      // tampilkan subtab Kotak Merah SA (pantau & konfirmasi), BUKAN meja purchasing.
+      if (activeTab === 'purchasing') return <ServiceAdvisorView initialTab="estimasi-pr" />;
+      if (activeTab === 'beli-part') return <BeliPartView />;
       return <ServiceAdvisorView initialTab="spk-list" />;
     }
 

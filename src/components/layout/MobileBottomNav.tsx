@@ -35,7 +35,7 @@ interface RoleNavConfig {
 }
 
 export const MobileBottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, currentRole } = useAppStore();
+  const { activeTab, setActiveTab, bumpNav, currentRole } = useAppStore();
   const [moreOpen, setMoreOpen] = useState(false);
 
   // Exact menu alignment with desktop sidebar per role (Stage 9)
@@ -181,6 +181,7 @@ export const MobileBottomNav: React.FC = () => {
 
   const handleNavigate = (id: string) => {
     setActiveTab(id);
+    bumpNav();
     setMoreOpen(false);
   };
 

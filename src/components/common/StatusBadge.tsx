@@ -36,6 +36,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'waiting part':
       case 'menunggu part':
       case 'diproses purchasing':
+      case 'po diterbitkan':
       case 'waiting qc':
       case 'menunggu qc':
         return 'bg-status-amber-bg text-status-amber border-status-amber/20';

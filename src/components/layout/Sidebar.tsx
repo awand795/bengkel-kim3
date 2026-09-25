@@ -30,7 +30,7 @@ interface NavItem {
 }
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab, currentRole } = useAppStore();
+  const { activeTab, setActiveTab, bumpNav, currentRole } = useAppStore();
 
   const allNavigationItems: NavItem[] = [
     // Super Admin (Admin Panel & Master Controls)
@@ -113,7 +113,11 @@ export const Sidebar: React.FC = () => {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  // Bump agar view reset ke tab utamanya meski menu yang sama diklik ulang
+                  bumpNav();
+                }}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs transition-all ${
                   isActive
                     ? 'bg-accent text-white font-semibold shadow-2xs'

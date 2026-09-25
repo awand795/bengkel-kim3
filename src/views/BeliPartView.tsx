@@ -61,14 +61,14 @@ export const BeliPartView: React.FC = () => {
   const [printThermalInvoice, setPrintThermalInvoice] = useState<InvoicePembayaran | null>(null);
   const [printMemoModal, setPrintMemoModal] = useState<MemoKeluar | null>(null);
 
-  // Form State Estimasi Baru (SA POS)
+  // Form State Estimasi Baru (SA POS) — box kosong, tanpa contoh terisi
   const [formCustomer, setFormCustomer] = useState({
     id_antrian: undefined as number | undefined,
     nama_customer: '',
     no_polisi: '',
     no_telepon: '',
-    lokasi_rak: 'Rak A-02, Rak B-01, Rak C-03',
-    catatan: 'Permintaan pembelian suku cadang langsung tanpa servis.',
+    lokasi_rak: '',
+    catatan: '',
   });
 
   // Cart State
@@ -833,6 +833,29 @@ export const BeliPartView: React.FC = () => {
                     value={formCustomer.no_telepon}
                     onChange={(e) => setFormCustomer({ ...formCustomer, no_telepon: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Lokasi Rak Pengambilan (Opsional)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Rak A-02, Rak B-01"
+                    value={formCustomer.lokasi_rak}
+                    onChange={(e) => setFormCustomer({ ...formCustomer, lokasi_rak: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Catatan (Opsional)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Pembelian langsung tanpa servis"
+                    value={formCustomer.catatan}
+                    onChange={(e) => setFormCustomer({ ...formCustomer, catatan: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
                   />
                 </div>
               </div>
