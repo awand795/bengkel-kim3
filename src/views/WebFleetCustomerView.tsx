@@ -630,15 +630,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {fleetMenu === 'dashboard' && (
         <div className="space-y-6">
           {/* Welcome Banner */}
-          <div className="bg-linear-to-r from-teal-900 via-teal-800 to-slate-900 rounded-2xl p-6 sm:p-7 text-white shadow-sm border border-teal-700/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-accent rounded-md p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-teal-100 text-xs font-semibold mb-2.5 backdrop-blur-md">
-                <Truck className="w-3.5 h-3.5 text-teal-300" />
-                <span>Portal Monitoring Fleet KIM 3 Medan</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-raised/10 text-white/70 text-xs font-semibold mb-2">
+                <Truck className="w-3.5 h-3.5 text-white/70" />
+                Portal Monitoring Fleet KIM 3 Medan
               </div>
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
-              <p className="text-xs sm:text-sm text-teal-100/80 mt-1 max-w-xl leading-relaxed">
-                Pantau status perbaikan armada, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK &amp; KIR secara realtime.
+              <h1 className="text-xl md:text-2xl font-black tracking-tight">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
+              <p className="text-xs text-white/70 mt-1 max-w-xl leading-relaxed">
+                Pantau status perbaikan armada, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK & KIR secara realtime.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
@@ -648,68 +648,68 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   setFleetMenu('booking');
                   setActiveTab('fleet-booking');
                 }}
-                className="px-4 py-2.5 bg-white text-teal-950 hover:bg-teal-50 text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-2 active:scale-98"
+                className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-md transition-all shadow-sm flex items-center gap-2"
               >
-                <Plus className="w-4 h-4 text-teal-700" /> Booking Service Baru
+                <Plus className="w-4 h-4" /> Booking Service
               </button>
             </div>
           </div>
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+            <div className="bg-surface-raised p-4 sm:p-5 rounded-md border border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Total Armada Truk</span>
-                <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
+                <span className="text-xs font-semibold text-ink-muted">Total Armada Truk</span>
+                <div className="w-8 h-8 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
                   <Truck className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-slate-900 tabular-nums">{myKendaraanList.length}</span>
-                <span className="text-[11px] text-slate-400 ml-2 font-medium">Unit Terdaftar</span>
+                <span className="text-2xl font-black text-ink">{myKendaraanList.length}</span>
+                <span className="text-[11px] text-ink-subtle ml-2 font-medium">Unit Terdaftar</span>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+            <div className="bg-surface-raised p-4 sm:p-5 rounded-md border border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Sedang Diservis</span>
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                <span className="text-xs font-semibold text-ink-muted">Sedang Diservis</span>
+                <div className="w-8 h-8 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
                   <Wrench className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-amber-700 tabular-nums">
+                <span className="text-2xl font-black text-status-amber">
                   {mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length}
                 </span>
-                <span className="text-[11px] text-slate-400 ml-2 font-medium">Di Bengkel KIM 3</span>
+                <span className="text-[11px] text-ink-subtle ml-2 font-medium">Di Bengkel KIM 3</span>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+            <div className="bg-surface-raised p-4 sm:p-5 rounded-md border border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Booking Terjadwal</span>
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                <span className="text-xs font-semibold text-ink-muted">Booking Terjadwal</span>
+                <div className="w-8 h-8 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
                   <Calendar className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-emerald-700 tabular-nums">
+                <span className="text-2xl font-black text-status-green">
                   {myBookingList.length}
                 </span>
-                <span className="text-[11px] text-slate-400 ml-2 font-medium">Antrian Masuk</span>
+                <span className="text-[11px] text-ink-subtle ml-2 font-medium">Antrian Masuk</span>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+            <div className="bg-surface-raised p-4 sm:p-5 rounded-md border border-border shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500">Dokumen Digital</span>
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                <span className="text-xs font-semibold text-ink-muted">Dokumen Digital</span>
+                <div className="w-8 h-8 rounded-md bg-status-red-bg text-status-red flex items-center justify-center">
                   <FileText className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-3">
-                <span className="text-2xl font-black text-slate-900 tabular-nums">{myDokumenList.length}</span>
-                <span className="text-[11px] text-slate-400 ml-2 font-medium">STNK &amp; KIR</span>
+                <span className="text-2xl font-black text-ink">{myDokumenList.length}</span>
+                <span className="text-[11px] text-ink-subtle ml-2 font-medium">STNK & KIR</span>
               </div>
             </div>
           </div>

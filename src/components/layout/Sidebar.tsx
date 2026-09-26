@@ -18,7 +18,7 @@ import {
   LogOut, 
   PlusCircle, 
   Settings,
-  CircleDot
+  Activity
 } from 'lucide-react';
 import { PeranUser } from '../../types';
 
@@ -33,11 +33,13 @@ export const Sidebar: React.FC = () => {
   const { activeTab, setActiveTab, bumpNav, currentRole } = useAppStore();
 
   const allNavigationItems: NavItem[] = [
-    // Super Admin
+    // Super Admin (Admin Panel & Master Controls)
     { id: 'admin-panel', label: 'Admin Panel & Sistem', icon: Settings, roles: ['Super Admin'] },
     { id: 'dashboard', label: 'Monitoring Operasional', icon: LayoutDashboard, roles: ['Super Admin'] },
     { id: 'security-dashboard', label: 'Pos Gerbang Security', icon: ShieldCheck, roles: ['Super Admin'] },
-    { id: 'sa', label: 'Service Advisor (SPK)', icon: ClipboardList, roles: ['Super Admin'] },
+    { id: 'sa-list', label: 'Daftar SPK Aktif (SA)', icon: ClipboardList, roles: ['Super Admin'] },
+    { id: 'sa-baru', label: 'Buat SPK Baru (SA)', icon: PlusCircle, roles: ['Super Admin'] },
+    { id: 'sa-kotak-merah', label: 'Kotak Merah PR (SA)', icon: ShoppingBag, roles: ['Super Admin'] },
     { id: 'foreman', label: 'Foreman (QC Workshop)', icon: Wrench, roles: ['Super Admin'] },
     { id: 'purchasing', label: 'Purchasing & Part', icon: ShoppingBag, roles: ['Super Admin'] },
     { id: 'kasir', label: 'Kasir & Faktur Tagihan', icon: Receipt, roles: ['Super Admin'] },
@@ -51,7 +53,7 @@ export const Sidebar: React.FC = () => {
     { id: 'dashboard', label: 'Dashboard Kasir', icon: LayoutDashboard, roles: ['Admin Invoice'] },
     { id: 'dashboard', label: 'Dashboard Kunjungan', icon: LayoutDashboard, roles: ['PIC Terkait'] },
 
-    // Security (6 Menu Resmi)
+    // Security (6 Menu Resmi: Dashboard, Check In Masuk, Booking, On Progress, Selesai / Keluar, Memo Keluar)
     { id: 'security-dashboard', label: 'Dashboard Pos Gerbang', icon: LayoutDashboard, roles: ['Security'] },
     { id: 'security-checkin', label: 'Check In Masuk', icon: PlusCircle, roles: ['Security'] },
     { id: 'security-booking', label: 'List Nopol Booking', icon: Calendar, roles: ['Security'] },
@@ -59,9 +61,10 @@ export const Sidebar: React.FC = () => {
     { id: 'security-selesai', label: 'Telah Meninggalkan Bengkel', icon: LogOut, roles: ['Security'] },
     { id: 'security-memo', label: 'Memo Keluar Resmi', icon: FileText, roles: ['Security'] },
 
-    // SA
-    { id: 'sa', label: 'Service Advisor (SPK)', icon: ClipboardList, roles: ['SA'] },
-    { id: 'purchasing', label: 'Status Part & PO (Kotak Merah)', icon: ShoppingBag, roles: ['SA'] },
+    // SA (Service Advisor - 3 Alur Utama + Penjualan Part)
+    { id: 'sa-list', label: '📋 Daftar SPK Aktif', icon: ClipboardList, roles: ['SA'] },
+    { id: 'sa-baru', label: '➕ Buat SPK Baru', icon: PlusCircle, roles: ['SA'] },
+    { id: 'sa-kotak-merah', label: '📦 Kotak Merah (PR)', icon: ShoppingBag, roles: ['SA'] },
     { id: 'beli-part', label: 'Penjualan Part Langsung', icon: Package, roles: ['SA'] },
     
     // Foreman
@@ -78,7 +81,7 @@ export const Sidebar: React.FC = () => {
     { id: 'kasir', label: 'Kasir & Faktur Tagihan', icon: Receipt, roles: ['Admin Invoice'] },
     { id: 'beli-part', label: 'Penjualan Part Langsung', icon: Package, roles: ['Admin Invoice', 'Warehouse'] },
 
-    // Customer Fleet
+    // Customer Fleet (7 Sub-menu Terpisah)
     { id: 'fleet-dashboard', label: 'Dashboard Armada', icon: LayoutDashboard, roles: ['Customer Fleet'] },
     { id: 'fleet-booking', label: 'Booking Service Baru', icon: Calendar, roles: ['Customer Fleet'] },
     { id: 'fleet-status', label: 'Status & Pelacakan Unit', icon: Truck, roles: ['Customer Fleet'] },
@@ -87,29 +90,31 @@ export const Sidebar: React.FC = () => {
     { id: 'fleet-dokumen', label: 'Dokumen STNK & KIR', icon: FileText, roles: ['Customer Fleet'] },
     { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2, roles: ['Customer Fleet'] },
 
-    // PIC Terkait
+    // PIC Terkait (Konfirmasi Kunjungan Tamu)
     { id: 'pic-terkait', label: 'Konfirmasi Tamu (PIC)', icon: UserCheck, roles: ['PIC Terkait'] },
   ];
 
-  // Strictly filter menus for the active role
+  // Strictly filter menus for the active role (no crossover)
   const roleMenus = allNavigationItems.filter((item) => item.roles.includes(currentRole));
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200/80 hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] p-3 font-sans shadow-2xs">
+    <aside className="w-64 bg-surface-raised border-r border-border hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] p-3 font-sans">
       <div>
-        <div className="px-3 py-2 mb-1.5 flex items-center justify-between">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Menu Navigasi
+        <div className="px-2 mb-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-subtle">
+            Menu {currentRole}
           </p>
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-            {currentRole}
-          </span>
         </div>
-
         <nav className="space-y-1">
           {roleMenus.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id || activeTab.startsWith(`${item.id}-`);
+            // Prefix-match & alias match agar sub-tab deep-link tetap menyorot menu yang tepat
+            const isActive =
+              activeTab === item.id ||
+              activeTab.startsWith(`${item.id}-`) ||
+              (item.id === 'sa-list' && (activeTab === 'sa' || activeTab === 'sa-list')) ||
+              (item.id === 'sa-baru' && (activeTab === 'sa-penerimaan' || activeTab === 'sa-baru')) ||
+              (item.id === 'sa-kotak-merah' && (activeTab === 'sa-kotak-merah' || (currentRole === 'SA' && activeTab === 'purchasing')));
 
             return (
               <button
@@ -117,16 +122,17 @@ export const Sidebar: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setActiveTab(item.id);
+                  // Bump agar view reset ke tab utamanya meski menu yang sama diklik ulang
                   bumpNav();
                 }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs transition-all ${
                   isActive
-                    ? 'bg-teal-600 text-white font-semibold shadow-xs shadow-teal-600/20 translate-x-0.5'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 font-medium'
+                    ? 'bg-accent text-white font-semibold shadow-2xs'
+                    : 'text-ink-muted hover:text-ink hover:bg-accent-subtle/60 font-medium'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'text-white scale-105' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-ink-subtle'}`} />
                   <span className="truncate">{item.label}</span>
                 </div>
               </button>
@@ -136,16 +142,10 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Workshop System Indicator Footer */}
-      <div className="border-t border-slate-100 pt-3 px-3">
-        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            <div className="truncate">
-              <span className="text-[11px] font-bold text-slate-800 block truncate">KIM 3 Workshop</span>
-              <span className="text-[9px] text-slate-400 block truncate">Realtime Hub Connected</span>
-            </div>
-          </div>
-          <CircleDot className="w-3.5 h-3.5 text-teal-600 shrink-0 opacity-80" />
+      <div className="border-t border-border pt-3 px-2">
+        <div className="flex items-center gap-2 text-[10px] text-ink-subtle font-mono">
+          <Activity className="w-3.5 h-3.5 text-accent shrink-0" />
+          <span className="truncate">KIM3 Workshop Shell</span>
         </div>
       </div>
     </aside>

@@ -335,47 +335,42 @@ export const ForemanView: React.FC = () => {
     <div className="space-y-6">
       
       {/* Top Header */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold border border-amber-100 shadow-2xs">
+      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold">
             <Wrench className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-900">Dashboard Foreman</h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200/70">
-                WORKSHOP QC
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">Distribusi Pekerjaan, Pengecekan Mekanik, dan Quality Control (FIR)</p>
+            <h1 className="text-lg font-black text-ink">Dashboard Foreman</h1>
+            <p className="text-xs text-ink-muted">Distribusi Pekerjaan, Pengecekan Mekanik, dan Quality Control (FIR)</p>
           </div>
         </div>
 
         {/* Subtabs */}
-        <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
+        <div className="flex flex-wrap gap-1 bg-surface p-1 rounded-md">
           <button
             onClick={() => setActiveTab('dashboard')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'dashboard' ? 'bg-white text-teal-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'dashboard' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
-            📊 Dashboard SPK
+            Dashboard SPK
           </button>
           <button
             onClick={() => setActiveTab('hasil-pengecekan')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'hasil-pengecekan' ? 'bg-white text-teal-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'hasil-pengecekan' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
-            🔍 Input Perbaikan (Cek)
+            Input Perbaikan (Hasil Cek)
           </button>
           <button
             onClick={() => setActiveTab('qc-fir')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'qc-fir' ? 'bg-white text-teal-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              activeTab === 'qc-fir' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
             }`}
           >
-            ✅ QC / FIR Closed
+            Quality Control (QC / FIR)
           </button>
         </div>
       </div>
@@ -384,66 +379,66 @@ export const ForemanView: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div 
           onClick={() => setStatusFilter('Semua')}
-          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Semua' ? 'bg-teal-50 border-teal-300 ring-2 ring-teal-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            statusFilter === 'Semua' ? 'bg-accent-subtle border-accent/30 ring-2 ring-accent/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Total SPK</span>
-            <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
-              <Wrench className="w-4 h-4" />
+            <span className="text-xs font-semibold text-ink-muted">Total SPK</span>
+            <div className="w-7 h-7 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
+              <Wrench className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-teal-900 mt-1 tabular-nums">{totalSpkCount}</div>
-          <span className="text-[10px] text-slate-400">Seluruh SPK aktif</span>
+          <div className="text-xl sm:text-2xl font-black text-accent mt-1">{totalSpkCount}</div>
+          <span className="text-[10px] text-ink-subtle">Seluruh SPK aktif</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Perlu Ditugaskan')}
-          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Perlu Ditugaskan' ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            statusFilter === 'Perlu Ditugaskan' ? 'bg-status-amber-bg border-status-amber/30 ring-2 ring-status-amber/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-700">Perlu Ditugaskan</span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-              <UserCheck className="w-4 h-4" />
+            <span className="text-xs font-semibold text-status-amber">Perlu Ditugaskan</span>
+            <div className="w-7 h-7 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
+              <UserCheck className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-rose-700 mt-1 tabular-nums">{unassignedCount}</div>
-          <span className="text-[10px] text-rose-600">Belum ada mekanik</span>
+          <div className="text-xl sm:text-2xl font-black text-status-amber mt-1">{unassignedCount}</div>
+          <span className="text-[10px] text-status-amber">Belum ada mekanik</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Dalam Pengerjaan')}
-          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Dalam Pengerjaan' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            statusFilter === 'Dalam Pengerjaan' ? 'bg-status-blue-bg border-status-blue/30 ring-2 ring-status-blue/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-700">Dalam Pengerjaan</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-              <Clock className="w-4 h-4" />
+            <span className="text-xs font-semibold text-status-blue">Dalam Pengerjaan</span>
+            <div className="w-7 h-7 rounded-md bg-status-blue-bg text-status-blue flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-700 mt-1 tabular-nums">{inProgressCount}</div>
-          <span className="text-[10px] text-amber-600">Teknisi aktif di pit</span>
+          <div className="text-xl sm:text-2xl font-black text-status-blue mt-1">{inProgressCount}</div>
+          <span className="text-[10px] text-status-blue">Teknisi aktif di pit</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Waiting QC')}
-          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
-            statusFilter === 'Waiting QC' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            statusFilter === 'Waiting QC' ? 'bg-status-green-bg border-status-green/30 ring-2 ring-status-green/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-700">Siap QC (FIR)</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-              <CheckCircle2 className="w-4 h-4" />
+            <span className="text-xs font-semibold text-status-green">Siap QC (FIR)</span>
+            <div className="w-7 h-7 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-1 tabular-nums">{waitingQcCount}</div>
-          <span className="text-[10px] text-emerald-600">Siap diinspeksi</span>
+          <div className="text-xl sm:text-2xl font-black text-status-green mt-1">{waitingQcCount}</div>
+          <span className="text-[10px] text-status-green">Siap diinspeksi</span>
         </div>
       </div>
 

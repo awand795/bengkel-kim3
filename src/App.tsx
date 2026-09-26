@@ -108,12 +108,11 @@ export const App: React.FC = () => {
     }
 
     if (currentRole === 'SA') {
-      if (activeTab === 'sa-penerimaan') return <ServiceAdvisorView initialTab="penerimaan" />;
-      if (activeTab === 'sa') return <ServiceAdvisorView initialTab="spk-list" />;
+      if (activeTab === 'sa-penerimaan' || activeTab === 'sa-baru') return <ServiceAdvisorView initialTab="penerimaan" />;
+      if (activeTab === 'sa' || activeTab === 'sa-list') return <ServiceAdvisorView initialTab="spk-list" />;
       if (activeTab === 'dashboard') return <DashboardView />;
-      // Sidebar SA "Status Part & PO (Kotak Merah)" + notif link_tab 'purchasing':
-      // tampilkan subtab Kotak Merah SA (pantau & konfirmasi), BUKAN meja purchasing.
-      if (activeTab === 'purchasing') return <ServiceAdvisorView initialTab="estimasi-pr" />;
+      // Sidebar SA Kotak Merah (PR) + notif link_tab 'purchasing' / 'sa-kotak-merah':
+      if (activeTab === 'purchasing' || activeTab === 'sa-kotak-merah') return <ServiceAdvisorView initialTab="estimasi-pr" />;
       if (activeTab === 'beli-part') return <BeliPartView />;
       return <ServiceAdvisorView initialTab="spk-list" />;
     }
@@ -170,9 +169,13 @@ export const App: React.FC = () => {
       case 'security-memo':
         return <SecurityView initialTab="memo" />;
       case 'sa':
+      case 'sa-list':
         return <ServiceAdvisorView initialTab="spk-list" />;
       case 'sa-penerimaan':
+      case 'sa-baru':
         return <ServiceAdvisorView initialTab="penerimaan" />;
+      case 'sa-kotak-merah':
+        return <ServiceAdvisorView initialTab="estimasi-pr" />;
       case 'foreman':
         return <ForemanView />;
       case 'mekanik':

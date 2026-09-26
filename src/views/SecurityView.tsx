@@ -447,19 +447,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     <div className="space-y-6">
       
       {/* Top Banner / Pos Security Header */}
-      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center font-black shadow-2xs border border-teal-100">
+      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-md bg-accent text-white flex items-center justify-center font-black shadow-xs">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Security Pos Gerbang – KIM 3</h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 text-[11px] font-bold tracking-wide border border-teal-200/70">
+              <h1 className="text-lg font-black text-ink tracking-tight">SECURITY – BENGKEL KIM3</h1>
+              <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent text-[11px] font-bold tracking-wide border border-accent/30">
                 POS UTAMA
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-ink-muted mt-0.5">
               Gate Control &amp; Validasi Nopol Booking, Monitoring Armada Realtime, dan Penerbitan Memo Keluar
             </p>
           </div>
@@ -485,10 +485,10 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               });
               changeTab('checkin');
             }}
-            className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 active:scale-98 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2"
+            className="px-4 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
-            + Check In Kendaraan Masuk
+            + CHECK IN KENDARAAN MASUK
           </button>
         </div>
       </div>
@@ -637,31 +637,31 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {currentTab === 'checkin' && (
         <div className="space-y-6">
           {/* Header Bar */}
-          <div className="bg-linear-to-r from-teal-900 via-teal-800 to-slate-900 rounded-2xl p-6 sm:p-7 text-white shadow-sm border border-teal-700/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="bg-surface-dark rounded-md p-5 sm:p-6 text-white border border-border-dark shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-white/10 text-teal-100 text-xs font-semibold backdrop-blur-md">
-                  Pos Security Gerbang
+                <span className="px-2.5 py-1 rounded bg-accent-subtle/20 text-teal-100 text-[11px] font-black uppercase tracking-wider backdrop-blur-xs">
+                  POS SECURITY GERBANG
                 </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-xs text-teal-200/80 font-medium">Live Recording &amp; Realtime Sync</span>
+                <span className="w-2 h-2 rounded-full bg-status-green animate-pulse"></span>
+                <span className="text-xs text-teal-100/80 font-medium">Live Recording &amp; Realtime Sync</span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold mt-2.5 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight">
                 Check In Kendaraan Masuk
               </h2>
-              <p className="text-xs sm:text-sm text-teal-100/80 mt-1 max-w-xl">
+              <p className="text-xs text-teal-100/70 mt-1 max-w-xl">
                 Catat nomor polisi, jenis armada, tujuan kedatangan, dan dokumentasi fisik saat armada tiba di gerbang KIM 3.
               </p>
             </div>
             
             <div className="flex items-center gap-3">
-              <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-3 text-center border border-white/10">
-                <div className="text-[10px] text-teal-200 uppercase font-bold tracking-wider">Total Masuk</div>
+              <div className="bg-white/5 backdrop-blur-xs rounded-md px-4 py-3 text-center border border-border-dark">
+                <div className="text-[10px] text-teal-200/70 uppercase font-bold">Total Masuk</div>
                 <div className="text-2xl font-black tabular-nums">{antrianData.length}</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-3 text-center border border-white/10">
-                <div className="text-[10px] text-teal-200 uppercase font-bold tracking-wider">On Progress</div>
-                <div className="text-2xl font-black text-amber-300 tabular-nums">{onProgressList.length}</div>
+              <div className="bg-white/5 backdrop-blur-xs rounded-md px-4 py-3 text-center border border-border-dark">
+                <div className="text-[10px] text-teal-200/70 uppercase font-bold">On Progress</div>
+                <div className="text-2xl font-black text-status-amber tabular-nums">{onProgressList.length}</div>
               </div>
             </div>
           </div>
