@@ -132,15 +132,25 @@ export const KasirInvoiceView: React.FC = () => {
     <div className="space-y-6">
       
       {/* Top Header */}
-      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold border border-emerald-100 shadow-2xs">
             <Receipt className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-ink">Admin Invoice &amp; Pembayaran (Kasir)</h1>
-            <p className="text-xs text-ink-muted">Penerbitan Faktur, Perhitungan PPN{ppnRate !== null ? ` ${ppnRate}%` : ''}, dan Konfirmasi Pelunasan</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-slate-900">Admin Invoice &amp; Pembayaran (Kasir)</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200/70">
+                FAKTUR RESMI
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Penerbitan Faktur, Perhitungan PPN{ppnRate !== null ? ` ${ppnRate}%` : ''}, dan Konfirmasi Pelunasan</p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200/60 self-start sm:self-auto">
+          <Banknote className="w-4 h-4 text-emerald-600" />
+          <span>Faktur Terintegrasi Sistem</span>
         </div>
       </div>
 
@@ -148,63 +158,63 @@ export const KasirInvoiceView: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div 
           onClick={() => setStatusFilter('Semua')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Semua' ? 'bg-accent-subtle border-accent/30 ring-2 ring-accent/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Semua' ? 'bg-teal-50 border-teal-300 ring-2 ring-teal-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink-muted">Total Faktur</span>
-            <div className="w-7 h-7 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
-              <Receipt className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold text-slate-500">Total Faktur</span>
+            <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
+              <Receipt className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-accent mt-1">{totalCount}</div>
-          <span className="text-[10px] text-ink-subtle">Seluruh dokumen</span>
+          <div className="text-xl sm:text-2xl font-black text-teal-900 mt-1 tabular-nums">{totalCount}</div>
+          <span className="text-[10px] text-slate-400">Seluruh dokumen</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Belum Lunas')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Belum Lunas' ? 'bg-status-amber-bg border-status-amber/30 ring-2 ring-status-amber/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Belum Lunas' ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-status-amber">Belum Lunas</span>
-            <div className="w-7 h-7 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
-              <CreditCard className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold text-amber-700">Belum Lunas</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+              <CreditCard className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-status-amber mt-1">{unpaidCount}</div>
-          <span className="text-[10px] text-status-amber">Menunggu pembayaran</span>
+          <div className="text-xl sm:text-2xl font-black text-amber-700 mt-1 tabular-nums">{unpaidCount}</div>
+          <span className="text-[10px] text-amber-600">Menunggu pembayaran</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Lunas')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Lunas' ? 'bg-status-green-bg border-status-green/30 ring-2 ring-status-green/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Lunas' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-status-green">Faktur Lunas</span>
-            <div className="w-7 h-7 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold text-emerald-700">Faktur Lunas</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-status-green mt-1">{paidCount}</div>
-          <span className="text-[10px] text-status-green">Terverifikasi kasir</span>
+          <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-1 tabular-nums">{paidCount}</div>
+          <span className="text-[10px] text-emerald-600">Terverifikasi kasir</span>
         </div>
 
-        <div className="p-3.5 sm:p-4 rounded-md border border-border bg-surface-raised">
+        <div className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 bg-white shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink-muted">Omset Lunas</span>
-            <div className="w-7 h-7 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
-              <Banknote className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold text-slate-500">Omset Lunas</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+              <Banknote className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-base sm:text-lg font-black text-status-green font-mono mt-1">
+          <div className="text-base sm:text-lg font-black text-emerald-700 font-mono mt-1 tabular-nums">
             Rp {totalPaidRevenue.toLocaleString('id-ID')}
           </div>
-          <span className="text-[10px] text-ink-subtle">Total penerimaan</span>
+          <span className="text-[10px] text-slate-400">Total penerimaan</span>
         </div>
       </div>
 

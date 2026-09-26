@@ -4,11 +4,11 @@ import {
   LogOut, 
   ShieldCheck, 
   ArrowLeft, 
-  User, 
   X, 
   Building2, 
   Mail, 
-  CheckCircle2 
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
 import { FloatingNotificationToast } from '../common/FloatingNotificationToast';
@@ -72,7 +72,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-surface-raised/95 backdrop-blur-md border-b border-border font-sans safe-top">
+      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80 font-sans safe-top shadow-xs">
         {/* ======================================================== */}
         {/* 1. MOBILE NATIVE TOP APP BAR (< 768px)                   */}
         {/* ======================================================== */}
@@ -83,13 +83,13 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={handleBack}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink hover:bg-surface active:bg-accent-subtle transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors"
                 aria-label="Kembali ke halaman utama role"
               >
-                <ArrowLeft className="w-5 h-5 text-ink" />
+                <ArrowLeft className="w-5 h-5 text-slate-800" />
               </button>
             ) : (
-              <div className="min-w-[44px] min-h-[44px] flex items-center justify-center">
+              <div className="flex items-center gap-2">
                 <img
                   src="/logo.png"
                   alt="KIM3"
@@ -101,25 +101,25 @@ export const Navbar: React.FC = () => {
 
           {/* Center: Slim Title & Subtitle */}
           <div className="flex-1 min-w-0 px-2 text-left">
-            <h1 className="text-sm font-bold text-ink truncate leading-tight">
+            <h1 className="text-sm font-bold text-slate-900 truncate leading-tight">
               {currentInfo.title}
             </h1>
-            <p className="text-[10px] text-ink-subtle truncate font-medium">
+            <p className="text-[10px] text-slate-500 truncate font-medium">
               {currentInfo.subtitle || currentRole}
             </p>
           </div>
 
           {/* Right: Notifications & User Avatar Button */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <NotificationDropdown />
 
             <button
               type="button"
               onClick={() => setMobileProfileOpen(true)}
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-surface active:bg-accent-subtle transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:ring-2 hover:ring-teal-500/20 transition-all"
               aria-label="Buka profil pengguna"
             >
-              <div className="w-8 h-8 rounded-md bg-accent text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+              <div className="w-8 h-8 rounded-full bg-linear-to-br from-teal-600 to-teal-800 text-white font-bold flex items-center justify-center text-xs shadow-xs">
                 {currentUser?.charAt(0) || 'U'}
               </div>
             </button>
@@ -129,21 +129,25 @@ export const Navbar: React.FC = () => {
         {/* ======================================================== */}
         {/* 2. DESKTOP APP HEADER (>= 768px)                         */}
         {/* ======================================================== */}
-        <div className="hidden md:flex max-w-[1600px] mx-auto px-4 lg:px-6 h-16 items-center justify-between gap-4">
-          {/* Brand Logo */}
+        <div className="hidden md:flex max-w-[1600px] mx-auto px-6 h-16 items-center justify-between gap-4">
+          {/* Brand Logo & Tagline */}
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
               alt="KIM3 Bengkel"
               className="h-9 w-auto object-contain"
             />
+            <div className="hidden lg:block border-l border-slate-200 pl-3">
+              <span className="text-xs font-semibold text-slate-700 block leading-tight">Workshop Management System</span>
+              <span className="text-[10px] text-slate-400 font-medium">Bengkel KIM 3 • Operasional &amp; Fleet</span>
+            </div>
           </div>
 
           {/* Right Controls: Role Badge, Notifications, User Details, Logout */}
           <div className="flex items-center gap-3">
-            {/* Locked Role Badge */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-accent/30 bg-accent-subtle text-accent text-xs font-bold">
-              <ShieldCheck className="w-3.5 h-3.5" />
+            {/* Modern Role Badge */}
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-teal-200/80 bg-teal-50 text-teal-800 text-xs font-semibold shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
               <span>{currentRole}</span>
             </div>
 
@@ -151,22 +155,22 @@ export const Navbar: React.FC = () => {
             <NotificationDropdown />
 
             {/* User Profile Pill & Logout */}
-            <div className="flex items-center gap-3 pl-3 border-l border-border">
-              <div className="w-8 h-8 rounded-md bg-accent text-white font-bold flex items-center justify-center text-xs shadow-2xs">
+            <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+              <div className="w-8 h-8 rounded-full bg-linear-to-br from-teal-600 to-teal-800 text-white font-bold flex items-center justify-center text-xs shadow-xs">
                 {currentUser?.charAt(0) || 'U'}
               </div>
               <div className="text-left">
-                <div className="text-xs font-bold text-ink leading-tight">
+                <div className="text-xs font-bold text-slate-800 leading-tight">
                   {currentUser || 'Pengguna'}
                 </div>
-                <div className="text-[10px] text-ink-subtle font-medium">
+                <div className="text-[10px] text-slate-500 font-medium">
                   {authUser?.nama_perusahaan || currentRole}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={logout}
-                className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-md text-ink-subtle hover:text-status-red hover:bg-status-red-bg/70 active:bg-status-red-bg transition-colors ml-1"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:bg-rose-100 transition-colors ml-1"
                 title="Keluar dari Akun (Logout)"
                 aria-label="Logout"
               >
@@ -187,25 +191,28 @@ export const Navbar: React.FC = () => {
         <div className="md:hidden fixed inset-0 z-50 flex items-end">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-surface-dark/50 backdrop-blur-xs transition-opacity"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileProfileOpen(false)}
             aria-hidden="true"
           />
 
           {/* Sheet Body */}
-          <div className="relative w-full bg-surface-raised rounded-t-xl shadow-2xl border-t border-border max-h-[85vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] font-sans animate-in slide-in-from-bottom duration-200">
+          <div className="relative w-full bg-white rounded-t-2xl shadow-2xl border-t border-slate-200 max-h-[85vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] font-sans animate-in slide-in-from-bottom duration-200">
             {/* Grab Handle */}
-            <div className="pt-2.5 pb-1 flex justify-center">
-              <span className="w-10 h-1 rounded-full bg-border" />
+            <div className="pt-3 pb-1 flex justify-center">
+              <span className="w-12 h-1.5 rounded-full bg-slate-300" />
             </div>
 
             {/* Sheet Header */}
-            <div className="px-4 pb-3 pt-1 flex items-center justify-between border-b border-border">
-              <h3 className="text-sm font-bold text-ink">Akun Pengguna</h3>
+            <div className="px-5 pb-3 pt-2 flex items-center justify-between border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-teal-600" />
+                <h3 className="text-sm font-bold text-slate-900">Akun Pengguna</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setMobileProfileOpen(false)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink-subtle hover:text-ink hover:bg-surface active:bg-accent-subtle transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors"
                 aria-label="Tutup profil"
               >
                 <X className="w-5 h-5" />
@@ -213,23 +220,23 @@ export const Navbar: React.FC = () => {
             </div>
 
             {/* Sheet Content */}
-            <div className="p-4 space-y-4">
+            <div className="p-5 space-y-4">
               {/* User Identity Card */}
-              <div className="flex items-center gap-3 p-3 bg-surface rounded-md border border-border">
-                <div className="w-12 h-12 rounded-md bg-accent text-white font-bold flex items-center justify-center text-lg shadow-xs">
+              <div className="flex items-center gap-3.5 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-teal-600 to-teal-800 text-white font-bold flex items-center justify-center text-lg shadow-sm">
                   {currentUser?.charAt(0) || 'U'}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-bold text-ink truncate">
+                  <div className="text-sm font-bold text-slate-900 truncate">
                     {currentUser || 'Pengguna'}
                   </div>
-                  <div className="text-xs text-ink-muted truncate flex items-center gap-1 mt-0.5">
-                    <Mail className="w-3.5 h-3.5 text-ink-subtle" />
+                  <div className="text-xs text-slate-500 truncate flex items-center gap-1.5 mt-0.5">
+                    <Mail className="w-3.5 h-3.5 text-slate-400" />
                     <span>{authUser?.email || '-'}</span>
                   </div>
                   {authUser?.nama_perusahaan && (
-                    <div className="text-xs text-accent font-medium truncate flex items-center gap-1 mt-0.5">
-                      <Building2 className="w-3.5 h-3.5" />
+                    <div className="text-xs text-teal-700 font-medium truncate flex items-center gap-1.5 mt-0.5">
+                      <Building2 className="w-3.5 h-3.5 text-teal-600" />
                       <span>{authUser.nama_perusahaan}</span>
                     </div>
                   )}
@@ -237,30 +244,32 @@ export const Navbar: React.FC = () => {
               </div>
 
               {/* Role Chip */}
-              <div className="flex items-center justify-between p-3 rounded-md border border-accent/30 bg-accent-subtle">
-                <span className="text-xs font-semibold text-accent">Peran / Otoritas Akses</span>
-                <span className="px-2.5 py-0.5 rounded bg-accent text-white text-xs font-bold">
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-teal-100 bg-teal-50/70">
+                <span className="text-xs font-semibold text-teal-900">Peran / Otoritas Akses</span>
+                <span className="px-3 py-1 rounded-full bg-teal-600 text-white text-xs font-bold shadow-2xs">
                   {currentRole}
                 </span>
               </div>
 
               {/* System Note */}
-              <div className="p-3 rounded-md bg-surface border border-border text-[11px] text-ink-muted space-y-1">
-                <div className="font-semibold text-ink flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-status-green" />
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 space-y-1">
+                <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>Sesi Bengkel KIM 3 Aktif</span>
                 </div>
-                <p>Navigasi dioptimalkan untuk mobile app-shell. Mode offline aktif dengan cache lokal.</p>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Navigasi dioptimalkan untuk mobile app-shell. Sinkronisasi data real-time aktif.
+                </p>
               </div>
 
-              {/* Logout Button (min 44px touch target) */}
+              {/* Logout Button */}
               <button
                 type="button"
                 onClick={() => {
                   setMobileProfileOpen(false);
                   logout();
                 }}
-                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-status-red-bg text-status-red border border-status-red/25 font-bold text-xs hover:bg-status-red-bg/80 active:bg-status-red-bg transition-colors"
+                className="w-full min-h-[46px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs hover:bg-rose-100 active:bg-rose-200 transition-colors shadow-2xs"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Keluar dari Akun (Logout)</span>

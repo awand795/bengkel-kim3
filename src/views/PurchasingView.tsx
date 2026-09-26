@@ -230,19 +230,24 @@ export const PurchasingView: React.FC = () => {
     <div className="space-y-6">
       
       {/* Top Header */}
-      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-md bg-status-red-bg text-status-red flex items-center justify-center font-bold">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold border border-rose-100 shadow-2xs">
             <ShoppingBag className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-ink">Admin Purchasing - Pengadaan Part (Kotak Merah)</h1>
-            <p className="text-xs text-ink-muted">Proses Penawaran Min. 2 Vendor, Kesepakatan PO, dan Input Estimasi Ketersediaan (ETA)</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-slate-900">Admin Purchasing - Pengadaan Part</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[11px] font-bold border border-rose-200/70">
+                KOTAK MERAH
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Proses Penawaran Min. 2 Vendor, Kesepakatan PO, dan Input Estimasi Ketersediaan (ETA)</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-status-red-bg text-status-red text-xs font-bold border border-status-red/30">
-          <Clock className="w-4 h-4 text-status-red" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200/60 self-start sm:self-auto">
+          <Clock className="w-4 h-4 text-rose-600" />
           <span>Integrasi Lead Time Otomatis</span>
         </div>
       </div>
@@ -251,66 +256,66 @@ export const PurchasingView: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div 
           onClick={() => setStatusFilter('Semua')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Semua' ? 'bg-accent-subtle border-accent/30 ring-2 ring-accent/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Semua' ? 'bg-teal-50 border-teal-300 ring-2 ring-teal-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink-muted">Total PR Masuk</span>
-            <div className="w-7 h-7 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
-              <ShoppingBag className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold text-slate-500">Total PR Masuk</span>
+            <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
+              <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-accent mt-1">{totalPrCount}</div>
-          <span className="text-[10px] text-ink-subtle">Seluruh permintaan</span>
+          <div className="text-xl sm:text-2xl font-black text-teal-900 mt-1 tabular-nums">{totalPrCount}</div>
+          <span className="text-[10px] text-slate-400">Seluruh permintaan</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Belum Ada PO')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Belum Ada PO' ? 'bg-status-amber-bg border-status-amber/30 ring-2 ring-status-amber/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Belum Ada PO' ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-status-amber">Perlu Proses 2 Vendor</span>
-            <div className="w-7 h-7 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
-              <Building2 className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold text-rose-700">Perlu Proses 2 Vendor</span>
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+              <Building2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-status-amber mt-1">{pendingPoCount}</div>
-          <span className="text-[10px] text-status-amber">Belum ada PO</span>
+          <div className="text-xl sm:text-2xl font-black text-rose-700 mt-1 tabular-nums">{pendingPoCount}</div>
+          <span className="text-[10px] text-rose-600">Belum ada PO</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('PO Diterbitkan')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'PO Diterbitkan' ? 'bg-status-blue-bg border-status-blue/30 ring-2 ring-status-blue/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'PO Diterbitkan' ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-status-blue">PO Aktif / Menunggu ETA</span>
-            <div className="w-7 h-7 rounded-md bg-status-blue-bg text-status-blue flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold text-blue-700">PO Aktif / Menunggu ETA</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+              <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-status-blue mt-1">{poActiveCount}</div>
-          <span className="text-[10px] text-status-blue">Dalam pengiriman vendor</span>
+          <div className="text-xl sm:text-2xl font-black text-blue-700 mt-1 tabular-nums">{poActiveCount}</div>
+          <span className="text-[10px] text-blue-600">Dalam pengiriman vendor</span>
         </div>
 
         <div 
           onClick={() => setStatusFilter('Barang Ready')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Barang Ready' ? 'bg-status-green-bg border-status-green/30 ring-2 ring-status-green/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
+          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'Barang Ready' ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-xs' : 'bg-white border-slate-200/80 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-status-green">Barang Ready</span>
-            <div className="w-7 h-7 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
-              <PackageCheck className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold text-emerald-700">Barang Ready</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+              <PackageCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-status-green mt-1">{barangReadyCount}</div>
-          <span className="text-[10px] text-status-green">Tiba di bengkel</span>
+          <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-1 tabular-nums">{barangReadyCount}</div>
+          <span className="text-[10px] text-emerald-600">Tiba di bengkel</span>
         </div>
       </div>
 
