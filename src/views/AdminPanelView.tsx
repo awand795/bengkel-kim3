@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
+import { useAppStore } from '../store/useAppStore';
 import { Pengguna, PeranUser, PengaturanSistem } from '../types';
 import { isValidEmail } from '../utils/validation';
 import { 
@@ -45,9 +46,24 @@ const ALL_ROLES: PeranUser[] = [
   'Warehouse'
 ];
 
-export const AdminPanelView: React.FC = () => {
+export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn' | 'print-templates' }> = ({ initialTab = 'users' }) => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'users' | 'settings' | 'ppn' | 'print-templates'>('users');
+  const { navTick, activeTab: storeActiveTab } = useAppStore();
+  const [activeTab, setActiveTab] = useState<'users' | 'settings' | 'ppn' | 'print-templates'>(initialTab);
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  React.useEffect(() => {
+    if (!navTick && !storeActiveTab) return;
+    if (storeActiveTab === 'admin-users' || storeActiveTab === 'admin-panel') setActiveTab('users');
+    else if (storeActiveTab === 'admin-ppn') setActiveTab('ppn');
+    else if (storeActiveTab === 'admin-print') setActiveTab('print-templates');
+    else if (storeActiveTab === 'admin-settings' || storeActiveTab === 'pengaturan') setActiveTab('settings');
+  }, [navTick, storeActiveTab]);
 
   // =========================================================================
   // STATE: USER MANAGEMENT
@@ -301,69 +317,11 @@ export const AdminPanelView: React.FC = () => {
         </div>
       )}
 
-      {/* Nav Tabs */}
-      <div className="flex border-b border-border bg-surface-raised px-4 rounded-t-xl overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab('users')}
-          className={`py-3.5 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer ${
-            activeTab === 'users'
-              ? 'border-accent text-accent font-black'
-              : 'border-transparent text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Manajemen Pengguna &amp; Role</span>
-          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] bg-surface text-ink-muted font-mono">
-            {users.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('ppn')}
-          className={`py-3.5 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer ${
-            activeTab === 'ppn'
-              ? 'border-accent text-accent font-black'
-              : 'border-transparent text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Percent className="w-4 h-4" />
-          <span>Pengaturan PPN ({settings?.ppn_persen != null ? `${settings.ppn_persen}%` : 'belum diatur'})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('print-templates')}
-          className={`py-3.5 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer ${
-            activeTab === 'print-templates'
-              ? 'border-accent text-accent font-black'
-              : 'border-transparent text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Printer className="w-4 h-4" />
-          <span>Kop Header &amp; Footer Cetak Dokumen</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('settings')}
-          className={`py-3.5 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer ${
-            activeTab === 'settings'
-              ? 'border-accent text-accent font-black'
-              : 'border-transparent text-ink-muted hover:text-ink'
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          <span>Profil &amp; Rekening Bengkel</span>
-        </button>
-      </div>
-
       {/* ===================================================================== */}
       {/* TAB 1: MANAJEMEN PENGGUNA & ROLE                                      */}
       {/* ===================================================================== */}
       {activeTab === 'users' && (
-        <div className="bg-surface-raised rounded-b-xl border border-t-0 border-border p-6 shadow-xs space-y-5">
+        <div className="bg-surface-raised rounded-md border border-border p-6 shadow-xs space-y-5">
           {/* Controls: Search & Filter */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search Input */}
@@ -544,7 +502,7 @@ export const AdminPanelView: React.FC = () => {
       {/* TAB 2: PENGATURAN PPN (PAJAK PERTAMBAHAN NILAI)                        */}
       {/* ===================================================================== */}
       {activeTab === 'ppn' && (
-        <div className="bg-surface-raised rounded-b-xl border border-t-0 border-border p-6 sm:p-8 shadow-xs max-w-3xl space-y-6">
+        <div className="bg-surface-raised rounded-md border border-border p-6 sm:p-8 shadow-xs max-w-3xl space-y-6">
           <div>
             <h2 className="text-base font-bold text-ink tracking-tight flex items-center gap-2">
               <Percent className="w-5 h-5 text-accent" />
@@ -613,7 +571,7 @@ export const AdminPanelView: React.FC = () => {
       {/* TAB 3: HEADER & FOOTER CETAK DOKUMEN                                  */}
       {/* ===================================================================== */}
       {activeTab === 'print-templates' && (
-        <div className="bg-surface-raised rounded-b-xl border border-t-0 border-border p-6 sm:p-8 shadow-xs space-y-8">
+        <div className="bg-surface-raised rounded-md border border-border p-6 sm:p-8 shadow-xs space-y-8">
           <div>
             <h2 className="text-base font-bold text-ink tracking-tight flex items-center gap-2">
               <Printer className="w-5 h-5 text-accent" />
@@ -762,7 +720,7 @@ export const AdminPanelView: React.FC = () => {
       {/* TAB 4: PROFIL BENGKEL & REKENING PEMBAYARAN                           */}
       {/* ===================================================================== */}
       {activeTab === 'settings' && (
-        <div className="bg-surface-raised rounded-b-xl border border-t-0 border-border p-6 sm:p-8 shadow-xs space-y-6 max-w-4xl">
+        <div className="bg-surface-raised rounded-md border border-border p-6 sm:p-8 shadow-xs space-y-6 max-w-4xl">
           <div>
             <h2 className="text-base font-bold text-ink tracking-tight flex items-center gap-2">
               <Building2 className="w-5 h-5 text-accent" />

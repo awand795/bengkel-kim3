@@ -30,10 +30,23 @@ import { PaginationBar } from '../components/common/PaginationBar';
 import { toast } from '../components/common/Toast';
 import { realtimeHub } from '../services/realtimeService';
 
-export const ForemanView: React.FC = () => {
+export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengecekan' | 'qc-fir' }> = ({ initialTab = 'dashboard' }) => {
   const queryClient = useQueryClient();
-  const { currentUser } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'hasil-pengecekan' | 'qc-fir'>('dashboard');
+  const { currentUser, navTick, activeTab: storeActiveTab } = useAppStore();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'hasil-pengecekan' | 'qc-fir'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (!navTick && !storeActiveTab) return;
+    if (storeActiveTab === 'foreman-tugas' || storeActiveTab === 'foreman') setActiveTab('dashboard');
+    else if (storeActiveTab === 'foreman-cek') setActiveTab('hasil-pengecekan');
+    else if (storeActiveTab === 'foreman-qc') setActiveTab('qc-fir');
+  }, [navTick, storeActiveTab]);
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
 
@@ -344,34 +357,6 @@ export const ForemanView: React.FC = () => {
             <h1 className="text-lg font-black text-ink">Dashboard Foreman</h1>
             <p className="text-xs text-ink-muted">Distribusi Pekerjaan, Pengecekan Mekanik, dan Quality Control (FIR)</p>
           </div>
-        </div>
-
-        {/* Subtabs */}
-        <div className="flex flex-wrap gap-1 bg-surface p-1 rounded-md">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-              activeTab === 'dashboard' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            Dashboard SPK
-          </button>
-          <button
-            onClick={() => setActiveTab('hasil-pengecekan')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-              activeTab === 'hasil-pengecekan' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            Input Perbaikan (Hasil Cek)
-          </button>
-          <button
-            onClick={() => setActiveTab('qc-fir')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-              activeTab === 'qc-fir' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            Quality Control (QC / FIR)
-          </button>
         </div>
       </div>
 

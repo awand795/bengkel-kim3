@@ -177,8 +177,12 @@ export const MobileBottomNav: React.FC = () => {
   const isMatchTab = (tabId: string, current: string) => {
     if (tabId === current) return true;
     if (tabId === 'sa-list' && (current === 'sa' || current === 'sa-list')) return true;
+    if (tabId === 'sa' && (current === 'sa' || current === 'sa-list')) return true;
     if (tabId === 'sa-baru' && (current === 'sa-penerimaan' || current === 'sa-baru')) return true;
     if (tabId === 'sa-kotak-merah' && (current === 'sa-kotak-merah' || (currentRole === 'SA' && current === 'purchasing'))) return true;
+    if (tabId === 'foreman' && (current === 'foreman' || current === 'foreman-tugas' || current === 'foreman-cek' || current === 'foreman-qc')) return true;
+    if (tabId === 'beli-part' && current.startsWith('beli-part')) return true;
+    if (tabId === 'admin-panel' && (current.startsWith('admin-') || current === 'pengaturan')) return true;
     return false;
   };
 

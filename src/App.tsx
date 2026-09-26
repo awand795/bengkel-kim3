@@ -113,14 +113,19 @@ export const App: React.FC = () => {
       if (activeTab === 'dashboard') return <DashboardView />;
       // Sidebar SA Kotak Merah (PR) + notif link_tab 'purchasing' / 'sa-kotak-merah':
       if (activeTab === 'purchasing' || activeTab === 'sa-kotak-merah') return <ServiceAdvisorView initialTab="estimasi-pr" />;
-      if (activeTab === 'beli-part') return <BeliPartView />;
+      if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
+      if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
+      if (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi') return <BeliPartView initialTab="transaksi" />;
       return <ServiceAdvisorView initialTab="spk-list" />;
     }
 
     if (currentRole === 'Foreman') {
-      if (activeTab === 'foreman') return <ForemanView />;
+      if (activeTab === 'foreman-cek') return <ForemanView initialTab="hasil-pengecekan" />;
+      if (activeTab === 'foreman-qc') return <ForemanView initialTab="qc-fir" />;
+      if (activeTab === 'foreman' || activeTab === 'foreman-tugas') return <ForemanView initialTab="dashboard" />;
+      if (activeTab === 'mekanik') return <MekanikView />;
       if (activeTab === 'dashboard') return <DashboardView />;
-      return <ForemanView />;
+      return <ForemanView initialTab="dashboard" />;
     }
 
     if (currentRole === 'Mekanik') {
@@ -131,15 +136,26 @@ export const App: React.FC = () => {
 
     if (currentRole === 'Admin Purchasing') {
       if (activeTab === 'purchasing') return <PurchasingView />;
-      if (activeTab === 'beli-part') return <BeliPartView />;
+      if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
+      if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
+      if (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi') return <BeliPartView initialTab="transaksi" />;
       if (activeTab === 'dashboard') return <DashboardView />;
       return <PurchasingView />;
     }
 
     if (currentRole === 'Admin Invoice') {
       if (activeTab === 'kasir') return <KasirInvoiceView />;
+      if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
+      if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
+      if (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi') return <BeliPartView initialTab="transaksi" />;
       if (activeTab === 'dashboard') return <DashboardView />;
       return <KasirInvoiceView />;
+    }
+
+    if (currentRole === 'Warehouse') {
+      if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
+      if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
+      return <BeliPartView initialTab="transaksi" />;
     }
 
     if (currentRole === 'PIC Terkait') {
@@ -151,8 +167,15 @@ export const App: React.FC = () => {
     // Super Admin: Akses penuh ke seluruh modul sistem
     switch (activeTab) {
       case 'admin-panel':
+      case 'admin-users':
+        return <AdminPanelView initialTab="users" />;
+      case 'admin-ppn':
+        return <AdminPanelView initialTab="ppn" />;
+      case 'admin-print':
+        return <AdminPanelView initialTab="print-templates" />;
+      case 'admin-settings':
       case 'pengaturan':
-        return <AdminPanelView />;
+        return <AdminPanelView initialTab="settings" />;
       case 'dashboard':
         return <DashboardView />;
       case 'security':
@@ -177,15 +200,39 @@ export const App: React.FC = () => {
       case 'sa-kotak-merah':
         return <ServiceAdvisorView initialTab="estimasi-pr" />;
       case 'foreman':
-        return <ForemanView />;
+      case 'foreman-tugas':
+        return <ForemanView initialTab="dashboard" />;
+      case 'foreman-cek':
+        return <ForemanView initialTab="hasil-pengecekan" />;
+      case 'foreman-qc':
+        return <ForemanView initialTab="qc-fir" />;
       case 'mekanik':
         return <MekanikView />;
       case 'purchasing':
         return <PurchasingView />;
       case 'beli-part':
-        return <BeliPartView />;
+      case 'beli-part-transaksi':
+        return <BeliPartView initialTab="transaksi" />;
+      case 'beli-part-estimasi':
+        return <BeliPartView initialTab="estimasi" />;
+      case 'beli-part-picking':
+        return <BeliPartView initialTab="picking" />;
       case 'kasir':
         return <KasirInvoiceView />;
+      case 'fleet-dashboard':
+        return <WebFleetCustomerView initialMenu="dashboard" />;
+      case 'fleet-booking':
+        return <WebFleetCustomerView initialMenu="booking" />;
+      case 'fleet-status':
+        return <WebFleetCustomerView initialMenu="status" />;
+      case 'fleet-history':
+        return <WebFleetCustomerView initialMenu="history" />;
+      case 'fleet-kendaraan':
+        return <WebFleetCustomerView initialMenu="kendaraan" />;
+      case 'fleet-dokumen':
+        return <WebFleetCustomerView initialMenu="dokumen" />;
+      case 'fleet-profil':
+        return <WebFleetCustomerView initialMenu="profil" />;
       case 'pic-terkait':
         return <PicTerkaitView />;
       default:

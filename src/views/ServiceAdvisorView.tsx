@@ -714,43 +714,6 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             <p className="text-xs text-ink-muted">Penerimaan Kendaraan, Estimasi Biaya &amp; Waktu, Pengadaan Part, dan FIR Closed</p>
           </div>
         </div>
-
-        {/* Subtabs */}
-        <div className="flex flex-wrap gap-1 bg-surface p-1 rounded-md border border-border">
-          <button
-            onClick={() => {
-              setActiveTab('spk-list');
-              useAppStore.getState().setActiveTab('sa-list');
-            }}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'spk-list' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            📋 Daftar SPK Aktif
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('penerimaan');
-              useAppStore.getState().setActiveTab('sa-baru');
-            }}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'penerimaan' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            ➕ Buat SPK Baru
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('estimasi-pr');
-              useAppStore.getState().setActiveTab('sa-kotak-merah');
-            }}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'estimasi-pr' ? 'bg-surface-raised text-accent shadow-xs' : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            📦 Kotak Merah (PR)
-          </button>
-        </div>
       </div>
 
       {/* Mini KPI Banners for SA */}

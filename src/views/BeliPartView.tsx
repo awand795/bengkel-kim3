@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
@@ -47,10 +47,23 @@ interface CartItem {
   lokasi_rak?: string;
 }
 
-export const BeliPartView: React.FC = () => {
+export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'picking' }> = ({ initialTab = 'transaksi' }) => {
   const queryClient = useQueryClient();
-  const { currentUser } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'transaksi' | 'estimasi' | 'picking'>('transaksi');
+  const { currentUser, navTick, activeTab: storeActiveTab } = useAppStore();
+  const [activeTab, setActiveTab] = useState<'transaksi' | 'estimasi' | 'picking'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (!navTick && !storeActiveTab) return;
+    if (storeActiveTab === 'beli-part-transaksi' || storeActiveTab === 'beli-part') setActiveTab('transaksi');
+    else if (storeActiveTab === 'beli-part-estimasi') setActiveTab('estimasi');
+    else if (storeActiveTab === 'beli-part-picking') setActiveTab('picking');
+  }, [navTick, storeActiveTab]);
   const [selectedTransaksi, setSelectedTransaksi] = useState<TransaksiBeliPart | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [transaksiPage, setTransaksiPage] = useState(1);
@@ -439,45 +452,6 @@ export const BeliPartView: React.FC = () => {
             <p className="text-xs text-ink-muted mt-0.5">
               Alur Masuk → SA Estimasi & Approval → Warehouse Picking → Penyerahan → Kasir Faktur → Memo Keluar
             </p>
-          </div>
-        </div>
-
-        {/* Action Button & Sub-tab Pill Navigation */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex bg-surface p-1 rounded-md border border-border">
-            <button
-              type="button"
-              onClick={() => setActiveTab('transaksi')}
-              className={`px-3.5 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'transaksi'
-                  ? 'bg-surface-raised text-accent shadow-xs'
-                  : 'text-ink-muted hover:text-ink'
-              }`}
-            >
-              Daftar Transaksi ({filteredTransaksi.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('estimasi')}
-              className={`px-3.5 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'estimasi'
-                  ? 'bg-surface-raised text-accent shadow-xs'
-                  : 'text-ink-muted hover:text-ink'
-              }`}
-            >
-              + Estimasi & POS Baru
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('picking')}
-              className={`px-3.5 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'picking'
-                  ? 'bg-surface-raised text-accent shadow-xs'
-                  : 'text-ink-muted hover:text-ink'
-              }`}
-            >
-              Warehouse Picking
-            </button>
           </div>
         </div>
       </div>
