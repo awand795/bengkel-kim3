@@ -138,10 +138,15 @@ export const Sidebar: React.FC = () => {
     // 2. DASHBOARD PER PERAN (Single Tab Dashboard)
     // =========================================================================
     { id: 'dashboard', label: 'Dashboard SA', icon: LayoutDashboard, roles: ['SA'] },
+    { id: 'kunjungan', label: 'Kunjungan untuk Saya', icon: UserCheck, roles: ['SA'] },
     { id: 'dashboard', label: 'Dashboard Foreman', icon: LayoutDashboard, roles: ['Foreman'] },
+    { id: 'kunjungan', label: 'Kunjungan untuk Saya', icon: UserCheck, roles: ['Foreman'] },
     { id: 'dashboard', label: 'Dashboard Mekanik', icon: LayoutDashboard, roles: ['Mekanik'] },
+    { id: 'kunjungan', label: 'Kunjungan untuk Saya', icon: UserCheck, roles: ['Mekanik'] },
     { id: 'dashboard', label: 'Dashboard Purchasing', icon: LayoutDashboard, roles: ['Admin Purchasing'] },
+    { id: 'kunjungan', label: 'Kunjungan untuk Saya', icon: UserCheck, roles: ['Admin Purchasing'] },
     { id: 'dashboard', label: 'Dashboard Kasir', icon: LayoutDashboard, roles: ['Admin Invoice'] },
+    { id: 'kunjungan', label: 'Kunjungan untuk Saya', icon: UserCheck, roles: ['Admin Invoice'] },
     { id: 'dashboard', label: 'Dashboard Kunjungan', icon: LayoutDashboard, roles: ['PIC Terkait'] },
 
     // =========================================================================
@@ -249,6 +254,8 @@ export const Sidebar: React.FC = () => {
     // =========================================================================
     // 9. WAREHOUSE
     // =========================================================================
+    { id: 'dashboard', label: 'Dashboard Warehouse', icon: LayoutDashboard, roles: ['Warehouse'] },
+    { id: 'kunjungan', label: 'Kunjungan untuk Saya', icon: UserCheck, roles: ['Warehouse'] },
     {
       id: 'beli-part-group',
       label: 'Penjualan Part Langsung',

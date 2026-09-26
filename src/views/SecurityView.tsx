@@ -186,6 +186,21 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     (u) => u.peran !== 'Customer Fleet' && u.status_aktif !== false
   );
 
+  // Tujuan kunjungan → role penerima yang BOLEH ditunjuk sebagai PIC.
+  // Admin/Security/Customer tidak bisa menerima kunjungan (sesuai aturan alur):
+  // - Service     → SA (penerima & pembuat SPK)
+  // - Beli Part   → SA (penerima estimasi POS) atau Warehouse (langsung ke gudang)
+  // - Kunjungan   → PIC Terkait / Foreman / Mekanik / Purchasing / Kasir / Warehouse
+  // - Lainnya     → semua role internal (bebas)
+  const PIC_ROLE_ALLOWED: Record<string, string[]> = {
+    'Service': ['SA'],
+    'Beli Part': ['SA', 'Warehouse'],
+    'Kunjungan': ['PIC Terkait', 'Foreman', 'Mekanik', 'Admin Purchasing', 'Admin Invoice', 'Warehouse'],
+    'Lainnya': ['SA', 'Foreman', 'Mekanik', 'Admin Purchasing', 'Admin Invoice', 'Warehouse', 'PIC Terkait'],
+  };
+  const allowedPicRoles = PIC_ROLE_ALLOWED[formCheckin.tujuan_kedatangan] || [];
+  const picDiperbolehkan = picPetugasList.filter((u) => allowedPicRoles.includes(u.peran));
+
   // Murni data dari API server Darkosync — booking yang Dibatalkan customer
   // disembunyikan agar tidak bisa di-check-in-kan.
   const bookingList: BookingService[] = (rawBookingList || []).filter((b) => b.status !== 'Dibatalkan');
@@ -739,6 +754,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  // Wajib pilih penerima kunjungan (PIC) — kunjungan tanpa
+                  // penerima tidak bisa dikonfirmasi di modul role tujuan.
+                  if (!formCheckin.id_pic) {
+                    toast.warning('Pilih Penerima Kunjungan (PIC) terlebih dahulu — kunjungan tanpa penerima tidak bisa diproses.');
+                    return;
+                  }
                   checkinMutation.mutate(formCheckin);
                 }}
                 className="space-y-6 text-xs"
@@ -830,27 +851,27 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       <label className="block font-bold text-ink-muted mb-2">Tujuan Kedatangan <span className="text-status-red">*</span></label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                         {[
-                          { id: 'Service', label: '1. Service', desc: 'Perbaikan / Service Truk' },
-                          { id: 'Beli Part', label: '2. Beli Part', desc: 'Pembelian Part (Kasir)' },
-                          { id: 'Kunjungan', label: '3. Kunjungan', desc: 'Tamu Dinas / Kantor' },
-                          { id: 'Lainnya', label: '4. Lainnya', desc: 'Keperluan Lain' },
+                          { id: 'Service', label: '1. Service', desc: 'Diterima: SA' },
+                          { id: 'Beli Part', label: '2. Beli Part', desc: 'Diterima: SA / Gudang' },
+                          { id: 'Kunjungan', label: '3. Kunjungan', desc: 'Diterima: PIC / Staf' },
+                          { id: 'Lainnya', label: '4. Lainnya', desc: 'Diterima: Staf' },
                         ].map((t) => (
                           <button
                             key={t.id}
                             type="button"
                             onClick={() => {
-                              let defaultPic = '';
-                              if (t.id === 'Service') {
-                                const saUser = picPetugasList.find((p) => p.peran === 'SA');
-                                defaultPic = saUser ? `${saUser.nama_lengkap} (SA)` : '';
-                              } else if (t.id === 'Beli Part') {
-                                const partUser = picPetugasList.find((p) => p.peran === 'Admin Purchasing' || p.peran === 'Admin Invoice');
-                                defaultPic = partUser ? `${partUser.nama_lengkap} (${partUser.peran})` : '';
-                              }
+                              // Restrict penerima sesuai tujuan: auto-pilih kandidat
+                              // pertama yang berhak, dropdown hanya menampilkan
+                              // role yang diizinkan (Admin/Security/Customer tidak ada).
+                              const kandidat = picPetugasList.filter((p) =>
+                                (PIC_ROLE_ALLOWED[t.id] || []).includes(p.peran)
+                              );
+                              const pic = kandidat[0];
                               setFormCheckin({
                                 ...formCheckin,
                                 tujuan_kedatangan: t.id as any,
-                                pic_tujuan: defaultPic || formCheckin.pic_tujuan,
+                                id_pic: pic?.id,
+                                pic_tujuan: pic ? `${pic.nama_lengkap} (${pic.peran})` : '',
                               });
                             }}
                             className={`p-3 rounded-md border text-left transition-all ${
@@ -868,12 +889,17 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div>
-                        <label className="block font-bold text-ink-muted mb-1.5">PIC / Petugas Tujuan</label>
+                        <label className="block font-bold text-ink-muted mb-1.5">
+                          Penerima Kunjungan (PIC)
+                          {allowedPicRoles.length > 0 && (
+                            <span className="font-normal text-ink-subtle"> — hanya {allowedPicRoles.join(' / ')}</span>
+                          )}
+                        </label>
                         <select
                           value={formCheckin.id_pic ? String(formCheckin.id_pic) : formCheckin.pic_tujuan}
                           onChange={(e) => {
                             const val = e.target.value;
-                            const found = picPetugasList.find((p) => String(p.id) === val);
+                            const found = picDiperbolehkan.find((p) => String(p.id) === val);
                             if (found) {
                               setFormCheckin({
                                 ...formCheckin,
@@ -890,16 +916,20 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           }}
                           className="w-full px-4 py-2.5 rounded-md border border-border font-semibold focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                         >
-                          <option value="">-- Pilih PIC / Petugas Tujuan --</option>
-                          {picPetugasList.map((p) => (
+                          <option value="">
+                            {picDiperbolehkan.length > 0
+                              ? '-- Pilih Penerima Kunjungan --'
+                              : `Tidak ada staf ${allowedPicRoles.join('/')} aktif`}
+                          </option>
+                          {picDiperbolehkan.map((p) => (
                             <option key={p.id} value={String(p.id)}>
                               {p.nama_lengkap} ({p.peran})
                             </option>
                           ))}
-                          <option value="Admin Office">Admin Office</option>
-                          <option value="Management">Management</option>
-                          <option value="PIC Terkait">Lainnya / PIC Terkait</option>
                         </select>
+                        <p className="text-[10px] text-ink-subtle mt-1">
+                          Penerima akan menerima notifikasi &amp; konfirmasi kunjungan di modulnya masing-masing.
+                        </p>
                       </div>
 
                       <div>

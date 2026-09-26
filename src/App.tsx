@@ -17,6 +17,7 @@ import { BeliPartView } from './views/BeliPartView';
 import { KasirInvoiceView } from './views/KasirInvoiceView';
 import { WebFleetCustomerView } from './views/WebFleetCustomerView';
 import { PicTerkaitView } from './views/PicTerkaitView';
+import { KunjunganModuleView } from './views/KunjunganModuleView';
 import { AdminPanelView } from './views/AdminPanelView';
 import { ToastContainer } from './components/common/Toast';
 
@@ -125,6 +126,7 @@ export const App: React.FC = () => {
       if (activeTab === 'beli-part-estimasi') {
         return <ServiceAdvisorView initialTab="penjualan-part-pos" />;
       }
+      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
       return <ServiceAdvisorView initialTab="spk-list" />;
     }
 
@@ -133,12 +135,14 @@ export const App: React.FC = () => {
       if (activeTab === 'foreman-qc') return <ForemanView initialTab="qc-fir" />;
       if (activeTab === 'foreman' || activeTab === 'foreman-tugas') return <ForemanView initialTab="dashboard" />;
       if (activeTab === 'mekanik') return <MekanikView />;
+      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
       if (activeTab === 'dashboard') return <DashboardView />;
       return <ForemanView initialTab="dashboard" />;
     }
 
     if (currentRole === 'Mekanik') {
       if (activeTab === 'mekanik') return <MekanikView />;
+      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
       if (activeTab === 'dashboard') return <DashboardView />;
       return <MekanikView />;
     }
@@ -148,6 +152,7 @@ export const App: React.FC = () => {
       if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
       if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
       if (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi') return <BeliPartView initialTab="transaksi" />;
+      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
       if (activeTab === 'dashboard') return <DashboardView />;
       return <PurchasingView />;
     }
@@ -157,6 +162,7 @@ export const App: React.FC = () => {
       if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
       if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
       if (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi') return <BeliPartView initialTab="transaksi" />;
+      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
       if (activeTab === 'dashboard') return <DashboardView />;
       return <KasirInvoiceView />;
     }
@@ -164,6 +170,7 @@ export const App: React.FC = () => {
     if (currentRole === 'Warehouse') {
       if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
       if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
+      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
       return <BeliPartView initialTab="transaksi" />;
     }
 
@@ -246,6 +253,8 @@ export const App: React.FC = () => {
         return <WebFleetCustomerView initialMenu="profil" />;
       case 'pic-terkait':
         return <PicTerkaitView />;
+      case 'kunjungan':
+        return <KunjunganModuleView />;
       default:
         return <DashboardView />;
     }
