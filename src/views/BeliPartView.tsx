@@ -352,6 +352,34 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
     onError: (err: any) => toast.error('Gagal memproses penyerahan barang: ' + (err?.message || 'Coba lagi.')),
   });
 
+  // Mutation: Warehouse konfirmasi picking selesai → barang siap diambil SA
+  const pickingSiapMutation = useMutation({
+    mutationFn: async (trx: TransaksiBeliPart) => {
+      if (!trx) throw new Error('Pilih transaksi yang akan diproses terlebih dahulu.');
+      return api.updateBeliPartStatus({
+        id: trx.id,
+        status_transaksi: 'Barang Siap Diambil',
+      });
+    },
+    onSuccess: (_res, trx) => {
+      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      // Notif ke SA & Kasir: barang sudah siap diambil / dibayar
+      realtimeHub.publish({
+        type: 'PART_READY',
+        targetRoles: ['SA', 'Admin Invoice'],
+        title: 'Barang Siap Diambil (Picking Selesai)',
+        message: `Gudang telah selesai picking untuk transaksi ${trx.no_transaksi} (${trx.no_polisi} - ${trx.nama_customer}). Barang siap diambil SA di gudang.`,
+        linkTab: 'beli-part',
+        urgency: 'success',
+      });
+
+      toast.success(`Picking selesai! Barang untuk ${trx.no_transaksi} kini berstatus "Barang Siap Diambil".`);
+    },
+    onError: (err: any) => toast.error('Gagal konfirmasi picking: ' + (err?.message || 'Coba lagi.')),
+  });
+
   // Filtered Transaksi List
   const filteredTransaksi = (transaksiList || []).filter((item) => {
     const q = searchFilter.toLowerCase();
@@ -1081,12 +1109,26 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
 
               <button
                 type="button"
-                onClick={() => toast.success('Warehouse mengonfirmasi: Barang siap diambil oleh SA!')}
-                className="w-full py-3 bg-status-green hover:bg-status-green/90 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                disabled={pickingSiapMutation.isPending || !activeTransaksi || activeTransaksi.status_transaksi !== 'Picking Warehouse'}
+                onClick={() => {
+                  if (!activeTransaksi) {
+                    toast.warning('Pilih transaksi dari daftar di menu Daftar Transaksi terlebih dahulu.');
+                    return;
+                  }
+                  if (activeTransaksi.status_transaksi !== 'Picking Warehouse') {
+                    toast.warning(`Transaksi ini berstatus "${activeTransaksi.status_transaksi}" — hanya "Picking Warehouse" yang bisa dikonfirmasi.`);
+                    return;
+                  }
+                  pickingSiapMutation.mutate(activeTransaksi);
+                }}
+                className="w-full py-3 bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
               >
                 <CheckCheck className="w-4 h-4" />
-                <span>PICKING &amp; KONFIRMASI BARANG SIAP</span>
+                <span>{pickingSiapMutation.isPending ? 'Mengonfirmasi...' : 'PICKING &amp; KONFIRMASI BARANG SIAP'}</span>
               </button>
+              <p className="text-[10px] text-ink-subtle text-center">
+                Konfirmasi menandai barang siap &amp; otomatis memberi tahu SA untuk mengambil barang lalu proses pembayaran kasir.
+              </p>
             </div>
           </div>
 
