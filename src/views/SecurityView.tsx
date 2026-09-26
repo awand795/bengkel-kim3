@@ -291,13 +291,15 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           urgency: 'urgent',
         });
       } else if (formCheckin.tujuan_kedatangan === 'Beli Part') {
+        // Alur Beli Part tanpa service: SA yang menerima & membuat estimasi,
+        // Warehouse yang menyiapkan barang. Kasir & Purchasing ikut dipantau.
         realtimeHub.publish({
           type: 'VEHICLE_CHECKED_IN',
-          targetRoles: ['Admin Invoice', 'Admin Purchasing'],
+          targetRoles: ['SA', 'Warehouse', 'Admin Invoice', 'Admin Purchasing'],
           title: 'Customer Beli Part Datang',
-          message: `${formCheckin.nama_customer || 'Pelanggan'} (${formCheckin.no_polisi}) tiba di pos untuk pembelian part.`,
+          message: `${formCheckin.nama_customer || 'Pelanggan'} (${formCheckin.no_polisi}) tiba di pos untuk pembelian part. SA silakan buka menu Penjualan Part Langsung untuk membuat estimasi.`,
           linkTab: 'beli-part',
-          urgency: 'info',
+          urgency: 'urgent',
         });
       } else {
         // 1. Notifikasi untuk Service Advisor (Internal Staff)
