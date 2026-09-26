@@ -1,12 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Camera, UploadCloud, X, CheckCircle, Loader2, Database } from 'lucide-react';
+import { Camera, X, CheckCircle, Loader2 } from 'lucide-react';
 import { processPhotoUpload } from '../../utils/storage';
 
 interface PhotoUploaderProps {
   label?: string;
   value?: string;
   onChange: (url: string) => void;
-  bucket?: 'foto_kendaraan' | 'foto_barang' | 'dokumen_armada';
   required?: boolean;
 }
 
@@ -14,7 +13,6 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   label = 'Unggah Foto',
   value,
   onChange,
-  bucket = 'foto_kendaraan',
   required = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -35,8 +33,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     setError(null);
 
     try {
-      // Process photo directly into compressed Base64 for Supabase DB (zero server disk storage)
-      const url = await processPhotoUpload(file, bucket);
+      // Upload ke database via API Builder (fallback Base64 bila server gagal)
+      const url = await processPhotoUpload(file);
       onChange(url);
     } catch (err: any) {
       setError(err?.message || 'Gagal memproses foto.');
@@ -97,7 +95,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           {loading ? (
             <div className="flex flex-col items-center py-2 text-blue-600">
               <Loader2 className="w-7 h-7 animate-spin mb-1.5" />
-              <span className="text-xs font-medium text-slate-600">Mengunggah & mengompres foto...</span>
+              <span className="text-xs font-medium text-slate-600">Mengunggah foto ke database...</span>
             </div>
           ) : (
             <>

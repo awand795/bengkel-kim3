@@ -6,6 +6,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { InvoicePembayaran } from '../types';
 import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { PaginationBar } from '../components/common/PaginationBar';
+import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 import { usePpnRate } from '../hooks/usePpnRate';
 import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
@@ -18,7 +19,8 @@ import {
   Printer, 
   CheckCircle2, 
   Search,
-  Plus
+  Plus,
+  X
 } from 'lucide-react';
 
 export const KasirInvoiceView: React.FC = () => {
@@ -208,11 +210,9 @@ export const KasirInvoiceView: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid: List Invoice & Detail Faktur Kasir */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Column: Daftar Invoice (2 Cols) */}
-        <div className="lg:col-span-2 bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+      {/* List Invoice (full width — detail pindah ke modal) */}
+        {/* Daftar Invoice */}
+        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-ink">Daftar Faktur &amp; Invoice Masuk</h2>
@@ -368,17 +368,30 @@ export const KasirInvoiceView: React.FC = () => {
           />
         </div>
 
-        {/* Right Column: Preview Faktur & Pembayaran (image1.png & image2.png Mockup Invoice) */}
-        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs flex flex-col justify-between">
+        {/* MODAL: Detail Faktur & Pembayaran */}
+        {selectedInvoice && (
+          <ModalPortal onClose={() => setSelectedInvoice(null)}>
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-surface-raised rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border my-8">
           {activeInv ? (
             <div className="space-y-4">
-              <div className="border-b border-border pb-3 flex items-center justify-between">
+              <div className="border-b border-border pb-3 flex items-center justify-between gap-3">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-accent">Detail Pembayaran</span>
                   <h3 className="text-base font-black text-ink">{activeInv.no_invoice}</h3>
                   <p className="text-xs text-ink-muted">{activeInv.no_polisi} - {activeInv.nama_customer}</p>
                 </div>
+                <div className="flex items-center gap-2 shrink-0">
                 <StatusBadge status={activeInv.status_pembayaran} size="md" />
+                  <button
+                    type="button"
+                    onClick={() => setSelectedInvoice(null)}
+                    className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
+                    aria-label="Tutup detail faktur"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Kalkulasi Biaya */}
@@ -450,15 +463,11 @@ export const KasirInvoiceView: React.FC = () => {
                 </div>
               )}
             </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-ink-subtle">
-              <Receipt className="w-10 h-10 text-ink-subtle mb-2" />
-              <p className="text-xs font-semibold">Pilih invoice untuk memproses pembayaran kasir.</p>
+          ) : null}
+              </div>
             </div>
-          )}
-        </div>
-
-      </div>
+          </ModalPortal>
+        )}
 
       {/* Printable Thermal Receipt Modal */}
       {showPrintModal && activeInv && (

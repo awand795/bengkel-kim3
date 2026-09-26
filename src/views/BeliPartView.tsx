@@ -1116,7 +1116,6 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 label="Foto Bukti Penyerahan Barang ke Customer (Kamera / File)"
                 value={fotoPenyerahan}
                 onChange={(url) => setFotoPenyerahan(url)}
-                bucket="foto_barang"
               />
 
               <div>

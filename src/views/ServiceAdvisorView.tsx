@@ -6,8 +6,7 @@ import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
 import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
 import { useAppStore } from '../store/useAppStore';
-import { usePpnRate } from '../hooks/usePpnRate';
-import { 
+import { usePpnRate } from '../hooks/usePpnRate';import {
   ClipboardList, 
   Wrench, 
   PlusCircle, 
@@ -25,21 +24,31 @@ import {
   AlertCircle,
   Trash2,
   Plus,
+  Minus,
   Search,
   Filter,
   ShieldCheck,
   Car,
-  Zap
+  Zap,
+  Receipt,
+  CheckCircle2,
+  CheckCheck,
+  Truck,
+  Building2,
+  Phone,
+  User
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
+import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
+import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar } from '../types';
 
-export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' }> = ({ initialTab = 'spk-list' }) => {
+export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part' }> = ({ initialTab = 'spk-list' }) => {
   const queryClient = useQueryClient();
   const { currentUser, saPendingAntrianId, setSaPendingAntrianId, navTick, activeTab: storeActiveTab } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part'>(initialTab);
 
   // Sinkron tab internal saat navigasi deep-link (mis. Dashboard "Buat SPK" -> penerimaan)
   useEffect(() => {
@@ -54,6 +63,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     if (storeActiveTab === 'sa-penerimaan' || storeActiveTab === 'sa-baru') setActiveTab('penerimaan');
     else if (storeActiveTab === 'purchasing' || storeActiveTab === 'sa-kotak-merah') setActiveTab('estimasi-pr');
     else if (storeActiveTab === 'sa' || storeActiveTab === 'sa-list') setActiveTab('spk-list');
+    else if (storeActiveTab === 'beli-part' || storeActiveTab === 'beli-part-transaksi' || storeActiveTab === 'sa-penjualan-part') setActiveTab('penjualan-part');
   }, [navTick, storeActiveTab]);
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrModal, setShowPrModal] = useState<SpkService | null>(null);
@@ -85,7 +95,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
   // Search & Filter State for SPK List
   const [saSearchQuery, setSaSearchQuery] = useState('');
-  const [saStatusFilter, setSaStatusFilter] = useState<'Semua' | 'Dalam Pengerjaan' | 'Waiting Part' | 'QC Passed' | 'FIR Closed'>('Semua');
+  const [saStatusFilter, setSaStatusFilter] = useState<'Semua' | 'Dalam Pengerjaan' | 'Waiting Part' | 'QC Passed' | 'FIR Closed' | 'Selesai'>('Semua');
   const [spkPage, setSpkPage] = useState(1);
   const [spkLimit, setSpkLimit] = useState(10);
 
@@ -163,6 +173,57 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     setPrPickerQty(1);
     setPrNote('');
   };
+
+  // ════════════════════════════════════════════════════════════════════════
+  // PENJUALAN PART LANGSUNG (SA) — Modal-Driven, konsisten dgn modul lain
+  // Alur (8 langkah): Masuk gerbang (Security) → SA estimasi POS → approval
+  // → Warehouse picking → Barang siap → SA serahkan (Memo Keluar) → Kasir
+  // faktur → keluar gerbang.
+  // ════════════════════════════════════════════════════════════════════════
+  const [showPosModal, setShowPosModal] = useState<boolean>(false);
+  const [showPartDetailModal, setShowPartDetailModal] = useState<TransaksiBeliPart | null>(null);
+  const [printThermalInvoice, setPrintThermalInvoice] = useState<InvoicePembayaran | null>(null);
+
+  // Form POS: customer bisa dipilih dari antrian gerbang (tujuan "Beli Part")
+  // atau diinput manual (walk-in tanpa kendaraan).
+  const [posCustomer, setPosCustomer] = useState({
+    id_antrian: undefined as number | undefined,
+    nama_customer: '',
+    no_polisi: '',
+    no_telepon: '',
+    lokasi_rak: '',
+    catatan: '',
+  });
+
+  const [posCart, setPosCart] = useState<Array<{
+    kode_part: string;
+    nama_part: string;
+    harga: number;
+    qty: number;
+    stok: number;
+    satuan: string;
+    lokasi_rak?: string;
+  }>>([]);
+  const [posSearch, setPosSearch] = useState('');
+
+  const resetPosForm = () => {
+    setPosCustomer({
+      id_antrian: undefined,
+      nama_customer: '',
+      no_polisi: '',
+      no_telepon: '',
+      lokasi_rak: '',
+      catatan: '',
+    });
+    setPosCart([]);
+    setPosSearch('');
+  };
+
+  // Transaksi terpilih di panel detail
+  const [posSearchTransaksi, setPosSearchTransaksi] = useState('');
+  const [posPage, setPosPage] = useState(1);
+  const [posLimit, setPosLimit] = useState(10);
+  const [posMetodeBayar, setPosMetodeBayar] = useState<'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC'>('Cash');
 
   // Prefill PR dari part SPK yang tidak ready (SA tinggal tambah/kurangi)
   useEffect(() => {
@@ -300,6 +361,13 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     queryFn: api.getPurchasingList,
   });
 
+  // Daftar transaksi penjualan part langsung (modul modal-driven SA)
+  const { data: beliPartList, isLoading: loadingBeliPart } = useQuery({
+    queryKey: ['beli-part-list'],
+    queryFn: api.getBeliPartList,
+    refetchInterval: 8000,
+  });
+
   // PR aktif untuk sebuah SPK (belum selesai barangnya): kunci ajuan PR ganda
   // dan jadi penanda bahwa estimasi sudah terkirim (bagian "ketutup").
   const prAktifUntukSpk = (idSpk: number) =>
@@ -313,6 +381,85 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
   const prListSA = (purchasingList || []).filter((p) =>
     prShowSelesai ? p.status_pr === 'Barang Ready' : p.status_pr !== 'Barang Ready'
   );
+
+  // ═══ Derived data modul Penjualan Part Langsung (butuh antrianList & masterStokPart) ═══
+  // Antrian gerbang dengan tujuan "Beli Part" yang masih aktif di bengkel
+  const antrianBeliPart = (antrianList || []).filter(
+    (a) => a.tujuan_kedatangan === 'Beli Part' && a.status_kunjungan !== 'Selesai' && a.status_kunjungan !== 'Keluar'
+  );
+
+  // Tarif PPN strictly dari database (tanpa fallback — konsisten modul lain)
+  const { rate: posPpnRate } = usePpnRate();
+  const posSubtotal = posCart.reduce((acc, c) => acc + c.qty * c.harga, 0);
+  const posPpn = posPpnRate === null ? null : Math.round(posSubtotal * (posPpnRate / 100));
+  const posGrandTotal = posPpn === null ? null : posSubtotal + posPpn;
+
+  const posFilteredStock = (masterStokPart || []).filter((s) => {
+    if (!posSearch.trim()) return true;
+    const q = posSearch.toLowerCase();
+    return s.nama_part.toLowerCase().includes(q) || s.kode_part.toLowerCase().includes(q);
+  });
+
+  const posAddToCart = (part: StokSparepart) => {
+    setPosCart((prev) => {
+      const existing = prev.find((c) => c.kode_part === part.kode_part);
+      if (existing) {
+        return prev.map((c) => (c.kode_part === part.kode_part ? { ...c, qty: c.qty + 1 } : c));
+      }
+      return [
+        ...prev,
+        {
+          kode_part: part.kode_part,
+          nama_part: part.nama_part,
+          harga: Number(part.harga_jual || 0),
+          qty: 1,
+          stok: part.stok,
+          satuan: part.satuan || '',
+          lokasi_rak: part.lokasi_rak || 'Gudang',
+        },
+      ];
+    });
+  };
+
+  const posUpdateQty = (kode: string, delta: number) => {
+    setPosCart((prev) =>
+      prev.map((c) => (c.kode_part === kode ? { ...c, qty: c.qty + delta } : c)).filter((c) => c.qty > 0)
+    );
+  };
+
+  const posRemoveItem = (kode: string) => {
+    setPosCart((prev) => prev.filter((c) => c.kode_part !== kode));
+  };
+
+  const posCanSubmit =
+    posCart.length > 0 &&
+    posCustomer.nama_customer.trim().length > 0 &&
+    posCustomer.no_polisi.trim().length > 0 &&
+    posPpnRate !== null &&
+    posCart.every((c) => c.qty <= c.stok);
+
+  const posFilteredTransaksi = (beliPartList || []).filter((t) => {
+    const q = posSearchTransaksi.toLowerCase().trim();
+    return (
+      !q ||
+      t.no_transaksi.toLowerCase().includes(q) ||
+      t.no_polisi.toLowerCase().includes(q) ||
+      t.nama_customer.toLowerCase().includes(q)
+    );
+  });
+  const posTotalPages = Math.ceil(posFilteredTransaksi.length / posLimit) || 1;
+  const posPaginated = posFilteredTransaksi.slice((posPage - 1) * posLimit, posPage * posLimit);
+
+  const posActive = showPartDetailModal
+    ? (beliPartList || []).find((t) => t.id === showPartDetailModal.id) || showPartDetailModal
+    : posFilteredTransaksi[0] || null;
+
+  // KPI kecil untuk tab penjualan part
+  const posAktifCount = (beliPartList || []).filter((t) => t.status_transaksi !== 'Selesai').length;
+  const posSelesaiCount = (beliPartList || []).filter((t) => t.status_transaksi === 'Selesai').length;
+  const posOmzetSelesai = (beliPartList || [])
+    .filter((t) => t.status_transaksi === 'Selesai')
+    .reduce((acc, t) => acc + Number(t.total_biaya || 0), 0);
 
   const handleAddPartToEstimasi = () => {
     if (!partPickerId) return;
@@ -672,12 +819,210 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     onError: (err: any) => toast.error('Gagal menutup FIR: ' + getApiErrorMessage(err)),
   });
 
-  // Derived statistics and filtering for SA
+  // ════════════════════════════════════════════════════════════════════════
+  // MUTATIONS PENJUALAN PART LANGSUNG (SA)
+  // ════════════════════════════════════════════════════════════════════════
+
+  // 1. Buat transaksi estimasi POS baru → langsung 'Picking Warehouse' (server)
+  const posBuatMutation = useMutation({
+    mutationFn: async () => {
+      if (posPpnRate === null || posPpn === null || posGrandTotal === null) {
+        throw new Error('Tarif PPN belum diatur — hubungi Super Admin untuk mengisi Pengaturan Sistem.');
+      }
+      const now = new Date();
+      const estNo = `EST-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(100 + Math.random() * 900))}`;
+      const prPick = `PR-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(100 + Math.random() * 900))}`;
+
+      const rincian = posCart
+        .map((c, i) => `${i + 1}. ${c.nama_part} (${c.kode_part}) x${c.qty} ${c.satuan} @Rp ${c.harga.toLocaleString('id-ID')}`);
+      const catatanLengkap = [
+        `Rincian pesanan (${posCart.length} item):`,
+        ...rincian,
+        posCustomer.lokasi_rak ? `Lokasi rak: ${posCustomer.lokasi_rak}` : '',
+        posCustomer.catatan ? `Catatan: ${posCustomer.catatan}` : '',
+      ].filter(Boolean).join('\n');
+
+      return api.buatBeliPart({
+        no_transaksi: estNo,
+        id_antrian: posCustomer.id_antrian,
+        nama_customer: posCustomer.nama_customer || 'Pelanggan Walk-In',
+        no_polisi: posCustomer.no_polisi.toUpperCase().trim(),
+        no_telepon: posCustomer.no_telepon,
+        no_picking_request: prPick,
+        status_transaksi: 'Picking Warehouse',
+        subtotal: posSubtotal,
+        ppn_11: posPpn,
+        total_biaya: posGrandTotal,
+        lokasi_rak: posCustomer.lokasi_rak,
+        catatan: catatanLengkap,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      realtimeHub.publish({
+        type: 'PART_REQUESTED',
+        targetRoles: ['Warehouse', 'SA'],
+        title: 'Picking Request Part Baru',
+        message: `Estimasi penjualan part ${posCustomer.no_polisi || posCustomer.nama_customer} (${posCart.length} item) menunggu picking gudang.`,
+        linkTab: 'beli-part-picking',
+        urgency: 'info',
+      });
+
+      toast.success('Estimasi penjualan part berhasil dibuat & diteruskan ke Warehouse Picking!');
+      setShowPosModal(false);
+      resetPosForm();
+    },
+    onError: (err: any) => toast.error('Gagal membuat transaksi: ' + getApiErrorMessage(err)),
+  });
+
+  // 2. Selesaikan pembayaran kasir & terbitkan invoice resmi (Paid)
+  const posBayarMutation = useMutation({
+    mutationFn: async ({ item, metode }: { item: TransaksiBeliPart; metode: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC' }) => {
+      const now = new Date();
+      const invNo = `INV-PART-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(1000 + Math.random() * 9000))}`;
+      const sub = Number(item.subtotal ?? 0);
+      const ppnStored = item.ppn_11 != null ? Number(item.ppn_11) : null;
+      const ppn = ppnStored ?? (posPpnRate !== null ? Math.round(sub * (posPpnRate / 100)) : null);
+      if (ppn === null) {
+        throw new Error('Tarif PPN belum diatur — hubungi Super Admin untuk mengisi Pengaturan Sistem.');
+      }
+      const grand = Number(item.total_biaya ?? (sub + ppn));
+
+      // 1. Terbitkan invoice resmi (Paid langsung — pembayaran sah saat ini)
+      await api.buatInvoice({
+        no_invoice: invNo,
+        id_transaksi_beli_part: item.id,
+        no_polisi: item.no_polisi,
+        nama_customer: item.nama_customer,
+        tanggal_invoice: now.toISOString(),
+        subtotal: sub,
+        ppn_nominal: ppn,
+        diskon: 0,
+        grand_total: grand,
+        metode_pembayaran: metode,
+        status_pembayaran: 'Paid',
+        kasir_pic: currentUser || 'Kasir',
+      });
+
+      // 2. Tandai transaksi lunas
+      await api.updateBeliPartStatus({ id: item.id, status_transaksi: 'Selesai' });
+
+      return { invNo, item, grand };
+    },
+    onSuccess: async ({ invNo, item, grand }) => {
+      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
+      queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      realtimeHub.publish({
+        type: 'INVOICE_PAID',
+        targetRoles: ['Admin Invoice', 'SA'],
+        title: 'Pembayaran Part Lunas',
+        message: `Faktur ${invNo} untuk pembelian part ${item.no_polisi} (${item.nama_customer}) telah lunas dan masuk rekap kasir.`,
+        linkTab: 'kasir',
+        urgency: 'success',
+      });
+
+      // Struk thermal otomatis terbuka setelah bayar
+      const invoiceObj: InvoicePembayaran = {
+        id: item.id,
+        no_invoice: invNo,
+        no_polisi: item.no_polisi,
+        nama_customer: item.nama_customer,
+        tanggal_invoice: new Date().toISOString(),
+        subtotal: Number(item.subtotal ?? 0),
+        ppn_nominal: Number(item.ppn_11 ?? 0),
+        diskon: 0,
+        grand_total: grand,
+        metode_pembayaran: posMetodeBayar,
+        status_pembayaran: 'Paid',
+        kasir_pic: currentUser || 'Kasir',
+      };
+      setPrintThermalInvoice(invoiceObj);
+
+      toast.success(`Pembayaran berhasil dicatat! Invoice resmi ${invNo} (Rp ${grand.toLocaleString('id-ID')}) telah diterbitkan.`);
+    },
+    onError: (err: any) => toast.error('Gagal memproses invoice kasir: ' + getApiErrorMessage(err)),
+  });
+
+  // 3. Serahkan barang ke customer & terbitkan Memo Keluar (security)
+  const posSerahkanMutation = useMutation({
+    mutationFn: async (trx: TransaksiBeliPart) => {
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const seq = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0');
+      const memoNo = `MK-${yy}${mm}${dd}-${seq}`;
+
+      // 1. Terbitkan Memo Keluar resmi
+      await api.buatMemoKeluar({
+        no_memo: memoNo,
+        id_antrian: trx.id_antrian,
+        id_transaksi_beli_part: trx.id,
+        no_polisi: trx.no_polisi,
+        jenis_armada: 'Truk / Mobil',
+        nama_customer: trx.nama_customer,
+        tujuan_kedatangan: 'Beli Part',
+        waktu_keluar: now.toISOString(),
+        status: 'Selesai',
+        catatan: `Barang suku cadang telah diserahkan dan lunas. ${trx.catatan || ''}`.trim(),
+        petugas_security: 'Pos Gerbang KIM 3',
+      });
+
+      // 2. Checkout antrian security (bila terhubung antrian gerbang)
+      if (trx.id_antrian) {
+        await api.checkOutSecurity({
+          id: trx.id_antrian,
+          barang_dibawa_keluar: true,
+          detail_barang_keluar: `Sparepart pembelian langsung (${trx.no_transaksi})`,
+          no_memo_keluar: memoNo,
+        });
+      }
+
+      // 3. Update status transaksi
+      await api.updateBeliPartStatus({
+        id: trx.id,
+        status_transaksi: 'Barang Diserahkan',
+        catatan: trx.catatan || 'Barang telah diserahkan ke customer.',
+      });
+
+      return { memoNo, trx };
+    },
+    onSuccess: async ({ memoNo, trx }) => {
+      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
+      queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
+      queryClient.invalidateQueries({ queryKey: ['memo-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      realtimeHub.publish({
+        type: 'VEHICLE_CHECKED_OUT',
+        targetRoles: ['Security', 'SA'],
+        title: 'Memo Keluar Part Terbit',
+        message: `Barang untuk ${trx.no_polisi} telah diserahkan. Memo Keluar ${memoNo} otomatis dikirim ke Pos Security.`,
+        linkTab: 'security-memo',
+        urgency: 'success',
+      });
+
+      toast.success(`Barang resmi diserahkan ke Customer! Memo Keluar ${memoNo} telah dikirim ke Pos Security.`);
+    },
+    onError: (err: any) => toast.error('Gagal memproses penyerahan barang: ' + getApiErrorMessage(err)),
+  });
+
+  // Derived statistics and filtering for SA — WAJIB data asli API (spk-list).
+  // Alur status: pengerjaan → QC Passed → FIR Closed (SA, auto-invoice, belum bayar)
+  // → Selesai (Kasir, invoice lunas). SPK Aktif = semua kecuali 'Selesai',
+  // sehingga FIR Closed yang belum bayar tetap dihitung aktif.
   const allSpks = spkList || [];
-  const totalSpkCount = allSpks.length;
-  const inProgressCount = allSpks.filter(s => s.status_spk === 'Dalam Pengerjaan').length;
-  const waitingPartCount = allSpks.filter(s => s.status_spk === 'Waiting Part').length;
-  const qcPassedCount = allSpks.filter(s => s.status_spk === 'QC Passed').length;
+  const isSpkSelesai = (s: { status_spk: string }) => s.status_spk === 'Selesai';
+  const activeSpks = allSpks.filter((s) => !isSpkSelesai(s));
+  const totalSpkCount = activeSpks.length;
+  const selesaiCount = allSpks.filter(isSpkSelesai).length;
+  const inProgressCount = activeSpks.filter(s => s.status_spk === 'Dalam Pengerjaan').length;
+  const waitingPartCount = activeSpks.filter(s => s.status_spk === 'Waiting Part').length;
+  const qcPassedCount = activeSpks.filter(s => s.status_spk === 'QC Passed').length;
 
   const filteredSpkList = allSpks.filter((spk) => {
     const query = saSearchQuery.toLowerCase().trim();
@@ -689,10 +1034,12 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       spk.nama_mekanik?.toLowerCase().includes(query);
 
     if (!matchSearch) return false;
+    if (saStatusFilter === 'Semua') return !isSpkSelesai(spk);
     if (saStatusFilter === 'Dalam Pengerjaan') return spk.status_spk === 'Dalam Pengerjaan';
     if (saStatusFilter === 'Waiting Part') return spk.status_spk === 'Waiting Part';
     if (saStatusFilter === 'QC Passed') return spk.status_spk === 'QC Passed';
-    if (saStatusFilter === 'FIR Closed') return spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai';
+    if (saStatusFilter === 'FIR Closed') return spk.status_spk === 'FIR Closed';
+    if (saStatusFilter === 'Selesai') return spk.status_spk === 'Selesai';
     return true;
   });
 
@@ -717,9 +1064,9 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       </div>
 
       {/* Mini KPI Banners for SA */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <div 
-          onClick={() => setSaStatusFilter('Semua')}
+          onClick={() => { setSaStatusFilter('Semua'); setSpkPage(1); }}
           className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
             saStatusFilter === 'Semua' ? 'bg-accent-subtle border-accent/30 ring-2 ring-accent/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
@@ -731,11 +1078,11 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             </div>
           </div>
           <div className="text-xl sm:text-2xl font-black text-accent mt-1">{totalSpkCount}</div>
-          <span className="text-[10px] text-ink-subtle">Seluruh antrian bengkel</span>
+          <span className="text-[10px] text-ink-subtle">Belum bayar / lunas</span>
         </div>
 
         <div 
-          onClick={() => setSaStatusFilter('Dalam Pengerjaan')}
+          onClick={() => { setSaStatusFilter('Dalam Pengerjaan'); setSpkPage(1); }}
           className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
             saStatusFilter === 'Dalam Pengerjaan' ? 'bg-status-blue-bg border-status-blue/30 ring-2 ring-status-blue/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
@@ -751,7 +1098,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         </div>
 
         <div 
-          onClick={() => setSaStatusFilter('Waiting Part')}
+          onClick={() => { setSaStatusFilter('Waiting Part'); setSpkPage(1); }}
           className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
             saStatusFilter === 'Waiting Part' ? 'bg-status-amber-bg border-status-amber/30 ring-2 ring-status-amber/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
@@ -767,7 +1114,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         </div>
 
         <div 
-          onClick={() => setSaStatusFilter('QC Passed')}
+          onClick={() => { setSaStatusFilter('QC Passed'); setSpkPage(1); }}
           className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
             saStatusFilter === 'QC Passed' ? 'bg-status-green-bg border-status-green/30 ring-2 ring-status-green/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
           }`}
@@ -780,6 +1127,22 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           </div>
           <div className="text-xl sm:text-2xl font-black text-status-green mt-1">{qcPassedCount}</div>
           <span className="text-[10px] text-status-green">QC Passed siap invoice</span>
+        </div>
+
+        <div
+          onClick={() => { setSaStatusFilter('Selesai'); setSpkPage(1); }}
+          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
+            saStatusFilter === 'Selesai' ? 'bg-status-green-bg border-status-green/30 ring-2 ring-status-green/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-status-green">SPK Selesai</span>
+            <div className="w-7 h-7 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
+              <CheckCircle className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-xl sm:text-2xl font-black text-status-green mt-1">{selesaiCount}</div>
+          <span className="text-[10px] text-status-green">Sudah bayar / lunas</span>
         </div>
       </div>
 
@@ -826,7 +1189,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
             {/* Status Chips */}
             <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
-              {(['Semua', 'Dalam Pengerjaan', 'Waiting Part', 'QC Passed', 'FIR Closed'] as const).map((st) => (
+              {(['Semua', 'Dalam Pengerjaan', 'Waiting Part', 'QC Passed', 'FIR Closed', 'Selesai'] as const).map((st) => (
                 <button
                   key={st}
                   onClick={() => {
@@ -1223,19 +1586,16 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   label="Foto Odometer (Cek Fisik KM)"
                   value={formPenerimaan.foto_odometer}
                   onChange={(url) => setFormPenerimaan({ ...formPenerimaan, foto_odometer: url })}
-                  bucket="foto_kendaraan"
                 />
                 <PhotoUploader
                   label="Foto STNK"
                   value={formPenerimaan.foto_stnk}
                   onChange={(url) => setFormPenerimaan({ ...formPenerimaan, foto_stnk: url })}
-                  bucket="dokumen_armada"
                 />
                 <PhotoUploader
                   label="Foto BUKU KIR"
                   value={formPenerimaan.foto_kir}
                   onChange={(url) => setFormPenerimaan({ ...formPenerimaan, foto_kir: url })}
-                  bucket="dokumen_armada"
                 />
               </div>
 
@@ -1484,6 +1844,560 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         </div>
       )}
 
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* TAB 4: PENJUALAN PART LANGSUNG (Modal-Driven, tanpa SPK Service)  */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'penjualan-part' && (
+        <div className="space-y-4">
+
+          {/* Header + Flow 8 Langkah */}
+          <div className="bg-surface-raised rounded-md p-5 border border-border shadow-xs">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
+                <Package className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-base font-black text-ink">Penjualan Part Langsung</h2>
+                <p className="text-xs text-ink-muted">Tanpa service workshop — alur: Estimasi POS → Picking Gudang → Penyerahan → Kasir → Memo Keluar</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { resetPosForm(); setShowPosModal(true); }}
+                className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-md font-bold text-xs shadow-md shadow-accent/20 flex items-center gap-2 transition-all"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Estimasi / POS Baru
+              </button>
+            </div>
+            <div className="flex items-center justify-between min-w-[820px] overflow-x-auto text-center text-xs">
+              {[
+                { step: 1, title: 'Masuk Bengkel', pic: 'Security' },
+                { step: 2, title: 'Bertemu SA', pic: 'SA' },
+                { step: 3, title: 'Estimasi & Approval', pic: 'Customer' },
+                { step: 4, title: 'Pengadaan Barang', pic: 'Warehouse' },
+                { step: 5, title: 'Barang Siap', pic: 'Warehouse' },
+                { step: 6, title: 'Penyerahan', pic: 'SA' },
+                { step: 7, title: 'Invoice & Payment', pic: 'Kasir' },
+                { step: 8, title: 'Keluar Bengkel', pic: 'Security' },
+              ].map((item, idx) => (
+                <div key={item.step} className="flex-1 flex items-center">
+                  <div className="flex flex-col items-center flex-1">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-black text-[11px] mb-1 bg-accent text-white">{item.step}</div>
+                    <div className="font-bold text-ink text-[11px] leading-tight">{item.title}</div>
+                    <div className="text-[10px] text-ink-subtle font-medium">{item.pic}</div>
+                  </div>
+                  {idx < 7 && <div className="w-6 sm:w-8 h-0.5 bg-border" />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* KPI Strip */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-surface-raised rounded-md border border-border p-3.5">
+              <div className="text-[10px] font-bold text-ink-muted uppercase">Transaksi Aktif</div>
+              <div className="text-xl font-black text-accent mt-0.5">{posAktifCount}</div>
+            </div>
+            <div className="bg-surface-raised rounded-md border border-border p-3.5">
+              <div className="text-[10px] font-bold text-ink-muted uppercase">Selesai / Lunas</div>
+              <div className="text-xl font-black text-status-green mt-0.5">{posSelesaiCount}</div>
+            </div>
+            <div className="bg-surface-raised rounded-md border border-border p-3.5">
+              <div className="text-[10px] font-bold text-ink-muted uppercase">Omzet Selesai</div>
+              <div className="text-xl font-black text-ink mt-0.5">Rp {posOmzetSelesai.toLocaleString('id-ID')}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Kiri: Daftar Transaksi */}
+            <div className="lg:col-span-2 bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-black text-ink">Daftar Transaksi Penjualan Part</h3>
+                  <p className="text-[11px] text-ink-muted">Klik baris untuk melihat detail &amp; aksi alur</p>
+                </div>
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-subtle" />
+                  <input
+                    type="text"
+                    placeholder="Cari no. transaksi / nopol / customer..."
+                    value={posSearchTransaksi}
+                    onChange={(e) => { setPosSearchTransaksi(e.target.value); setPosPage(1); }}
+                    className="pl-9 pr-3.5 py-1.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none w-60"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface text-ink-muted border-y border-border">
+                    <tr>
+                      <th className="py-2.5 px-3 font-semibold">No. Transaksi</th>
+                      <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
+                      <th className="py-2.5 px-3 font-semibold">Customer</th>
+                      <th className="py-2.5 px-3 font-semibold text-right">Total</th>
+                      <th className="py-2.5 px-3 font-semibold">Status</th>
+                      <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {loadingBeliPart ? (
+                      <tr><td colSpan={6} className="py-6 text-center text-ink-subtle">Memuat data...</td></tr>
+                    ) : posPaginated.length > 0 ? (
+                      posPaginated.map((item) => (
+                        <tr
+                          key={item.id}
+                          onClick={() => setShowPartDetailModal(item)}
+                          className={`cursor-pointer transition-colors ${
+                            posActive?.id === item.id ? 'bg-accent-subtle font-semibold' : 'hover:bg-surface'
+                          }`}
+                        >
+                          <td className="py-3 px-3 font-mono font-bold text-accent">{item.no_transaksi}</td>
+                          <td className="py-3 px-3 font-black text-ink">{item.no_polisi}</td>
+                          <td className="py-3 px-3 text-ink-muted">{item.nama_customer}</td>
+                          <td className="py-3 px-3 text-right font-mono font-bold">Rp {Number(item.total_biaya || 0).toLocaleString('id-ID')}</td>
+                          <td className="py-3 px-3"><StatusBadge status={item.status_transaksi} size="sm" /></td>
+                          <td className="py-3 px-3 text-right">
+                            <button type="button" className="px-2.5 py-1 bg-surface hover:bg-surface-raised text-accent rounded-md border border-border font-bold text-[11px]">Detail →</button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan={6} className="py-6 text-center text-ink-subtle">Belum ada transaksi penjualan part.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <PaginationBar
+                page={posPage}
+                totalPages={posTotalPages}
+                totalRecords={posFilteredTransaksi.length}
+                limit={posLimit}
+                onPageChange={setPosPage}
+                onLimitChange={(l) => { setPosLimit(l); setPosPage(1); }}
+                label="transaksi part"
+                isLoading={loadingBeliPart}
+              />
+            </div>
+
+            {/* Kanan: Panel Detail Transaksi Aktif */}
+            <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+              {posActive ? (
+                <>
+                  <div className="border-b border-border pb-3">
+                    <span className="text-[10px] uppercase font-bold text-accent">Detail Pembelian</span>
+                    <h3 className="text-base font-black text-ink">{posActive.no_transaksi}</h3>
+                    <p className="text-xs text-ink-muted font-medium">{posActive.no_polisi} • {posActive.nama_customer}</p>
+                  </div>
+                  <StatusBadge status={posActive.status_transaksi} size="md" />
+
+                  <div className="p-3.5 bg-surface rounded-md border border-border space-y-2 text-xs">
+                    <div className="flex justify-between"><span className="text-ink-subtle">No. Picking Gudang:</span><span className="font-mono font-bold">{posActive.no_picking_request || '-'}</span></div>
+                    <div className="flex justify-between"><span className="text-ink-subtle">Lokasi Rak:</span><span className="font-bold">{posActive.lokasi_rak || 'Rak Utama'}</span></div>
+                    <div className="flex justify-between"><span className="text-ink-subtle">Kontak:</span><span className="font-medium">{posActive.no_telepon || '-'}</span></div>
+                  </div>
+
+                  <div className="p-3.5 bg-surface rounded-md border border-border space-y-1.5 text-xs font-semibold">
+                    <div className="flex justify-between text-ink-muted"><span>Subtotal:</span><span className="font-mono">Rp {posActive.subtotal != null ? Number(posActive.subtotal).toLocaleString('id-ID') : '-'}</span></div>
+                    <div className="flex justify-between text-ink-muted"><span>PPN{posPpnRate !== null ? ` ${posPpnRate}%` : ''}:</span><span className="font-mono">Rp {posActive.ppn_11 != null ? Number(posActive.ppn_11).toLocaleString('id-ID') : '-'}</span></div>
+                    <div className="flex justify-between text-sm font-black pt-2 border-t border-border"><span>Total Tagihan:</span><span className="font-mono text-status-green">Rp {Number(posActive.total_biaya || 0).toLocaleString('id-ID')}</span></div>
+                  </div>
+
+                  {/* Aksi Alur */}
+                  <div className="space-y-2">
+                    {/* Tahap Pembayaran Kasir */}
+                    {posActive.status_transaksi !== 'Selesai' && posActive.status_transaksi !== 'Barang Diserahkan' && (
+                      <div className="p-3.5 rounded-md border border-border bg-surface space-y-2.5">
+                        <span className="text-[11px] font-bold text-ink flex items-center gap-1.5"><Receipt className="w-3.5 h-3.5 text-status-green" /> Pembayaran Kasir</span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(['Cash', 'Transfer Bank', 'QRIS', 'EDC'] as const).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => setPosMetodeBayar(m)}
+                              className={`py-1.5 px-2 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
+                                posMetodeBayar === m ? 'border-accent bg-accent-subtle text-accent' : 'bg-surface-raised text-ink-muted border-border'
+                              }`}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={posBayarMutation.isPending}
+                          onClick={() => posBayarMutation.mutate({ item: posActive, metode: posMetodeBayar })}
+                          className="w-full py-2.5 bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          {posBayarMutation.isPending ? 'Menerbitkan Invoice...' : 'BAYAR & TERBITKAN INVOICE'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Tahap Penyerahan Barang (setelah lunas) */}
+                    {posActive.status_transaksi === 'Selesai' && (
+                      <button
+                        type="button"
+                        disabled={posSerahkanMutation.isPending}
+                        onClick={() => posSerahkanMutation.mutate(posActive)}
+                        className="w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2"
+                      >
+                        <Truck className="w-4 h-4" />
+                        {posSerahkanMutation.isPending ? 'Menerbitkan Memo Keluar...' : 'SERAHKAN BARANG & TERBITKAN MEMO KELUAR'}
+                      </button>
+                    )}
+
+                    {posActive.status_transaksi === 'Barang Diserahkan' && (
+                      <div className="p-2.5 bg-status-green-bg rounded-md border border-status-green/30 text-status-green text-[11px] flex items-center gap-2">
+                        <CheckCheck className="w-4 h-4 shrink-0" /> Barang telah diserahkan. Memo Keluar terbit di Pos Security.
+                      </div>
+                    )}
+
+                    {/* Cetak struk thermal */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sub = Number(posActive.subtotal ?? 0);
+                        const ppn = posActive.ppn_11 != null ? Number(posActive.ppn_11) : (posPpnRate !== null ? Math.round(sub * (posPpnRate / 100)) : 0);
+                        const invObj: InvoicePembayaran = {
+                          id: posActive.id,
+                          no_invoice: `INV-PART-${posActive.no_transaksi}`,
+                          no_polisi: posActive.no_polisi,
+                          nama_customer: posActive.nama_customer,
+                          tanggal_invoice: posActive.created_at || new Date().toISOString(),
+                          subtotal: sub,
+                          ppn_nominal: ppn,
+                          diskon: 0,
+                          grand_total: Number(posActive.total_biaya ?? (sub + ppn)),
+                          metode_pembayaran: posMetodeBayar,
+                          status_pembayaran: posActive.status_transaksi === 'Selesai' ? 'Paid' : 'Unpaid',
+                          kasir_pic: currentUser || 'Kasir',
+                        };
+                        setPrintThermalInvoice(invObj);
+                      }}
+                      className="w-full py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted rounded-md font-bold text-xs flex items-center justify-center gap-2"
+                    >
+                      <Receipt className="w-4 h-4" /> Cetak Struk Thermal 80mm
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="py-12 text-center text-ink-subtle text-xs">Pilih transaksi untuk melihat detail &amp; aksi.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL POS BARU: ESTIMASI PENJUALAN PART LANGSUNG                  */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {showPosModal && (
+        <ModalPortal onClose={() => setShowPosModal(false)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-surface-raised rounded-md w-full max-w-5xl max-h-[92vh] overflow-y-auto shadow-xl border border-border">
+              {/* Header */}
+              <div className="sticky top-0 bg-surface-raised/95 backdrop-blur px-6 py-4 border-b border-border flex items-center justify-between z-10">
+                <div>
+                  <h3 className="text-lg font-black text-ink">Estimasi Penjualan Part Langsung</h3>
+                  <p className="text-xs text-ink-muted">Tanpa service workshop — transaksi langsung masuk alur Warehouse Picking</p>
+                </div>
+                <button
+                  onClick={() => { setShowPosModal(false); resetPosForm(); }}
+                  className="w-8 h-8 rounded-full bg-surface text-ink-subtle flex items-center justify-center hover:bg-status-red-bg hover:text-status-red transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
+                {/* Kolom Kiri: Customer + Cart */}
+                <div className="lg:col-span-3 space-y-4">
+                  {/* Data Customer */}
+                  <div className="bg-surface rounded-md p-4 border border-border space-y-3">
+                    <h4 className="text-xs font-bold text-ink flex items-center gap-1.5"><User className="w-4 h-4 text-ink-subtle" /> 1. Data Pelanggan &amp; Unit</h4>
+                    <div className="p-3 bg-accent-subtle rounded-md border border-accent/30">
+                      <label className="block text-[11px] font-bold text-accent mb-1.5 flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5" /> Ambil dari Antrian Gerbang ({antrianBeliPart.length} menunggu)
+                      </label>
+                      <select
+                        value={posCustomer.id_antrian || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) {
+                            setPosCustomer((prev) => ({ ...prev, id_antrian: undefined }));
+                            return;
+                          }
+                          const a = antrianBeliPart.find((x) => x.id === Number(val));
+                          if (a) setPosCustomer((prev) => ({
+                            ...prev,
+                            id_antrian: a.id,
+                            no_polisi: a.no_polisi,
+                            nama_customer: a.nama_customer || prev.nama_customer,
+                            no_telepon: a.no_hp_customer || prev.no_telepon,
+                          }));
+                        }}
+                        className="w-full px-3 py-2 rounded-md border border-accent/30 font-bold text-xs bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none"
+                      >
+                        <option value="">-- Input Manual / Walk-In --</option>
+                        {antrianBeliPart.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.no_polisi} - {a.nama_customer || 'Pelanggan'} ({new Date(a.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-ink-muted mb-1">No. Polisi <span className="text-status-red">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="BK 5678 CD"
+                          value={posCustomer.no_polisi}
+                          onChange={(e) => setPosCustomer({ ...posCustomer, no_polisi: e.target.value.toUpperCase() })}
+                          className="w-full px-3 py-2 rounded-md border border-border font-bold uppercase text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-ink-muted mb-1">Nama Customer <span className="text-status-red">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="PT. Sumber Makmur"
+                          value={posCustomer.nama_customer}
+                          onChange={(e) => setPosCustomer({ ...posCustomer, nama_customer: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-ink-muted mb-1">No. Telepon</label>
+                        <input
+                          type="text"
+                          placeholder="0812-xxxx-xxxx"
+                          value={posCustomer.no_telepon}
+                          onChange={(e) => setPosCustomer({ ...posCustomer, no_telepon: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-ink-muted mb-1">Lokasi Rak (Opsional)</label>
+                        <input
+                          type="text"
+                          placeholder="Rak A-02"
+                          value={posCustomer.lokasi_rak}
+                          onChange={(e) => setPosCustomer({ ...posCustomer, lokasi_rak: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-ink-muted mb-1">Catatan (Opsional)</label>
+                        <input
+                          type="text"
+                          placeholder="Pembelian langsung tanpa servis"
+                          value={posCustomer.catatan}
+                          onChange={(e) => setPosCustomer({ ...posCustomer, catatan: e.target.value })}
+                          className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Keranjang */}
+                  <div className="bg-surface rounded-md p-4 border border-border space-y-3">
+                    <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-ink-subtle" /> 2. Keranjang Sparepart
+                      <span className="ml-auto text-[10px] font-bold text-ink-subtle">{posCart.length} item</span>
+                    </h4>
+
+                    {posCart.length > 0 ? (
+                      <div className="divide-y divide-border border border-border rounded-md overflow-hidden">
+                        {posCart.map((item) => (
+                          <div key={item.kode_part} className="p-3 flex items-center justify-between gap-3 text-xs bg-surface-raised">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-ink truncate">{item.nama_part}</div>
+                              <div className="text-[10px] text-ink-muted font-mono mt-0.5">
+                                {item.kode_part} • Rak: {item.lokasi_rak || 'Gudang'} • Stok: {item.stok} {item.satuan}
+                                {item.qty > item.stok && <span className="text-status-red font-bold"> (melebihi stok!)</span>}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center border border-border rounded-md bg-surface overflow-hidden">
+                                <button type="button" onClick={() => posUpdateQty(item.kode_part, -1)} className="p-1.5 hover:bg-surface-raised text-ink-muted"><Minus className="w-3.5 h-3.5" /></button>
+                                <span className="px-2.5 font-bold font-mono text-xs">{item.qty}</span>
+                                <button type="button" onClick={() => posUpdateQty(item.kode_part, 1)} className="p-1.5 hover:bg-surface-raised text-ink-muted"><Plus className="w-3.5 h-3.5" /></button>
+                              </div>
+                              <div className="w-24 text-right font-mono font-black text-ink">Rp {(item.qty * item.harga).toLocaleString('id-ID')}</div>
+                              <button type="button" onClick={() => posRemoveItem(item.kode_part)} className="p-1.5 text-ink-subtle hover:text-status-red"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-6 text-center text-ink-subtle text-xs border border-dashed border-border rounded-md">
+                        Keranjang kosong. Cari &amp; pilih sparepart dari katalog di kanan.
+                      </div>
+                    )}
+
+                    {/* Ringkasan Biaya */}
+                    <div className="p-3.5 bg-surface-raised rounded-md border border-border space-y-1.5 text-xs">
+                      {posPpnRate === null && (
+                        <p className="text-[11px] text-status-red font-bold text-center">Tarif PPN belum diatur — hubungi Super Admin.</p>
+                      )}
+                      <div className="flex justify-between text-ink-muted"><span>Subtotal:</span><span className="font-mono font-bold">Rp {posSubtotal.toLocaleString('id-ID')}</span></div>
+                      <div className="flex justify-between text-ink-muted"><span>PPN{posPpnRate !== null ? ` ${posPpnRate}%` : ''}:</span><span className="font-mono font-bold">Rp {posPpn !== null ? posPpn.toLocaleString('id-ID') : '-'}</span></div>
+                      <div className="flex justify-between text-sm font-black pt-2 border-t border-border">
+                        <span>Total Estimasi:</span><span className="font-mono text-status-green text-base">Rp {posGrandTotal !== null ? posGrandTotal.toLocaleString('id-ID') : '-'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Kolom Kanan: Katalog Stok */}
+                <div className="lg:col-span-2 space-y-3">
+                  <div className="bg-surface rounded-md p-4 border border-border space-y-3">
+                    <h4 className="text-xs font-bold text-ink flex items-center gap-1.5"><Building2 className="w-4 h-4 text-ink-subtle" /> Gudang KIM 3</h4>
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-subtle" />
+                      <input
+                        type="text"
+                        placeholder="Ketik kode / nama barang..."
+                        value={posSearch}
+                        onChange={(e) => setPosSearch(e.target.value)}
+                        className="w-full pl-9 pr-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                      {posFilteredStock.length > 0 ? (
+                        posFilteredStock.map((part) => (
+                          <div key={part.id} className="p-2.5 rounded-md border border-border hover:border-accent/30 hover:bg-accent-subtle transition-all flex items-center justify-between text-xs gap-2">
+                            <div className="min-w-0">
+                              <div className="font-bold text-ink truncate">{part.nama_part}</div>
+                              <div className="text-[10px] text-ink-muted font-mono mt-0.5">
+                                {part.kode_part} • Stok: <strong className={part.stok > 0 ? 'text-status-green' : 'text-status-red'}>{part.stok} {part.satuan}</strong>
+                              </div>
+                              <div className="text-[11px] font-mono font-bold text-ink mt-0.5">Rp {Number(part.harga_jual || 0).toLocaleString('id-ID')}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => posAddToCart(part)}
+                              disabled={part.stok <= 0}
+                              className="px-2.5 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-md font-bold text-[11px] shrink-0 flex items-center gap-1"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Tambah
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-6 text-center text-ink-subtle text-xs">Tidak ada sparepart yang cocok.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Submit */}
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => { setShowPosModal(false); resetPosForm(); }}
+                      className="flex-1 py-2.5 bg-surface hover:bg-surface-raised text-ink-muted font-bold text-xs rounded-md border border-border"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!posCanSubmit || posBuatMutation.isPending}
+                      onClick={() => posBuatMutation.mutate()}
+                      className="flex-1 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-md shadow-accent/20 flex items-center justify-center gap-2"
+                    >
+                      {posBuatMutation.isPending ? 'Menyimpan...' : 'KIRIM ESTIMASI'}
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-ink-subtle text-center -mt-1">
+                    Estimasi diteruskan ke Warehouse untuk picking. Pembayaran dilakukan setelah barang siap.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODAL DETAIL TRANSAKSI PART                                       */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {showPartDetailModal && posActive && (
+        <ModalPortal onClose={() => setShowPartDetailModal(null)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-surface-raised rounded-t-md sm:rounded-md p-5 sm:p-6 max-w-lg w-full shadow-xl border border-border space-y-4 max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div>
+                  <h3 className="text-base font-black text-ink">{posActive.no_transaksi}</h3>
+                  <p className="text-xs text-ink-muted">{posActive.no_polisi} • {posActive.nama_customer}</p>
+                </div>
+                <button
+                  onClick={() => setShowPartDetailModal(null)}
+                  className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <StatusBadge status={posActive.status_transaksi} size="md" />
+                <span className="text-[11px] font-mono text-ink-muted">{posActive.created_at ? new Date(posActive.created_at).toLocaleString('id-ID') : ''}</span>
+              </div>
+
+              <div className="p-3.5 bg-surface rounded-md border border-border space-y-2 text-xs">
+                <div className="flex justify-between"><span className="text-ink-subtle">No. Picking Gudang:</span><span className="font-mono font-bold">{posActive.no_picking_request || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-ink-subtle">Lokasi Rak:</span><span className="font-bold">{posActive.lokasi_rak || 'Rak Utama'}</span></div>
+                <div className="flex justify-between"><span className="text-ink-subtle">Kontak:</span><span className="font-medium flex items-center gap-1"><Phone className="w-3 h-3" /> {posActive.no_telepon || '-'}</span></div>
+              </div>
+
+              {posActive.catatan && (
+                <div className="p-3 bg-surface rounded-md border border-border text-xs">
+                  <span className="text-[10px] font-bold text-ink-subtle uppercase block mb-1">Rincian Pesanan</span>
+                  <div className="text-ink-muted whitespace-pre-line">{posActive.catatan}</div>
+                </div>
+              )}
+
+              <div className="p-3.5 bg-surface rounded-md border border-border space-y-1.5 text-xs font-semibold">
+                <div className="flex justify-between text-ink-muted"><span>Subtotal:</span><span className="font-mono">Rp {posActive.subtotal != null ? Number(posActive.subtotal).toLocaleString('id-ID') : '-'}</span></div>
+                <div className="flex justify-between text-ink-muted"><span>PPN:</span><span className="font-mono">Rp {posActive.ppn_11 != null ? Number(posActive.ppn_11).toLocaleString('id-ID') : '-'}</span></div>
+                <div className="flex justify-between text-sm font-black pt-2 border-t border-border"><span>Total:</span><span className="font-mono text-status-green">Rp {Number(posActive.total_biaya || 0).toLocaleString('id-ID')}</span></div>
+              </div>
+
+              {/* Aksi cepat */}
+              <div className="flex gap-2">
+                {posActive.status_transaksi !== 'Selesai' && (
+                  <button
+                    type="button"
+                    disabled={posBayarMutation.isPending}
+                    onClick={() => posBayarMutation.mutate({ item: posActive, metode: posMetodeBayar })}
+                    className="flex-1 py-2.5 bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> Bayar ({posMetodeBayar})
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setShowPartDetailModal(null); setActiveTab('penjualan-part'); }}
+                  className="flex-1 py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted rounded-md font-bold text-xs"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
 
       {/* MODAL BUAT ESTIMASI BIAYA */}
       {showEstimasiModal && (
@@ -2062,6 +2976,14 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         <PrintSpkModal
           spk={showPrintSpk}
           onClose={() => setShowPrintSpk(null)}
+        />
+      )}
+
+      {/* Printable Struk Thermal 80mm (Penjualan Part) */}
+      {printThermalInvoice && (
+        <PrintThermalInvoiceModal
+          invoice={printThermalInvoice}
+          onClose={() => setPrintThermalInvoice(null)}
         />
       )}
 

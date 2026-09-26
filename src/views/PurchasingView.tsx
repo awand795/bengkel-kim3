@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PurchaseRequestPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
+import { ModalPortal } from '../components/common/ModalPortal';
 import { 
   ShoppingBag, 
   Calendar, 
@@ -314,11 +315,10 @@ export const PurchasingView: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Grid: PR List & Form Input PO Vendor */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Column: List Purchase Request dari SA (2 Cols) */}
-        <div className="lg:col-span-2 space-y-4">
+      {/* List Purchase Request (full width — form pindah ke modal) */}
+      <div>
+        {/* List Purchase Request dari SA */}
+        <div className="space-y-4">
           <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -467,14 +467,27 @@ export const PurchasingView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Form Proses Penawaran 2 Vendor & Input ETA (1 Col) */}
-        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs flex flex-col justify-between">
+        {/* MODAL: Form Proses Penawaran 2 Vendor & Input ETA */}
+        {selectedPr && (
+          <ModalPortal onClose={() => setSelectedPr(null)}>
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-surface-raised rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border my-8">
           {selectedPr ? (
             <div className="space-y-4">
-              <div className="border-b border-border pb-3">
+              <div className="border-b border-border pb-3 flex items-start justify-between gap-3">
+                <div>
                 <span className="text-[10px] uppercase font-bold text-status-red">Alur Kotak Merah Tahap 6</span>
                 <h3 className="text-base font-black text-ink">{selectedPr.no_pr}</h3>
                 <p className="text-xs text-ink-muted font-bold">{selectedPr.no_polisi} - {selectedPr.nama_customer}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPr(null)}
+                  className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors shrink-0"
+                  aria-label="Tutup form purchasing"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               <div className="space-y-3 text-xs">
@@ -675,15 +688,12 @@ export const PurchasingView: React.FC = () => {
                 )}
             </div>
             </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-ink-subtle">
-              <ShoppingBag className="w-10 h-10 text-ink-subtle mb-2" />
-              <p className="text-xs font-semibold">Pilih salah satu PR di sebelah kiri untuk menginput penawaran vendor dan tanggal estimasi barang ready (ETA).</p>
+          ) : null}
+              </div>
             </div>
-          )}
+          </ModalPortal>
+        )}
         </div>
-
-      </div>
 
     </div>
   );

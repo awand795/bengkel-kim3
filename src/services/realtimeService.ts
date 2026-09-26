@@ -8,6 +8,7 @@ export type NotificationRole =
   | 'Mekanik'
   | 'Admin Purchasing'
   | 'Admin Invoice'
+  | 'Warehouse'
   | 'PIC Terkait'
   | 'Customer Fleet'
   | 'ALL';

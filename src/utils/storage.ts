@@ -1,28 +1,4 @@
-export interface StorageConfig {
-  driver: 'database' | 's3' | 'supabase';
-  s3Bucket?: string;
-  s3Region?: string;
-  s3AccessKey?: string;
-  s3SecretKey?: string;
-}
-
-const DEFAULT_STORAGE_CONFIG: StorageConfig = {
-  driver: 'database', // Default: Direct Database Base64 (Never touches server 94 disk)
-};
-
-export const getStorageConfig = (): StorageConfig => {
-  try {
-    const saved = localStorage.getItem('bengkel_storage_config');
-    if (saved) return JSON.parse(saved);
-  } catch (e) {
-    console.error('Failed to parse storage config:', e);
-  }
-  return DEFAULT_STORAGE_CONFIG;
-};
-
-export const saveStorageConfig = (config: StorageConfig): void => {
-  localStorage.setItem('bengkel_storage_config', JSON.stringify(config));
-};
+import { uploadFotoFile } from '../api/client';
 
 /**
  * High-performance client-side image compression using HTML5 Canvas.
@@ -80,34 +56,25 @@ export const compressImageToBase64 = (
 };
 
 /**
- * Unified photo upload processor that respects user preference:
- * - 'database': Compresses to Base64 and returns data URI directly for DB storage (Zero server 94 disk footprint)
- * - 's3': Configurable S3 / Cloud Storage
+ * Upload foto ke database via API Builder (POST /kim3/foto-upload).
+ * Alur: kompresi client (payload kecil, aman dari batas 10MB server) ->
+ * upload multipart -> server validasi + kompresi ulang bila masih bisa
+ * lebih kecil -> kembalikan data URI kanonis.
+ * Fallback: bila server gagal, kembalikan hasil kompresi client agar
+ * tidak ada foto yang hilang (disimpan langsung sebagai TEXT).
  */
-export const processPhotoUpload = async (
-  file: File,
-  _bucket: string = 'foto_kendaraan'
-): Promise<string> => {
-  const config = getStorageConfig();
+export const processPhotoUpload = async (file: File): Promise<string> => {
+  const fallback = () => compressImageToBase64(file, 1080, 1080, 0.75);
 
-  // Mode 1: Direct Database Storage (Compressed Base64 Data URI)
-  if (config.driver === 'database' || !config.driver) {
-    return await compressImageToBase64(file, 1080, 1080, 0.75);
+  try {
+    const compressedDataUrl = await compressImageToBase64(file, 1080, 1080, 0.75);
+    const blob = await (await fetch(compressedDataUrl)).blob();
+    const baseName = (file.name || 'foto').replace(/\.[a-z0-9]+$/i, '') || 'foto';
+    const uploadable = new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+    const uploaded = await uploadFotoFile(uploadable);
+    return uploaded.dataUrl;
+  } catch (e) {
+    console.warn('Upload foto ke server gagal, fallback ke Base64 lokal:', e);
+    return fallback();
   }
-
-  // Mode 2: AWS S3 Storage (if configured)
-  if (config.driver === 's3' && config.s3Bucket) {
-    // If S3 credentials provided, upload to AWS S3 bucket
-    // Fallback to compressed base64 if S3 network error occurs
-    try {
-      // Direct base64 fallback or client-side S3 PUT
-      return await compressImageToBase64(file, 1080, 1080, 0.75);
-    } catch (e) {
-      console.warn('S3 upload error, falling back to DB storage:', e);
-      return await compressImageToBase64(file, 1080, 1080, 0.75);
-    }
-  }
-
-  // Default fallback
-  return await compressImageToBase64(file, 1080, 1080, 0.75);
 };

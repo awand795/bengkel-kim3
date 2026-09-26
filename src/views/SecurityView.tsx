@@ -90,6 +90,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
   // Modals and selection state
   const [selectedBooking, setSelectedBooking] = useState<BookingService | null>(null);
+  const [bookingPreview, setBookingPreview] = useState<BookingService | null>(null);
   const [selectedMemo, setSelectedMemo] = useState<MemoKeluar | null>(null);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState<AntrianKunjungan | null>(null);
@@ -191,18 +192,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   const antrianData: AntrianKunjungan[] = rawAntrianList || [];
   const memoList: MemoKeluar[] = rawMemoList || [];
 
-  // Initialize selected items
+  // Initialize selected booking (detail strip di bawah tabel).
+  // Catatan: selectedMemo TIDAK auto-select agar modal preview tidak pop-up sendiri.
   useEffect(() => {
     if (!selectedBooking && bookingList.length > 0) {
       setSelectedBooking(bookingList[0]);
     }
   }, [bookingList]);
-
-  useEffect(() => {
-    if (!selectedMemo && memoList.length > 0) {
-      setSelectedMemo(memoList[0]);
-    }
-  }, [memoList]);
 
   // Derived lists
   const onProgressList = antrianData.filter(a => a.status_kunjungan !== 'Keluar' && a.status_kunjungan !== 'Selesai');
@@ -954,7 +950,6 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       label="Foto Kendaraan Saat Masuk Gerbang"
                       value={formCheckin.foto_kendaraan_masuk}
                       onChange={(url) => setFormCheckin({ ...formCheckin, foto_kendaraan_masuk: url })}
-                      bucket="foto_kendaraan"
                     />
                     <div>
                       <label className="block font-bold text-ink-muted mb-1.5">Catatan Security</label>
@@ -1155,7 +1150,10 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       return (
                         <tr 
                           key={b.id}
-                          onClick={() => setSelectedBooking(b)}
+                          onClick={() => {
+                            setSelectedBooking(b);
+                            setBookingPreview(b);
+                          }}
                           className={`cursor-pointer transition-colors ${
                             isSelected ? 'bg-accent-subtle/70 font-medium' : 'hover:bg-surface/80'
                           }`}
@@ -1207,55 +1205,77 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </div>
             </div>
 
-            {/* Detail Booking Card with '+ PILIH & ISI OTOMATIS' */}
-            {selectedBooking && (
-              <div className="mt-4 p-4 rounded-md bg-surface border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-2 flex-1">
-                  <div className="text-[11px] font-bold uppercase text-ink-subtle tracking-wider">
-                    DETAIL BOOKING
-                  </div>
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div>
-                      <div className="text-ink-subtle text-[10px]">No. Polisi</div>
-                      <div className="text-base font-black text-ink mt-0.5 font-mono">{selectedBooking.no_polisi}</div>
-                      <div className="text-ink-subtle text-[10px] mt-1.5">Jenis Armada</div>
-                      <div className="font-bold text-ink">{selectedBooking.jenis_armada || 'Truk'}</div>
-                      <div className="text-ink-subtle text-[10px] mt-1.5">Tujuan Kunjungan</div>
-                      <div className="font-semibold text-ink">{selectedBooking.tujuan_kunjungan || 'Service'}</div>
+            {/* MODAL: Detail Booking + PILIH & ISI OTOMATIS */}
+            {bookingPreview && (
+              <ModalPortal onClose={() => setBookingPreview(null)}>
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+                  <div className="bg-surface-raised rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border space-y-4 my-8">
+                    <div className="flex items-center justify-between border-b border-border pb-3">
+                      <div className="text-[11px] font-bold uppercase text-ink-subtle tracking-wider">
+                        DETAIL BOOKING
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setBookingPreview(null)}
+                        className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
+                        aria-label="Tutup detail booking"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
 
-                    <div>
-                      <div className="text-ink-subtle text-[10px]">Nama Customer</div>
-                      <div className="font-bold text-ink mt-0.5">{selectedBooking.nama_customer || selectedBooking.nama_perusahaan || '-'}</div>
-                      <div className="text-ink-subtle text-[10px] mt-1.5">No. Telepon</div>
-                      <div className="font-mono text-ink-muted font-semibold">{selectedBooking.no_telepon || '-'}</div>
-                      <div className="text-ink-subtle text-[10px] mt-1.5">PIC / Driver</div>
-                      <div className="font-semibold text-ink">{selectedBooking.pic_driver || '-'}</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <div className="text-ink-subtle text-[10px]">No. Polisi</div>
+                        <div className="text-base font-black text-ink mt-0.5 font-mono">{bookingPreview.no_polisi}</div>
+                        <div className="text-ink-subtle text-[10px] mt-1.5">Jenis Armada</div>
+                        <div className="font-bold text-ink">{bookingPreview.jenis_armada || 'Truk'}</div>
+                        <div className="text-ink-subtle text-[10px] mt-1.5">Tujuan Kunjungan</div>
+                        <div className="font-semibold text-ink">{bookingPreview.tujuan_kunjungan || 'Service'}</div>
+                      </div>
+
+                      <div>
+                        <div className="text-ink-subtle text-[10px]">Nama Customer</div>
+                        <div className="font-bold text-ink mt-0.5">{bookingPreview.nama_customer || bookingPreview.nama_perusahaan || '-'}</div>
+                        <div className="text-ink-subtle text-[10px] mt-1.5">No. Telepon</div>
+                        <div className="font-mono text-ink-muted font-semibold">{bookingPreview.no_telepon || '-'}</div>
+                        <div className="text-ink-subtle text-[10px] mt-1.5">PIC / Driver</div>
+                        <div className="font-semibold text-ink">{bookingPreview.pic_driver || '-'}</div>
+                      </div>
+
+                      <div>
+                        <div className="text-ink-subtle text-[10px]">Tanggal Booking</div>
+                        <div className="font-bold text-ink mt-0.5">{bookingPreview.tanggal_booking}</div>
+                        <div className="text-ink-subtle text-[10px] mt-1.5">Jam Booking</div>
+                        <div className="font-mono font-bold text-accent">{bookingPreview.jam_booking}</div>
+                        <div className="text-ink-subtle text-[10px] mt-1.5">Keterangan</div>
+                        <div className="text-ink-muted italic text-[11px]">{bookingPreview.keterangan || '-'}</div>
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="text-ink-subtle text-[10px]">Tanggal Booking</div>
-                      <div className="font-bold text-ink mt-0.5">{selectedBooking.tanggal_booking}</div>
-                      <div className="text-ink-subtle text-[10px] mt-1.5">Jam Booking</div>
-                      <div className="font-mono font-bold text-accent">{selectedBooking.jam_booking}</div>
-                      <div className="text-ink-subtle text-[10px] mt-1.5">Keterangan</div>
-                      <div className="text-ink-muted italic text-[11px] truncate">{selectedBooking.keterangan || '-'}</div>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setBookingPreview(null)}
+                        className="px-4 py-3 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
+                      >
+                        Tutup
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleFillFromBooking(bookingPreview);
+                          setBookingPreview(null);
+                        }}
+                        className="px-5 py-3 rounded-md bg-accent hover:bg-accent-hover text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        + PILIH &amp; ISI OTOMATIS
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                <div className="shrink-0 flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => handleFillFromBooking(selectedBooking)}
-                    className="w-full sm:w-auto px-5 py-3 rounded-md bg-accent hover:bg-accent-hover text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    + PILIH &amp; ISI OTOMATIS
-                  </button>
-                </div>
-              </div>
+              </ModalPortal>
             )}
 
           </div>
@@ -1614,10 +1634,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            
-            {/* Left Pane: LIST MEMO KELUAR (5 cols on lg) */}
-            <div className="lg:col-span-6 bg-surface-raised rounded-md border border-border p-4 sm:p-5 shadow-xs space-y-4">
+          {/* LIST MEMO KELUAR (full width — preview pindah ke modal) */}
+          <div className="bg-surface-raised rounded-md border border-border p-4 sm:p-5 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase text-ink tracking-wider">
                   LIST MEMO KELUAR
@@ -1740,148 +1758,154 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               />
             </div>
 
-            {/* Right Pane: PREVIEW MEMO KELUAR (Formal Letter Format) (6 cols on lg) */}
-            <div className="lg:col-span-6 bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between">
-              {selectedMemo ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-border pb-2">
-                    <h3 className="text-xs font-black uppercase text-ink tracking-wider">
-                      PREVIEW MEMO KELUAR
-                    </h3>
-                    <span className="text-[11px] text-ink-subtle font-mono">Format Resmi Pos Security</span>
+      {/* MODAL: PREVIEW MEMO KELUAR (Formal Letter Format) */}
+      {selectedMemo && (
+        <ModalPortal onClose={() => setSelectedMemo(null)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-surface-raised rounded-md max-w-3xl w-full p-5 sm:p-6 shadow-2xl border border-border space-y-4 my-8">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div>
+                  <h3 className="text-xs font-black uppercase text-ink tracking-wider">
+                    PREVIEW MEMO KELUAR
+                  </h3>
+                  <p className="text-[11px] text-ink-subtle font-mono">Format Resmi Pos Security</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMemo(null)}
+                  className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
+                  aria-label="Tutup preview memo"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Formal Letter Paper Area */}
+              <div id="formal-memo-printable" className="p-6 bg-surface-raised rounded-md border border-border shadow-xs space-y-4 text-xs font-sans">
+
+                {/* Official Letterhead / Kop Surat */}
+                <div className="border-b-2 border-ink pb-3 flex items-start justify-between">
+                  <div>
+                    <div className="text-base font-black text-ink tracking-wider">BENGKEL KIM 3 MEDAN</div>
+                    <div className="text-[10px] text-ink-muted">Kawasan Industri Medan III, Jl. Pelita Raya No. 88</div>
+                    <div className="text-[10px] text-ink-subtle">Security Division &amp; Gate Control Portal</div>
                   </div>
-
-                  {/* Formal Letter Paper Area */}
-                  <div id="formal-memo-printable" className="p-6 bg-surface-raised rounded-md border border-border shadow-xs space-y-4 text-xs font-sans">
-                    
-                    {/* Official Letterhead / Kop Surat */}
-                    <div className="border-b-2 border-ink pb-3 flex items-start justify-between">
-                      <div>
-                        <div className="text-base font-black text-ink tracking-wider">BENGKEL KIM 3 MEDAN</div>
-                        <div className="text-[10px] text-ink-muted">Kawasan Industri Medan III, Jl. Pelita Raya No. 88</div>
-                        <div className="text-[10px] text-ink-subtle">Security Division &amp; Gate Control Portal</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-base font-black text-ink tracking-tight">MEMO KELUAR</div>
-                        <div className="font-mono text-xs font-black text-accent">{selectedMemo.no_memo}</div>
-                      </div>
-                    </div>
-
-                    {/* Date & Time Row */}
-                    <div className="grid grid-cols-2 gap-4 text-xs pb-1 border-b border-border">
-                      <div>
-                        <span className="text-ink-subtle text-[10px] block">Tanggal Keluar:</span>
-                        <span className="font-bold text-ink">
-                          {new Date(selectedMemo.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
-                        </span>
-                      </div>
-                      <div className="text-right sm:text-left">
-                        <span className="text-ink-subtle text-[10px] block">Jam Keluar:</span>
-                        <span className="font-mono font-bold text-ink">
-                          {new Date(selectedMemo.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* DATA KENDARAAN */}
-                    <div>
-                      <div className="text-[11px] font-black uppercase text-ink tracking-wide mb-2">
-                        DATA KENDARAAN
-                      </div>
-                      <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-xs">
-                        <div className="flex">
-                          <span className="w-28 text-ink-muted">No. Polisi</span>
-                          <span className="font-black text-ink">: {selectedMemo.no_polisi}</span>
-                        </div>
-                        <div className="flex">
-                          <span className="w-28 text-ink-muted">Jenis Armada</span>
-                          <span className="font-semibold text-ink">: {selectedMemo.jenis_armada || 'Truk'}</span>
-                        </div>
-                        <div className="flex">
-                          <span className="w-28 text-ink-muted">Nama Customer</span>
-                          <span className="font-semibold text-ink">: {selectedMemo.nama_customer}</span>
-                        </div>
-                        <div className="flex">
-                          <span className="w-28 text-ink-muted">Tujuan Kunjungan</span>
-                          <span className="font-semibold text-ink">: {selectedMemo.tujuan_kedatangan}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* KETERANGAN */}
-                    <div className="pt-2 border-t border-border">
-                      <div className="text-[11px] font-black uppercase text-ink tracking-wide mb-1.5">
-                        KETERANGAN
-                      </div>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="w-20 text-ink-muted">Status</span>
-                          <span className="font-bold text-status-green">: Selesai</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="w-20 text-ink-muted shrink-0">Catatan</span>
-                          <span className="text-ink">: {selectedMemo.catatan || 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Official Signature Box matching Excel */}
-                    <div className="pt-5 flex items-end justify-between text-center">
-                      <div>
-                        <div className="text-[10px] text-ink-subtle mb-8">Penerima / Driver,</div>
-                        <div className="font-bold text-ink border-t border-border pt-1 px-3">
-                          ( {selectedMemo.nama_customer || 'Driver'} )
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-center">
-                        <div className="text-[10px] text-ink-subtle mb-2">Dibuat oleh,</div>
-                        
-                        {/* Signature graphic/stamp simulation */}
-                        <div className="w-20 h-10 border border-accent/40 rounded-md bg-accent-subtle/50 flex items-center justify-center text-[10px] text-accent font-serif italic mb-1 transform -rotate-3">
-                          Security
-                        </div>
-
-                        <div className="font-black text-ink text-xs">
-                          {selectedMemo.petugas_security || '( Petugas Security )'}
-                        </div>
-                        <div className="text-[10px] text-ink-subtle">Security Bengkel KIM 3</div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Print & Export Buttons matching Excel */}
-                  <div className="flex items-center justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowPrintMemo(selectedMemo)}
-                      className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs flex items-center gap-2 transition-colors"
-                    >
-                      <Printer className="w-4 h-4" />
-                      CETAK MEMO (A4)
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        window.print();
-                      }}
-                      className="px-4 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      EXPORT PDF
-                    </button>
+                  <div className="text-right">
+                    <div className="text-base font-black text-ink tracking-tight">MEMO KELUAR</div>
+                    <div className="font-mono text-xs font-black text-accent">{selectedMemo.no_memo}</div>
                   </div>
                 </div>
-              ) : (
-                <div className="p-12 text-center text-ink-subtle text-xs">
-                  Pilih salah satu memo dari tabel di sebelah kiri untuk melihat preview resmi.
+
+                {/* Date & Time Row */}
+                <div className="grid grid-cols-2 gap-4 text-xs pb-1 border-b border-border">
+                  <div>
+                    <span className="text-ink-subtle text-[10px] block">Tanggal Keluar:</span>
+                    <span className="font-bold text-ink">
+                      {new Date(selectedMemo.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="text-right sm:text-left">
+                    <span className="text-ink-subtle text-[10px] block">Jam Keluar:</span>
+                    <span className="font-mono font-bold text-ink">
+                      {new Date(selectedMemo.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB
+                    </span>
+                  </div>
                 </div>
-              )}
+
+                {/* DATA KENDARAAN */}
+                <div>
+                  <div className="text-[11px] font-black uppercase text-ink tracking-wide mb-2">
+                    DATA KENDARAAN
+                  </div>
+                  <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-xs">
+                    <div className="flex">
+                      <span className="w-28 text-ink-muted">No. Polisi</span>
+                      <span className="font-black text-ink">: {selectedMemo.no_polisi}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-28 text-ink-muted">Jenis Armada</span>
+                      <span className="font-semibold text-ink">: {selectedMemo.jenis_armada || 'Truk'}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-28 text-ink-muted">Nama Customer</span>
+                      <span className="font-semibold text-ink">: {selectedMemo.nama_customer}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-28 text-ink-muted">Tujuan Kunjungan</span>
+                      <span className="font-semibold text-ink">: {selectedMemo.tujuan_kedatangan}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* KETERANGAN */}
+                <div className="pt-2 border-t border-border">
+                  <div className="text-[11px] font-black uppercase text-ink tracking-wide mb-1.5">
+                    KETERANGAN
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-20 text-ink-muted">Status</span>
+                      <span className="font-bold text-status-green">: Selesai</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-20 text-ink-muted shrink-0">Catatan</span>
+                      <span className="text-ink">: {selectedMemo.catatan || 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Official Signature Box matching Excel */}
+                <div className="pt-5 flex items-end justify-between text-center">
+                  <div>
+                    <div className="text-[10px] text-ink-subtle mb-8">Penerima / Driver,</div>
+                    <div className="font-bold text-ink border-t border-border pt-1 px-3">
+                      ( {selectedMemo.nama_customer || 'Driver'} )
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-center">
+                    <div className="text-[10px] text-ink-subtle mb-2">Dibuat oleh,</div>
+
+                    {/* Signature graphic/stamp simulation */}
+                    <div className="w-20 h-10 border border-accent/40 rounded-md bg-accent-subtle/50 flex items-center justify-center text-[10px] text-accent font-serif italic mb-1 transform -rotate-3">
+                      Security
+                    </div>
+
+                    <div className="font-black text-ink text-xs">
+                      {selectedMemo.petugas_security || '( Petugas Security )'}
+                    </div>
+                    <div className="text-[10px] text-ink-subtle">Security Bengkel KIM 3</div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Print & Export Buttons matching Excel */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPrintMemo(selectedMemo)}
+                  className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs flex items-center gap-2 transition-colors"
+                >
+                  <Printer className="w-4 h-4" />
+                  CETAK MEMO (A4)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.print();
+                  }}
+                  className="px-4 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  EXPORT PDF
+                </button>
+              </div>
             </div>
-
           </div>
+        </ModalPortal>
+      )}
         </div>
       )}
 
@@ -2087,7 +2111,6 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 label="Foto Kendaraan Saat Masuk Gerbang (Opsional)"
                 value={formCheckin.foto_kendaraan_masuk}
                 onChange={(url) => setFormCheckin({ ...formCheckin, foto_kendaraan_masuk: url })}
-                bucket="foto_kendaraan"
               />
 
               <div>
@@ -2186,7 +2209,6 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 label="Foto Kendaraan Saat Keluar Gerbang (Kamera/File)"
                 value={formCheckout.foto_kendaraan_keluar}
                 onChange={(url) => setFormCheckout({ ...formCheckout, foto_kendaraan_keluar: url })}
-                bucket="foto_kendaraan"
               />
 
               {formCheckout.barang_dibawa_keluar && (
@@ -2194,7 +2216,6 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   label="Foto Barang Bawaan (Opsional)"
                   value={formCheckout.foto_barang}
                   onChange={(url) => setFormCheckout({ ...formCheckout, foto_barang: url })}
-                  bucket="foto_barang"
                 />
               )}
 

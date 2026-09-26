@@ -202,46 +202,50 @@ export const getApiErrorMessage = (err: any, fallback = 'Terjadi kesalahan.'): s
   return fallback;
 };
 
-// Storage upload client (already built into server backend)
-export const uploadFileToStorage = async (file: File, bucket: 'foto_kendaraan' | 'foto_barang' | 'dokumen_armada' = 'foto_kendaraan'): Promise<string> => {
+/**
+ * Upload foto langsung ke database via API Builder (POST /kim3/foto-upload).
+ * Server: validasi ekstensi (jpg/jpeg/png/webp) + kompresi otomatis.
+ * Response endpoint berupa bare array: [{ foto_raw, mime_type, size_bytes, filename }].
+ * Mengembalikan data URI siap simpan (data:{mime};base64,{raw}).
+ */
+export const uploadFotoFile = async (
+  file: File
+): Promise<{ dataUrl: string; mime: string; size: number; filename: string }> => {
   const formData = new FormData();
-  formData.append('file', file);
-  formData.append('bucket', bucket);
+  formData.append('foto', file, file.name || 'foto.jpg');
 
-  const jwt = localStorage.getItem('bengkel_jwt_token');
-  const headers: Record<string, string> = {
-    'Content-Type': 'multipart/form-data',
-    'x-api-key': KIM3_STATIC_TOKEN,
-  };
-  if (jwt) {
-    headers['Authorization'] = `Bearer ${jwt}`;
-  }
-
-  try {
-    const res = await axios.post(`${API_BASE}/api/storage/upload`, formData, {
-      headers,
-    });
-
-    if (res.data?.url) {
-      return res.data.url;
-    }
-    if (res.data?.filename) {
-      return `/api/storage/files/${bucket}/${res.data.filename}`;
-    }
-  } catch (err) {
-    console.warn('Backend storage upload error, fallback to Base64 data URL:', err);
-  }
-
-  // Fallback: Convert to Base64 so photo can still be saved directly to DB
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+  const res = await apiClient.post('/kim3/foto-upload', formData, {
+    // Drop default application/json agar browser set multipart boundary otomatis
+    transformRequest: [
+      (data, headers) => {
+        (headers as any)?.delete?.('Content-Type');
+        return data;
+      },
+    ],
   });
+
+  const payload = res.data;
+  const row = Array.isArray(payload) ? payload[0] : payload?.data ?? payload;
+  const raw = typeof row?.foto_raw === 'string' ? row.foto_raw : '';
+  if (!raw) throw new Error('Server tidak mengembalikan data foto.');
+  const mime =
+    typeof row?.mime_type === 'string' && row.mime_type ? row.mime_type : file.type || 'image/jpeg';
+  return {
+    dataUrl: `data:${mime};base64,${raw}`,
+    mime,
+    size: Number(row?.size_bytes) || 0,
+    filename: String(row?.filename ?? file.name ?? ''),
+  };
 };
 
 export const api = {
+  // Upload Foto ke Database (POST /kim3/foto-upload, multipart)
+  uploadFoto: async (
+    file: File
+  ): Promise<{ dataUrl: string; mime: string; size: number; filename: string }> => {
+    return uploadFotoFile(file);
+  },
+
   // Dashboard
   getDashboardSummary: async (): Promise<DashboardSummary> => {
     const res = await apiClient.get<DashboardSummary[]>('/kim3/dashboard-summary');
@@ -453,13 +457,8 @@ export const api = {
     return res.data;
   },
   updateBeliPartStatus: async (data: { id: number; status_transaksi?: string; foto_penyerahan?: string; catatan?: string }): Promise<any> => {
-    try {
-      const res = await apiClient.post('/kim3/beli-part-status', data);
-      return res.data;
-    } catch (e) {
-      console.warn('Endpoint /kim3/beli-part-status note:', e);
-      return { success: true };
-    }
+    const res = await apiClient.post('/kim3/beli-part-status', data);
+    return res.data;
   },
 
   // Invoice & Pembayaran

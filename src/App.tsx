@@ -113,9 +113,14 @@ export const App: React.FC = () => {
       if (activeTab === 'dashboard') return <DashboardView />;
       // Sidebar SA Kotak Merah (PR) + notif link_tab 'purchasing' / 'sa-kotak-merah':
       if (activeTab === 'purchasing' || activeTab === 'sa-kotak-merah') return <ServiceAdvisorView initialTab="estimasi-pr" />;
-      if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
-      if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
-      if (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi') return <BeliPartView initialTab="transaksi" />;
+      // Penjualan Part Langsung: satu modul modal-driven di dalam ServiceAdvisorView
+      if (
+        activeTab === 'beli-part' ||
+        activeTab === 'beli-part-transaksi' ||
+        activeTab === 'sa-penjualan-part'
+      ) {
+        return <ServiceAdvisorView initialTab="penjualan-part" />;
+      }
       return <ServiceAdvisorView initialTab="spk-list" />;
     }
 
@@ -199,6 +204,8 @@ export const App: React.FC = () => {
         return <ServiceAdvisorView initialTab="penerimaan" />;
       case 'sa-kotak-merah':
         return <ServiceAdvisorView initialTab="estimasi-pr" />;
+      case 'sa-penjualan-part':
+        return <ServiceAdvisorView initialTab="penjualan-part" />;
       case 'foreman':
       case 'foreman-tugas':
         return <ForemanView initialTab="dashboard" />;

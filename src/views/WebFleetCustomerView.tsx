@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, normalizePlat, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Kendaraan, BookingService, SpkService, InvoicePembayaran } from '../types';
+import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
+import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { useAppStore } from '../store/useAppStore';
 import { usePpnRate } from '../hooks/usePpnRate';
 import { realtimeHub } from '../services/realtimeService';
 import { ModalPortal } from '../components/common/ModalPortal';
+import { PhotoUploader } from '../components/common/PhotoUploader';
 import { toast } from '../components/common/Toast';
 import { TimePickerInput } from '../components/common/TimePickerInput';
 import { 
@@ -35,12 +37,851 @@ import {
   FileCheck,
   Check,
   Info,
-  Edit3
+  Edit3,
+  Eye,
+  Printer,
+  ArrowLeft
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
   initialMenu?: 'dashboard' | 'booking' | 'status' | 'history' | 'kendaraan' | 'dokumen' | 'profil';
 }
+
+interface SpkTrackingDetailProps {
+  spk: SpkService;
+  onBack?: () => void;
+  pekerjaanList?: SpkItemPekerjaan[];
+  partSpkList?: SpkItemPart[];
+  myDokumenList?: DokumenKendaraan[];
+  myInvoiceList?: InvoicePembayaran[];
+  tambahanList?: PekerjaanTambahan[];
+  purchasingList?: PurchaseRequestPart[];
+  ppnRate?: number | null;
+  approvingTambahan?: boolean;
+  decidingEstimasi?: boolean;
+  onApproveTambahan?: (id: number, keputusan: 'Disetujui' | 'Ditolak') => void;
+  onDecideEstimasi?: (spk: SpkService, setuju: boolean) => void;
+}
+
+/**
+ * SpkTrackingDetail — halaman detail pelacakan service satu SPK
+ * (progres stepper, pekerjaan & part, catatan, dokumen/foto, timeline).
+ * Dipakai menu Status & Pelacakan (spk aktif) dan halaman khusus
+ * Riwayat Service (spk yang diklik). Tombol aksi approval hanya muncul
+ * bila status SPK membutuhkannya (status-gated di JSX).
+ */
+export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
+  spk,
+  onBack,
+  pekerjaanList,
+  partSpkList,
+  myDokumenList,
+  myInvoiceList,
+  tambahanList,
+  purchasingList,
+  ppnRate,
+  approvingTambahan,
+  decidingEstimasi,
+  onApproveTambahan,
+  onDecideEstimasi,
+}) => {
+  const [subTab, setSubTab] = useState<'progress' | 'detail' | 'catatan' | 'dokumen'>('progress');
+
+  // Tarif PPN DB untuk approval (tanpa fallback): angka approve = angka tagihan
+  const ppnRateCustomer = ppnRate ?? null;
+  const approvalSubtotal = Number(spk?.estimasi_biaya || 0);
+  const approvalPpn = ppnRateCustomer === null ? null : Math.round(approvalSubtotal * (ppnRateCustomer / 100));
+  const approvalTotal = approvalPpn === null ? null : approvalSubtotal + approvalPpn;
+
+  // Active PR untuk SPK yang sedang dimonitor
+  const activePr = purchasingList?.find(
+    (p) => p.id_spk === spk?.id || p.no_polisi === spk?.no_polisi
+  );
+
+  // Faktur untuk SPK yang sedang dimonitor (entri pembayaran di timeline).
+  const activeInvoice = myInvoiceList?.find((inv) => inv.id_spk === spk?.id) || null;
+  const activeInvoiceLunas = !!activeInvoice && (activeInvoice.status_pembayaran === 'Paid' || activeInvoice.status_pembayaran === 'Lunas');
+
+  // Filter detail pekerjaan, part, dan dokumen armada aktif
+  const activePekerjaan = (pekerjaanList || []).filter(p => p.id_spk === spk?.id);
+  const activeParts = (partSpkList || []).filter(p => p.id_spk === spk?.id);
+  const activeArmadaDocs = (myDokumenList || []).filter(d => d.no_polisi === spk?.no_polisi);
+
+  // Part yang benar-benar menunggu pengadaan (data LIVE dari spk-item-part).
+  // Fallback: parse daftar [..] dari catatan PR bila baris part belum ada.
+  const waitingParts: Array<{ nama: string }> = (() => {
+    const live = activeParts
+      .filter((p) => (p.status_ketersediaan || '') !== 'Ready di Stock')
+      .map((p) => ({ nama: p.nama_part }));
+    if (live.length > 0) return live;
+    const m = (activePr?.catatan_pr || '').match(/\[(.*?)\]/);
+    if (m) {
+      return m[1]
+        .split(',')
+        .map((s) => s.trim().replace(/\s*\([^)]*\)\s*$/, '').trim())
+        .filter(Boolean)
+        .map((nama) => ({ nama }));
+    }
+    return [];
+  })();
+
+  // Pekerjaan tambahan yang masih menunggu persetujuan customer untuk SPK ini
+  const approvalTambahanList = (tambahanList || []).filter(
+    (t) =>
+      t.status_approval_customer === 'Menunggu Approval' &&
+      (!spk || t.id_spk === spk.id)
+  );
+
+  return (
+    <div className="space-y-6">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-surface-raised hover:bg-surface text-ink font-bold text-xs transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Kembali ke Riwayat
+        </button>
+      )}
+          
+            {/* Active Card */}
+            <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-md bg-surface text-ink-muted flex items-center justify-center font-black text-sm">
+                    🚚
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-black text-ink">{spk.no_polisi}</h2>
+                      <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent text-[10px] font-bold">Service Berjalan</span>
+                    </div>
+                    <p className="text-xs text-ink-muted font-semibold">{spk.nama_customer || '-'} | {spk.no_spk}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4 text-xs font-semibold">
+                  <div>
+                    <span className="text-ink-subtle block text-[10px]">Layanan:</span>
+                    <span className="text-ink">{spk.jenis_layanan || 'Service Kendaraan'}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-subtle block text-[10px]">Waktu Check In:</span>
+                    <span className="text-ink">{spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-subtle block text-[10px]">Estimasi Selesai (ETA):</span>
+                    <span className="text-accent font-bold">{spk.estimasi_waktu_jam ? `${spk.estimasi_waktu_jam} Jam` : `${spk.lead_time_jam || '-'} Jam`}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Banner Menunggu Part: bahasa ramah customer, data live (part + ETA) */}
+              {spk.status_spk === 'Waiting Part' && (
+                <div className="mt-4 p-4 sm:p-5 rounded-md border-2 border-status-amber/50 bg-status-amber-bg text-status-amber shadow-xs space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-md bg-status-amber/30 text-status-amber flex items-center justify-center font-bold text-lg shrink-0">
+                      📦
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-black text-status-amber">
+                          Armada Menunggu Sparepart
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full bg-status-amber/30 text-status-amber text-[10px] font-black animate-pulse">
+                          Estimasi Menyusul
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-status-amber font-semibold">
+                        Suku cadang sedang kosong dan sudah kami pesankan — pengerjaan lanjut otomatis saat barang tiba.
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-status-amber leading-relaxed font-medium">
+                    Unit {spk.no_polisi} dijeda sementara karena memerlukan suku cadang yang sedang dalam
+                    proses pengadaan. Bapak/Ibu tidak perlu melakukan apa pun — estimasi waktu selesai akan
+                    diperbarui otomatis di sini.
+                  </p>
+
+                  <div className="mt-2 pt-2 border-t border-status-amber/30 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="bg-surface-raised/80 p-2.5 rounded-md border border-status-amber/30">
+                      <span className="text-[10px] text-ink-muted block font-semibold">Suku Cadang Dipesan:</span>
+                      {waitingParts.length > 0 ? (
+                        <ul className="mt-1 space-y-1">
+                          {waitingParts.map((w, idx) => (
+                            <li key={idx} className="font-bold text-ink flex items-start justify-between gap-2">
+                              <span>• {w.nama}</span>
+                              <span className="text-[10px] text-status-amber font-bold whitespace-nowrap">Sedang dipesan</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="font-bold text-ink">Sedang dipesan ke distributor</span>
+                      )}
+                    </div>
+                    <div className="bg-surface-raised/80 p-2.5 rounded-md border border-status-amber/30">
+                      <span className="text-[10px] text-status-amber block font-semibold">Perkiraan Barang Tiba:</span>
+                      <span className="font-mono font-bold text-status-amber">
+                        {activePr?.estimasi_tanggal_ready_eta
+                          ? `${activePr.estimasi_tanggal_ready_eta}${activePr.estimasi_jam_ready_eta ? ` (${activePr.estimasi_jam_ready_eta} WIB)` : ''}`
+                          : 'Sedang kami konfirmasikan — progres tampil di sini otomatis'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Approval Estimasi UTAMA (Excel tahap 6, di atas stepper) */}
+              {spk && ['Menunggu Approval Customer', 'Waiting Approval'].includes(spk.status_spk as string) && (
+                <div className="mt-4 rounded-md border-2 border-accent/50 bg-accent-subtle/40 p-4 sm:p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-md bg-accent text-white flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-black text-ink">
+                          Estimasi Biaya & Waktu Perlu Persetujuan Anda
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full bg-status-amber/30 text-status-amber text-[10px] font-bold animate-pulse">
+                          Menunggu Approval
+                        </span>
+                      </div>
+                      <p className="text-xs text-ink-muted mt-1.5 leading-relaxed font-medium">
+                        Bengkel mengajukan estimasi berikut untuk {spk.no_spk} ({spk.no_polisi}).
+                        Jika disetujui, Work Order resmi terbit dan mekanik mulai pengerjaan.
+                      </p>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-surface-raised/80 rounded-md border border-border p-2.5">
+                          <span className="text-ink-subtle text-[10px] block">Total Estimasi Biaya</span>
+                          <span className="font-black text-ink">
+                            Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                        <div className="bg-surface-raised/80 rounded-md border border-border p-2.5">
+                          <span className="text-ink-subtle text-[10px] block">Estimasi Waktu Selesai</span>
+                          <span className="font-black text-ink">
+                            {spk.estimasi_waktu_jam || spk.lead_time_jam || 0} Jam
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* PPN + Total Bayar: angka yang disetujui = angka yang ditagihkan */}
+                      <div className="mt-2 bg-surface-raised/80 rounded-md border border-accent/30 p-2.5 text-xs space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-ink-muted">Subtotal:</span>
+                          <span className="font-bold text-ink font-mono">Rp {approvalSubtotal.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-ink-muted">PPN{ppnRateCustomer !== null ? ` ${ppnRateCustomer}%` : ''}:</span>
+                          <span className="font-bold text-ink font-mono">Rp {approvalPpn !== null ? approvalPpn.toLocaleString('id-ID') : '-'}</span>
+                        </div>
+                        <div className="flex justify-between pt-1 border-t border-border">
+                          <span className="font-black text-ink">Total Bayar:</span>
+                          <span className="font-black text-status-green font-mono">Rp {approvalTotal !== null ? approvalTotal.toLocaleString('id-ID') : '-'}</span>
+                        </div>
+                        {approvalTotal === null && (
+                          <p className="text-[11px] text-status-red font-bold">
+                            Tarif PPN belum diatur — tombol Setujui terkunci sampai admin mengisi Pengaturan Sistem.
+                          </p>
+                        )}
+                      </div>
+
+                      {activeParts.length > 0 && (
+                        <div className="mt-2 bg-surface-raised/80 rounded-md border border-border p-2.5 text-xs">
+                          <span className="text-ink-subtle text-[10px] block font-semibold mb-1">Rincian Sparepart</span>
+                          {activeParts.map((p) => (
+                            <div key={p.id} className="flex items-center justify-between py-0.5">
+                              <span className="text-ink font-medium">{p.nama_part} × {p.jumlah} {p.satuan}</span>
+                              <span className="font-bold text-ink font-mono">Rp {Number(p.subtotal || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {activePekerjaan.length > 0 && (
+                        <div className="mt-2 bg-surface-raised/80 rounded-md border border-border p-2.5 text-xs">
+                          <span className="text-ink-subtle text-[10px] block font-semibold mb-1">Rincian Pekerjaan</span>
+                          {activePekerjaan.map((p) => (
+                            <div key={p.id} className="flex items-center justify-between py-0.5">
+                              <span className="text-ink font-medium">{p.nama_pekerjaan}</span>
+                              <span className="font-bold text-ink font-mono">Rp {Number(p.biaya_jasa || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-3.5 flex flex-col sm:flex-row gap-2">
+                        <button
+                          type="button"
+                          disabled={decidingEstimasi || approvalTotal === null}
+                          title={approvalTotal === null ? 'Tarif PPN belum diatur — hubungi bengkel' : `Setujui total Rp ${approvalTotal.toLocaleString('id-ID')}`}
+                          onClick={() => onDecideEstimasi?.(spk, true)}
+                          className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <CheckCircle2 className="w-4 h-4" /> Setujui Estimasi{approvalTotal !== null ? ` Rp ${approvalTotal.toLocaleString('id-ID')}` : ''}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={decidingEstimasi}
+                          onClick={() => onDecideEstimasi?.(spk, false)}
+                          className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <XCircle className="w-4 h-4" /> Tolak
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Approval Pekerjaan Tambahan (di atas stepper) */}
+              {approvalTambahanList.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  {approvalTambahanList.map((t) => (
+                    <div
+                      key={t.id}
+                      className="rounded-md border-2 border-status-amber/50 bg-status-amber-bg p-4 sm:p-5"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
+                          <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-sm font-black text-status-amber">
+                              Ada Pekerjaan Tambahan Perlu Persetujuan
+                            </h3>
+                            <span className="px-2 py-0.5 rounded-full bg-status-amber/30 text-status-amber text-[10px] font-bold animate-pulse">
+                              Menunggu Approval
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-status-amber mt-1.5 leading-relaxed font-medium">
+                            {t.deskripsi_tambahan}
+                          </p>
+                          {t.rekomendasi_perbaikan && (
+                            <p className="text-[11px] text-status-amber mt-1 italic">
+                              Rekomendasi: {t.rekomendasi_perbaikan}
+                            </p>
+                          )}
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-surface-raised/80 rounded-md border border-status-amber/30 p-2.5">
+                              <span className="text-status-amber/80 text-[10px] block">Estimasi Biaya Tambahan</span>
+                              <span className="font-black text-status-amber">
+                                Rp {Number(t.estimasi_biaya_tambahan || 0).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                            <div className="bg-surface-raised/80 rounded-md border border-status-amber/30 p-2.5">
+                              <span className="text-status-amber/80 text-[10px] block">Estimasi Waktu Tambahan</span>
+                              <span className="font-black text-status-amber">
+                                {t.estimasi_waktu_tambahan_jam || 0} Jam
+                              </span>
+                            </div>
+                          </div>
+
+                          {(t.diajukan_oleh_mekanik || t.diverifikasi_foreman) && (
+                            <p className="text-[10px] text-status-amber mt-2">
+                              {t.diajukan_oleh_mekanik ? `Diajukan mekanik: ${t.diajukan_oleh_mekanik}` : ''}
+                              {t.diajukan_oleh_mekanik && t.diverifikasi_foreman ? ' • ' : ''}
+                              {t.diverifikasi_foreman ? `Diverifikasi foreman: ${t.diverifikasi_foreman}` : ''}
+                            </p>
+                          )}
+
+                          <div className="mt-3.5 flex flex-col sm:flex-row gap-2">
+                            <button
+                              type="button"
+                              disabled={approvingTambahan}
+                              onClick={() =>
+                                onApproveTambahan?.(t.id, 'Disetujui')
+                              }
+                              className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <CheckCircle2 className="w-4 h-4" /> Setujui Pekerjaan Tambahan
+                            </button>
+                            <button
+                              type="button"
+                              disabled={approvingTambahan}
+                              onClick={() =>
+                                onApproveTambahan?.(t.id, 'Ditolak')
+                              }
+                              className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <XCircle className="w-4 h-4" /> Tolak
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Stepper Progress Bar (image5.png Mockup 2 Stepper) */}
+              <div className="py-6 px-2 overflow-x-auto">
+                <div className="flex items-center justify-between min-w-[650px]">
+                  {[
+                    { step: 1, title: 'Check In', desc: 'Diterima Security', done: true },
+                    { 
+                      step: 2, 
+                      title: spk.status_spk === 'Waiting Part' ? 'Waiting Part' : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval') ? 'Menunggu Approval' : spk.status_spk === 'Waiting QC' ? 'Menunggu QC' : 'Proses Pekerjaan', 
+                      desc: spk.status_spk === 'Waiting Part' ? 'Menunggu Part (Pending)' : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval') ? 'Estimasi Diajukan' : spk.status_spk === 'Estimasi Disetujui' ? 'WO Terbit' : spk.status_spk === 'Waiting QC' ? 'Inspeksi Foreman' : spk.status_spk === 'Dalam Pengerjaan' ? 'Mekanik Aktif' : 'Selesai Dikerjakan', 
+                      done: ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(spk.status_spk as string), 
+                      current: ['Waiting Part', 'Menunggu Approval Customer', 'Waiting Approval', 'Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC'].includes(spk.status_spk as string),
+                      isWaitingPart: spk.status_spk === 'Waiting Part'
+                    },
+                    { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai', current: spk.status_spk === 'Waiting QC' },
+                    { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' },
+                    { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: spk.status_spk === 'Selesai' },
+                    { step: 6, title: 'Check Out', desc: 'Armada Keluar', done: !!spk.waktu_check_out },
+                  ].map((s, idx) => (
+                    <div key={s.step} className="flex-1 flex items-center">
+                      <div className="flex flex-col items-center flex-1 text-center">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
+                          s.isWaitingPart
+                            ? 'bg-status-red text-white ring-4 ring-status-red/20 shadow-md scale-110'
+                            : s.current 
+                            ? 'bg-accent text-white ring-4 ring-accent/20 shadow-md scale-110' 
+                            : s.done 
+                            ? 'bg-status-green text-white' 
+                            : 'bg-surface text-ink-subtle border border-border'
+                        }`}>
+                          {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
+                        </div>
+                        <div className={`text-xs font-bold ${s.isWaitingPart ? 'text-status-red' : s.current ? 'text-accent' : 'text-ink'}`}>
+                          {s.title}
+                        </div>
+                        <div className="text-[10px] text-ink-subtle mt-0.5">{s.desc}</div>
+                      </div>
+                      {idx < 5 && (
+                        <div className={`h-1 flex-1 mx-2 rounded-full ${s.done ? 'bg-status-green' : 'bg-surface'}`}></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4 Detail Tabs di bawah Tracker Status Service */}
+              <div className="border-t border-border pt-5 space-y-4">
+                {/* Tab Navigation */}
+                <div className="flex border-b border-border gap-2 overflow-x-auto pb-px">
+                  <button
+                    type="button"
+                    onClick={() => setSubTab('progress')}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                      subTab === 'progress'
+                        ? 'border-accent text-accent bg-accent-subtle'
+                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                    }`}
+                  >
+                    <Clock className="w-4 h-4" />
+                    Progress Pekerjaan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubTab('detail')}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                      subTab === 'detail'
+                        ? 'border-accent text-accent bg-accent-subtle'
+                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                    }`}
+                  >
+                    <Package className="w-4 h-4" />
+                    Detail Pekerjaan & Part
+                    {(activePekerjaan.length > 0 || activeParts.length > 0) && (
+                      <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-accent-subtle text-accent">
+                        {activePekerjaan.length + activeParts.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubTab('catatan')}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                      subTab === 'catatan'
+                        ? 'border-accent text-accent bg-accent-subtle'
+                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                    }`}
+                  >
+                    <FileCheck className="w-4 h-4" />
+                    Catatan SA & Mekanik
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubTab('dokumen')}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                      subTab === 'dokumen'
+                        ? 'border-accent text-accent bg-accent-subtle'
+                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                    }`}
+                  >
+                    <Camera className="w-4 h-4" />
+                    Dokumen & Foto Kendaraan
+                    {activeArmadaDocs.length > 0 && (
+                      <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-surface text-ink-muted">
+                        {activeArmadaDocs.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* TAB 1: Progress Pekerjaan */}
+                {subTab === 'progress' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
+                    <div className="space-y-3 bg-surface/60 p-4 rounded-md border border-border">
+                      <span className="font-bold text-ink flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-accent" />
+                        Timeline Riwayat Aktivitas Service:
+                      </span>
+                      <div className="space-y-3 relative pl-4 border-l-2 border-border ml-2">
+                        <div className="relative">
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                          <div className="font-semibold text-ink">Kendaraan Masuk di Pos Security</div>
+                          <div className="text-[11px] text-ink-muted">Pukul {spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | Pos Security KIM 3</div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-accent ring-4 ring-white"></div>
+                          <div className="font-semibold text-ink">Penerimaan & Cek Awal oleh SA</div>
+                          <div className="text-[11px] text-ink-muted">Pukul {spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | SA: {spk.nama_sa || '-'} | Odometer: {spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</div>
+                        </div>
+                        <div className="relative">
+                          <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${spk.status_spk === 'Waiting Part' ? 'bg-status-red animate-pulse' : spk.status_spk === 'Waiting QC' ? 'bg-status-green' : 'bg-status-amber animate-pulse'}`}></div>
+                          <div className="font-semibold text-ink">
+                            {spk.status_spk === 'Waiting Part'
+                              ? 'Menunggu Ketersediaan Sparepart (Timer Ditunda)'
+                              : spk.status_spk === 'Waiting QC'
+                              ? 'Pekerjaan Selesai Dikerjakan — Menunggu Inspeksi QC Foreman'
+                              : spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai'
+                              ? 'Pengerjaan Service Teknisi Selesai'
+                              : 'Pengerjaan Sedang Dilakukan oleh Mekanik'}
+                          </div>
+                          <div className="text-[11px] text-ink-muted">
+                            Mekanik: {spk.nama_mekanik || 'Belum Ditugaskan'} | Status SPK: <span className="font-medium text-ink">{spk.status_spk}</span>
+                          </div>
+                          {spk.waktu_selesai_pekerjaan && (
+                            <div className="text-[11px] text-ink-muted">
+                              Selesai pukul {new Date(spk.waktu_selesai_pekerjaan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                              {(() => {
+                                if (!spk.waktu_mulai_pekerjaan) return null;
+                                const ms = new Date(spk.waktu_selesai_pekerjaan as string).getTime() - new Date(spk.waktu_mulai_pekerjaan as string).getTime();
+                                if (isNaN(ms) || ms < 0) return null;
+                                const h = Math.floor(ms / 3600000);
+                                const m = Math.round((ms % 3600000) / 60000);
+                                return <span> • Durasi: {h > 0 ? `${h} jam ` : ''}{m} menit</span>;
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                        {(spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai') && (
+                          <div className="relative">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                            <div className="font-semibold text-ink">Quality Control (QC) Lulus</div>
+                            <div className="text-[11px] text-ink-muted">
+                              Inspeksi kualitas pengerjaan disetujui Foreman
+                              {spk.tanggal_qc ? ` • ${new Date(spk.tanggal_qc).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(spk.tanggal_qc).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                            </div>
+                          </div>
+                        )}
+                        {(spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai') && (
+                          <div className="relative">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                            <div className="font-semibold text-ink">FIR Closed — Final Check SA</div>
+                            <div className="text-[11px] text-ink-muted">
+                              Pemeriksaan akhir lolos, invoice diterbitkan
+                              {spk.waktu_fir_closed ? ` • ${new Date(spk.waktu_fir_closed).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(spk.waktu_fir_closed).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                            </div>
+                          </div>
+                        )}
+                        {activeInvoiceLunas && activeInvoice && (
+                          <div className="relative">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                            <div className="font-semibold text-ink">Pembayaran Lunas</div>
+                            <div className="text-[11px] text-ink-muted">
+                              {activeInvoice.no_invoice} • Rp {Number(activeInvoice.grand_total || 0).toLocaleString('id-ID')}
+                              {activeInvoice.tanggal_bayar ? ` • ${new Date(activeInvoice.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(activeInvoice.tanggal_bayar).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                              {activeInvoice.metode_pembayaran ? ` • ${activeInvoice.metode_pembayaran}` : ''}
+                            </div>
+                          </div>
+                        )}
+                        {spk.waktu_check_out && (
+                          <div className="relative">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
+                            <div className="font-semibold text-ink">Armada Keluar Bengkel</div>
+                            <div className="text-[11px] text-ink-muted">
+                              Check-out pos Security • {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 bg-accent-subtle p-4 rounded-md border border-accent/20">
+                      <span className="font-bold text-ink flex items-center gap-2">
+                        <Info className="w-4 h-4 text-accent" />
+                        Status Terkini & Petunjuk:
+                      </span>
+                      <p className="text-ink-muted leading-relaxed">
+                        Kendaraan <span className="font-semibold text-ink">{spk.no_polisi}</span>{' '}
+                        {spk.waktu_check_out ? (
+                          <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> pada {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB. Terima kasih telah menggunakan Bengkel KIM 3.</>
+                        ) : spk.status_spk === 'Waiting QC' ? (
+                          <>selesai dikerjakan dan <span className="font-semibold text-accent">sedang menunggu inspeksi QC oleh Foreman</span>. Tidak perlu tindakan apa pun.</>
+                        ) : spk.status_spk === 'QC Passed' ? (
+                          <>lulus inspeksi QC dan <span className="font-semibold text-accent">menunggu final check oleh SA</span>. Tidak perlu tindakan apa pun.</>
+                        ) : (
+                          <>saat ini berada pada tahap pengerjaan <span className="font-semibold text-accent">{spk.status_spk}</span>.</>
+                        )}
+                      </p>
+                      <div className="bg-surface-raised p-3 rounded-md border border-accent/30 text-ink-muted space-y-1">
+                        <div className="font-medium text-ink">Estimasi Selesai:</div>
+                        <div>{spk.estimasi_waktu_jam ? `${spk.estimasi_waktu_jam} Jam kerja` : 'Hari ini, estimasi 2-3 jam kerja'}</div>
+                      </div>
+                      <div className="text-[11px] text-ink-muted pt-1">
+                        Pembaruan status sistem berjalan realtime tanpa perlu konfirmasi manual via chat/telepon.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: Detail Pekerjaan & Sparepart */}
+                {subTab === 'detail' && (
+                  <div className="space-y-4 pt-1 text-xs">
+                    {/* Daftar Jasa */}
+                    <div className="border border-border rounded-md overflow-hidden">
+                      <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
+                        <span>Daftar Pekerjaan / Jasa Service</span>
+                        <span className="text-[11px] text-ink-muted font-normal">
+                          {activePekerjaan.length > 0 ? `${activePekerjaan.length} Item Jasa` : 'Estimasi Paket'}
+                        </span>
+                      </div>
+                      <div className="divide-y divide-border bg-surface-raised">
+                        {activePekerjaan.length > 0 ? (
+                          activePekerjaan.map((p, idx) => (
+                            <div key={idx} className="p-3 flex justify-between items-center">
+                              <div>
+                                <div className="font-semibold text-ink">{p.nama_pekerjaan || p.kategori}</div>
+                                <div className="text-[11px] text-ink-subtle">Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-bold text-ink">Rp {(p.biaya_jasa || 0).toLocaleString('id-ID')}</div>
+                                <span className="text-[10px] text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-xs text-ink-subtle">
+                            Belum ada rincian jasa pengerjaan untuk unit ini.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Daftar Part */}
+                    <div className="border border-border rounded-md overflow-hidden">
+                      <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
+                        <span>Daftar Sparepart & Material</span>
+                        <span className="text-[11px] text-ink-muted font-normal">
+                          {activeParts.length > 0 ? `${activeParts.length} Item Part` : '0 Item Part'}
+                        </span>
+                      </div>
+                      <div className="divide-y divide-border bg-surface-raised">
+                        {activeParts.length > 0 ? (
+                          activeParts.map((pt, idx) => (
+                            <div key={idx} className="p-3 flex justify-between items-center">
+                              <div>
+                                <div className="font-semibold text-ink">{pt.nama_part}</div>
+                                <div className="text-[11px] text-ink-subtle">Jumlah: {pt.jumlah} {pt.satuan || 'pcs'}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-bold text-ink">Rp {((pt.harga_satuan || 0) * (pt.jumlah || 1)).toLocaleString('id-ID')}</div>
+                                <span className="text-[10px] text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-xs text-ink-subtle">
+                            Belum ada rincian sparepart untuk unit ini.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 3: Catatan SA & Mekanik */}
+                {subTab === 'catatan' && (
+                  <div className="space-y-3 pt-1 text-xs">
+                    <div className="bg-status-amber-bg p-4 rounded-md border border-status-amber/30 space-y-1.5">
+                      <div className="font-bold text-status-amber flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-status-amber" />
+                        Keluhan Awal Customer (Driver / PIC Armada):
+                      </div>
+                      <p className="text-ink font-medium italic pl-6">
+                        "{spk.keluhan_customer || '-'}"
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-surface p-4 rounded-md border border-border space-y-2">
+                        <div className="font-bold text-ink flex items-center gap-2">
+                          <FileCheck className="w-4 h-4 text-accent" />
+                          Catatan Service Advisor (SA):
+                        </div>
+                        <div className="text-ink-muted text-xs">
+                          {spk.catatan_sa || spk.catatan_kondisi_awal || 'Belum ada catatan dari Service Advisor.'}
+                        </div>
+                        {spk.odometer_km ? (
+                          <div className="text-[11px] text-ink-muted pt-1.5 border-t border-border">
+                            Odometer tercatat: <strong>{spk.odometer_km.toLocaleString('id-ID')} KM</strong>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="bg-surface p-4 rounded-md border border-border space-y-2">
+                        <div className="font-bold text-ink flex items-center gap-2">
+                          <Wrench className="w-4 h-4 text-ink-muted" />
+                          Catatan & Temuan Teknisi / Foreman:
+                        </div>
+                        <div className="text-ink-muted text-xs">
+                          {spk.catatan_foreman || 'Belum ada catatan temuan teknisi untuk unit ini.'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-status-green-bg p-3 rounded-md border border-status-green/30 text-ink-muted flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-status-green shrink-0" />
+                      <span>Garansi pekerjaan service KIM3 berlaku selama 14 hari kerja atau 1.000 KM sejak kendaraan keluar.</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 4: Dokumen & Foto Kendaraan */}
+                {subTab === 'dokumen' && (
+                  <div className="space-y-4 pt-1 text-xs">
+                    {/* Foto Kendaraan (Before / After) */}
+                    <div className="space-y-2">
+                      <span className="font-bold text-ink block">Dokumentasi Visual Kendaraan (Foto Fisik):</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
+                          <div className="text-[11px] font-semibold text-ink-muted">Foto Masuk Pos Security</div>
+                          <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1 overflow-hidden">
+                            {(spk as any).foto_kendaraan_masuk ? (
+                              <img src={(spk as any).foto_kendaraan_masuk} alt="Kendaraan Masuk" className="h-full w-full object-cover" />
+                            ) : (
+                              <>
+                                <Camera className="w-6 h-6" />
+                                <span className="text-[10px]">Tersimpan di Security Log</span>
+                              </>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-ink-muted">Tampak Depan & Nopol</div>
+                        </div>
+
+                        <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
+                          <div className="text-[11px] font-semibold text-ink-muted">Foto Sebelum Pengerjaan</div>
+                          <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1">
+                            <Camera className="w-6 h-6" />
+                            <span className="text-[10px]">Kondisi Awal Komponen</span>
+                          </div>
+                          <div className="text-[10px] text-ink-muted">Dokumentasi SA / Mekanik</div>
+                        </div>
+
+                        <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
+                          <div className="text-[11px] font-semibold text-ink-muted">Foto Setelah Pengerjaan</div>
+                          <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1">
+                            {spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' ? (
+                              <>
+                                <CheckCircle2 className="w-6 h-6 text-status-green" />
+                                <span className="text-[10px] text-status-green font-medium">Verifikasi QC Disetujui</span>
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="w-6 h-6 text-ink-subtle" />
+                                <span className="text-[10px]">Menunggu Pekerjaan Selesai</span>
+                              </>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-ink-muted">Inspeksi Akhir Foreman</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dokumen Terkait Armada */}
+                    <div className="space-y-2 pt-2 border-t border-border">
+                      <span className="font-bold text-ink block">Berkas & Dokumen Armada Ini:</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised hover:border-accent/30 transition-colors">
+                          <div className="flex items-center gap-2.5">
+                            <FileText className="w-5 h-5 text-accent" />
+                            <div>
+                              <div className="font-semibold text-ink">SPK_{spk.no_spk}.pdf</div>
+                              <div className="text-[10px] text-ink-subtle">Surat Perintah Kerja Resmi</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toast.info('Mengunduh Berkas', `Salinan Surat Perintah Kerja ${spk.no_spk} sedang diunduh.`)}
+                            className="p-1.5 text-accent hover:bg-accent-subtle rounded-md"
+                            title="Unduh SPK"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {activeArmadaDocs.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised hover:border-accent/30 transition-colors">
+                            <div className="flex items-center gap-2.5">
+                              <FileCheck className="w-5 h-5 text-status-green" />
+                              <div>
+                                <div className="font-semibold text-ink">{doc.nama_dokumen || doc.jenis_dokumen}</div>
+                                <div className="text-[10px] text-ink-subtle">Berlaku s/d: {doc.masa_berlaku || '-'}</div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toast.info('Mengunduh Berkas', `Dokumen ${doc.nama_dokumen} sedang diunduh.`)}
+                              className="p-1.5 text-ink-muted hover:bg-surface rounded-md"
+                              title="Unduh Dokumen"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+
+                        {activeArmadaDocs.length === 0 && (
+                          <div className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised">
+                            <div className="flex items-center gap-2.5">
+                              <FileCheck className="w-5 h-5 text-ink-muted" />
+                              <div>
+                                <div className="font-semibold text-ink">Kartu_Riwayat_Service.pdf</div>
+                                <div className="text-[10px] text-ink-subtle">Riwayat Perawatan Rutin Bengkel KIM3</div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toast.info('Mengunduh Riwayat', `Riwayat service armada ${spk.no_polisi} sedang disiapkan.`)}
+                              className="p-1.5 text-accent hover:bg-accent-subtle rounded-md"
+                              title="Unduh Riwayat"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+    </div>
+  );
+};
 
 export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ initialMenu }) => {
   const queryClient = useQueryClient();
@@ -54,6 +895,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       setFleetMenu(initialMenu);
     }
   }, [initialMenu]);
+
+  // Pindah menu (mis. via sidebar) = kembali ke tampilan awal menu tersebut:
+  // tutup halaman detail riwayat & modal faktur yang menggantung.
+  React.useEffect(() => {
+    setHistoryDetail(null);
+    setPreviewInvoice(null);
+    setShowPrintInvoice(false);
+  }, [fleetMenu]);
 
   // Booking Wizard Step (image5.png Mockup 1)
   const [bookingStep, setBookingStep] = useState<number>(1);
@@ -81,6 +930,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [historyLimit, setHistoryLimit] = useState(10);
   const [historySearch, setHistorySearch] = useState('');
   const [historyQuery, setHistoryQuery] = useState('');
+  // Modal preview faktur + cetak struk (History)
+  const [previewInvoice, setPreviewInvoice] = useState<InvoicePembayaran | null>(null);
+  const [showPrintInvoice, setShowPrintInvoice] = useState(false);
+  // Halaman khusus detail riwayat SPK (tersembunyi dari sidebar)
+  const [historyDetail, setHistoryDetail] = useState<SpkService | null>(null);
 
   // Debounce input pencarian supaya tidak membanjiri server setiap ketikan
   React.useEffect(() => {
@@ -195,7 +1049,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return false;
   };
 
-  const mySpkList = (spkList || []).filter((s) => isMySpk(s));
+  // Urut eksplisit terbaru dulu agar pelacakan selalu ambil 1 data service terkini
+  const mySpkList = (spkList || [])
+    .filter((s) => isMySpk(s))
+    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 
   // Filter faktur milik armada customer yang sedang login
   const myInvoiceList = (invoiceList || []).filter((inv) => {
@@ -258,6 +1115,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (a.status === 'Dibatalkan' && b.status !== 'Dibatalkan') return 1;
     if (b.status === 'Dibatalkan' && a.status !== 'Dibatalkan') return -1;
     return `${a.tanggal_booking} ${a.jam_booking}`.localeCompare(`${b.tanggal_booking} ${b.jam_booking}`);
+  });
+
+  // Jadwal Booking Terdekat: hanya yang masih Booked DAN jadwalnya belum lewat.
+  // Booking yang sudah check-in (Diproses), Selesai, Dibatalkan, atau terlewat
+  // tidak tampil di kartu ringkas (tetap ada di tab Booking Saya).
+  const upcomingBookings = myBookingSorted.filter((b) => {
+    if (b.status !== 'Booked') return false;
+    const [h, m] = (b.jam_booking || '00:00').split(':').map(Number);
+    const sched = new Date(
+      `${b.tanggal_booking}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
+    );
+    return !Number.isNaN(sched.getTime()) && sched.getTime() >= Date.now();
   });
 
   // Batalkan Booking Mutation
@@ -324,57 +1193,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return false;
   });
 
-  // Tab State di bawah Horizontal Stepper Tracker Status Service
-  const [statusSubTab, setStatusSubTab] = useState<'progress' | 'detail' | 'catatan' | 'dokumen'>('progress');
-
   // Active SPK being monitored: ambil SPK aktif milik customer yang sedang berjalan
   const activeTrackSpk = mySpkList.find(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed') || mySpkList[0];
 
-  // Tarif PPN DB untuk approval (tanpa fallback): angka approve = angka tagihan
+  // Tarif PPN dari DB (dipakai komponen tracking + seksi approval)
   const { rate: ppnRateCustomer } = usePpnRate();
-  const approvalSubtotal = Number(activeTrackSpk?.estimasi_biaya || 0);
-  const approvalPpn = ppnRateCustomer === null ? null : Math.round(approvalSubtotal * (ppnRateCustomer / 100));
-  const approvalTotal = approvalPpn === null ? null : approvalSubtotal + approvalPpn;
-
-  // Active PR untuk SPK yang sedang dimonitor
-  const activePr = purchasingList?.find(
-    (p) => p.id_spk === activeTrackSpk?.id || p.no_polisi === activeTrackSpk?.no_polisi
-  );
-
-  // Faktur untuk SPK yang sedang dimonitor (entri pembayaran di timeline).
-  // Didefinisikan SETELAH activeTrackSpk (hindari TDZ crash).
-  const activeInvoice = myInvoiceList.find((inv) => inv.id_spk === activeTrackSpk?.id) || null;
-  const activeInvoiceLunas = !!activeInvoice && (activeInvoice.status_pembayaran === 'Paid' || activeInvoice.status_pembayaran === 'Lunas');
-
-  // Filter detail pekerjaan, part, dan dokumen armada aktif
-  const activePekerjaan = (pekerjaanList || []).filter(p => p.id_spk === activeTrackSpk?.id);
-  const activeParts = (partSpkList || []).filter(p => p.id_spk === activeTrackSpk?.id);
-  const activeArmadaDocs = (myDokumenList || []).filter(d => d.no_polisi === activeTrackSpk?.no_polisi);
-
-  // Part yang benar-benar menunggu pengadaan (data LIVE dari spk-item-part).
-  // Fallback: parse daftar [..] dari catatan PR bila baris part belum ada.
-  const waitingParts: Array<{ nama: string }> = (() => {
-    const live = activeParts
-      .filter((p) => (p.status_ketersediaan || '') !== 'Ready di Stock')
-      .map((p) => ({ nama: p.nama_part }));
-    if (live.length > 0) return live;
-    const m = (activePr?.catatan_pr || '').match(/\[(.*?)\]/);
-    if (m) {
-      return m[1]
-        .split(',')
-        .map((s) => s.trim().replace(/\s*\([^)]*\)\s*$/, '').trim())
-        .filter(Boolean)
-        .map((nama) => ({ nama }));
-    }
-    return [];
-  })();
-
-  // Pekerjaan tambahan yang masih menunggu persetujuan customer untuk SPK aktif
-  const approvalTambahanList = (tambahanList || []).filter(
-    (t) =>
-      t.status_approval_customer === 'Menunggu Approval' &&
-      (!activeTrackSpk || t.id_spk === activeTrackSpk.id)
-  );
 
   // Approval Mutation (Setujui / Tolak pekerjaan tambahan)
   const approvalTambahanMutation = useMutation({
@@ -397,33 +1220,34 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Setujui -> 'Estimasi Disetujui' (WO terbit, mekanik boleh START).
   // Tolak -> 'Estimasi Dibuat' (SA revisi angka & kirim ulang).
   const approvalEstimasiMutation = useMutation({
-    mutationFn: async (setuju: boolean) => {
-      if (!activeTrackSpk) throw new Error('Tidak ada SPK aktif.');
+    mutationFn: async (payload: { setuju: boolean; spk: SpkService }) => {
+      const { setuju, spk } = payload;
+      if (!spk) throw new Error('Tidak ada SPK aktif.');
       return api.updateSpkStatus({
-        id: activeTrackSpk.id,
+        id: spk.id,
         status_spk: setuju ? 'Estimasi Disetujui' : 'Estimasi Dibuat',
         catatan_sa: setuju ? undefined : 'Estimasi ditolak customer — mohon revisi angka & kirim ulang.',
       });
     },
-    onSuccess: (_res, setuju) => {
+    onSuccess: (_res, { setuju, spk }) => {
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       if (setuju) {
         realtimeHub.publish({
           type: 'SPK_STATUS_CHANGED',
           targetRoles: ['SA'],
           title: 'Estimasi Disetujui Customer',
-          message: `Estimasi ${activeTrackSpk?.no_spk} (${activeTrackSpk?.no_polisi}) disetujui. WO terbit — mekanik siap start.`,
+          message: `Estimasi ${spk?.no_spk} (${spk?.no_polisi}) disetujui. WO terbit — mekanik siap start.`,
           linkTab: 'sa',
           urgency: 'success',
         });
-        const mid = activeTrackSpk?.id_mekanik;
+        const mid = spk?.id_mekanik;
         if (mid) {
           realtimeHub.publish({
             type: 'SPK_STATUS_CHANGED',
             targetRoles: ['Mekanik'],
             targetUserId: mid,
             title: 'WO Siap Dikerjakan',
-            message: `Estimasi ${activeTrackSpk?.no_spk} unit ${activeTrackSpk?.no_polisi} disetujui customer. Silakan START JOB.`,
+            message: `Estimasi ${spk?.no_spk} unit ${spk?.no_polisi} disetujui customer. Silakan START JOB.`,
             linkTab: 'mekanik',
             urgency: 'urgent',
           });
@@ -434,7 +1258,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           type: 'SPK_STATUS_CHANGED',
           targetRoles: ['SA'],
           title: 'Estimasi Ditolak Customer',
-          message: `Estimasi ${activeTrackSpk?.no_spk} (${activeTrackSpk?.no_polisi}) ditolak. Mohon revisi & kirim ulang.`,
+          message: `Estimasi ${spk?.no_spk} (${spk?.no_polisi}) ditolak. Mohon revisi & kirim ulang.`,
           linkTab: 'sa',
           urgency: 'warning',
         });
@@ -512,6 +1336,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     no_mesin: '',
     asuransi: '',
     masa_berlaku_asuransi: '',
+    foto_kendaraan: '',
   });
 
   const tambahArmadaMutation = useMutation({
@@ -530,6 +1355,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         no_mesin: data.no_mesin,
         asuransi: data.asuransi,
         masa_berlaku_asuransi: data.masa_berlaku_asuransi || undefined,
+        // Endpoint /kim3/kendaraan-tambah memakai :foto_kendaraan_base64_data,
+        // Dynamic API otomatis memetakan param `foto_kendaraan` (data URI).
+        foto_kendaraan: data.foto_kendaraan || undefined,
         id_pelanggan: myPelangganId || undefined,
       });
       return { res, plat };
@@ -577,6 +1405,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         no_mesin: '',
         asuransi: '',
         masa_berlaku_asuransi: '',
+        foto_kendaraan: '',
       });
     },
     onError: (err: any) =>
@@ -694,7 +1523,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
               <div className="mt-3">
                 <span className="text-2xl font-black text-status-green">
-                  {myBookingList.length}
+                  {upcomingBookings.length}
                 </span>
                 <span className="text-[11px] text-ink-subtle ml-2 font-medium">Antrian Masuk</span>
               </div>
@@ -714,7 +1543,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
           </div>
 
-          {/* Active Unit Live Tracker Highlight */}
+          {/* Active Unit Live Tracker Highlight (adaptif: progres vs selesai) */}
           {activeTrackSpk ? (
             <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
@@ -725,23 +1554,43 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-base font-black text-ink">{activeTrackSpk.no_polisi}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent text-[10px] font-bold animate-pulse">
-                        Sedang Dikerjakan
-                      </span>
+                      {activeTrackSpk.status_spk === 'Selesai' || activeTrackSpk.status_spk === 'FIR Closed' ? (
+                        <span className="px-2 py-0.5 rounded-full bg-status-green-bg text-status-green text-[10px] font-bold">
+                          Selesai
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent text-[10px] font-bold animate-pulse">
+                          Sedang Dikerjakan
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-ink-muted font-semibold">{activeTrackSpk.no_spk} • {activeTrackSpk.keluhan_customer}</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFleetMenu('status');
-                    setActiveTab('fleet-status');
-                  }}
-                  className="px-3.5 py-2 bg-surface hover:bg-surface text-ink text-xs font-bold rounded-md transition-all flex items-center gap-1.5 self-start sm:self-auto"
-                >
-                  Lihat Detail Tracker <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                {activeTrackSpk.status_spk === 'Selesai' || activeTrackSpk.status_spk === 'FIR Closed' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHistoryDetail(activeTrackSpk);
+                      setFleetMenu('history');
+                      setActiveTab('fleet-history');
+                    }}
+                    className="px-3.5 py-2 bg-surface hover:bg-surface text-ink text-xs font-bold rounded-md transition-all flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    Lihat Riwayat Service <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFleetMenu('status');
+                      setActiveTab('fleet-status');
+                    }}
+                    className="px-3.5 py-2 bg-surface hover:bg-surface text-ink text-xs font-bold rounded-md transition-all flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    Lihat Detail Tracker <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -791,9 +1640,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </button>
               </div>
 
-              {myBookingList.length > 0 ? (
+              {upcomingBookings.length > 0 ? (
                 <div className="space-y-2.5">
-                  {myBookingList.slice(0, 3).map((b) => (
+                  {upcomingBookings.slice(0, 3).map((b) => (
                     <div key={b.id} className="p-3 rounded-md border border-border bg-surface flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <span className="font-bold text-ink text-xs">{b.no_polisi}</span>
@@ -839,10 +1688,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {myKendaraanList.length > 0 ? (
                 <div className="space-y-2.5">
                   {myKendaraanList.slice(0, 3).map((k) => (
-                    <div key={k.id} className="p-3 rounded-md border border-border bg-surface flex items-center justify-between">
-                      <div>
-                        <span className="font-bold text-ink text-xs">{k.no_polisi}</span>
-                        <p className="text-[11px] text-ink-muted">{k.merk} {k.model} • {k.jenis_armada}</p>
+                    <div key={k.id} className="p-3 rounded-md border border-border bg-surface flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {k.foto_kendaraan ? (
+                          <img src={k.foto_kendaraan} alt={k.no_polisi} className="w-12 h-12 rounded-md object-cover border border-border shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
+                            <Truck className="w-5 h-5" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <span className="font-bold text-ink text-xs">{k.no_polisi}</span>
+                          <p className="text-[11px] text-ink-muted truncate">{k.merk} {k.model} • {k.jenis_armada}</p>
+                        </div>
                       </div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-status-green-bg text-status-green font-bold">
                         Aktif
@@ -885,743 +1743,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 1: STATUS SERVICE REALTIME TRACKER (image5.png Mockup 2) */}
       {fleetMenu === 'status' && activeTrackSpk && (
-        <div className="space-y-6">
-          
-          {/* Active Card */}
-          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-md bg-surface text-ink-muted flex items-center justify-center font-black text-sm">
-                  🚚
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-ink">{activeTrackSpk.no_polisi}</h2>
-                    <span className="px-2 py-0.5 rounded-full bg-accent-subtle text-accent text-[10px] font-bold">Service Berjalan</span>
-                  </div>
-                  <p className="text-xs text-ink-muted font-semibold">{activeTrackSpk.nama_customer || '-'} | {activeTrackSpk.no_spk}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-4 text-xs font-semibold">
-                <div>
-                  <span className="text-ink-subtle block text-[10px]">Layanan:</span>
-                  <span className="text-ink">{activeTrackSpk.jenis_layanan || 'Service Kendaraan'}</span>
-                </div>
-                <div>
-                  <span className="text-ink-subtle block text-[10px]">Waktu Check In:</span>
-                  <span className="text-ink">{activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
-                </div>
-                <div>
-                  <span className="text-ink-subtle block text-[10px]">Estimasi Selesai (ETA):</span>
-                  <span className="text-accent font-bold">{activeTrackSpk.estimasi_waktu_jam ? `${activeTrackSpk.estimasi_waktu_jam} Jam` : `${activeTrackSpk.lead_time_jam || '-'} Jam`}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Banner Menunggu Part: bahasa ramah customer, data live (part + ETA) */}
-            {activeTrackSpk.status_spk === 'Waiting Part' && (
-              <div className="mt-4 p-4 sm:p-5 rounded-md border-2 border-status-amber/50 bg-status-amber-bg text-status-amber shadow-xs space-y-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-md bg-status-amber/30 text-status-amber flex items-center justify-center font-bold text-lg shrink-0">
-                    📦
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-black text-status-amber">
-                        Armada Menunggu Sparepart
-                      </h3>
-                      <span className="px-2 py-0.5 rounded-full bg-status-amber/30 text-status-amber text-[10px] font-black animate-pulse">
-                        Estimasi Menyusul
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-status-amber font-semibold">
-                      Suku cadang sedang kosong dan sudah kami pesankan — pengerjaan lanjut otomatis saat barang tiba.
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-status-amber leading-relaxed font-medium">
-                  Unit {activeTrackSpk.no_polisi} dijeda sementara karena memerlukan suku cadang yang sedang dalam
-                  proses pengadaan. Bapak/Ibu tidak perlu melakukan apa pun — estimasi waktu selesai akan
-                  diperbarui otomatis di sini.
-                </p>
-
-                <div className="mt-2 pt-2 border-t border-status-amber/30 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="bg-surface-raised/80 p-2.5 rounded-md border border-status-amber/30">
-                    <span className="text-[10px] text-ink-muted block font-semibold">Suku Cadang Dipesan:</span>
-                    {waitingParts.length > 0 ? (
-                      <ul className="mt-1 space-y-1">
-                        {waitingParts.map((w, idx) => (
-                          <li key={idx} className="font-bold text-ink flex items-start justify-between gap-2">
-                            <span>• {w.nama}</span>
-                            <span className="text-[10px] text-status-amber font-bold whitespace-nowrap">Sedang dipesan</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <span className="font-bold text-ink">Sedang dipesan ke distributor</span>
-                    )}
-                  </div>
-                  <div className="bg-surface-raised/80 p-2.5 rounded-md border border-status-amber/30">
-                    <span className="text-[10px] text-status-amber block font-semibold">Perkiraan Barang Tiba:</span>
-                    <span className="font-mono font-bold text-status-amber">
-                      {activePr?.estimasi_tanggal_ready_eta
-                        ? `${activePr.estimasi_tanggal_ready_eta}${activePr.estimasi_jam_ready_eta ? ` (${activePr.estimasi_jam_ready_eta} WIB)` : ''}`
-                        : 'Sedang kami konfirmasikan — progres tampil di sini otomatis'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Approval Estimasi UTAMA (Excel tahap 6, di atas stepper) */}
-            {activeTrackSpk && ['Menunggu Approval Customer', 'Waiting Approval'].includes(activeTrackSpk.status_spk as string) && (
-              <div className="mt-4 rounded-md border-2 border-accent/50 bg-accent-subtle/40 p-4 sm:p-5">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-md bg-accent text-white flex items-center justify-center shrink-0">
-                    <AlertCircle className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-black text-ink">
-                        Estimasi Biaya & Waktu Perlu Persetujuan Anda
-                      </h3>
-                      <span className="px-2 py-0.5 rounded-full bg-status-amber/30 text-status-amber text-[10px] font-bold animate-pulse">
-                        Menunggu Approval
-                      </span>
-                    </div>
-                    <p className="text-xs text-ink-muted mt-1.5 leading-relaxed font-medium">
-                      Bengkel mengajukan estimasi berikut untuk {activeTrackSpk.no_spk} ({activeTrackSpk.no_polisi}).
-                      Jika disetujui, Work Order resmi terbit dan mekanik mulai pengerjaan.
-                    </p>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div className="bg-surface-raised/80 rounded-md border border-border p-2.5">
-                        <span className="text-ink-subtle text-[10px] block">Total Estimasi Biaya</span>
-                        <span className="font-black text-ink">
-                          Rp {Number(activeTrackSpk.estimasi_biaya || 0).toLocaleString('id-ID')}
-                        </span>
-                      </div>
-                      <div className="bg-surface-raised/80 rounded-md border border-border p-2.5">
-                        <span className="text-ink-subtle text-[10px] block">Estimasi Waktu Selesai</span>
-                        <span className="font-black text-ink">
-                          {activeTrackSpk.estimasi_waktu_jam || activeTrackSpk.lead_time_jam || 0} Jam
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* PPN + Total Bayar: angka yang disetujui = angka yang ditagihkan */}
-                    <div className="mt-2 bg-surface-raised/80 rounded-md border border-accent/30 p-2.5 text-xs space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-ink-muted">Subtotal:</span>
-                        <span className="font-bold text-ink font-mono">Rp {approvalSubtotal.toLocaleString('id-ID')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-ink-muted">PPN{ppnRateCustomer !== null ? ` ${ppnRateCustomer}%` : ''}:</span>
-                        <span className="font-bold text-ink font-mono">Rp {approvalPpn !== null ? approvalPpn.toLocaleString('id-ID') : '-'}</span>
-                      </div>
-                      <div className="flex justify-between pt-1 border-t border-border">
-                        <span className="font-black text-ink">Total Bayar:</span>
-                        <span className="font-black text-status-green font-mono">Rp {approvalTotal !== null ? approvalTotal.toLocaleString('id-ID') : '-'}</span>
-                      </div>
-                      {approvalTotal === null && (
-                        <p className="text-[11px] text-status-red font-bold">
-                          Tarif PPN belum diatur — tombol Setujui terkunci sampai admin mengisi Pengaturan Sistem.
-                        </p>
-                      )}
-                    </div>
-
-                    {activeParts.length > 0 && (
-                      <div className="mt-2 bg-surface-raised/80 rounded-md border border-border p-2.5 text-xs">
-                        <span className="text-ink-subtle text-[10px] block font-semibold mb-1">Rincian Sparepart</span>
-                        {activeParts.map((p) => (
-                          <div key={p.id} className="flex items-center justify-between py-0.5">
-                            <span className="text-ink font-medium">{p.nama_part} × {p.jumlah} {p.satuan}</span>
-                            <span className="font-bold text-ink font-mono">Rp {Number(p.subtotal || 0).toLocaleString('id-ID')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {activePekerjaan.length > 0 && (
-                      <div className="mt-2 bg-surface-raised/80 rounded-md border border-border p-2.5 text-xs">
-                        <span className="text-ink-subtle text-[10px] block font-semibold mb-1">Rincian Pekerjaan</span>
-                        {activePekerjaan.map((p) => (
-                          <div key={p.id} className="flex items-center justify-between py-0.5">
-                            <span className="text-ink font-medium">{p.nama_pekerjaan}</span>
-                            <span className="font-bold text-ink font-mono">Rp {Number(p.biaya_jasa || 0).toLocaleString('id-ID')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="mt-3.5 flex flex-col sm:flex-row gap-2">
-                      <button
-                        type="button"
-                        disabled={approvalEstimasiMutation.isPending || approvalTotal === null}
-                        title={approvalTotal === null ? 'Tarif PPN belum diatur — hubungi bengkel' : `Setujui total Rp ${approvalTotal.toLocaleString('id-ID')}`}
-                        onClick={() => approvalEstimasiMutation.mutate(true)}
-                        className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <CheckCircle2 className="w-4 h-4" /> Setujui Estimasi{approvalTotal !== null ? ` Rp ${approvalTotal.toLocaleString('id-ID')}` : ''}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={approvalEstimasiMutation.isPending}
-                        onClick={() => approvalEstimasiMutation.mutate(false)}
-                        className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <XCircle className="w-4 h-4" /> Tolak
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Approval Pekerjaan Tambahan (di atas stepper) */}
-            {approvalTambahanList.length > 0 && (
-              <div className="mt-4 space-y-3">
-                {approvalTambahanList.map((t) => (
-                  <div
-                    key={t.id}
-                    className="rounded-md border-2 border-status-amber/50 bg-status-amber-bg p-4 sm:p-5"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
-                        <AlertCircle className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-sm font-black text-status-amber">
-                            Ada Pekerjaan Tambahan Perlu Persetujuan
-                          </h3>
-                          <span className="px-2 py-0.5 rounded-full bg-status-amber/30 text-status-amber text-[10px] font-bold animate-pulse">
-                            Menunggu Approval
-                          </span>
-                        </div>
-
-                        <p className="text-xs text-status-amber mt-1.5 leading-relaxed font-medium">
-                          {t.deskripsi_tambahan}
-                        </p>
-                        {t.rekomendasi_perbaikan && (
-                          <p className="text-[11px] text-status-amber mt-1 italic">
-                            Rekomendasi: {t.rekomendasi_perbaikan}
-                          </p>
-                        )}
-
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                          <div className="bg-surface-raised/80 rounded-md border border-status-amber/30 p-2.5">
-                            <span className="text-status-amber/80 text-[10px] block">Estimasi Biaya Tambahan</span>
-                            <span className="font-black text-status-amber">
-                              Rp {Number(t.estimasi_biaya_tambahan || 0).toLocaleString('id-ID')}
-                            </span>
-                          </div>
-                          <div className="bg-surface-raised/80 rounded-md border border-status-amber/30 p-2.5">
-                            <span className="text-status-amber/80 text-[10px] block">Estimasi Waktu Tambahan</span>
-                            <span className="font-black text-status-amber">
-                              {t.estimasi_waktu_tambahan_jam || 0} Jam
-                            </span>
-                          </div>
-                        </div>
-
-                        {(t.diajukan_oleh_mekanik || t.diverifikasi_foreman) && (
-                          <p className="text-[10px] text-status-amber mt-2">
-                            {t.diajukan_oleh_mekanik ? `Diajukan mekanik: ${t.diajukan_oleh_mekanik}` : ''}
-                            {t.diajukan_oleh_mekanik && t.diverifikasi_foreman ? ' • ' : ''}
-                            {t.diverifikasi_foreman ? `Diverifikasi foreman: ${t.diverifikasi_foreman}` : ''}
-                          </p>
-                        )}
-
-                        <div className="mt-3.5 flex flex-col sm:flex-row gap-2">
-                          <button
-                            type="button"
-                            disabled={approvalTambahanMutation.isPending}
-                            onClick={() =>
-                              approvalTambahanMutation.mutate({ id: t.id, status_approval_customer: 'Disetujui' })
-                            }
-                            className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
-                          >
-                            <CheckCircle2 className="w-4 h-4" /> Setujui Pekerjaan Tambahan
-                          </button>
-                          <button
-                            type="button"
-                            disabled={approvalTambahanMutation.isPending}
-                            onClick={() =>
-                              approvalTambahanMutation.mutate({ id: t.id, status_approval_customer: 'Ditolak' })
-                            }
-                            className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-1.5"
-                          >
-                            <XCircle className="w-4 h-4" /> Tolak
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Stepper Progress Bar (image5.png Mockup 2 Stepper) */}
-            <div className="py-6 px-2 overflow-x-auto">
-              <div className="flex items-center justify-between min-w-[650px]">
-                {[
-                  { step: 1, title: 'Check In', desc: 'Diterima Security', done: true },
-                  { 
-                    step: 2, 
-                    title: activeTrackSpk.status_spk === 'Waiting Part' ? 'Waiting Part' : (activeTrackSpk.status_spk === 'Menunggu Approval Customer' || (activeTrackSpk.status_spk as string) === 'Waiting Approval') ? 'Menunggu Approval' : activeTrackSpk.status_spk === 'Waiting QC' ? 'Menunggu QC' : 'Proses Pekerjaan', 
-                    desc: activeTrackSpk.status_spk === 'Waiting Part' ? 'Menunggu Part (Pending)' : (activeTrackSpk.status_spk === 'Menunggu Approval Customer' || (activeTrackSpk.status_spk as string) === 'Waiting Approval') ? 'Estimasi Diajukan' : activeTrackSpk.status_spk === 'Estimasi Disetujui' ? 'WO Terbit' : activeTrackSpk.status_spk === 'Waiting QC' ? 'Inspeksi Foreman' : activeTrackSpk.status_spk === 'Dalam Pengerjaan' ? 'Mekanik Aktif' : 'Selesai Dikerjakan', 
-                    done: ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(activeTrackSpk.status_spk as string), 
-                    current: ['Waiting Part', 'Menunggu Approval Customer', 'Waiting Approval', 'Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC'].includes(activeTrackSpk.status_spk as string),
-                    isWaitingPart: activeTrackSpk.status_spk === 'Waiting Part'
-                  },
-                  { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai', current: activeTrackSpk.status_spk === 'Waiting QC' },
-                  { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai' },
-                  { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: activeTrackSpk.status_spk === 'Selesai' },
-                  { step: 6, title: 'Check Out', desc: 'Armada Keluar', done: !!activeTrackSpk.waktu_check_out },
-                ].map((s, idx) => (
-                  <div key={s.step} className="flex-1 flex items-center">
-                    <div className="flex flex-col items-center flex-1 text-center">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
-                        s.isWaitingPart
-                          ? 'bg-status-red text-white ring-4 ring-status-red/20 shadow-md scale-110'
-                          : s.current 
-                          ? 'bg-accent text-white ring-4 ring-accent/20 shadow-md scale-110' 
-                          : s.done 
-                          ? 'bg-status-green text-white' 
-                          : 'bg-surface text-ink-subtle border border-border'
-                      }`}>
-                        {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
-                      </div>
-                      <div className={`text-xs font-bold ${s.isWaitingPart ? 'text-status-red' : s.current ? 'text-accent' : 'text-ink'}`}>
-                        {s.title}
-                      </div>
-                      <div className="text-[10px] text-ink-subtle mt-0.5">{s.desc}</div>
-                    </div>
-                    {idx < 5 && (
-                      <div className={`h-1 flex-1 mx-2 rounded-full ${s.done ? 'bg-status-green' : 'bg-surface'}`}></div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 4 Detail Tabs di bawah Tracker Status Service */}
-            <div className="border-t border-border pt-5 space-y-4">
-              {/* Tab Navigation */}
-              <div className="flex border-b border-border gap-2 overflow-x-auto pb-px">
-                <button
-                  type="button"
-                  onClick={() => setStatusSubTab('progress')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
-                    statusSubTab === 'progress'
-                      ? 'border-accent text-accent bg-accent-subtle'
-                      : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
-                  }`}
-                >
-                  <Clock className="w-4 h-4" />
-                  Progress Pekerjaan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusSubTab('detail')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
-                    statusSubTab === 'detail'
-                      ? 'border-accent text-accent bg-accent-subtle'
-                      : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
-                  }`}
-                >
-                  <Package className="w-4 h-4" />
-                  Detail Pekerjaan & Part
-                  {(activePekerjaan.length > 0 || activeParts.length > 0) && (
-                    <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-accent-subtle text-accent">
-                      {activePekerjaan.length + activeParts.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusSubTab('catatan')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
-                    statusSubTab === 'catatan'
-                      ? 'border-accent text-accent bg-accent-subtle'
-                      : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
-                  }`}
-                >
-                  <FileCheck className="w-4 h-4" />
-                  Catatan SA & Mekanik
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusSubTab('dokumen')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
-                    statusSubTab === 'dokumen'
-                      ? 'border-accent text-accent bg-accent-subtle'
-                      : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
-                  }`}
-                >
-                  <Camera className="w-4 h-4" />
-                  Dokumen & Foto Kendaraan
-                  {activeArmadaDocs.length > 0 && (
-                    <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-surface text-ink-muted">
-                      {activeArmadaDocs.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              {/* TAB 1: Progress Pekerjaan */}
-              {statusSubTab === 'progress' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-                  <div className="space-y-3 bg-surface/60 p-4 rounded-md border border-border">
-                    <span className="font-bold text-ink flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-accent" />
-                      Timeline Riwayat Aktivitas Service:
-                    </span>
-                    <div className="space-y-3 relative pl-4 border-l-2 border-border ml-2">
-                      <div className="relative">
-                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                        <div className="font-semibold text-ink">Kendaraan Masuk di Pos Security</div>
-                        <div className="text-[11px] text-ink-muted">Pukul {activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | Pos Security KIM 3</div>
-                      </div>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-accent ring-4 ring-white"></div>
-                        <div className="font-semibold text-ink">Penerimaan & Cek Awal oleh SA</div>
-                        <div className="text-[11px] text-ink-muted">Pukul {activeTrackSpk.created_at ? new Date(activeTrackSpk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | SA: {activeTrackSpk.nama_sa || '-'} | Odometer: {activeTrackSpk.odometer_km ? `${activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</div>
-                      </div>
-                      <div className="relative">
-                        <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${activeTrackSpk.status_spk === 'Waiting Part' ? 'bg-status-red animate-pulse' : activeTrackSpk.status_spk === 'Waiting QC' ? 'bg-status-green' : 'bg-status-amber animate-pulse'}`}></div>
-                        <div className="font-semibold text-ink">
-                          {activeTrackSpk.status_spk === 'Waiting Part'
-                            ? 'Menunggu Ketersediaan Sparepart (Timer Ditunda)'
-                            : activeTrackSpk.status_spk === 'Waiting QC'
-                            ? 'Pekerjaan Selesai Dikerjakan — Menunggu Inspeksi QC Foreman'
-                            : activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai'
-                            ? 'Pengerjaan Service Teknisi Selesai'
-                            : 'Pengerjaan Sedang Dilakukan oleh Mekanik'}
-                        </div>
-                        <div className="text-[11px] text-ink-muted">
-                          Mekanik: {activeTrackSpk.nama_mekanik || 'Belum Ditugaskan'} | Status SPK: <span className="font-medium text-ink">{activeTrackSpk.status_spk}</span>
-                        </div>
-                        {activeTrackSpk.waktu_selesai_pekerjaan && (
-                          <div className="text-[11px] text-ink-muted">
-                            Selesai pukul {new Date(activeTrackSpk.waktu_selesai_pekerjaan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
-                            {(() => {
-                              if (!activeTrackSpk.waktu_mulai_pekerjaan) return null;
-                              const ms = new Date(activeTrackSpk.waktu_selesai_pekerjaan as string).getTime() - new Date(activeTrackSpk.waktu_mulai_pekerjaan as string).getTime();
-                              if (isNaN(ms) || ms < 0) return null;
-                              const h = Math.floor(ms / 3600000);
-                              const m = Math.round((ms % 3600000) / 60000);
-                              return <span> • Durasi: {h > 0 ? `${h} jam ` : ''}{m} menit</span>;
-                            })()}
-                          </div>
-                        )}
-                      </div>
-                      {(activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai') && (
-                        <div className="relative">
-                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                          <div className="font-semibold text-ink">Quality Control (QC) Lulus</div>
-                          <div className="text-[11px] text-ink-muted">
-                            Inspeksi kualitas pengerjaan disetujui Foreman
-                            {activeTrackSpk.tanggal_qc ? ` • ${new Date(activeTrackSpk.tanggal_qc).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(activeTrackSpk.tanggal_qc).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
-                          </div>
-                        </div>
-                      )}
-                      {(activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai') && (
-                        <div className="relative">
-                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                          <div className="font-semibold text-ink">FIR Closed — Final Check SA</div>
-                          <div className="text-[11px] text-ink-muted">
-                            Pemeriksaan akhir lolos, invoice diterbitkan
-                            {activeTrackSpk.waktu_fir_closed ? ` • ${new Date(activeTrackSpk.waktu_fir_closed).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(activeTrackSpk.waktu_fir_closed).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
-                          </div>
-                        </div>
-                      )}
-                      {activeInvoiceLunas && activeInvoice && (
-                        <div className="relative">
-                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                          <div className="font-semibold text-ink">Pembayaran Lunas</div>
-                          <div className="text-[11px] text-ink-muted">
-                            {activeInvoice.no_invoice} • Rp {Number(activeInvoice.grand_total || 0).toLocaleString('id-ID')}
-                            {activeInvoice.tanggal_bayar ? ` • ${new Date(activeInvoice.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(activeInvoice.tanggal_bayar).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
-                            {activeInvoice.metode_pembayaran ? ` • ${activeInvoice.metode_pembayaran}` : ''}
-                          </div>
-                        </div>
-                      )}
-                      {activeTrackSpk.waktu_check_out && (
-                        <div className="relative">
-                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                          <div className="font-semibold text-ink">Armada Keluar Bengkel</div>
-                          <div className="text-[11px] text-ink-muted">
-                            Check-out pos Security • {new Date(activeTrackSpk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(activeTrackSpk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 bg-accent-subtle p-4 rounded-md border border-accent/20">
-                    <span className="font-bold text-ink flex items-center gap-2">
-                      <Info className="w-4 h-4 text-accent" />
-                      Status Terkini & Petunjuk:
-                    </span>
-                    <p className="text-ink-muted leading-relaxed">
-                      Kendaraan <span className="font-semibold text-ink">{activeTrackSpk.no_polisi}</span>{' '}
-                      {activeTrackSpk.waktu_check_out ? (
-                        <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> pada {new Date(activeTrackSpk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(activeTrackSpk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB. Terima kasih telah menggunakan Bengkel KIM 3.</>
-                      ) : activeTrackSpk.status_spk === 'Waiting QC' ? (
-                        <>selesai dikerjakan dan <span className="font-semibold text-accent">sedang menunggu inspeksi QC oleh Foreman</span>. Tidak perlu tindakan apa pun.</>
-                      ) : activeTrackSpk.status_spk === 'QC Passed' ? (
-                        <>lulus inspeksi QC dan <span className="font-semibold text-accent">menunggu final check oleh SA</span>. Tidak perlu tindakan apa pun.</>
-                      ) : (
-                        <>saat ini berada pada tahap pengerjaan <span className="font-semibold text-accent">{activeTrackSpk.status_spk}</span>.</>
-                      )}
-                    </p>
-                    <div className="bg-surface-raised p-3 rounded-md border border-accent/30 text-ink-muted space-y-1">
-                      <div className="font-medium text-ink">Estimasi Selesai:</div>
-                      <div>{activeTrackSpk.estimasi_waktu_jam ? `${activeTrackSpk.estimasi_waktu_jam} Jam kerja` : 'Hari ini, estimasi 2-3 jam kerja'}</div>
-                    </div>
-                    <div className="text-[11px] text-ink-muted pt-1">
-                      Pembaruan status sistem berjalan realtime tanpa perlu konfirmasi manual via chat/telepon.
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: Detail Pekerjaan & Sparepart */}
-              {statusSubTab === 'detail' && (
-                <div className="space-y-4 pt-1 text-xs">
-                  {/* Daftar Jasa */}
-                  <div className="border border-border rounded-md overflow-hidden">
-                    <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
-                      <span>Daftar Pekerjaan / Jasa Service</span>
-                      <span className="text-[11px] text-ink-muted font-normal">
-                        {activePekerjaan.length > 0 ? `${activePekerjaan.length} Item Jasa` : 'Estimasi Paket'}
-                      </span>
-                    </div>
-                    <div className="divide-y divide-border bg-surface-raised">
-                      {activePekerjaan.length > 0 ? (
-                        activePekerjaan.map((p, idx) => (
-                          <div key={idx} className="p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold text-ink">{p.nama_pekerjaan || p.kategori}</div>
-                              <div className="text-[11px] text-ink-subtle">Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-ink">Rp {(p.biaya_jasa || 0).toLocaleString('id-ID')}</div>
-                              <span className="text-[10px] text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-4 text-center text-xs text-ink-subtle">
-                          Belum ada rincian jasa pengerjaan untuk unit ini.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Daftar Part */}
-                  <div className="border border-border rounded-md overflow-hidden">
-                    <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
-                      <span>Daftar Sparepart & Material</span>
-                      <span className="text-[11px] text-ink-muted font-normal">
-                        {activeParts.length > 0 ? `${activeParts.length} Item Part` : '0 Item Part'}
-                      </span>
-                    </div>
-                    <div className="divide-y divide-border bg-surface-raised">
-                      {activeParts.length > 0 ? (
-                        activeParts.map((pt, idx) => (
-                          <div key={idx} className="p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold text-ink">{pt.nama_part}</div>
-                              <div className="text-[11px] text-ink-subtle">Jumlah: {pt.jumlah} {pt.satuan || 'pcs'}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-ink">Rp {((pt.harga_satuan || 0) * (pt.jumlah || 1)).toLocaleString('id-ID')}</div>
-                              <span className="text-[10px] text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-4 text-center text-xs text-ink-subtle">
-                          Belum ada rincian sparepart untuk unit ini.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: Catatan SA & Mekanik */}
-              {statusSubTab === 'catatan' && (
-                <div className="space-y-3 pt-1 text-xs">
-                  <div className="bg-status-amber-bg p-4 rounded-md border border-status-amber/30 space-y-1.5">
-                    <div className="font-bold text-status-amber flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-status-amber" />
-                      Keluhan Awal Customer (Driver / PIC Armada):
-                    </div>
-                    <p className="text-ink font-medium italic pl-6">
-                      "{activeTrackSpk.keluhan_customer || '-'}"
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-surface p-4 rounded-md border border-border space-y-2">
-                      <div className="font-bold text-ink flex items-center gap-2">
-                        <FileCheck className="w-4 h-4 text-accent" />
-                        Catatan Service Advisor (SA):
-                      </div>
-                      <div className="text-ink-muted text-xs">
-                        {activeTrackSpk.catatan_sa || activeTrackSpk.catatan_kondisi_awal || 'Belum ada catatan dari Service Advisor.'}
-                      </div>
-                      {activeTrackSpk.odometer_km ? (
-                        <div className="text-[11px] text-ink-muted pt-1.5 border-t border-border">
-                          Odometer tercatat: <strong>{activeTrackSpk.odometer_km.toLocaleString('id-ID')} KM</strong>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="bg-surface p-4 rounded-md border border-border space-y-2">
-                      <div className="font-bold text-ink flex items-center gap-2">
-                        <Wrench className="w-4 h-4 text-ink-muted" />
-                        Catatan & Temuan Teknisi / Foreman:
-                      </div>
-                      <div className="text-ink-muted text-xs">
-                        {activeTrackSpk.catatan_foreman || 'Belum ada catatan temuan teknisi untuk unit ini.'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-status-green-bg p-3 rounded-md border border-status-green/30 text-ink-muted flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-status-green shrink-0" />
-                    <span>Garansi pekerjaan service KIM3 berlaku selama 14 hari kerja atau 1.000 KM sejak kendaraan keluar.</span>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 4: Dokumen & Foto Kendaraan */}
-              {statusSubTab === 'dokumen' && (
-                <div className="space-y-4 pt-1 text-xs">
-                  {/* Foto Kendaraan (Before / After) */}
-                  <div className="space-y-2">
-                    <span className="font-bold text-ink block">Dokumentasi Visual Kendaraan (Foto Fisik):</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
-                        <div className="text-[11px] font-semibold text-ink-muted">Foto Masuk Pos Security</div>
-                        <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1 overflow-hidden">
-                          {(activeTrackSpk as any).foto_kendaraan_masuk ? (
-                            <img src={(activeTrackSpk as any).foto_kendaraan_masuk} alt="Kendaraan Masuk" className="h-full w-full object-cover" />
-                          ) : (
-                            <>
-                              <Camera className="w-6 h-6" />
-                              <span className="text-[10px]">Tersimpan di Security Log</span>
-                            </>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-ink-muted">Tampak Depan & Nopol</div>
-                      </div>
-
-                      <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
-                        <div className="text-[11px] font-semibold text-ink-muted">Foto Sebelum Pengerjaan</div>
-                        <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1">
-                          <Camera className="w-6 h-6" />
-                          <span className="text-[10px]">Kondisi Awal Komponen</span>
-                        </div>
-                        <div className="text-[10px] text-ink-muted">Dokumentasi SA / Mekanik</div>
-                      </div>
-
-                      <div className="border border-border rounded-md p-3 bg-surface space-y-2 text-center">
-                        <div className="text-[11px] font-semibold text-ink-muted">Foto Setelah Pengerjaan</div>
-                        <div className="h-32 bg-surface rounded-md flex flex-col items-center justify-center text-ink-subtle gap-1">
-                          {activeTrackSpk.status_spk === 'QC Passed' || activeTrackSpk.status_spk === 'FIR Closed' || activeTrackSpk.status_spk === 'Selesai' ? (
-                            <>
-                              <CheckCircle2 className="w-6 h-6 text-status-green" />
-                              <span className="text-[10px] text-status-green font-medium">Verifikasi QC Disetujui</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="w-6 h-6 text-ink-subtle" />
-                              <span className="text-[10px]">Menunggu Pekerjaan Selesai</span>
-                            </>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-ink-muted">Inspeksi Akhir Foreman</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dokumen Terkait Armada */}
-                  <div className="space-y-2 pt-2 border-t border-border">
-                    <span className="font-bold text-ink block">Berkas & Dokumen Armada Ini:</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised hover:border-accent/30 transition-colors">
-                        <div className="flex items-center gap-2.5">
-                          <FileText className="w-5 h-5 text-accent" />
-                          <div>
-                            <div className="font-semibold text-ink">SPK_{activeTrackSpk.no_spk}.pdf</div>
-                            <div className="text-[10px] text-ink-subtle">Surat Perintah Kerja Resmi</div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => toast.info('Mengunduh Berkas', `Salinan Surat Perintah Kerja ${activeTrackSpk.no_spk} sedang diunduh.`)}
-                          className="p-1.5 text-accent hover:bg-accent-subtle rounded-md"
-                          title="Unduh SPK"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {activeArmadaDocs.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised hover:border-accent/30 transition-colors">
-                          <div className="flex items-center gap-2.5">
-                            <FileCheck className="w-5 h-5 text-status-green" />
-                            <div>
-                              <div className="font-semibold text-ink">{doc.nama_dokumen || doc.jenis_dokumen}</div>
-                              <div className="text-[10px] text-ink-subtle">Berlaku s/d: {doc.masa_berlaku || '-'}</div>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => toast.info('Mengunduh Berkas', `Dokumen ${doc.nama_dokumen} sedang diunduh.`)}
-                            className="p-1.5 text-ink-muted hover:bg-surface rounded-md"
-                            title="Unduh Dokumen"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-
-                      {activeArmadaDocs.length === 0 && (
-                        <div className="flex items-center justify-between p-3 rounded-md border border-border bg-surface-raised">
-                          <div className="flex items-center gap-2.5">
-                            <FileCheck className="w-5 h-5 text-ink-muted" />
-                            <div>
-                              <div className="font-semibold text-ink">Kartu_Riwayat_Service.pdf</div>
-                              <div className="text-[10px] text-ink-subtle">Riwayat Perawatan Rutin Bengkel KIM3</div>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => toast.info('Mengunduh Riwayat', `Riwayat service armada ${activeTrackSpk.no_polisi} sedang disiapkan.`)}
-                            className="p-1.5 text-accent hover:bg-accent-subtle rounded-md"
-                            title="Unduh Riwayat"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-          </div>
-
-        </div>
+        <SpkTrackingDetail
+          spk={activeTrackSpk}
+          pekerjaanList={pekerjaanList}
+          partSpkList={partSpkList}
+          myDokumenList={myDokumenList}
+          myInvoiceList={myInvoiceList}
+          tambahanList={tambahanList}
+          purchasingList={purchasingList}
+          ppnRate={ppnRateCustomer}
+          approvingTambahan={approvalTambahanMutation.isPending}
+          decidingEstimasi={approvalEstimasiMutation.isPending}
+          onApproveTambahan={(id, keputusan) =>
+            approvalTambahanMutation.mutate({ id, status_approval_customer: keputusan })
+          }
+          onDecideEstimasi={(s, setuju) => approvalEstimasiMutation.mutate({ setuju, spk: s })}
+        />
       )}
 
       {/* MENU 2: BOOKING SERVICE 4-STEP WIZARD (image5.png Mockup 1) */}
@@ -1713,17 +1850,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           : 'border-border hover:border-border bg-surface-raised'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <input
                           type="radio"
                           name="booking_kendaraan"
                           checked={bookingForm.no_polisi === k.no_polisi}
                           onChange={() => setBookingForm({ ...bookingForm, no_polisi: k.no_polisi })}
-                          className="text-accent"
+                          className="text-accent shrink-0"
                         />
-                        <div>
+                        {k.foto_kendaraan ? (
+                          <img src={k.foto_kendaraan} alt={k.no_polisi} className="w-11 h-11 rounded-md object-cover border border-border shrink-0" />
+                        ) : (
+                          <div className="w-11 h-11 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
+                            <Truck className="w-5 h-5" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
                           <div className="text-sm font-black text-ink">{k.no_polisi}</div>
-                          <div className="text-xs text-ink-muted">{k.merk} {k.model} ({k.tahun})</div>
+                          <div className="text-xs text-ink-muted truncate">{k.merk} {k.model} ({k.tahun})</div>
                         </div>
                       </div>
                       <span className="px-2 py-0.5 rounded-md bg-status-green-bg text-status-green font-bold text-[10px] border border-status-green/30">
@@ -2043,8 +2187,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {armadaRows.map((k) => (
-                <div key={k.id} className="bg-surface-raised rounded-md border border-border p-5 shadow-xs flex flex-col justify-between">
-                  <div>
+                <div key={k.id} className="bg-surface-raised rounded-md border border-border p-5 shadow-xs flex flex-col justify-between overflow-hidden">
+                  {k.foto_kendaraan ? (
+                    <div className="-m-5 mb-0 h-40 bg-surface overflow-hidden">
+                      <img src={k.foto_kendaraan} alt={k.no_polisi} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  ) : (
+                    <div className="-m-5 mb-0 h-28 bg-accent-subtle text-accent flex flex-col items-center justify-center gap-1">
+                      <Truck className="w-8 h-8" />
+                      <span className="text-[10px] font-semibold text-ink-muted">Belum ada foto unit</span>
+                    </div>
+                  )}
+                  <div className="pt-4">
                     <div className="flex items-center justify-between">
                       <span className="text-base font-black text-ink">{k.no_polisi}</span>
                       <span className="px-2.5 py-0.5 rounded-full bg-status-green-bg text-status-green text-[10px] font-bold">
@@ -2332,7 +2486,26 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       )}
 
       {/* MENU 6: HISTORY SERVICE (image5.png Mockup 3) */}
-      {fleetMenu === 'history' && (
+      {fleetMenu === 'history' && historyDetail && (
+        <SpkTrackingDetail
+          spk={historyDetail}
+          onBack={() => setHistoryDetail(null)}
+          pekerjaanList={pekerjaanList}
+          partSpkList={partSpkList}
+          myDokumenList={myDokumenList}
+          myInvoiceList={myInvoiceList}
+          tambahanList={tambahanList}
+          purchasingList={purchasingList}
+          ppnRate={ppnRateCustomer}
+          approvingTambahan={approvalTambahanMutation.isPending}
+          decidingEstimasi={approvalEstimasiMutation.isPending}
+          onApproveTambahan={(id, keputusan) =>
+            approvalTambahanMutation.mutate({ id, status_approval_customer: keputusan })
+          }
+          onDecideEstimasi={(s, setuju) => approvalEstimasiMutation.mutate({ setuju, spk: s })}
+        />
+      )}
+      {fleetMenu === 'history' && !historyDetail && (
         <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
           <div className="border-b border-border pb-3 mb-4">
             <h2 className="text-base font-bold text-ink">Riwayat Service Armada (History)</h2>
@@ -2374,11 +2547,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <th className="py-2.5 px-3 font-semibold">Tanggal Masuk</th>
                       <th className="py-2.5 px-3 font-semibold">Biaya</th>
                       <th className="py-2.5 px-3 font-semibold">Status</th>
+                      <th className="py-2.5 px-3 font-semibold text-center">Faktur</th>
+                      <th className="py-2.5 px-3 font-semibold text-center">Detail</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {historyRows.map((spk) => (
-                      <tr key={spk.id} className="hover:bg-surface transition-colors">
+                    {historyRows.map((spk) => {
+                      const paidInv = myInvoiceList.find(
+                        (inv) => inv.id_spk === spk.id &&
+                          (inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas')
+                      );
+                      return (
+                      <tr key={spk.id} onClick={() => setHistoryDetail(spk)} className="hover:bg-surface transition-colors cursor-pointer">
                         <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
                         <td className="py-3 px-3 font-bold text-ink">{spk.no_polisi}</td>
                         <td className="py-3 px-3 text-ink-muted">{spk.keluhan_customer}</td>
@@ -2387,16 +2567,56 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <td className="py-3 px-3">
                           <StatusBadge status={spk.status_spk} size="sm" />
                         </td>
+                        <td className="py-3 px-3 text-center">
+                          {paidInv ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewInvoice(paidInv);
+                              }}
+                              title={`Lihat faktur ${paidInv.no_invoice}`}
+                              aria-label={`Lihat faktur ${paidInv.no_invoice}`}
+                              className="p-2 rounded-md bg-accent-subtle text-accent hover:bg-accent hover:text-white transition-colors inline-flex items-center gap-1.5 font-bold text-[11px]"
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span className="hidden xl:inline">Lihat</span>
+                            </button>
+                          ) : (
+                            <span className="text-ink-subtle">–</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setHistoryDetail(spk);
+                            }}
+                            title={`Lihat detail tracking ${spk.no_spk}`}
+                            aria-label={`Lihat detail tracking ${spk.no_spk}`}
+                            className="p-2 rounded-md border border-border bg-surface-raised text-ink-muted hover:text-accent hover:border-accent/40 transition-colors inline-flex items-center gap-1.5 font-bold text-[11px]"
+                          >
+                            <FileText className="w-4 h-4" />
+                            <span className="hidden xl:inline">Detail</span>
+                          </button>
+                        </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
               <div className="block md:hidden space-y-2.5">
-                {historyRows.map((spk) => (
-                  <div key={spk.id} className="rounded-md border border-border p-3.5">
+                {historyRows.map((spk) => {
+                  const paidInv = myInvoiceList.find(
+                    (inv) => inv.id_spk === spk.id &&
+                      (inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas')
+                  );
+                  return (
+                  <div key={spk.id} onClick={() => setHistoryDetail(spk)} className="rounded-md border border-border p-3.5 cursor-pointer hover:border-accent/40 transition-colors">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="font-mono text-[11px] font-bold text-accent">{spk.no_spk}</div>
@@ -2420,8 +2640,34 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </span>
                       </div>
                     </div>
+
+                    {paidInv && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewInvoice(paidInv);
+                        }}
+                        className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Lihat Faktur • {paidInv.no_invoice}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHistoryDetail(spk);
+                      }}
+                      className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md border border-border bg-surface-raised hover:border-accent/40 text-ink-muted hover:text-accent font-bold text-xs transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Lihat Detail Service
+                    </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <PaginationBar
@@ -2472,59 +2718,101 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
           )}
 
-          {/* Faktur & Pembayaran milik customer */}
-          <div className="mt-6 border-t border-border pt-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-ink">Faktur & Pembayaran</h3>
-              <span className="text-[11px] font-bold text-ink-muted">{myInvoiceList.length} faktur</span>
-            </div>
-            {myInvoiceList.length > 0 ? (
-              <div className="space-y-2.5">
-                {myInvoiceList.map((inv: InvoicePembayaran) => {
-                  const lunas = inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas';
-                  return (
-                    <div key={inv.id} className="rounded-md border border-border p-3.5 bg-surface-raised">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="font-mono text-[11px] font-bold text-accent">{inv.no_invoice}</div>
-                          <div className="text-base font-black text-ink mt-0.5">{inv.no_polisi}</div>
-                          <div className="text-[11px] text-ink-subtle">
-                            {inv.tanggal_invoice ? new Date(inv.tanggal_invoice).toLocaleDateString('id-ID') : '-'}
-                            {inv.tanggal_bayar ? ` • Lunas ${new Date(inv.tanggal_bayar).toLocaleDateString('id-ID')}` : ''}
-                          </div>
-                        </div>
-                        <StatusBadge status={inv.status_pembayaran} size="sm" />
-                      </div>
-                      <div className="mt-2.5 pt-2.5 border-t border-border space-y-1 text-[11px]">
-                        <div className="flex items-center justify-between text-ink-muted">
-                          <span>Subtotal</span>
-                          <span className="font-mono font-semibold">Rp {Number(inv.subtotal || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-ink-muted">
-                          <span>PPN</span>
-                          <span className="font-mono font-semibold">Rp {Number(inv.ppn_nominal || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-ink">Grand Total</span>
-                          <span className="font-mono font-black text-status-green">Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                      </div>
-                      {!lunas && (
-                        <p className="mt-2 text-[11px] text-status-amber font-semibold">
-                          Menunggu pembayaran — tunjukkan nomor faktur ini ke Kasir.
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-xs text-ink-subtle text-center py-4 border border-dashed border-border rounded-md bg-surface">
-                Belum ada faktur untuk armada Anda.
-              </p>
-            )}
-          </div>
         </div>
+      )}
+
+      {/* MODAL: Preview Faktur & Pembayaran */}
+      {previewInvoice && (
+        <ModalPortal onClose={() => setPreviewInvoice(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs overflow-y-auto">
+            <div className="bg-surface-raised rounded-md border border-border shadow-2xl max-w-2xl w-full my-8 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink">Faktur Pembayaran</h3>
+                    <p className="text-[11px] text-ink-muted font-mono">{previewInvoice.no_invoice}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewInvoice(null)}
+                  className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
+                  aria-label="Tutup faktur"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-base font-black text-ink">{previewInvoice.no_polisi}</div>
+                    <div className="text-xs text-ink-muted">
+                      Invoice: {previewInvoice.tanggal_invoice ? new Date(previewInvoice.tanggal_invoice).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                    </div>
+                    <div className="text-xs text-ink-muted">
+                      {previewInvoice.tanggal_bayar
+                        ? `Lunas: ${new Date(previewInvoice.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}`
+                        : 'Belum dibayar'}
+                      {previewInvoice.metode_pembayaran ? ` • ${previewInvoice.metode_pembayaran}` : ''}
+                    </div>
+                  </div>
+                  <StatusBadge status={previewInvoice.status_pembayaran} size="md" />
+                </div>
+
+                <div className="rounded-md border border-border bg-surface p-4 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-ink-muted">
+                    <span>Subtotal</span>
+                    <span className="font-mono font-semibold">Rp {Number(previewInvoice.subtotal || 0).toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-ink-muted">
+                    <span>PPN</span>
+                    <span className="font-mono font-semibold">Rp {Number(previewInvoice.ppn_nominal || 0).toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <span className="font-bold text-ink text-sm">Grand Total</span>
+                    <span className="font-mono font-black text-status-green text-sm">Rp {Number(previewInvoice.grand_total || 0).toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+
+                {(previewInvoice.status_pembayaran !== 'Paid' && previewInvoice.status_pembayaran !== 'Lunas') && (
+                  <p className="text-[11px] text-status-amber font-semibold">
+                    Menunggu pembayaran — tunjukkan nomor faktur ini ke Kasir.
+                  </p>
+                )}
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewInvoice(null)}
+                    className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintInvoice(true)}
+                    className="px-4 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                  >
+                    <Printer className="w-4 h-4" />
+                    CETAK STRUK
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* Struk thermal faktur (print / PDF via dialog browser) */}
+      {showPrintInvoice && previewInvoice && (
+        <PrintThermalInvoiceModal
+          invoice={previewInvoice}
+          onClose={() => setShowPrintInvoice(false)}
+        />
       )}
 
       {/* ========================================================================= */}
@@ -2687,6 +2975,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
+              </div>
+
+              <div>
+                <PhotoUploader
+                  label="Foto Unit Armada (Opsional)"
+                  value={armadaForm.foto_kendaraan}
+                  onChange={(url) => setArmadaForm({ ...armadaForm, foto_kendaraan: url })}
+                />
+                <p className="text-[11px] text-ink-subtle mt-1">
+                  Foto tersimpan otomatis ke database (kompresi otomatis, maks. 15MB). Tampil di daftar armada setelah unit disimpan.
+                </p>
               </div>
 
               {/* Modal Footer */}
