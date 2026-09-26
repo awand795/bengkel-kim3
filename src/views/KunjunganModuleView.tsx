@@ -18,6 +18,9 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
+  XCircle,
+  PackageCheck,
+  Hourglass,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -74,6 +77,19 @@ export const KunjunganModuleView: React.FC = () => {
     );
 
   const jumlahMenunggu = kunjunganMasuk.length;
+  const jumlahDiterima = (antrianList || []).filter(
+    (a) => isKunjunganMurni(a) && a.status_konfirmasi_pic === 'Diterima' &&
+      !(a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar)
+  ).length;
+  const jumlahDitolak = (antrianList || []).filter(
+    (a) => isKunjunganMurni(a) && a.status_konfirmasi_pic === 'Ditolak'
+  ).length;
+  const jumlahSelesai = (antrianList || []).filter(
+    (a) =>
+      isKunjunganMurni(a) &&
+      a.status_konfirmasi_pic !== 'Ditolak' &&
+      (a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar)
+  ).length;
 
   const konfirmasiMutation = useMutation({
     mutationFn: (payload: {
@@ -121,36 +137,90 @@ export const KunjunganModuleView: React.FC = () => {
     }
   };
 
+  // Status visual kartu: Menunggu / Diterima / Ditolak / Selesai (keluar gerbang)
+  const getStatusVis = (item: AntrianKunjungan) => {
+    if (item.status_konfirmasi_pic === 'Ditolak') {
+      return {
+        label: 'DITOLAK',
+        icon: XCircle,
+        ring: 'border-status-red/50 bg-status-red-bg/40',
+        iconBox: 'bg-status-red-bg text-status-red',
+        badge: 'bg-status-red text-white',
+        catatan: item.catatan_pic ? `Alasan: ${item.catatan_pic}` : undefined,
+      };
+    }
+    if (item.status_konfirmasi_pic === 'Diterima') {
+      const selesai = item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar;
+      return selesai
+        ? {
+            label: 'SELESAI',
+            icon: PackageCheck,
+            ring: 'border-border bg-surface-raised opacity-80',
+            iconBox: 'bg-surface text-ink-subtle',
+            badge: 'bg-ink text-surface',
+            catatan: item.waktu_keluar ? `Keluar: ${formatWaktu(item.waktu_keluar)}` : undefined,
+          }
+        : {
+            label: 'DITERIMA',
+            icon: CheckCircle2,
+            ring: 'border-status-green/50 bg-status-green-bg/40',
+            iconBox: 'bg-status-green-bg text-status-green',
+            badge: 'bg-status-green text-white',
+            catatan: item.catatan_pic || undefined,
+          };
+    }
+    // Belum dikonfirmasi (atau status kunjungan sudah lewat tanpa konfirmasi)
+    const lewat = item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar;
+    return lewat
+      ? {
+          label: 'SELESAI',
+          icon: PackageCheck,
+          ring: 'border-border bg-surface-raised opacity-80',
+          iconBox: 'bg-surface text-ink-subtle',
+          badge: 'bg-ink text-surface',
+          catatan: undefined,
+        }
+      : {
+          label: 'MENUNGGU KONFIRMASI',
+          icon: Hourglass,
+          ring: 'border-status-amber/60 bg-status-amber-bg/30 animate-pulse',
+          iconBox: 'bg-status-amber-bg text-status-amber',
+          badge: 'bg-status-amber text-white',
+          catatan: undefined,
+        };
+  };
+
   const renderCard = (item: AntrianKunjungan) => {
+    const vis = getStatusVis(item);
+    const VisIcon = vis.icon;
     const sudahDikonfirmasi =
       item.status_konfirmasi_pic === 'Diterima' || item.status_konfirmasi_pic === 'Ditolak';
+    const bisaKonfirmasi =
+      !sudahDikonfirmasi &&
+      item.status_kunjungan === 'Check In' &&
+      (!item.status_konfirmasi_pic || item.status_konfirmasi_pic === 'Menunggu Konfirmasi');
 
     return (
       <div
         key={item.id}
-        className={`bg-surface-raised rounded-md border p-4 shadow-xs transition-all ${
-          selected?.id === item.id ? 'border-accent ring-2 ring-accent/20' : 'border-border hover:shadow-md'
+        className={`rounded-md border p-4 shadow-xs transition-all ${vis.ring} ${
+          selected?.id === item.id ? 'ring-2 ring-accent/20 border-accent' : 'hover:shadow-md'
         }`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
-              <Truck className="w-5 h-5" />
+            <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${vis.iconBox}`}>
+              <VisIcon className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-black text-ink">{item.no_polisi}</span>
-                <StatusBadge status={item.status_kunjungan} size="sm" />
-                {sudahDikonfirmasi && (
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      item.status_konfirmasi_pic === 'Diterima'
-                        ? 'bg-status-green-bg text-status-green'
-                        : 'bg-status-red-bg text-status-red'
-                    }`}
-                  >
-                    {item.status_konfirmasi_pic}
-                  </span>
+                {/* Badge status utama: DITERIMA / DITOLAK / SELESAI / MENUNGGU */}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 ${vis.badge}`}>
+                  <VisIcon className="w-3 h-3" /> {vis.label}
+                </span>
+                {item.status_kunjungan !== 'Keluar' && (
+                  <StatusBadge status={item.status_kunjungan} size="sm" />
                 )}
               </div>
               <div className="text-xs text-ink-muted font-semibold truncate mt-0.5">
@@ -162,6 +232,9 @@ export const KunjunganModuleView: React.FC = () => {
                 </span>
                 {item.keperluan && <span className="truncate max-w-[240px]">• {item.keperluan}</span>}
               </div>
+              {vis.catatan && (
+                <div className="text-[11px] mt-1 text-ink-muted italic truncate max-w-[320px]">{vis.catatan}</div>
+              )}
             </div>
           </div>
 
@@ -173,7 +246,7 @@ export const KunjunganModuleView: React.FC = () => {
             >
               Detail
             </button>
-            {!sudahDikonfirmasi && item.status_kunjungan === 'Check In' && (
+            {bisaKonfirmasi && (
               <>
                 <button
                   type="button"
@@ -216,12 +289,19 @@ export const KunjunganModuleView: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {jumlahMenunggu > 0 && (
-            <span className="px-2.5 py-1 rounded-full bg-status-amber-bg text-status-amber text-[11px] font-black">
-              {jumlahMenunggu} menunggu konfirmasi
-            </span>
-          )}
+        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          <span className="px-2.5 py-1 rounded-full bg-status-amber-bg text-status-amber text-[11px] font-black flex items-center gap-1">
+            <Hourglass className="w-3 h-3" /> {jumlahMenunggu} menunggu
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-status-green-bg text-status-green text-[11px] font-black flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" /> {jumlahDiterima} diterima
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-status-red-bg text-status-red text-[11px] font-black flex items-center gap-1">
+            <XCircle className="w-3 h-3" /> {jumlahDitolak} ditolak
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-surface text-ink-subtle border border-border text-[11px] font-black flex items-center gap-1">
+            <PackageCheck className="w-3 h-3" /> {jumlahSelesai} selesai
+          </span>
           <span className="px-2.5 py-1 rounded-full bg-accent-subtle text-accent text-[11px] font-bold flex items-center gap-1">
             <User className="w-3 h-3" /> {currentUser || 'Penerima'}
           </span>
