@@ -47,11 +47,17 @@ export const KunjunganModuleView: React.FC = () => {
     refetchInterval: 8000,
   });
 
+  // Khusus kunjungan tamu murni: tujuan "Kunjungan" / "Lainnya".
+  // Service ditangani alur SPK (penerimaan SA), Beli Part ditangani alur
+  // Penjualan Part Langsung — keduanya TIDAK masuk modul kunjungan ini,
+  // baik di tab Masuk maupun Riwayat.
+  const isKunjunganMurni = (a: AntrianKunjungan) =>
+    a.tujuan_kedatangan === 'Kunjungan' || a.tujuan_kedatangan === 'Lainnya';
+
   const kunjunganMasuk: AntrianKunjungan[] = (antrianList || [])
     .filter(
       (a) =>
-        a.tujuan_kedatangan !== 'Service' &&
-        a.tujuan_kedatangan !== 'Beli Part' &&
+        isKunjunganMurni(a) &&
         (a.status_kunjungan === 'Check In' || a.status_kunjungan === 'Sedang Dikerjakan') &&
         (!a.status_konfirmasi_pic || a.status_konfirmasi_pic === 'Menunggu Konfirmasi')
     );
@@ -59,11 +65,12 @@ export const KunjunganModuleView: React.FC = () => {
   const kunjunganRiwayat: AntrianKunjungan[] = (antrianList || [])
     .filter(
       (a) =>
-        a.status_konfirmasi_pic === 'Diterima' ||
-        a.status_konfirmasi_pic === 'Ditolak' ||
-        a.status_kunjungan === 'Keluar' ||
-        a.status_kunjungan === 'Selesai' ||
-        !!a.waktu_keluar
+        isKunjunganMurni(a) &&
+        (a.status_konfirmasi_pic === 'Diterima' ||
+          a.status_konfirmasi_pic === 'Ditolak' ||
+          a.status_kunjungan === 'Keluar' ||
+          a.status_kunjungan === 'Selesai' ||
+          !!a.waktu_keluar)
     );
 
   const jumlahMenunggu = kunjunganMasuk.length;
@@ -205,7 +212,7 @@ export const KunjunganModuleView: React.FC = () => {
           <div>
             <h1 className="text-lg font-black text-ink">Kunjungan untuk Saya</h1>
             <p className="text-xs text-ink-muted">
-              Tamu &amp; armada yang ditujukan ke Anda — terima atau tolak kunjungan
+              Khusus kunjungan tamu (non-service) — terima atau tolak kunjungan yang ditujukan ke Anda
             </p>
           </div>
         </div>
