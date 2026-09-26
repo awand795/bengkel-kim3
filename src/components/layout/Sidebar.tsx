@@ -185,7 +185,8 @@ export const Sidebar: React.FC = () => {
       roles: ['SA'],
       defaultTab: 'beli-part-transaksi',
       children: [
-        { id: 'beli-part-transaksi', label: 'Estimasi & POS Transaksi', icon: PackageCheck },
+        { id: 'beli-part-transaksi', label: 'Daftar Transaksi', icon: FileText },
+        { id: 'beli-part-estimasi', label: 'Estimasi Baru (POS)', icon: PlusCircle },
       ],
     },
 

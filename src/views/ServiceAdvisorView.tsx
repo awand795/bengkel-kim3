@@ -45,15 +45,18 @@ import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar } from '../types';
 
-export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part' }> = ({ initialTab = 'spk-list' }) => {
+export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part' | 'penjualan-part-pos' }> = ({ initialTab = 'spk-list' }) => {
   const queryClient = useQueryClient();
   const { currentUser, saPendingAntrianId, setSaPendingAntrianId, navTick, activeTab: storeActiveTab } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part'>(
+    initialTab === 'penjualan-part-pos' ? 'penjualan-part' : initialTab
+  );
 
-  // Sinkron tab internal saat navigasi deep-link (mis. Dashboard "Buat SPK" -> penerimaan)
+  // Sinkron tab internal saat navigasi deep-link (mis. Dashboard "Buat SPK" -> penerimaan).
+  // 'penjualan-part-pos' hanya sinyal pembuka modal POS, bukan tab aktual.
   useEffect(() => {
     if (initialTab) {
-      setActiveTab(initialTab);
+      setActiveTab(initialTab === 'penjualan-part-pos' ? 'penjualan-part' : initialTab);
     }
   }, [initialTab]);
 
@@ -64,7 +67,24 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     else if (storeActiveTab === 'purchasing' || storeActiveTab === 'sa-kotak-merah') setActiveTab('estimasi-pr');
     else if (storeActiveTab === 'sa' || storeActiveTab === 'sa-list') setActiveTab('spk-list');
     else if (storeActiveTab === 'beli-part' || storeActiveTab === 'beli-part-transaksi' || storeActiveTab === 'sa-penjualan-part') setActiveTab('penjualan-part');
+    else if (storeActiveTab === 'beli-part-estimasi') {
+      // Menu sidebar "Estimasi Baru (POS)": buka langsung modal POS.
+      setActiveTab('penjualan-part');
+      resetPosForm();
+      setShowPosModal(true);
+    }
   }, [navTick, storeActiveTab]);
+
+  // Deep-link awal: dibuka dengan initialTab 'penjualan-part-pos' (sidebar
+  // "Estimasi Baru (POS)") → langsung tampilkan modal POS sekali di mount.
+  const posAutoOpenedRef = React.useRef(false);
+  useEffect(() => {
+    if (!posAutoOpenedRef.current && initialTab === 'penjualan-part-pos') {
+      posAutoOpenedRef.current = true;
+      setActiveTab('penjualan-part');
+      setShowPosModal(true);
+    }
+  }, [initialTab]);
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrModal, setShowPrModal] = useState<SpkService | null>(null);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
@@ -449,17 +469,12 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
   });
   const posTotalPages = Math.ceil(posFilteredTransaksi.length / posLimit) || 1;
   const posPaginated = posFilteredTransaksi.slice((posPage - 1) * posLimit, posPage * posLimit);
+  const posAktifCount = (beliPartList || []).filter((t) => t.status_transaksi !== 'Selesai').length;
 
+  // Data fresh untuk modal detail (refleksi status terbaru dari server)
   const posActive = showPartDetailModal
     ? (beliPartList || []).find((t) => t.id === showPartDetailModal.id) || showPartDetailModal
-    : posFilteredTransaksi[0] || null;
-
-  // KPI kecil untuk tab penjualan part
-  const posAktifCount = (beliPartList || []).filter((t) => t.status_transaksi !== 'Selesai').length;
-  const posSelesaiCount = (beliPartList || []).filter((t) => t.status_transaksi === 'Selesai').length;
-  const posOmzetSelesai = (beliPartList || [])
-    .filter((t) => t.status_transaksi === 'Selesai')
-    .reduce((acc, t) => acc + Number(t.total_biaya || 0), 0);
+    : null;
 
   const handleAddPartToEstimasi = () => {
     if (!partPickerId) return;
@@ -1845,252 +1860,108 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       )}
 
 
-      {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* TAB 4: PENJUALAN PART LANGSUNG (Modal-Driven, tanpa SPK Service)  */}
-      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* ================================================================== */}
+      {/* PENJUALAN PART LANGSUNG - SATU PANEL SEDERHANA                    */}
+      {/* (navigasi tahapan lewat sidebar: Daftar Transaksi / Estimasi Baru) */}
+      {/* ================================================================== */}
       {activeTab === 'penjualan-part' && (
         <div className="space-y-4">
 
-          {/* Header + Flow 8 Langkah */}
-          <div className="bg-surface-raised rounded-md p-5 border border-border shadow-xs">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
+          {/* Header ringkas: judul + KPI inline + tombol estimasi */}
+          <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
                 <Package className="w-5 h-5" />
               </div>
-              <div className="flex-1">
+              <div>
                 <h2 className="text-base font-black text-ink">Penjualan Part Langsung</h2>
-                <p className="text-xs text-ink-muted">Tanpa service workshop — alur: Estimasi POS → Picking Gudang → Penyerahan → Kasir → Memo Keluar</p>
+                <p className="text-xs text-ink-muted">
+                  {posAktifCount} transaksi berjalan • klik transaksi untuk aksi bayar, penyerahan &amp; cetak
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => { resetPosForm(); setShowPosModal(true); }}
-                className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-md font-bold text-xs shadow-md shadow-accent/20 flex items-center gap-2 transition-all"
-              >
-                <PlusCircle className="w-4 h-4" />
-                Estimasi / POS Baru
-              </button>
             </div>
-            <div className="flex items-center justify-between min-w-[820px] overflow-x-auto text-center text-xs">
-              {[
-                { step: 1, title: 'Masuk Bengkel', pic: 'Security' },
-                { step: 2, title: 'Bertemu SA', pic: 'SA' },
-                { step: 3, title: 'Estimasi & Approval', pic: 'Customer' },
-                { step: 4, title: 'Pengadaan Barang', pic: 'Warehouse' },
-                { step: 5, title: 'Barang Siap', pic: 'Warehouse' },
-                { step: 6, title: 'Penyerahan', pic: 'SA' },
-                { step: 7, title: 'Invoice & Payment', pic: 'Kasir' },
-                { step: 8, title: 'Keluar Bengkel', pic: 'Security' },
-              ].map((item, idx) => (
-                <div key={item.step} className="flex-1 flex items-center">
-                  <div className="flex flex-col items-center flex-1">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center font-black text-[11px] mb-1 bg-accent text-white">{item.step}</div>
-                    <div className="font-bold text-ink text-[11px] leading-tight">{item.title}</div>
-                    <div className="text-[10px] text-ink-subtle font-medium">{item.pic}</div>
-                  </div>
-                  {idx < 7 && <div className="w-6 sm:w-8 h-0.5 bg-border" />}
-                </div>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => { resetPosForm(); setShowPosModal(true); }}
+              className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-md font-bold text-xs shadow-md shadow-accent/20 flex items-center justify-center gap-2 transition-all shrink-0"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Estimasi / POS Baru
+            </button>
           </div>
 
-          {/* KPI Strip */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-surface-raised rounded-md border border-border p-3.5">
-              <div className="text-[10px] font-bold text-ink-muted uppercase">Transaksi Aktif</div>
-              <div className="text-xl font-black text-accent mt-0.5">{posAktifCount}</div>
-            </div>
-            <div className="bg-surface-raised rounded-md border border-border p-3.5">
-              <div className="text-[10px] font-bold text-ink-muted uppercase">Selesai / Lunas</div>
-              <div className="text-xl font-black text-status-green mt-0.5">{posSelesaiCount}</div>
-            </div>
-            <div className="bg-surface-raised rounded-md border border-border p-3.5">
-              <div className="text-[10px] font-bold text-ink-muted uppercase">Omzet Selesai</div>
-              <div className="text-xl font-black text-ink mt-0.5">Rp {posOmzetSelesai.toLocaleString('id-ID')}</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Kiri: Daftar Transaksi */}
-            <div className="lg:col-span-2 bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-black text-ink">Daftar Transaksi Penjualan Part</h3>
-                  <p className="text-[11px] text-ink-muted">Klik baris untuk melihat detail &amp; aksi alur</p>
-                </div>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-subtle" />
-                  <input
-                    type="text"
-                    placeholder="Cari no. transaksi / nopol / customer..."
-                    value={posSearchTransaksi}
-                    onChange={(e) => { setPosSearchTransaksi(e.target.value); setPosPage(1); }}
-                    className="pl-9 pr-3.5 py-1.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none w-60"
-                  />
-                </div>
+          {/* SATU PANEL: daftar transaksi (detail & semua aksi lewat modal) */}
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-black text-ink">Daftar Transaksi</h3>
+                <p className="text-[11px] text-ink-muted">Alur: Estimasi → Picking Gudang → Bayar Kasir → Penyerahan (Memo Keluar)</p>
               </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-surface text-ink-muted border-y border-border">
-                    <tr>
-                      <th className="py-2.5 px-3 font-semibold">No. Transaksi</th>
-                      <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
-                      <th className="py-2.5 px-3 font-semibold">Customer</th>
-                      <th className="py-2.5 px-3 font-semibold text-right">Total</th>
-                      <th className="py-2.5 px-3 font-semibold">Status</th>
-                      <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {loadingBeliPart ? (
-                      <tr><td colSpan={6} className="py-6 text-center text-ink-subtle">Memuat data...</td></tr>
-                    ) : posPaginated.length > 0 ? (
-                      posPaginated.map((item) => (
-                        <tr
-                          key={item.id}
-                          onClick={() => setShowPartDetailModal(item)}
-                          className={`cursor-pointer transition-colors ${
-                            posActive?.id === item.id ? 'bg-accent-subtle font-semibold' : 'hover:bg-surface'
-                          }`}
-                        >
-                          <td className="py-3 px-3 font-mono font-bold text-accent">{item.no_transaksi}</td>
-                          <td className="py-3 px-3 font-black text-ink">{item.no_polisi}</td>
-                          <td className="py-3 px-3 text-ink-muted">{item.nama_customer}</td>
-                          <td className="py-3 px-3 text-right font-mono font-bold">Rp {Number(item.total_biaya || 0).toLocaleString('id-ID')}</td>
-                          <td className="py-3 px-3"><StatusBadge status={item.status_transaksi} size="sm" /></td>
-                          <td className="py-3 px-3 text-right">
-                            <button type="button" className="px-2.5 py-1 bg-surface hover:bg-surface-raised text-accent rounded-md border border-border font-bold text-[11px]">Detail →</button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr><td colSpan={6} className="py-6 text-center text-ink-subtle">Belum ada transaksi penjualan part.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-subtle" />
+                <input
+                  type="text"
+                  placeholder="Cari no. transaksi / nopol / customer..."
+                  value={posSearchTransaksi}
+                  onChange={(e) => { setPosSearchTransaksi(e.target.value); setPosPage(1); }}
+                  className="pl-9 pr-3.5 py-1.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none w-60"
+                />
               </div>
-
-              <PaginationBar
-                page={posPage}
-                totalPages={posTotalPages}
-                totalRecords={posFilteredTransaksi.length}
-                limit={posLimit}
-                onPageChange={setPosPage}
-                onLimitChange={(l) => { setPosLimit(l); setPosPage(1); }}
-                label="transaksi part"
-                isLoading={loadingBeliPart}
-              />
             </div>
 
-            {/* Kanan: Panel Detail Transaksi Aktif */}
-            <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
-              {posActive ? (
-                <>
-                  <div className="border-b border-border pb-3">
-                    <span className="text-[10px] uppercase font-bold text-accent">Detail Pembelian</span>
-                    <h3 className="text-base font-black text-ink">{posActive.no_transaksi}</h3>
-                    <p className="text-xs text-ink-muted font-medium">{posActive.no_polisi} • {posActive.nama_customer}</p>
-                  </div>
-                  <StatusBadge status={posActive.status_transaksi} size="md" />
-
-                  <div className="p-3.5 bg-surface rounded-md border border-border space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="text-ink-subtle">No. Picking Gudang:</span><span className="font-mono font-bold">{posActive.no_picking_request || '-'}</span></div>
-                    <div className="flex justify-between"><span className="text-ink-subtle">Lokasi Rak:</span><span className="font-bold">{posActive.lokasi_rak || 'Rak Utama'}</span></div>
-                    <div className="flex justify-between"><span className="text-ink-subtle">Kontak:</span><span className="font-medium">{posActive.no_telepon || '-'}</span></div>
-                  </div>
-
-                  <div className="p-3.5 bg-surface rounded-md border border-border space-y-1.5 text-xs font-semibold">
-                    <div className="flex justify-between text-ink-muted"><span>Subtotal:</span><span className="font-mono">Rp {posActive.subtotal != null ? Number(posActive.subtotal).toLocaleString('id-ID') : '-'}</span></div>
-                    <div className="flex justify-between text-ink-muted"><span>PPN{posPpnRate !== null ? ` ${posPpnRate}%` : ''}:</span><span className="font-mono">Rp {posActive.ppn_11 != null ? Number(posActive.ppn_11).toLocaleString('id-ID') : '-'}</span></div>
-                    <div className="flex justify-between text-sm font-black pt-2 border-t border-border"><span>Total Tagihan:</span><span className="font-mono text-status-green">Rp {Number(posActive.total_biaya || 0).toLocaleString('id-ID')}</span></div>
-                  </div>
-
-                  {/* Aksi Alur */}
-                  <div className="space-y-2">
-                    {/* Tahap Pembayaran Kasir */}
-                    {posActive.status_transaksi !== 'Selesai' && posActive.status_transaksi !== 'Barang Diserahkan' && (
-                      <div className="p-3.5 rounded-md border border-border bg-surface space-y-2.5">
-                        <span className="text-[11px] font-bold text-ink flex items-center gap-1.5"><Receipt className="w-3.5 h-3.5 text-status-green" /> Pembayaran Kasir</span>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {(['Cash', 'Transfer Bank', 'QRIS', 'EDC'] as const).map((m) => (
-                            <button
-                              key={m}
-                              type="button"
-                              onClick={() => setPosMetodeBayar(m)}
-                              className={`py-1.5 px-2 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
-                                posMetodeBayar === m ? 'border-accent bg-accent-subtle text-accent' : 'bg-surface-raised text-ink-muted border-border'
-                              }`}
-                            >
-                              {m}
-                            </button>
-                          ))}
-                        </div>
-                        <button
-                          type="button"
-                          disabled={posBayarMutation.isPending}
-                          onClick={() => posBayarMutation.mutate({ item: posActive, metode: posMetodeBayar })}
-                          className="w-full py-2.5 bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          {posBayarMutation.isPending ? 'Menerbitkan Invoice...' : 'BAYAR & TERBITKAN INVOICE'}
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Tahap Penyerahan Barang (setelah lunas) */}
-                    {posActive.status_transaksi === 'Selesai' && (
-                      <button
-                        type="button"
-                        disabled={posSerahkanMutation.isPending}
-                        onClick={() => posSerahkanMutation.mutate(posActive)}
-                        className="w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2"
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-surface text-ink-muted border-y border-border">
+                  <tr>
+                    <th className="py-2.5 px-3 font-semibold">No. Transaksi</th>
+                    <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
+                    <th className="py-2.5 px-3 font-semibold">Customer</th>
+                    <th className="py-2.5 px-3 font-semibold text-right">Total</th>
+                    <th className="py-2.5 px-3 font-semibold">Status</th>
+                    <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {loadingBeliPart ? (
+                    <tr><td colSpan={6} className="py-6 text-center text-ink-subtle">Memuat data...</td></tr>
+                  ) : posPaginated.length > 0 ? (
+                    posPaginated.map((item) => (
+                      <tr
+                        key={item.id}
+                        onClick={() => setShowPartDetailModal(item)}
+                        className="cursor-pointer hover:bg-surface transition-colors"
                       >
-                        <Truck className="w-4 h-4" />
-                        {posSerahkanMutation.isPending ? 'Menerbitkan Memo Keluar...' : 'SERAHKAN BARANG & TERBITKAN MEMO KELUAR'}
-                      </button>
-                    )}
-
-                    {posActive.status_transaksi === 'Barang Diserahkan' && (
-                      <div className="p-2.5 bg-status-green-bg rounded-md border border-status-green/30 text-status-green text-[11px] flex items-center gap-2">
-                        <CheckCheck className="w-4 h-4 shrink-0" /> Barang telah diserahkan. Memo Keluar terbit di Pos Security.
-                      </div>
-                    )}
-
-                    {/* Cetak struk thermal */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const sub = Number(posActive.subtotal ?? 0);
-                        const ppn = posActive.ppn_11 != null ? Number(posActive.ppn_11) : (posPpnRate !== null ? Math.round(sub * (posPpnRate / 100)) : 0);
-                        const invObj: InvoicePembayaran = {
-                          id: posActive.id,
-                          no_invoice: `INV-PART-${posActive.no_transaksi}`,
-                          no_polisi: posActive.no_polisi,
-                          nama_customer: posActive.nama_customer,
-                          tanggal_invoice: posActive.created_at || new Date().toISOString(),
-                          subtotal: sub,
-                          ppn_nominal: ppn,
-                          diskon: 0,
-                          grand_total: Number(posActive.total_biaya ?? (sub + ppn)),
-                          metode_pembayaran: posMetodeBayar,
-                          status_pembayaran: posActive.status_transaksi === 'Selesai' ? 'Paid' : 'Unpaid',
-                          kasir_pic: currentUser || 'Kasir',
-                        };
-                        setPrintThermalInvoice(invObj);
-                      }}
-                      className="w-full py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted rounded-md font-bold text-xs flex items-center justify-center gap-2"
-                    >
-                      <Receipt className="w-4 h-4" /> Cetak Struk Thermal 80mm
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="py-12 text-center text-ink-subtle text-xs">Pilih transaksi untuk melihat detail &amp; aksi.</div>
-              )}
+                        <td className="py-3 px-3 font-mono font-bold text-accent">{item.no_transaksi}</td>
+                        <td className="py-3 px-3 font-black text-ink">{item.no_polisi}</td>
+                        <td className="py-3 px-3 text-ink-muted">{item.nama_customer}</td>
+                        <td className="py-3 px-3 text-right font-mono font-bold">Rp {Number(item.total_biaya || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-3 px-3"><StatusBadge status={item.status_transaksi} size="sm" /></td>
+                        <td className="py-3 px-3 text-right">
+                          <button type="button" className="px-2.5 py-1 bg-surface hover:bg-surface-raised text-accent rounded-md border border-border font-bold text-[11px]">Detail →</button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr><td colSpan={6} className="py-6 text-center text-ink-subtle">Belum ada transaksi penjualan part.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
+
+            <PaginationBar
+              page={posPage}
+              totalPages={posTotalPages}
+              totalRecords={posFilteredTransaksi.length}
+              limit={posLimit}
+              onPageChange={setPosPage}
+              onLimitChange={(l) => { setPosLimit(l); setPosPage(1); }}
+              label="transaksi part"
+              isLoading={loadingBeliPart}
+            />
           </div>
         </div>
       )}
+
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {/* MODAL POS BARU: ESTIMASI PENJUALAN PART LANGSUNG                  */}
@@ -2374,22 +2245,91 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 <div className="flex justify-between text-sm font-black pt-2 border-t border-border"><span>Total:</span><span className="font-mono text-status-green">Rp {Number(posActive.total_biaya || 0).toLocaleString('id-ID')}</span></div>
               </div>
 
-              {/* Aksi cepat */}
-              <div className="flex gap-2">
-                {posActive.status_transaksi !== 'Selesai' && (
+              {/* SEMUA AKSI ALUR DI SATU MODAL INI */}
+              <div className="space-y-2.5">
+                {/* 1. Pembayaran kasir (sebelum lunas) */}
+                {posActive.status_transaksi !== 'Selesai' && posActive.status_transaksi !== 'Barang Diserahkan' && (
+                  <div className="p-3.5 rounded-md border border-border bg-surface space-y-2.5">
+                    <span className="text-[11px] font-bold text-ink flex items-center gap-1.5">
+                      <Receipt className="w-3.5 h-3.5 text-status-green" /> Pembayaran Kasir
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {(['Cash', 'Transfer Bank', 'QRIS', 'EDC'] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setPosMetodeBayar(m)}
+                          className={`py-1.5 px-2 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
+                            posMetodeBayar === m ? 'border-accent bg-accent-subtle text-accent' : 'bg-surface-raised text-ink-muted border-border'
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={posBayarMutation.isPending}
+                      onClick={() => posBayarMutation.mutate({ item: posActive, metode: posMetodeBayar })}
+                      className="w-full py-2.5 bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {posBayarMutation.isPending ? 'Menerbitkan Invoice...' : 'BAYAR & TERBITKAN INVOICE'}
+                    </button>
+                  </div>
+                )}
+
+                {/* 2. Penyerahan barang (setelah lunas) */}
+                {posActive.status_transaksi === 'Selesai' && (
                   <button
                     type="button"
-                    disabled={posBayarMutation.isPending}
-                    onClick={() => posBayarMutation.mutate({ item: posActive, metode: posMetodeBayar })}
-                    className="flex-1 py-2.5 bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-1.5"
+                    disabled={posSerahkanMutation.isPending}
+                    onClick={() => posSerahkanMutation.mutate(posActive)}
+                    className="w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2"
                   >
-                    <CheckCircle2 className="w-4 h-4" /> Bayar ({posMetodeBayar})
+                    <Truck className="w-4 h-4" />
+                    {posSerahkanMutation.isPending ? 'Menerbitkan Memo Keluar...' : 'SERAHKAN BARANG & TERBITKAN MEMO KELUAR'}
                   </button>
                 )}
+
+                {posActive.status_transaksi === 'Barang Diserahkan' && (
+                  <div className="p-2.5 bg-status-green-bg rounded-md border border-status-green/30 text-status-green text-[11px] flex items-center gap-2">
+                    <CheckCheck className="w-4 h-4 shrink-0" /> Barang telah diserahkan. Memo Keluar terbit di Pos Security.
+                  </div>
+                )}
+
+                {/* 3. Cetak struk thermal */}
                 <button
                   type="button"
-                  onClick={() => { setShowPartDetailModal(null); setActiveTab('penjualan-part'); }}
-                  className="flex-1 py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted rounded-md font-bold text-xs"
+                  onClick={() => {
+                    const sub = Number(posActive.subtotal ?? 0);
+                    const ppn = posActive.ppn_11 != null ? Number(posActive.ppn_11) : (posPpnRate !== null ? Math.round(sub * (posPpnRate / 100)) : 0);
+                    const invObj: InvoicePembayaran = {
+                      id: posActive.id,
+                      no_invoice: `INV-PART-${posActive.no_transaksi}`,
+                      no_polisi: posActive.no_polisi,
+                      nama_customer: posActive.nama_customer,
+                      tanggal_invoice: posActive.created_at || new Date().toISOString(),
+                      subtotal: sub,
+                      ppn_nominal: ppn,
+                      diskon: 0,
+                      grand_total: Number(posActive.total_biaya ?? (sub + ppn)),
+                      metode_pembayaran: posMetodeBayar,
+                      status_pembayaran: posActive.status_transaksi === 'Selesai' ? 'Paid' : 'Unpaid',
+                      kasir_pic: currentUser || 'Kasir',
+                    };
+                    setPrintThermalInvoice(invObj);
+                  }}
+                  className="w-full py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted rounded-md font-bold text-xs flex items-center justify-center gap-2"
+                >
+                  <Receipt className="w-4 h-4" /> Cetak Struk Thermal 80mm
+                </button>
+
+                {/* Tutup */}
+                <button
+                  type="button"
+                  onClick={() => setShowPartDetailModal(null)}
+                  className="w-full py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted rounded-md font-bold text-xs"
                 >
                   Tutup
                 </button>

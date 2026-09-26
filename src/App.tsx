@@ -113,13 +113,17 @@ export const App: React.FC = () => {
       if (activeTab === 'dashboard') return <DashboardView />;
       // Sidebar SA Kotak Merah (PR) + notif link_tab 'purchasing' / 'sa-kotak-merah':
       if (activeTab === 'purchasing' || activeTab === 'sa-kotak-merah') return <ServiceAdvisorView initialTab="estimasi-pr" />;
-      // Penjualan Part Langsung: satu modul modal-driven di dalam ServiceAdvisorView
+      // Penjualan Part Langsung: satu modul modal-driven di dalam ServiceAdvisorView.
+      // 'beli-part-estimasi' = sidebar "Estimasi Baru (POS)" → langsung buka modal POS.
       if (
         activeTab === 'beli-part' ||
         activeTab === 'beli-part-transaksi' ||
         activeTab === 'sa-penjualan-part'
       ) {
         return <ServiceAdvisorView initialTab="penjualan-part" />;
+      }
+      if (activeTab === 'beli-part-estimasi') {
+        return <ServiceAdvisorView initialTab="penjualan-part-pos" />;
       }
       return <ServiceAdvisorView initialTab="spk-list" />;
     }
