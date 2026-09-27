@@ -15,6 +15,7 @@ import {
   Calendar,
   Building2,
   PlusCircle,
+  PackagePlus,
   LogOut,
   UserCheck,
   MoreHorizontal,
@@ -67,6 +68,7 @@ export const MobileBottomNav: React.FC = () => {
           ],
           more: [
             { id: 'beli-part', label: 'Penjualan Part', icon: Package },
+            { id: 'sa-permintaan-part', label: 'Permintaan Part', icon: PackagePlus },
           ],
         };
 

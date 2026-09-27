@@ -24,6 +24,7 @@ import {
   Percent,
   Printer,
   PackageCheck,
+  PackagePlus,
   CheckCircle2
 } from 'lucide-react';
 import { PeranUser } from '../../types';
@@ -190,6 +191,7 @@ export const Sidebar: React.FC = () => {
       roles: ['SA'],
       defaultTab: 'beli-part-transaksi',
       children: [
+        { id: 'sa-permintaan-part', label: 'Permintaan Part', icon: PackagePlus },
         { id: 'beli-part-transaksi', label: 'Daftar Transaksi', icon: FileText },
         { id: 'beli-part-estimasi', label: 'Estimasi Baru (POS)', icon: PlusCircle },
       ],
@@ -229,7 +231,6 @@ export const Sidebar: React.FC = () => {
       defaultTab: 'beli-part-transaksi',
       children: [
         { id: 'beli-part-transaksi', label: 'Daftar Transaksi', icon: FileText },
-        { id: 'beli-part-estimasi', label: 'Estimasi & POS Baru', icon: PlusCircle },
         { id: 'beli-part-picking', label: 'Warehouse Picking', icon: PackageCheck },
       ],
     },
@@ -246,8 +247,6 @@ export const Sidebar: React.FC = () => {
       defaultTab: 'beli-part-transaksi',
       children: [
         { id: 'beli-part-transaksi', label: 'Daftar Transaksi', icon: FileText },
-        { id: 'beli-part-estimasi', label: 'Estimasi & POS Baru', icon: PlusCircle },
-        { id: 'beli-part-picking', label: 'Warehouse Picking', icon: PackageCheck },
       ],
     },
 
@@ -264,7 +263,6 @@ export const Sidebar: React.FC = () => {
       defaultTab: 'beli-part-transaksi',
       children: [
         { id: 'beli-part-transaksi', label: 'Daftar Transaksi', icon: FileText },
-        { id: 'beli-part-estimasi', label: 'Estimasi & POS Baru', icon: PlusCircle },
         { id: 'beli-part-picking', label: 'Warehouse Picking', icon: PackageCheck },
       ],
     },
@@ -309,6 +307,7 @@ export const Sidebar: React.FC = () => {
     if (tabId === 'sa-baru' && (activeTab === 'sa-penerimaan' || activeTab === 'sa-baru')) return true;
     if (tabId === 'sa-kotak-merah' && (activeTab === 'sa-kotak-merah' || (currentRole === 'SA' && activeTab === 'purchasing'))) return true;
     if (tabId === 'beli-part-transaksi' && (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi')) return true;
+    if (tabId === 'sa-permintaan-part' && activeTab === 'sa-permintaan-part') return true;
     if (tabId === 'foreman-tugas' && (activeTab === 'foreman' || activeTab === 'foreman-tugas')) return true;
     if (tabId === 'admin-users' && (activeTab === 'admin-panel' || activeTab === 'admin-users')) return true;
     if (tabId === 'admin-settings' && activeTab === 'pengaturan') return true;

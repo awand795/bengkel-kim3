@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
@@ -37,7 +37,7 @@ import {
  */
 export const KunjunganModuleView: React.FC = () => {
   const queryClient = useQueryClient();
-  const { authUser, currentUser } = useAppStore();
+  const { authUser, currentUser, kunjunganPendingId, setKunjunganPendingId, setApprovalModalOpen } = useAppStore();
   const [subTab, setSubTab] = useState<'masuk' | 'riwayat'>('masuk');
   const [rejecting, setRejecting] = useState<AntrianKunjungan | null>(null);
   const [catatanTolak, setCatatanTolak] = useState('');
@@ -81,6 +81,23 @@ export const KunjunganModuleView: React.FC = () => {
     (a) => isKunjunganMurni(a) && a.status_konfirmasi_pic === 'Diterima' &&
       !(a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar)
   ).length;
+
+  // Deep-link approval realtime (konsumsi sekali): buka modal detail item tertuju.
+  useEffect(() => {
+    if (kunjunganPendingId == null) return;
+    if (antrianList === undefined) return; // tunggu data termuat
+    const target = kunjunganMasuk.find((a) => a.id === kunjunganPendingId);
+    if (target) {
+      setSubTab('masuk');
+      setSelected(target);
+    }
+    setKunjunganPendingId(null);
+  }, [kunjunganPendingId, antrianList, kunjunganMasuk, setKunjunganPendingId]);
+
+  // Kunci antre popup global selama modal (auto/manual) terbuka.
+  useEffect(() => {
+    setApprovalModalOpen(!!selected || !!rejecting);
+  }, [selected, rejecting, setApprovalModalOpen]);
   const jumlahDitolak = (antrianList || []).filter(
     (a) => isKunjunganMurni(a) && a.status_konfirmasi_pic === 'Ditolak'
   ).length;

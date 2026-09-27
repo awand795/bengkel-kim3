@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { realtimeHub, RealtimeEvent } from '../../services/realtimeService';
 import { toast } from '../common/Toast';
+import { ConfirmModal } from '../common/ConfirmModal';
 import { Notifikasi } from '../../types';
 
 // Helper to format ISO or SQL timestamp to Indonesian relative or friendly string
@@ -49,9 +50,10 @@ function formatNotificationTime(dateStr?: string | null): string {
 
 export const NotificationDropdown: React.FC = () => {
   const queryClient = useQueryClient();
-  const { currentRole, authUser, setActiveTab } = useAppStore();
+  const { currentRole, authUser, setActiveTab, setFleetPendingPartId } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
+  const [deleteTarget, setDeleteTarget] = useState<Notifikasi | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 1. Fetch Real Database Notifications via API
@@ -162,8 +164,15 @@ export const NotificationDropdown: React.FC = () => {
     if (item.link_tab) {
       // Role-safe navigation: Customer Fleet can NEVER be routed to internal staff menus!
       if (currentRole === 'Customer Fleet') {
-        const safeTab = item.link_tab.startsWith('fleet-') ? item.link_tab : 'fleet-status';
-        setActiveTab(safeTab);
+        // Deep-link approval part: fleet-history:part:<id> → modul + modal langsung.
+        const partLink = /^fleet-history:part:(\d+)$/.exec(item.link_tab);
+        if (partLink) {
+          setActiveTab('fleet-history');
+          setFleetPendingPartId(Number(partLink[1]));
+        } else {
+          const safeTab = item.link_tab.startsWith('fleet-') ? item.link_tab : 'fleet-status';
+          setActiveTab(safeTab);
+        }
       } else if (currentRole === 'Security') {
         const safeTab = item.link_tab.startsWith('security-') ? item.link_tab : 'security-dashboard';
         setActiveTab(safeTab);
@@ -403,9 +412,8 @@ export const NotificationDropdown: React.FC = () => {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`Hapus notifikasi "${item.title}"?`)) {
-                            deleteMutation.mutate(item.id);
-                          }
+                          setIsOpen(false);
+                          setDeleteTarget(item);
                         }}
                         className="min-w-[36px] min-h-[36px] p-2 rounded-full text-ink-subtle hover:text-status-red hover:bg-status-red-bg active:bg-status-red-bg transition-all"
                         title="Hapus notifikasi ini"
@@ -460,6 +468,23 @@ export const NotificationDropdown: React.FC = () => {
           </div>
 
         </div>
+      )}
+
+      {/* Konfirmasi hapus notifikasi (pengganti window.confirm) */}
+      {deleteTarget && (
+        <ConfirmModal
+          title="Hapus Notifikasi?"
+          message={`"${deleteTarget.title}" akan dihapus permanen dari daftar Anda.`}
+          confirmLabel="Ya, Hapus"
+          tone="red"
+          isPending={deleteMutation.isPending}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => {
+            deleteMutation.mutate(deleteTarget.id, {
+              onSuccess: () => setDeleteTarget(null),
+            });
+          }}
+        />
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoic
 import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { ModalPortal } from '../components/common/ModalPortal';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { toast } from '../components/common/Toast';
 import { usePpnRate } from '../hooks/usePpnRate';
 import { 
@@ -51,7 +52,7 @@ interface CartItem {
 
 export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'picking' }> = ({ initialTab = 'transaksi' }) => {
   const queryClient = useQueryClient();
-  const { currentUser, navTick, activeTab: storeActiveTab } = useAppStore();
+  const { currentUser, currentRole, navTick, activeTab: storeActiveTab } = useAppStore();
   const [activeTab, setActiveTab] = useState<'transaksi' | 'estimasi' | 'picking'>(initialTab);
 
   useEffect(() => {
@@ -73,6 +74,10 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
   const [partSearchQuery, setPartSearchQuery] = useState('');
   const [showKatalogModal, setShowKatalogModal] = useState(false);
   const [pickingStep, setPickingStep] = useState<null | 'picking' | 'serah'>(null);
+  // Lokasi rak diinput Warehouse saat konfirmasi picking (sesuai alur Excel)
+  const [lokasiRakPicking, setLokasiRakPicking] = useState('');
+  // Peringatan non-blokir serah-terima (pengganti window.confirm)
+  const [showSerahWarning, setShowSerahWarning] = useState(false);
   const [metodeBayarKasir, setMetodeBayarKasir] = useState<'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC'>('Cash');
 
   // Modals for Printing
@@ -85,12 +90,15 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
     nama_customer: '',
     no_polisi: '',
     no_telepon: '',
-    lokasi_rak: '',
-    catatan: '',
   });
 
   // Cart State
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Gerbang aksi per role (alur Excel): bayar/invoice = Kasir,
+  // input rak + serah barang = Warehouse. Super Admin lolos semua.
+  const bolehBayarKasir = currentRole === 'Admin Invoice' || currentRole === 'Super Admin';
+  const bolehKelolaGudang = currentRole === 'Warehouse' || currentRole === 'Super Admin';
 
   // Form Penyerahan Barang State
   const [fotoPenyerahan, setFotoPenyerahan] = useState('');
@@ -192,29 +200,33 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
           no_polisi: formCustomer.no_polisi.toUpperCase().trim(),
           no_telepon: formCustomer.no_telepon,
           no_picking_request: prPick,
-          status_transaksi: 'Picking Warehouse',
+          status_transaksi: 'Menunggu Approval',
           subtotal: subtotal,
           ppn_11: ppn11,
           total_biaya: grandTotal,
-          lokasi_rak: formCustomer.lokasi_rak,
-          catatan: formCustomer.catatan,
+          lokasi_rak: undefined,
+          catatan: undefined,
         }),
         estNo,
         prPick,
       };
     },
-    onSuccess: ({ estNo, prPick }) => {
+    onSuccess: async ({ res }) => {
       queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
-      // Notif ke Warehouse (langkah yang sebelumnya bisu): picking request baru masuk.
-      realtimeHub.publish({
+      // Belum ke Warehouse: menunggu persetujuan pelanggan (portal / dicatat SA).
+      // Notif PART_REQUESTED ke Warehouse dikirim saat estimasi disetujui.
+      // ID baris terbuat → deep-link klik notif (modul + modal langsung).
+      const rowBaru = (res as any)?.data?.[0] ?? (res as any)?.data ?? res;
+      const idBaru = rowBaru?.id != null ? Number(rowBaru.id) : null;
+      await publishKeCustomer({
         type: 'PART_REQUESTED',
-        targetRoles: ['Warehouse', 'SA'],
-        title: 'Picking Request Baru',
-        message: `Estimasi ${estNo} (${formCustomer.no_polisi || '-'} - ${formCustomer.nama_customer || 'Pelanggan Walk-In'}) menunggu picking gudang (${prPick}).`,
-        linkTab: 'beli-part-picking',
-        urgency: 'urgent',
+        title: 'Estimasi Pembelian Part Menunggu Persetujuan',
+        message: `Estimasi pembelian part untuk ${formCustomer.no_polisi.toUpperCase().trim()} (${formCustomer.nama_customer || 'Pelanggan Walk-In'}) menunggu persetujuan Anda di portal.`,
+        linkTab: idBaru != null ? `fleet-history:part:${idBaru}` : 'fleet-history',
+        urgency: 'warning',
+        noPolisi: formCustomer.no_polisi.toUpperCase().trim(),
       });
-      toast.success('Transaksi Estimasi Beli Part berhasil dibuat & diteruskan ke Warehouse Picking!');
+      toast.success('Transaksi Estimasi Beli Part tersimpan — menunggu persetujuan pelanggan.');
       setActiveTab('transaksi');
     },
     onError: (err: any) => toast.error('Gagal membuat transaksi: ' + (err?.message || 'Coba lagi.')),
@@ -377,6 +389,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       return api.updateBeliPartStatus({
         id: trx.id,
         status_transaksi: 'Barang Siap Diambil',
+        lokasi_rak: lokasiRakPicking.trim() || undefined,
       });
     },
     onSuccess: (_res, trx) => {
@@ -388,7 +401,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
         type: 'PART_READY',
         targetRoles: ['SA', 'Admin Invoice'],
         title: 'Barang Siap Diambil (Picking Selesai)',
-        message: `Gudang telah selesai picking untuk transaksi ${trx.no_transaksi} (${trx.no_polisi} - ${trx.nama_customer}). Barang siap diambil SA di gudang.`,
+        message: `Gudang telah selesai picking untuk transaksi ${trx.no_transaksi} (${trx.no_polisi} - ${trx.nama_customer}). Barang siap diambil SA di gudang${lokasiRakPicking.trim() ? ` (Rak: ${lokasiRakPicking.trim()})` : ''}.`,
         linkTab: 'beli-part',
         urgency: 'success',
       });
@@ -707,7 +720,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                     )}
                   </div>
 
-                  {activeTransaksi.status_transaksi !== 'Selesai' ? (
+                  {activeTransaksi.status_transaksi !== 'Selesai' && bolehBayarKasir ? (
                     <div className="space-y-2.5">
                       <div>
                         <label className="block text-[11px] font-bold text-ink-muted mb-1">Pilih Metode Pembayaran:</label>
@@ -741,6 +754,10 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                       <p className="text-[10px] text-ink-subtle text-center">
                         Tagihan otomatis masuk ke rekap keuangan di menu Kasir &amp; Faktur.
                       </p>
+                    </div>
+                  ) : activeTransaksi.status_transaksi !== 'Selesai' ? (
+                    <div className="p-2.5 bg-surface rounded-md border border-border text-ink-subtle text-[11px] text-center">
+                      Menunggu pembayaran &amp; invoice dari Kasir.
                     </div>
                   ) : (
                     <div className="p-2.5 bg-status-green-bg rounded-md border border-status-green/30 text-status-green text-xs flex items-center gap-2">
@@ -890,28 +907,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Lokasi Rak Pengambilan (Opsional)</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Rak A-02, Rak B-01"
-                    value={formCustomer.lokasi_rak}
-                    onChange={(e) => setFormCustomer({ ...formCustomer, lokasi_rak: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Catatan (Opsional)</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Pembelian langsung tanpa servis"
-                    value={formCustomer.catatan}
-                    onChange={(e) => setFormCustomer({ ...formCustomer, catatan: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
-                  />
-                </div>
-              </div>
+              {/* Lokasi rak & catatan bebas ditiadakan di form estimasi:
+                  rak diinput Warehouse saat picking. */}
             </div>
 
             {/* Cart Box (Barang yang Dipilih) */}
@@ -1150,23 +1147,30 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
-                disabled={pickingSiapMutation.isPending || !activeTransaksi || activeTransaksi.status_transaksi !== 'Picking Warehouse'}
-                onClick={() => setPickingStep('picking')}
+                disabled={pickingSiapMutation.isPending || !activeTransaksi || !bolehKelolaGudang || !['Picking Warehouse', 'Estimasi Disetujui'].includes(activeTransaksi.status_transaksi)}
+                onClick={() => { setLokasiRakPicking(activeTransaksi?.lokasi_rak || ''); setPickingStep('picking'); }}
                 className="py-3 px-4 bg-status-amber hover:bg-status-amber/90 disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-md shadow-status-amber/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                title={bolehKelolaGudang ? 'Konfirmasi picking gudang' : 'Khusus Warehouse'}
               >
                 <PackageCheck className="w-4 h-4" />
                 1. PROSES PICKING
               </button>
               <button
                 type="button"
-                disabled={serahkanBarangMutation.isPending || !activeTransaksi}
+                disabled={serahkanBarangMutation.isPending || !activeTransaksi || !bolehKelolaGudang}
                 onClick={() => setPickingStep('serah')}
                 className="py-3 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-md shadow-accent/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                title={bolehKelolaGudang ? 'Serahkan barang ke customer' : 'Khusus Warehouse'}
               >
                 <Check className="w-4 h-4" />
                 2. SERAHKAN BARANG
               </button>
             </div>
+            {!bolehKelolaGudang && (
+              <p className="text-[11px] text-ink-subtle text-center">
+                Picking &amp; penyerahan barang khusus peran Warehouse.
+              </p>
+            )}
           </div>
       {pickingStep === 'picking' && activeTransaksi && (
         <ModalPortal onClose={() => setPickingStep(null)}>
@@ -1203,12 +1207,16 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 </div>
               </div>
 
-              {/* Rincian Rak Gudang */}
+              {/* Rincian Rak Gudang — diinput Warehouse saat konfirmasi (alur Excel) */}
               <div>
                 <span className="font-bold text-ink-muted block mb-1.5">Lokasi Rak Pengambilan:</span>
-                <div className="p-3 bg-status-amber-bg rounded-md border border-status-amber/30 font-mono font-bold text-status-amber">
-                  {activeTransaksi?.lokasi_rak || 'Rak Utama Bengkel'}
-                </div>
+                <input
+                  type="text"
+                  value={lokasiRakPicking}
+                  onChange={(e) => setLokasiRakPicking(e.target.value)}
+                  placeholder={activeTransaksi?.lokasi_rak || 'Rak Utama Bengkel'}
+                  className="w-full px-3 py-2 rounded-md border border-status-amber/40 bg-status-amber-bg/40 font-mono font-bold text-xs text-ink focus:ring-2 focus:ring-accent focus:outline-none"
+                />
               </div>
 
               {/* Detail Barang */}
@@ -1224,14 +1232,14 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
 
               <button
                 type="button"
-                disabled={pickingSiapMutation.isPending || !activeTransaksi || activeTransaksi.status_transaksi !== 'Picking Warehouse'}
+                disabled={pickingSiapMutation.isPending || !activeTransaksi || !['Picking Warehouse', 'Estimasi Disetujui'].includes(activeTransaksi.status_transaksi)}
                 onClick={() => {
                   if (!activeTransaksi) {
                     toast.warning('Pilih transaksi dari daftar di menu Daftar Transaksi terlebih dahulu.');
                     return;
                   }
-                  if (activeTransaksi.status_transaksi !== 'Picking Warehouse') {
-                    toast.warning(`Transaksi ini berstatus "${activeTransaksi.status_transaksi}" — hanya "Picking Warehouse" yang bisa dikonfirmasi.`);
+                  if (!['Picking Warehouse', 'Estimasi Disetujui'].includes(activeTransaksi.status_transaksi)) {
+                    toast.warning(`Transaksi ini berstatus "${activeTransaksi.status_transaksi}" — hanya estimasi yang sudah disetujui yang bisa dikonfirmasi.`);
                     return;
                   }
                   pickingSiapMutation.mutate(activeTransaksi);
@@ -1322,12 +1330,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                   // Peringatan non-blokir: serah-terima idealnya setelah lunas + ada foto.
                   const belumLunas = activeTransaksi.status_transaksi !== 'Selesai';
                   const tanpaFoto = !fotoPenyerahan;
-                  if ((belumLunas || tanpaFoto) && !window.confirm(
-                    `Perhatian sebelum serah-terima ${activeTransaksi.no_transaksi}:\n` +
-                    (belumLunas ? `• Status "${activeTransaksi.status_transaksi}" (belum lunas di Kasir)\n` : '') +
-                    (tanpaFoto ? '• Foto penyerahan belum diunggah\n' : '') +
-                    'Lanjutkan serah-terima?'
-                  )) {
+                  if (belumLunas || tanpaFoto) {
+                    setShowSerahWarning(true);
                     return;
                   }
                   serahkanBarangMutation.mutate(activeTransaksi);
@@ -1442,6 +1446,29 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
         <PrintMemoKeluarModal
           memo={printMemoModal}
           onClose={() => setPrintMemoModal(null)}
+        />
+      )}
+
+      {/* Peringatan non-blokir serah-terima (pengganti window.confirm) */}
+      {showSerahWarning && activeTransaksi && (
+        <ConfirmModal
+          title={`Perhatian sebelum serah-terima ${activeTransaksi.no_transaksi}`}
+          message={[
+            ...(activeTransaksi.status_transaksi !== 'Selesai'
+              ? [`Status "${activeTransaksi.status_transaksi}" (belum lunas di Kasir)`]
+              : []),
+            ...(!fotoPenyerahan ? ['Foto penyerahan belum diunggah'] : []),
+            'Lanjutkan serah-terima?',
+          ]}
+          confirmLabel="Tetap Serahkan"
+          cancelLabel="Periksa Dulu"
+          tone="amber"
+          isPending={serahkanBarangMutation.isPending}
+          onClose={() => setShowSerahWarning(false)}
+          onConfirm={() => {
+            setShowSerahWarning(false);
+            if (activeTransaksi) serahkanBarangMutation.mutate(activeTransaksi);
+          }}
         />
       )}
 

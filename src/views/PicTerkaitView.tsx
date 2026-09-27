@@ -31,7 +31,7 @@ type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Sudah Keluar';
 
 export const PicTerkaitView: React.FC = () => {
   const queryClient = useQueryClient();
-  const { authUser, currentRole, currentUser } = useAppStore();
+  const { authUser, currentRole, currentUser, kunjunganPendingId, setKunjunganPendingId, setApprovalModalOpen } = useAppStore();
   const [subTab, setSubTab] = useState<'masuk' | 'riwayat'>('masuk');
   const [rejecting, setRejecting] = useState<AntrianKunjungan | null>(null);
   const [catatanTolak, setCatatanTolak] = useState('');
@@ -78,6 +78,23 @@ export const PicTerkaitView: React.FC = () => {
   const kunjunganMasuk = allKunjungan.filter(
     (a) => a.status_kunjungan === 'Check In' && (!a.status_konfirmasi_pic || a.status_konfirmasi_pic === 'Menunggu Konfirmasi')
   );
+
+  // Deep-link approval realtime (konsumsi sekali): buka modal detail item tertuju.
+  useEffect(() => {
+    if (kunjunganPendingId == null) return;
+    if (antrianList === undefined) return; // tunggu data termuat
+    const target = kunjunganMasuk.find((a) => a.id === kunjunganPendingId);
+    if (target) {
+      setSubTab('masuk');
+      setSelected(target);
+    }
+    setKunjunganPendingId(null);
+  }, [kunjunganPendingId, antrianList, kunjunganMasuk, setKunjunganPendingId]);
+
+  // Kunci antre popup global selama modal (auto/manual) terbuka.
+  useEffect(() => {
+    setApprovalModalOpen(!!selected || !!rejecting);
+  }, [selected, rejecting, setApprovalModalOpen]);
 
   // Riwayat kunjungan: yang sudah dikonfirmasi (Diterima / Ditolak) atau sudah keluar/selesai
   const kunjunganRiwayat = allKunjungan.filter(

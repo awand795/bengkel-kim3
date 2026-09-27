@@ -20,6 +20,7 @@ import { PicTerkaitView } from './views/PicTerkaitView';
 import { KunjunganModuleView } from './views/KunjunganModuleView';
 import { AdminPanelView } from './views/AdminPanelView';
 import { ToastContainer } from './components/common/Toast';
+import { ApprovalAutoPopup } from './components/common/ApprovalAutoPopup';
 
 export const App: React.FC = () => {
   const {
@@ -111,6 +112,7 @@ export const App: React.FC = () => {
     if (currentRole === 'SA') {
       if (activeTab === 'sa-penerimaan' || activeTab === 'sa-baru') return <ServiceAdvisorView initialTab="penerimaan" />;
       if (activeTab === 'sa' || activeTab === 'sa-list') return <ServiceAdvisorView initialTab="spk-list" />;
+      if (activeTab === 'sa-permintaan-part') return <ServiceAdvisorView initialTab="permintaan-part" />;
       if (activeTab === 'dashboard') return <DashboardView />;
       // Sidebar SA Kotak Merah (PR) + notif link_tab 'purchasing' / 'sa-kotak-merah':
       if (activeTab === 'purchasing' || activeTab === 'sa-kotak-merah') return <ServiceAdvisorView initialTab="estimasi-pr" />;
@@ -291,6 +293,9 @@ export const App: React.FC = () => {
 
       {/* Global Toast Notification System */}
       <ToastContainer />
+
+      {/* Watcher approval realtime → modal otomatis di modul mana pun */}
+      <ApprovalAutoPopup />
     </div>
   );
 };

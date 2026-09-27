@@ -46,6 +46,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'sa-baru': { title: 'Buat SPK Baru', subtitle: 'Service Advisor' },
   'sa-penerimaan': { title: 'Buat SPK Baru', subtitle: 'Service Advisor' },
   'sa-kotak-merah': { title: 'Kotak Merah (PR Part)', subtitle: 'Service Advisor' },
+  'sa-permintaan-part': { title: 'Permintaan Part', subtitle: 'Service Advisor' },
   'foreman': { title: 'Foreman (QC & Penugasan)', subtitle: 'Workshop Control' },
   'foreman-tugas': { title: 'Tugas Mekanik & SPK', subtitle: 'Foreman' },
   'foreman-cek': { title: 'Input Hasil Cek Mekanik', subtitle: 'Foreman' },

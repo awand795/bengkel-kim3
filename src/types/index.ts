@@ -332,6 +332,7 @@ export interface TransaksiBeliPart {
     | 'Draft'
     | 'Menunggu Approval'
     | 'Estimasi Disetujui'
+    | 'Ditolak'
     | 'Picking Warehouse'
     | 'Barang Siap Diambil'
     | 'Barang Diserahkan'

@@ -457,7 +457,7 @@ export const api = {
     const res = await apiClient.post('/kim3/beli-part-buat', data);
     return res.data;
   },
-  updateBeliPartStatus: async (data: { id: number; status_transaksi?: string; foto_penyerahan?: string; catatan?: string }): Promise<any> => {
+  updateBeliPartStatus: async (data: { id: number; status_transaksi?: string; foto_penyerahan?: string; catatan?: string; lokasi_rak?: string }): Promise<any> => {
     const res = await apiClient.post('/kim3/beli-part-status', data);
     return res.data;
   },

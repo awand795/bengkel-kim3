@@ -34,6 +34,8 @@ import { usePpnRate } from '../hooks/usePpnRate';import {
   CheckCircle2,
   CheckCheck,
   Truck,
+  PackagePlus,
+  PackageCheck,
   Building2,
   Phone,
   User
@@ -45,10 +47,10 @@ import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar } from '../types';
 
-export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part' | 'penjualan-part-pos' }> = ({ initialTab = 'spk-list' }) => {
+export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part' | 'penjualan-part-pos' | 'permintaan-part' }> = ({ initialTab = 'spk-list' }) => {
   const queryClient = useQueryClient();
   const { currentUser, saPendingAntrianId, setSaPendingAntrianId, navTick, activeTab: storeActiveTab } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part'>(
+  const [activeTab, setActiveTab] = useState<'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part' | 'permintaan-part'>(
     initialTab === 'penjualan-part-pos' ? 'penjualan-part' : initialTab
   );
 
@@ -66,6 +68,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     if (storeActiveTab === 'sa-penerimaan' || storeActiveTab === 'sa-baru') setActiveTab('penerimaan');
     else if (storeActiveTab === 'purchasing' || storeActiveTab === 'sa-kotak-merah') setActiveTab('estimasi-pr');
     else if (storeActiveTab === 'sa' || storeActiveTab === 'sa-list') setActiveTab('spk-list');
+    else if (storeActiveTab === 'sa-permintaan-part') setActiveTab('permintaan-part');
     else if (storeActiveTab === 'beli-part' || storeActiveTab === 'beli-part-transaksi' || storeActiveTab === 'sa-penjualan-part') setActiveTab('penjualan-part');
     else if (storeActiveTab === 'beli-part-estimasi') {
       // Menu sidebar "Estimasi Baru (POS)": buka langsung modal POS.
@@ -211,7 +214,6 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     nama_customer: '',
     no_polisi: '',
     no_telepon: '',
-    lokasi_rak: '',
     catatan: '',
   });
 
@@ -232,7 +234,6 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       nama_customer: '',
       no_polisi: '',
       no_telepon: '',
-      lokasi_rak: '',
       catatan: '',
     });
     setPosCart([]);
@@ -470,6 +471,25 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
   const posTotalPages = Math.ceil(posFilteredTransaksi.length / posLimit) || 1;
   const posPaginated = posFilteredTransaksi.slice((posPage - 1) * posLimit, posPage * posLimit);
   const posAktifCount = (beliPartList || []).filter((t) => t.status_transaksi !== 'Selesai').length;
+
+  // ═══ Modul Permintaan Part: antrian gerbang tujuan "Beli Part" yang belum
+  // ═══ punya transaksi → daftar kartu, klik "Proses" → modal POS terisi. ═══
+  const antrianSudahDiproses = new Set(
+    (beliPartList || []).map((t) => t.id_antrian).filter((n): n is number => n != null)
+  );
+  const permintaanPartPending = antrianBeliPart.filter((a) => !antrianSudahDiproses.has(a.id));
+
+  const prosesPermintaanPart = (a: (typeof permintaanPartPending)[number]) => {
+    resetPosForm();
+    setPosCustomer({
+      id_antrian: a.id,
+      nama_customer: a.nama_customer || '',
+      no_polisi: a.no_polisi || '',
+      no_telepon: a.no_hp_customer || '',
+      catatan: '',
+    });
+    setShowPosModal(true);
+  };
 
   // Data fresh untuk modal detail (refleksi status terbaru dari server)
   const posActive = showPartDetailModal
@@ -838,7 +858,9 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
   // MUTATIONS PENJUALAN PART LANGSUNG (SA)
   // ════════════════════════════════════════════════════════════════════════
 
-  // 1. Buat transaksi estimasi POS baru → langsung 'Picking Warehouse' (server)
+  // 1. Buat transaksi estimasi POS baru → 'Menunggu Approval' (server).
+  // Alur Excel: estimasi menunggu persetujuan pelanggan (dicatat SA) dulu,
+  // baru diteruskan ke Warehouse Picking saat disetujui.
   const posBuatMutation = useMutation({
     mutationFn: async () => {
       if (posPpnRate === null || posPpn === null || posGrandTotal === null) {
@@ -853,8 +875,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       const catatanLengkap = [
         `Rincian pesanan (${posCart.length} item):`,
         ...rincian,
-        posCustomer.lokasi_rak ? `Lokasi rak: ${posCustomer.lokasi_rak}` : '',
-        posCustomer.catatan ? `Catatan: ${posCustomer.catatan}` : '',
+        posCustomer.catatan ? `Pesan SA untuk gudang: ${posCustomer.catatan}` : '',
       ].filter(Boolean).join('\n');
 
       return api.buatBeliPart({
@@ -864,167 +885,74 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         no_polisi: posCustomer.no_polisi.toUpperCase().trim(),
         no_telepon: posCustomer.no_telepon,
         no_picking_request: prPick,
-        status_transaksi: 'Picking Warehouse',
+        status_transaksi: 'Menunggu Approval',
         subtotal: posSubtotal,
         ppn_11: posPpn,
         total_biaya: posGrandTotal,
-        lokasi_rak: posCustomer.lokasi_rak,
+        lokasi_rak: undefined,
         catatan: catatanLengkap,
       });
     },
-    onSuccess: () => {
+    onSuccess: async (resData: any) => {
       queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
-      realtimeHub.publish({
+      // ID baris terbuat → deep-link klik notif (modul + modal langsung).
+      const rowBaru = resData?.data?.[0] ?? resData?.data ?? resData;
+      const idBaru = rowBaru?.id != null ? Number(rowBaru.id) : null;
+
+      // Notifikasi ke pelanggan pemilik plat SAJA (klik → fleet-history → Setujui/Tolak).
+      // Walk-in tanpa akun terdaftar → false, tetap jalur persetujuan verbal via SA.
+      const nopolBaru = posCustomer.no_polisi.toUpperCase().trim();
+      const namaBaru = posCustomer.nama_customer || 'Pelanggan Walk-In';
+      await publishKeCustomer({
         type: 'PART_REQUESTED',
-        targetRoles: ['Warehouse', 'SA'],
-        title: 'Picking Request Part Baru',
-        message: `Estimasi penjualan part ${posCustomer.no_polisi || posCustomer.nama_customer} (${posCart.length} item) menunggu picking gudang.`,
-        linkTab: 'beli-part-picking',
-        urgency: 'info',
+        title: 'Estimasi Pembelian Part Menunggu Persetujuan',
+        message: `Estimasi pembelian part untuk ${nopolBaru} (${namaBaru}) menunggu persetujuan Anda di portal.`,
+        linkTab: idBaru != null ? `fleet-history:part:${idBaru}` : 'fleet-history',
+        urgency: 'warning',
+        noPolisi: nopolBaru,
       });
 
-      toast.success('Estimasi penjualan part berhasil dibuat & diteruskan ke Warehouse Picking!');
+      // Belum ke Warehouse: menunggu persetujuan pelanggan (portal / dicatat SA di Daftar Transaksi).
+      toast.success('Estimasi tersimpan — menunggu persetujuan pelanggan sebelum diteruskan ke gudang.');
       setShowPosModal(false);
       resetPosForm();
     },
     onError: (err: any) => toast.error('Gagal membuat transaksi: ' + getApiErrorMessage(err)),
   });
 
-  // 2. Selesaikan pembayaran kasir & terbitkan invoice resmi (Paid)
-  const posBayarMutation = useMutation({
-    mutationFn: async ({ item, metode }: { item: TransaksiBeliPart; metode: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC' }) => {
-      const now = new Date();
-      const invNo = `INV-PART-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(1000 + Math.random() * 9000))}`;
-      const sub = Number(item.subtotal ?? 0);
-      const ppnStored = item.ppn_11 != null ? Number(item.ppn_11) : null;
-      const ppn = ppnStored ?? (posPpnRate !== null ? Math.round(sub * (posPpnRate / 100)) : null);
-      if (ppn === null) {
-        throw new Error('Tarif PPN belum diatur — hubungi Super Admin untuk mengisi Pengaturan Sistem.');
-      }
-      const grand = Number(item.total_biaya ?? (sub + ppn));
-
-      // 1. Terbitkan invoice resmi (Paid langsung — pembayaran sah saat ini)
-      await api.buatInvoice({
-        no_invoice: invNo,
-        id_transaksi_beli_part: item.id,
-        no_polisi: item.no_polisi,
-        nama_customer: item.nama_customer,
-        tanggal_invoice: now.toISOString(),
-        subtotal: sub,
-        ppn_nominal: ppn,
-        diskon: 0,
-        grand_total: grand,
-        metode_pembayaran: metode,
-        status_pembayaran: 'Paid',
-        kasir_pic: currentUser || 'Kasir',
-      });
-
-      // 2. Tandai transaksi lunas
-      await api.updateBeliPartStatus({ id: item.id, status_transaksi: 'Selesai' });
-
-      return { invNo, item, grand };
-    },
-    onSuccess: async ({ invNo, item, grand }) => {
-      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
-      queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
-
-      realtimeHub.publish({
-        type: 'INVOICE_PAID',
-        targetRoles: ['Admin Invoice', 'SA'],
-        title: 'Pembayaran Part Lunas',
-        message: `Faktur ${invNo} untuk pembelian part ${item.no_polisi} (${item.nama_customer}) telah lunas dan masuk rekap kasir.`,
-        linkTab: 'kasir',
-        urgency: 'success',
-      });
-
-      // Struk thermal otomatis terbuka setelah bayar
-      const invoiceObj: InvoicePembayaran = {
+  // 1b. SA mencatat persetujuan pelanggan → 'Estimasi Disetujui' + teruskan ke Warehouse.
+  const posSetujuiMutation = useMutation({
+    mutationFn: async (item: TransaksiBeliPart) => {
+      if (!item) throw new Error('Pilih transaksi yang akan disetujui terlebih dahulu.');
+      return api.updateBeliPartStatus({
         id: item.id,
-        no_invoice: invNo,
-        no_polisi: item.no_polisi,
-        nama_customer: item.nama_customer,
-        tanggal_invoice: new Date().toISOString(),
-        subtotal: Number(item.subtotal ?? 0),
-        ppn_nominal: Number(item.ppn_11 ?? 0),
-        diskon: 0,
-        grand_total: grand,
-        metode_pembayaran: posMetodeBayar,
-        status_pembayaran: 'Paid',
-        kasir_pic: currentUser || 'Kasir',
-      };
-      setPrintThermalInvoice(invoiceObj);
-
-      toast.success(`Pembayaran berhasil dicatat! Invoice resmi ${invNo} (Rp ${grand.toLocaleString('id-ID')}) telah diterbitkan.`);
-    },
-    onError: (err: any) => toast.error('Gagal memproses invoice kasir: ' + getApiErrorMessage(err)),
-  });
-
-  // 3. Serahkan barang ke customer & terbitkan Memo Keluar (security)
-  const posSerahkanMutation = useMutation({
-    mutationFn: async (trx: TransaksiBeliPart) => {
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const seq = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0');
-      const memoNo = `MK-${yy}${mm}${dd}-${seq}`;
-
-      // 1. Terbitkan Memo Keluar resmi
-      await api.buatMemoKeluar({
-        no_memo: memoNo,
-        id_antrian: trx.id_antrian,
-        id_transaksi_beli_part: trx.id,
-        no_polisi: trx.no_polisi,
-        jenis_armada: 'Truk / Mobil',
-        nama_customer: trx.nama_customer,
-        tujuan_kedatangan: 'Beli Part',
-        waktu_keluar: now.toISOString(),
-        status: 'Selesai',
-        catatan: `Barang suku cadang telah diserahkan dan lunas. ${trx.catatan || ''}`.trim(),
-        petugas_security: 'Pos Gerbang KIM 3',
+        status_transaksi: 'Estimasi Disetujui',
       });
-
-      // 2. Checkout antrian security (bila terhubung antrian gerbang)
-      if (trx.id_antrian) {
-        await api.checkOutSecurity({
-          id: trx.id_antrian,
-          barang_dibawa_keluar: true,
-          detail_barang_keluar: `Sparepart pembelian langsung (${trx.no_transaksi})`,
-          no_memo_keluar: memoNo,
-        });
-      }
-
-      // 3. Update status transaksi
-      await api.updateBeliPartStatus({
-        id: trx.id,
-        status_transaksi: 'Barang Diserahkan',
-        catatan: trx.catatan || 'Barang telah diserahkan ke customer.',
-      });
-
-      return { memoNo, trx };
     },
-    onSuccess: async ({ memoNo, trx }) => {
+    onSuccess: (_res, item) => {
       queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
-      queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
-      queryClient.invalidateQueries({ queryKey: ['memo-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
+      // Baru sekarang Warehouse diberi tahu (khusus Warehouse, tanpa SA).
       realtimeHub.publish({
-        type: 'VEHICLE_CHECKED_OUT',
-        targetRoles: ['Security', 'SA'],
-        title: 'Memo Keluar Part Terbit',
-        message: `Barang untuk ${trx.no_polisi} telah diserahkan. Memo Keluar ${memoNo} otomatis dikirim ke Pos Security.`,
-        linkTab: 'security-memo',
-        urgency: 'success',
+        type: 'PART_REQUESTED',
+        targetRoles: ['Warehouse'],
+        title: 'Picking Request Part Baru',
+        message: `Estimasi ${item.no_transaksi} (${item.no_polisi} - ${item.nama_customer}) telah disetujui, menunggu picking gudang.`,
+        linkTab: 'beli-part-picking',
+        urgency: 'info',
       });
 
-      toast.success(`Barang resmi diserahkan ke Customer! Memo Keluar ${memoNo} telah dikirim ke Pos Security.`);
+      toast.success('Estimasi disetujui & diteruskan ke Warehouse Picking!');
     },
-    onError: (err: any) => toast.error('Gagal memproses penyerahan barang: ' + getApiErrorMessage(err)),
+    onError: (err: any) => toast.error('Gagal menyetujui estimasi: ' + getApiErrorMessage(err)),
   });
+
+  // 2. (Dihapus — pembayaran/invoice khusus Kasir di Daftar Transaksi.)
+
+  // 3. (Dihapus — penyerahan barang khusus Warehouse di tab Picking.)
 
   // Derived statistics and filtering for SA — WAJIB data asli API (spk-list).
   // Alur status: pengerjaan → QC Passed → FIR Closed (SA, auto-invoice, belum bayar)
@@ -1962,6 +1890,94 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         </div>
       )}
 
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* MODUL: PERMINTAAN PART — daftar pelanggan gerbang → proses ke POS   */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'permintaan-part' && (
+        <div className="space-y-4">
+          {/* Header ringkas: judul + jumlah menunggu + tombol POS manual */}
+          <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
+                <PackagePlus className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-black text-ink">Permintaan Part Baru</h2>
+                <p className="text-xs text-ink-muted">
+                  Daftar pelanggan check-in gerbang bertujuan &quot;Beli Part&quot; — pilih satu, isi barang langsung dari POS
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { resetPosForm(); setShowPosModal(true); }}
+              className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-md font-bold text-xs shadow-md shadow-accent/20 flex items-center justify-center gap-2 transition-all shrink-0"
+            >
+              <PlusCircle className="w-4 h-4" />
+              POS Tanpa Antrian
+            </button>
+          </div>
+
+          {/* Daftar menunggu diproses */}
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-black text-ink">Menunggu Diproses</h3>
+                <p className="text-[11px] text-ink-muted">
+                  {permintaanPartPending.length} pelanggan • transaksi otomatis hilang dari daftar setelah diproses
+                </p>
+              </div>
+              {antrianFetching && (
+                <span className="text-[11px] text-ink-subtle flex items-center gap-1.5">
+                  <Clock className="w-3 h-3 animate-spin" /> sinkron...
+                </span>
+              )}
+            </div>
+
+            {permintaanPartPending.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {permintaanPartPending.map((a) => (
+                  <div
+                    key={a.id}
+                    className="border border-status-amber/40 bg-status-amber-bg/30 rounded-md p-4 space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-black text-sm text-ink">{a.no_polisi}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-status-amber text-white">
+                        {a.status_kunjungan}
+                      </span>
+                    </div>
+                    <div className="text-xs text-ink-muted">
+                      {a.nama_customer || 'Pelanggan'}{a.no_hp_customer ? ` • ${a.no_hp_customer}` : ''}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-ink-subtle">
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      Masuk: {a.waktu_masuk ? new Date(a.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'} WIB
+                    </div>
+                    {a.keperluan && (
+                      <p className="text-[11px] text-ink-subtle">&quot;{a.keperluan}&quot;</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => prosesPermintaanPart(a)}
+                      className="w-full px-3 py-2 bg-accent hover:bg-accent-hover text-white rounded-md font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-accent/20"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" /> Proses — Input Barang
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center text-ink-subtle text-xs space-y-1.5">
+                <PackageCheck className="w-8 h-8 mx-auto opacity-40" />
+                <p>Tidak ada permintaan menunggu.</p>
+                <p className="text-[11px]">Pelanggan check-in di gerbang bertujuan &quot;Beli Part&quot; muncul otomatis di sini (refresh tiap 8 detik).</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {/* MODAL POS BARU: ESTIMASI PENJUALAN PART LANGSUNG                  */}
@@ -2057,27 +2073,16 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold text-ink-muted mb-1">Lokasi Rak (Opsional)</label>
-                        <input
-                          type="text"
-                          placeholder="Rak A-02"
-                          value={posCustomer.lokasi_rak}
-                          onChange={(e) => setPosCustomer({ ...posCustomer, lokasi_rak: e.target.value })}
-                          className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-ink-muted mb-1">Catatan (Opsional)</label>
-                        <input
-                          type="text"
-                          placeholder="Pembelian langsung tanpa servis"
-                          value={posCustomer.catatan}
-                          onChange={(e) => setPosCustomer({ ...posCustomer, catatan: e.target.value })}
-                          className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
-                        />
-                      </div>
+                    {/* Pesan SA untuk Warehouse (dibaca di modal Picking) */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-ink-muted mb-1">Catatan untuk Gudang (Opsional)</label>
+                      <input
+                        type="text"
+                        placeholder="Pesan untuk warehouse…"
+                        value={posCustomer.catatan}
+                        onChange={(e) => setPosCustomer({ ...posCustomer, catatan: e.target.value })}
+                        className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                      />
                     </div>
                   </div>
 
@@ -2245,51 +2250,36 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 <div className="flex justify-between text-sm font-black pt-2 border-t border-border"><span>Total:</span><span className="font-mono text-status-green">Rp {Number(posActive.total_biaya || 0).toLocaleString('id-ID')}</span></div>
               </div>
 
-              {/* SEMUA AKSI ALUR DI SATU MODAL INI */}
+              {/* SEMUA AKSI SA DI SATU MODAL INI (bayar = Kasir, serah = Warehouse) */}
               <div className="space-y-2.5">
-                {/* 1. Pembayaran kasir (sebelum lunas) */}
-                {posActive.status_transaksi !== 'Selesai' && posActive.status_transaksi !== 'Barang Diserahkan' && (
-                  <div className="p-3.5 rounded-md border border-border bg-surface space-y-2.5">
+                {/* 0. Persetujuan pelanggan (dicatat SA) — gerbang sebelum gudang & kasir */}
+                {posActive.status_transaksi === 'Menunggu Approval' && (
+                  <div className="p-3.5 rounded-md border border-status-amber/40 bg-status-amber-bg/40 space-y-2.5">
                     <span className="text-[11px] font-bold text-ink flex items-center gap-1.5">
-                      <Receipt className="w-3.5 h-3.5 text-status-green" /> Pembayaran Kasir
+                      <CheckCircle className="w-3.5 h-3.5 text-status-amber" /> Persetujuan Pelanggan
                     </span>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {(['Cash', 'Transfer Bank', 'QRIS', 'EDC'] as const).map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => setPosMetodeBayar(m)}
-                          className={`py-1.5 px-2 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
-                            posMetodeBayar === m ? 'border-accent bg-accent-subtle text-accent' : 'bg-surface-raised text-ink-muted border-border'
-                          }`}
-                        >
-                          {m}
-                        </button>
-                      ))}
-                    </div>
+                    <p className="text-[11px] text-ink-muted">
+                      Estimasi ini belum disetujui. Minta konfirmasi pelanggan (lisan/di counter),
+                      lalu klik Setujui untuk meneruskan ke Warehouse Picking.
+                    </p>
                     <button
                       type="button"
-                      disabled={posBayarMutation.isPending}
-                      onClick={() => posBayarMutation.mutate({ item: posActive, metode: posMetodeBayar })}
+                      disabled={posSetujuiMutation.isPending}
+                      onClick={() => posSetujuiMutation.mutate(posActive)}
                       className="w-full py-2.5 bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2"
                     >
-                      <CheckCircle2 className="w-4 h-4" />
-                      {posBayarMutation.isPending ? 'Menerbitkan Invoice...' : 'BAYAR & TERBITKAN INVOICE'}
+                      <Check className="w-4 h-4" />
+                      {posSetujuiMutation.isPending ? 'Menyetujui...' : 'SETUJUI ESTIMASI'}
                     </button>
                   </div>
                 )}
 
-                {/* 2. Penyerahan barang (setelah lunas) */}
-                {posActive.status_transaksi === 'Selesai' && (
-                  <button
-                    type="button"
-                    disabled={posSerahkanMutation.isPending}
-                    onClick={() => posSerahkanMutation.mutate(posActive)}
-                    className="w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-2"
-                  >
-                    <Truck className="w-4 h-4" />
-                    {posSerahkanMutation.isPending ? 'Menerbitkan Memo Keluar...' : 'SERAHKAN BARANG & TERBITKAN MEMO KELUAR'}
-                  </button>
+                {/* 1. Pembayaran & penyerahan di sini ditiadakan:
+                    bayar = Kasir (Daftar Transaksi), serah = Warehouse (Picking). */}
+                {posActive.status_transaksi !== 'Menunggu Approval' && posActive.status_transaksi !== 'Barang Diserahkan' && (
+                  <div className="p-2.5 bg-surface rounded-md border border-border text-ink-subtle text-[11px] flex items-center gap-2">
+                    <CheckCheck className="w-4 h-4 shrink-0" /> Tahap berikut (picking gudang → bayar kasir → serah barang) diproses peran terkait.
+                  </div>
                 )}
 
                 {posActive.status_transaksi === 'Barang Diserahkan' && (

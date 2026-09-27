@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { ModalPortal } from '../components/common/ModalPortal';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { toast } from '../components/common/Toast';
 
 const ALL_ROLES: PeranUser[] = [
@@ -91,6 +92,7 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
   // Modal State: Reset Password
   const [isResetPwdOpen, setIsResetPwdOpen] = useState(false);
   const [resetPwdUser, setResetPwdUser] = useState<Pengguna | null>(null);
+  const [toggleTarget, setToggleTarget] = useState<Pengguna | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -458,11 +460,7 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
                           {/* Toggle Status Aktif */}
                           <button
                             type="button"
-                            onClick={() => {
-                              if (window.confirm(`Ubah status pengguna ${u.nama_lengkap} menjadi ${u.status_aktif ? 'Nonaktif' : 'Aktif'}?`)) {
-                                toggleStatusMutation.mutate({ id: u.id, status_aktif: !u.status_aktif });
-                              }
-                            }}
+                            onClick={() => setToggleTarget(u)}
                             className={`p-1.5 rounded-md border transition-colors cursor-pointer ${
                               u.status_aktif 
                                 ? 'border-status-red/30 text-status-red hover:bg-status-red/10' 
@@ -1257,6 +1255,24 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
           </div>
         </div>
         </ModalPortal>
+      )}
+
+      {/* Konfirmasi ubah status pengguna (pengganti window.confirm) */}
+      {toggleTarget && (
+        <ConfirmModal
+          title={toggleTarget.status_aktif ? 'Nonaktifkan Pengguna?' : 'Aktifkan Pengguna?'}
+          message={`Ubah status pengguna ${toggleTarget.nama_lengkap} menjadi ${toggleTarget.status_aktif ? 'Nonaktif' : 'Aktif'}?`}
+          confirmLabel={toggleTarget.status_aktif ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan'}
+          tone={toggleTarget.status_aktif ? 'red' : 'green'}
+          isPending={toggleStatusMutation.isPending}
+          onClose={() => setToggleTarget(null)}
+          onConfirm={() => {
+            toggleStatusMutation.mutate(
+              { id: toggleTarget.id, status_aktif: !toggleTarget.status_aktif },
+              { onSuccess: () => setToggleTarget(null) }
+            );
+          }}
+        />
       )}
     </div>
   );

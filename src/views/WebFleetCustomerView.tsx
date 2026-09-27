@@ -9,6 +9,7 @@ import { useAppStore } from '../store/useAppStore';
 import { usePpnRate } from '../hooks/usePpnRate';
 import { realtimeHub } from '../services/realtimeService';
 import { ModalPortal } from '../components/common/ModalPortal';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { toast } from '../components/common/Toast';
 import { TimePickerInput } from '../components/common/TimePickerInput';
@@ -885,7 +886,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
 
 export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ initialMenu }) => {
   const queryClient = useQueryClient();
-  const { setActiveTab, currentUser, authUser } = useAppStore();
+  const { setActiveTab, currentUser, authUser, fleetPendingPartId, setFleetPendingPartId, fleetPendingSpkId, setFleetPendingSpkId, setApprovalModalOpen } = useAppStore();
   const [fleetMenu, setFleetMenu] = useState<'dashboard' | 'booking' | 'status' | 'history' | 'kendaraan' | 'dokumen' | 'profil'>(
     initialMenu || 'dashboard'
   );
@@ -1123,6 +1124,44 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const kunjunganRows = myKunjunganList.slice((kunjunganPage - 1) * KUNJ_LIMIT, kunjunganPage * KUNJ_LIMIT);
   const beliPartRows = myBeliPartList.slice((partPage - 1) * PART_LIMIT, partPage * PART_LIMIT);
 
+  // Deep-link approval realtime (konsumsi sekali): pindah ke menu history dulu
+  // (id dipertahankan), lalu buka modal/halaman approval saat menu settle.
+  React.useEffect(() => {
+    if (fleetPendingPartId == null) return;
+    if (fleetMenu !== 'history') {
+      setFleetMenu('history');
+      return;
+    }
+    if (beliPartList === undefined) return; // tunggu data termuat
+    const target = myBeliPartList.find((t) => t.id === fleetPendingPartId);
+    if (target) {
+      setHistoryTab('part');
+      setPartPage(1);
+      setBeliPartDetail(target);
+    }
+    setFleetPendingPartId(null);
+  }, [fleetPendingPartId, fleetMenu, beliPartList, myBeliPartList, setFleetMenu, setHistoryTab, setPartPage, setBeliPartDetail, setFleetPendingPartId]);
+
+  React.useEffect(() => {
+    if (fleetPendingSpkId == null) return;
+    if (fleetMenu !== 'history') {
+      setFleetMenu('history');
+      return;
+    }
+    if (spkList === undefined) return; // tunggu data termuat
+    const target = mySpkList.find((s) => s.id === fleetPendingSpkId);
+    if (target) {
+      setHistoryTab('service');
+      setHistoryDetail(target);
+    }
+    setFleetPendingSpkId(null);
+  }, [fleetPendingSpkId, fleetMenu, spkList, mySpkList, setFleetMenu, setHistoryTab, setHistoryDetail, setFleetPendingSpkId]);
+
+  // Kunci antre popup global selama detail approval (auto/manual) terbuka.
+  React.useEffect(() => {
+    setApprovalModalOpen(!!beliPartDetail || !!historyDetail);
+  }, [beliPartDetail, historyDetail, setApprovalModalOpen]);
+
   // Kalau jumlah data menyusut (mis. filter pencarian aktif) sampai halaman aktif
   // melewati halaman terakhir, tarik kembali ke halaman terakhir yang valid.
   React.useEffect(() => {
@@ -1208,6 +1247,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       toast.error('Gagal Membatalkan', err?.message || 'Coba beberapa saat lagi.'),
   });
 
+  // Target konfirmasi pembatalan booking (pengganti window.confirm)
+  const [cancelBookingTarget, setCancelBookingTarget] = useState<BookingService | null>(null);
+
   // Tombol Batalkan Booking (dipakai di Dashboard & seksi Booking Saya).
   // Terkunci bila aturan H-10 menit / status tidak memungkinkan.
   const BookingCancelButton = ({ b, compact = false }: { b: BookingService; compact?: boolean }) => {
@@ -1224,11 +1266,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         type="button"
         disabled={!st.allowed || batalkanBookingMutation.isPending}
         title={st.allowed ? 'Batalkan booking ini' : st.reason}
-        onClick={() => {
-          if (window.confirm(`Batalkan booking ${b.no_booking} (${b.no_polisi}) jadwal ${b.tanggal_booking} ${b.jam_booking}?`)) {
-            batalkanBookingMutation.mutate(b.id);
-          }
-        }}
+        onClick={() => setCancelBookingTarget(b)}
         className={`${compact ? 'px-2 py-1 text-[10px]' : 'px-2.5 py-1.5 text-[11px]'} rounded-md font-bold transition-all ${
           st.allowed
             ? 'bg-status-red-bg text-status-red hover:bg-status-red hover:text-white border border-status-red/30'
@@ -1322,6 +1360,47 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     },
     onError: (err: any) =>
       toast.error('Gagal Mengirim Keputusan', err?.message || 'Coba beberapa saat lagi.'),
+  });
+
+  // Keputusan estimasi pembelian part (portal customer): Setujui → terus ke
+  // Warehouse Picking; Tolak → 'Ditolak' agar SA merevisi & membuat ulang.
+  const approvalPartMutation = useMutation({
+    mutationFn: async (payload: { setuju: boolean; trx: TransaksiBeliPart }) => {
+      const { setuju, trx } = payload;
+      if (!trx) throw new Error('Tidak ada transaksi part.');
+      return api.updateBeliPartStatus({
+        id: trx.id,
+        status_transaksi: setuju ? 'Estimasi Disetujui' : 'Ditolak',
+      });
+    },
+    onSuccess: (_res, { setuju, trx }) => {
+      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
+      if (setuju) {
+        realtimeHub.publish({
+          type: 'PART_REQUESTED',
+          targetRoles: ['Warehouse'],
+          title: 'Picking Request Part Baru',
+          message: `Estimasi ${trx?.no_transaksi} (${trx?.no_polisi} - ${trx?.nama_customer}) telah disetujui customer, menunggu picking gudang.`,
+          linkTab: 'beli-part-picking',
+          urgency: 'info',
+        });
+        toast.success('Estimasi Disetujui', 'Pesanan diteruskan ke gudang untuk picking.');
+        setBeliPartDetail(null);
+      } else {
+        realtimeHub.publish({
+          type: 'PART_REQUESTED',
+          targetRoles: ['SA'],
+          title: 'Estimasi Part Ditolak Customer',
+          message: `Estimasi ${trx?.no_transaksi} (${trx?.no_polisi} - ${trx?.nama_customer}) ditolak. Mohon revisi & buat ulang.`,
+          linkTab: 'beli-part',
+          urgency: 'warning',
+        });
+        toast.info('Estimasi Ditolak', 'Bengkel akan merevisi estimasi dan mengirim ulang.');
+        setBeliPartDetail(null);
+      }
+    },
+    onError: (err: any) =>
+      toast.error('Gagal Mengirim Keputusan', err?.message || getApiErrorMessage(err)),
   });
 
   // Booking Mutation
@@ -2898,6 +2977,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {/* TAB: Riwayat Beli Part Langsung (terhubung per plat) */}
           {historyTab === 'part' && (
             <>
+              {myBeliPartList.some((t) => t.status_transaksi === 'Menunggu Approval') && (
+                <div className="mb-3 rounded-md border-2 border-status-amber/50 bg-status-amber-bg/40 p-3.5 flex items-start gap-2.5 text-xs">
+                  <AlertCircle className="w-5 h-5 text-status-amber shrink-0" />
+                  <div>
+                    <p className="font-black text-ink">Ada estimasi pembelian part menunggu persetujuan Anda.</p>
+                    <p className="text-ink-muted text-[11px] mt-0.5">Klik baris transaksi di bawah, lalu Setujui / Tolak di detailnya.</p>
+                  </div>
+                </div>
+              )}
               {beliPartRows.length > 0 ? (
                 <>
                   <div className="hidden md:block overflow-x-auto">
@@ -3103,15 +3191,45 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 ) : (
                   <p className="text-[11px] text-ink-subtle">Tidak ada foto penyerahan.</p>
                 )}
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setBeliPartDetail(null)}
-                    className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
-                  >
-                    Tutup
-                  </button>
-                </div>
+                {/* Keputusan customer: hanya saat estimasi menunggu persetujuan */}
+                {beliPartDetail.status_transaksi === 'Menunggu Approval' ? (
+                  <div className="rounded-md border-2 border-status-amber/50 bg-status-amber-bg/40 p-4 space-y-2.5">
+                    <p className="text-[11px] font-bold text-ink flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4 text-status-amber" /> Estimasi ini menunggu persetujuan Anda
+                    </p>
+                    <p className="text-[11px] text-ink-muted">
+                      Setujui untuk meneruskan pesanan ke gudang, atau Tolak bila angka/jenis barang tidak sesuai.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        type="button"
+                        disabled={approvalPartMutation.isPending}
+                        onClick={() => approvalPartMutation.mutate({ setuju: true, trx: beliPartDetail })}
+                        className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> {approvalPartMutation.isPending ? 'Mengirim...' : 'Setujui Estimasi'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={approvalPartMutation.isPending}
+                        onClick={() => approvalPartMutation.mutate({ setuju: false, trx: beliPartDetail })}
+                        className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-md shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <XCircle className="w-4 h-4" /> Tolak
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setBeliPartDetail(null)}
+                      className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -3543,6 +3661,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
         </div>
         </ModalPortal>
+      )}
+
+      {/* Konfirmasi batalkan booking (pengganti window.confirm) */}
+      {cancelBookingTarget && (
+        <ConfirmModal
+          title="Batalkan Booking?"
+          message={`Batalkan booking ${cancelBookingTarget.no_booking} (${cancelBookingTarget.no_polisi}) jadwal ${cancelBookingTarget.tanggal_booking} ${cancelBookingTarget.jam_booking}?`}
+          confirmLabel="Ya, Batalkan"
+          tone="red"
+          isPending={batalkanBookingMutation.isPending}
+          onClose={() => setCancelBookingTarget(null)}
+          onConfirm={() => {
+            batalkanBookingMutation.mutate(cancelBookingTarget.id, {
+              onSuccess: () => setCancelBookingTarget(null),
+            });
+          }}
+        />
       )}
 
     </div>
