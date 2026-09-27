@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
+import { isTanggalHariIni } from '../utils/tanggal';
 
 type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Sudah Keluar';
 
@@ -89,7 +90,7 @@ export const PicTerkaitView: React.FC = () => {
   );
 
   // Metrics for 4 Top Stat Cards
-  const totalTamuHariIni = allKunjungan.length;
+  const totalTamuHariIni = allKunjungan.filter((k) => isTanggalHariIni(k.waktu_masuk)).length;
   const menungguKonfirmasiCount = kunjunganMasuk.length;
   const tamuDiAreaBengkelCount = allKunjungan.filter(
     (a) =>

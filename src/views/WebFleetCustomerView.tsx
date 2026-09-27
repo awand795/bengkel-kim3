@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, normalizePlat, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart } from '../types';
+import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart, AntrianKunjungan, TransaksiBeliPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { useAppStore } from '../store/useAppStore';
@@ -902,6 +902,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     setHistoryDetail(null);
     setPreviewInvoice(null);
     setShowPrintInvoice(false);
+    setKunjunganDetail(null);
+    setBeliPartDetail(null);
+    setHistoryTab('service');
+    setKunjunganPage(1);
+    setPartPage(1);
   }, [fleetMenu]);
 
   // Booking Wizard Step (image5.png Mockup 1)
@@ -1020,6 +1025,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     placeholderData: (prev) => prev,
   });
 
+  // Riwayat kunjungan & beli part (plate-linked, tampil setelah plat didaftarkan)
+  const { data: kunjunganList, isFetching: kunjunganFetching } = useQuery({
+    queryKey: ['antrian-list'],
+    queryFn: api.getAntrian,
+    refetchInterval: 15000,
+  });
+  const { data: beliPartList, isFetching: beliPartFetching } = useQuery({
+    queryKey: ['beli-part-list'],
+    queryFn: api.getBeliPartList,
+    refetchInterval: 15000,
+  });
+  const [historyTab, setHistoryTab] = useState<'service' | 'kunjungan' | 'part'>('service');
+  const [kunjunganPage, setKunjunganPage] = useState(1);
+  const [partPage, setPartPage] = useState(1);
+  const [kunjunganDetail, setKunjunganDetail] = useState<AntrianKunjungan | null>(null);
+  const [beliPartDetail, setBeliPartDetail] = useState<TransaksiBeliPart | null>(null);
+
   // Multi-tenant Customer Scoping:
   // Pelanggan ID & Nama Perusahaan dari sesi login akun mitra aktif
   const myPelangganId = authUser?.id_pelanggan || null;
@@ -1067,6 +1089,39 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // agar data mitra lain tidak pernah ikut tampil.
   const armadaRows = (armadaPageData?.rows || []).filter((k) => isMyKendaraan(k));
   const historyRows = (historyPageData?.rows || []).filter((s) => isMySpk(s));
+
+  // Riwayat kunjungan & beli part berbasis plat (primary key):
+  // walk-in tampil otomatis setelah plat didaftarkan sebagai armada.
+  const normPlat = (s?: string) => (s || '').toUpperCase().replace(/\s+/g, '');
+  const isMyKunjungan = (a: AntrianKunjungan) => {
+    if (a.no_polisi && myPlateSet.has(normPlat(a.no_polisi))) return true;
+    if (myCompanyName && a.nama_customer && a.nama_customer.toLowerCase().trim() === myCompanyName) return true;
+    return false;
+  };
+  const isMyBeliPart = (t: TransaksiBeliPart) => {
+    if (t.no_polisi && myPlateSet.has(normPlat(t.no_polisi))) return true;
+    if (myCompanyName && t.nama_customer && t.nama_customer.toLowerCase().trim() === myCompanyName) return true;
+    return false;
+  };
+  const matchHistSearch = (hay: Array<string | number | undefined | null>) => {
+    const q = historyQuery.trim().toLowerCase();
+    if (!q) return true;
+    return hay.some((v) => String(v ?? '').toLowerCase().includes(q));
+  };
+  const myKunjunganList = (kunjunganList || [])
+    .filter((a) => isMyKunjungan(a))
+    .filter((a) => matchHistSearch([a.no_tiket, a.no_polisi, a.nama_customer, a.tujuan_kedatangan, a.status_kunjungan]))
+    .sort((a, b) => String(b.waktu_masuk || '').localeCompare(String(a.waktu_masuk || '')));
+  const myBeliPartList = (beliPartList || [])
+    .filter((t) => isMyBeliPart(t))
+    .filter((t) => matchHistSearch([t.no_transaksi, t.no_polisi, t.nama_customer, t.status_transaksi]))
+    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  const KUNJ_LIMIT = 10;
+  const PART_LIMIT = 10;
+  const kunjunganTotalPages = Math.max(1, Math.ceil(myKunjunganList.length / KUNJ_LIMIT));
+  const partTotalPages = Math.max(1, Math.ceil(myBeliPartList.length / PART_LIMIT));
+  const kunjunganRows = myKunjunganList.slice((kunjunganPage - 1) * KUNJ_LIMIT, kunjunganPage * KUNJ_LIMIT);
+  const beliPartRows = myBeliPartList.slice((partPage - 1) * PART_LIMIT, partPage * PART_LIMIT);
 
   // Kalau jumlah data menyusut (mis. filter pencarian aktif) sampai halaman aktif
   // melewati halaman terakhir, tarik kembali ke halaman terakhir yang valid.
@@ -2508,10 +2563,39 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {fleetMenu === 'history' && !historyDetail && (
         <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
           <div className="border-b border-border pb-3 mb-4">
-            <h2 className="text-base font-bold text-ink">Riwayat Service Armada (History)</h2>
-            <p className="text-xs text-ink-muted">Histori lengkap pengerjaan service dan penggantian part armada Anda</p>
+            <h2 className="text-base font-bold text-ink">Riwayat Armada (History)</h2>
+            <p className="text-xs text-ink-muted">Service, kunjungan gerbang, dan pembelian part — terhubung otomatis per plat nomor</p>
           </div>
 
+          {/* Sub-tab riwayat */}
+          <div className="flex gap-2 mb-4 overflow-x-auto">
+            {([
+              { id: 'service', label: 'Service', count: historyPageData?.pagination?.total_records ?? historyRows.length },
+              { id: 'kunjungan', label: 'Kunjungan', count: myKunjunganList.length },
+              { id: 'part', label: 'Beli Part', count: myBeliPartList.length },
+            ] as const).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setHistoryTab(t.id)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-bold transition-colors shrink-0 ${
+                  historyTab === t.id
+                    ? 'bg-accent text-white shadow-xs'
+                    : 'bg-surface text-ink-muted hover:text-ink border border-border'
+                }`}
+              >
+                {t.label}
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                  historyTab === t.id ? 'bg-white/20 text-white' : 'bg-surface-raised text-ink-subtle border border-border'
+                }`}>
+                  {t.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {historyTab === 'service' && (
+          <>
           {/* Pencarian riwayat (server-side lewat parameter `q`) */}
           <div className="relative mb-4">
             <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -2717,8 +2801,321 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
           )}
+          </>
+          )}
+
+          {/* TAB: Riwayat Kunjungan Gerbang (terhubung per plat) */}
+          {historyTab === 'kunjungan' && (
+            <>
+              {kunjunganRows.length > 0 ? (
+                <>
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-surface text-ink-muted border-y border-border">
+                        <tr>
+                          <th className="py-2.5 px-3 font-semibold">No. Tiket</th>
+                          <th className="py-2.5 px-3 font-semibold">Kendaraan</th>
+                          <th className="py-2.5 px-3 font-semibold">Tujuan</th>
+                          <th className="py-2.5 px-3 font-semibold">Masuk</th>
+                          <th className="py-2.5 px-3 font-semibold">Keluar</th>
+                          <th className="py-2.5 px-3 font-semibold">Status</th>
+                          <th className="py-2.5 px-3 font-semibold text-center">Detail</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {kunjunganRows.map((a) => (
+                          <tr key={a.id} onClick={() => setKunjunganDetail(a)} className="hover:bg-surface transition-colors cursor-pointer">
+                            <td className="py-3 px-3 font-mono font-bold text-accent">{a.no_tiket}</td>
+                            <td className="py-3 px-3 font-bold text-ink">{a.no_polisi}</td>
+                            <td className="py-3 px-3 text-ink-muted">{a.tujuan_kedatangan || '-'}</td>
+                            <td className="py-3 px-3 font-mono text-ink-muted text-[11px]">
+                              {a.waktu_masuk ? new Date(a.waktu_masuk).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </td>
+                            <td className="py-3 px-3 font-mono text-ink-muted text-[11px]">
+                              {a.waktu_keluar ? new Date(a.waktu_keluar).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </td>
+                            <td className="py-3 px-3">
+                              <StatusBadge status={a.status_kunjungan} size="sm" />
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setKunjunganDetail(a);
+                                }}
+                                title={`Detail kunjungan ${a.no_tiket}`}
+                                aria-label={`Detail kunjungan ${a.no_tiket}`}
+                                className="p-2 rounded-md border border-border bg-surface-raised text-ink-muted hover:text-accent hover:border-accent/40 transition-colors inline-flex items-center gap-1.5 font-bold text-[11px]"
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span className="hidden xl:inline">Detail</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="block md:hidden space-y-2.5">
+                    {kunjunganRows.map((a) => (
+                      <div key={a.id} onClick={() => setKunjunganDetail(a)} className="rounded-md border border-border p-3.5 cursor-pointer hover:border-accent/40 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-mono text-[11px] font-bold text-accent">{a.no_tiket}</div>
+                            <div className="text-base font-black text-ink mt-0.5">{a.no_polisi}</div>
+                          </div>
+                          <StatusBadge status={a.status_kunjungan} size="sm" />
+                        </div>
+                        <div className="mt-2 text-[11px] text-ink-muted">
+                          {a.tujuan_kedatangan || '-'} • {a.waktu_masuk ? new Date(a.waktu_masuk).toLocaleDateString('id-ID') : '-'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <PaginationBar
+                    page={kunjunganPage}
+                    totalPages={kunjunganTotalPages}
+                    totalRecords={myKunjunganList.length}
+                    limit={KUNJ_LIMIT}
+                    label="kunjungan"
+                    isLoading={kunjunganFetching}
+                    onPageChange={setKunjunganPage}
+                    onLimitChange={() => setKunjunganPage(1)}
+                  />
+                </>
+              ) : (
+                <div className="p-8 text-center border-2 border-dashed border-border rounded-md bg-surface space-y-3">
+                  <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Kunjungan</h3>
+                  <p className="text-xs text-ink-muted mt-1">
+                    Kunjungan gerbang (termasuk walk-in) tampil di sini otomatis setelah plat didaftarkan sebagai armada.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* TAB: Riwayat Beli Part Langsung (terhubung per plat) */}
+          {historyTab === 'part' && (
+            <>
+              {beliPartRows.length > 0 ? (
+                <>
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-surface text-ink-muted border-y border-border">
+                        <tr>
+                          <th className="py-2.5 px-3 font-semibold">No. Transaksi</th>
+                          <th className="py-2.5 px-3 font-semibold">Kendaraan</th>
+                          <th className="py-2.5 px-3 font-semibold text-right">Total</th>
+                          <th className="py-2.5 px-3 font-semibold">Status</th>
+                          <th className="py-2.5 px-3 font-semibold">Tanggal</th>
+                          <th className="py-2.5 px-3 font-semibold text-center">Detail</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {beliPartRows.map((t) => (
+                          <tr key={t.id} onClick={() => setBeliPartDetail(t)} className="hover:bg-surface transition-colors cursor-pointer">
+                            <td className="py-3 px-3 font-mono font-bold text-accent">{t.no_transaksi}</td>
+                            <td className="py-3 px-3 font-bold text-ink">{t.no_polisi}</td>
+                            <td className="py-3 px-3 text-right font-mono font-bold text-ink">Rp {Number(t.total_biaya || 0).toLocaleString('id-ID')}</td>
+                            <td className="py-3 px-3">
+                              <StatusBadge status={t.status_transaksi} size="sm" />
+                            </td>
+                            <td className="py-3 px-3 font-mono text-ink-muted text-[11px]">
+                              {t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID') : '-'}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setBeliPartDetail(t);
+                                }}
+                                title={`Detail transaksi ${t.no_transaksi}`}
+                                aria-label={`Detail transaksi ${t.no_transaksi}`}
+                                className="p-2 rounded-md border border-border bg-surface-raised text-ink-muted hover:text-accent hover:border-accent/40 transition-colors inline-flex items-center gap-1.5 font-bold text-[11px]"
+                              >
+                                <FileText className="w-4 h-4" />
+                                <span className="hidden xl:inline">Detail</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="block md:hidden space-y-2.5">
+                    {beliPartRows.map((t) => (
+                      <div key={t.id} onClick={() => setBeliPartDetail(t)} className="rounded-md border border-border p-3.5 cursor-pointer hover:border-accent/40 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-mono text-[11px] font-bold text-accent">{t.no_transaksi}</div>
+                            <div className="text-base font-black text-ink mt-0.5">{t.no_polisi}</div>
+                          </div>
+                          <StatusBadge status={t.status_transaksi} size="sm" />
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[11px] text-ink-subtle">
+                          <span>{t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID') : '-'}</span>
+                          <span className="font-mono font-bold text-ink">Rp {Number(t.total_biaya || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <PaginationBar
+                    page={partPage}
+                    totalPages={partTotalPages}
+                    totalRecords={myBeliPartList.length}
+                    limit={PART_LIMIT}
+                    label="transaksi part"
+                    isLoading={beliPartFetching}
+                    onPageChange={setPartPage}
+                    onLimitChange={() => setPartPage(1)}
+                  />
+                </>
+              ) : (
+                <div className="p-8 text-center border-2 border-dashed border-border rounded-md bg-surface space-y-3">
+                  <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Beli Part</h3>
+                  <p className="text-xs text-ink-muted mt-1">
+                    Pembelian part langsung tampil di sini otomatis setelah plat didaftarkan sebagai armada.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
 
         </div>
+      )}
+
+      {/* MODAL: Detail Riwayat Kunjungan */}
+      {kunjunganDetail && (
+        <ModalPortal onClose={() => setKunjunganDetail(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs overflow-y-auto">
+            <div className="bg-surface-raised rounded-md border border-border shadow-2xl max-w-2xl w-full my-8 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink">Detail Kunjungan</h3>
+                    <p className="text-[11px] text-ink-muted font-mono">{kunjunganDetail.no_tiket} • {kunjunganDetail.no_polisi}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setKunjunganDetail(null)}
+                  className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
+                  aria-label="Tutup detail kunjungan"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-ink-muted">Tujuan: <span className="font-bold text-ink">{kunjunganDetail.tujuan_kedatangan || '-'}</span></span>
+                  <StatusBadge status={kunjunganDetail.status_kunjungan} size="md" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-md border border-border bg-surface p-3.5 space-y-1.5">
+                    <div className="flex justify-between"><span className="text-ink-subtle">Masuk</span><span className="font-mono font-semibold">{kunjunganDetail.waktu_masuk ? new Date(kunjunganDetail.waktu_masuk).toLocaleString('id-ID') : '-'}</span></div>
+                    <div className="flex justify-between"><span className="text-ink-subtle">Keluar</span><span className="font-mono font-semibold">{kunjunganDetail.waktu_keluar ? new Date(kunjunganDetail.waktu_keluar).toLocaleString('id-ID') : '—'}</span></div>
+                    <div className="flex justify-between"><span className="text-ink-subtle">Keperluan</span><span className="font-semibold text-right max-w-[60%]">{kunjunganDetail.keperluan || '-'}</span></div>
+                    {kunjunganDetail.no_memo_keluar && (
+                      <div className="flex justify-between"><span className="text-ink-subtle">Memo Keluar</span><span className="font-mono font-bold text-accent">{kunjunganDetail.no_memo_keluar}</span></div>
+                    )}
+                  </div>
+                  <div className="rounded-md border border-border bg-surface p-3.5 space-y-2">
+                    <span className="font-bold text-ink block">Dokumentasi Foto</span>
+                    {kunjunganDetail.foto_kendaraan_masuk && (
+                      <div>
+                        <p className="text-[11px] text-ink-subtle mb-1">Masuk</p>
+                        <img src={kunjunganDetail.foto_kendaraan_masuk} alt="Foto masuk" className="w-full max-h-40 object-cover rounded-md border border-border" />
+                      </div>
+                    )}
+                    {kunjunganDetail.foto_kendaraan_keluar && (
+                      <div>
+                        <p className="text-[11px] text-ink-subtle mb-1">Keluar</p>
+                        <img src={kunjunganDetail.foto_kendaraan_keluar} alt="Foto keluar" className="w-full max-h-40 object-cover rounded-md border border-border" />
+                      </div>
+                    )}
+                    {!kunjunganDetail.foto_kendaraan_masuk && !kunjunganDetail.foto_kendaraan_keluar && (
+                      <p className="text-[11px] text-ink-subtle">Tidak ada foto.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setKunjunganDetail(null)}
+                    className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* MODAL: Detail Riwayat Beli Part */}
+      {beliPartDetail && (
+        <ModalPortal onClose={() => setBeliPartDetail(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs overflow-y-auto">
+            <div className="bg-surface-raised rounded-md border border-border shadow-2xl max-w-2xl w-full my-8 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink">Detail Pembelian Part</h3>
+                    <p className="text-[11px] text-ink-muted font-mono">{beliPartDetail.no_transaksi} • {beliPartDetail.no_polisi}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBeliPartDetail(null)}
+                  className="p-1.5 rounded-md text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
+                  aria-label="Tutup detail pembelian"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-ink-muted">Total: <span className="font-mono font-black text-status-green">Rp {Number(beliPartDetail.total_biaya || 0).toLocaleString('id-ID')}</span></span>
+                  <StatusBadge status={beliPartDetail.status_transaksi} size="md" />
+                </div>
+                <div className="rounded-md border border-border bg-surface p-3.5 space-y-1.5">
+                  <div className="flex justify-between"><span className="text-ink-subtle">Subtotal</span><span className="font-mono font-semibold">Rp {Number(beliPartDetail.subtotal || 0).toLocaleString('id-ID')}</span></div>
+                  <div className="flex justify-between"><span className="text-ink-subtle">PPN</span><span className="font-mono font-semibold">Rp {Number(beliPartDetail.ppn_11 || 0).toLocaleString('id-ID')}</span></div>
+                  <div className="flex justify-between"><span className="text-ink-subtle">Tanggal</span><span className="font-mono font-semibold">{beliPartDetail.created_at ? new Date(beliPartDetail.created_at).toLocaleDateString('id-ID') : '-'}</span></div>
+                  {beliPartDetail.catatan && (
+                    <div className="pt-1 text-ink-muted">Catatan: <span className="text-ink">{beliPartDetail.catatan}</span></div>
+                  )}
+                </div>
+                {beliPartDetail.foto_penyerahan ? (
+                  <div>
+                    <p className="text-[11px] font-bold text-ink-muted mb-1.5">Foto Penyerahan</p>
+                    <img src={beliPartDetail.foto_penyerahan} alt="Foto penyerahan" className="w-full max-h-56 object-cover rounded-md border border-border" />
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-ink-subtle">Tidak ada foto penyerahan.</p>
+                )}
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setBeliPartDetail(null)}
+                    className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
       )}
 
       {/* MODAL: Preview Faktur & Pembayaran */}

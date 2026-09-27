@@ -284,6 +284,7 @@ export const api = {
     user_id: number | null;
     nama_lengkap: string | null;
     email: string | null;
+    no_telepon: string | null;
   }>> => {
     const plat = normalizePlat(noPolisi);
     if (!plat) return [];
@@ -545,7 +546,21 @@ export const api = {
       status_aktif: data.status_aktif !== false,
       id_pelanggan: data.id_pelanggan,
       nama_perusahaan: data.nama_perusahaan,
+      no_telepon: (data as any).no_telepon ?? null,
+      foto_profil: (data as any).foto_profil ?? null,
     };
+  },
+
+  // Profil Sendiri: simpan nama/telepon/foto (terkunci ke id JWT)
+  updateProfil: async (data: { nama_lengkap: string; no_telepon?: string; foto_profil?: string }): Promise<any> => {
+    const res = await apiClient.post('/kim3/profil-simpan', data);
+    return res.data;
+  },
+
+  // Ganti password sendiri: verifikasi dulu via login, lalu panggil ini (terkunci ke id JWT)
+  gantiPassword: async (password_baru: string): Promise<any> => {
+    const res = await apiClient.post('/kim3/auth/ganti-password', { password_baru });
+    return res.data;
   },
 
   // Admin Panel: Pengaturan Sistem (Workshop, PPN, Kop & Footer Cetak)

@@ -9,10 +9,12 @@ import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar, Antria
 import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
 import { PaginationBar } from '../components/common/PaginationBar';
+import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 import { usePpnRate } from '../hooks/usePpnRate';
 import { 
-  Package, 
+  Package,
+  PackageCheck, 
   PlusCircle, 
   Check, 
   X, 
@@ -69,6 +71,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
   const [transaksiPage, setTransaksiPage] = useState(1);
   const [transaksiLimit, setTransaksiLimit] = useState(10);
   const [partSearchQuery, setPartSearchQuery] = useState('');
+  const [showKatalogModal, setShowKatalogModal] = useState(false);
+  const [pickingStep, setPickingStep] = useState<null | 'picking' | 'serah'>(null);
   const [metodeBayarKasir, setMetodeBayarKasir] = useState<'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC'>('Cash');
 
   // Modals for Printing
@@ -180,23 +184,36 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       const estNo = `EST-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(100 + Math.random() * 900))}`;
       const prPick = `PR-${now.toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(100 + Math.random() * 900))}`;
 
-      return api.buatBeliPart({
-        no_transaksi: estNo,
-        id_antrian: formCustomer.id_antrian,
-        nama_customer: formCustomer.nama_customer || 'Pelanggan Walk-In',
-        no_polisi: formCustomer.no_polisi.toUpperCase().trim(),
-        no_telepon: formCustomer.no_telepon,
-        no_picking_request: prPick,
-        status_transaksi: 'Picking Warehouse',
-        subtotal: subtotal,
-        ppn_11: ppn11,
-        total_biaya: grandTotal,
-        lokasi_rak: formCustomer.lokasi_rak,
-        catatan: formCustomer.catatan,
-      });
+      return {
+        res: await api.buatBeliPart({
+          no_transaksi: estNo,
+          id_antrian: formCustomer.id_antrian,
+          nama_customer: formCustomer.nama_customer || 'Pelanggan Walk-In',
+          no_polisi: formCustomer.no_polisi.toUpperCase().trim(),
+          no_telepon: formCustomer.no_telepon,
+          no_picking_request: prPick,
+          status_transaksi: 'Picking Warehouse',
+          subtotal: subtotal,
+          ppn_11: ppn11,
+          total_biaya: grandTotal,
+          lokasi_rak: formCustomer.lokasi_rak,
+          catatan: formCustomer.catatan,
+        }),
+        estNo,
+        prPick,
+      };
     },
-    onSuccess: () => {
+    onSuccess: ({ estNo, prPick }) => {
       queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
+      // Notif ke Warehouse (langkah yang sebelumnya bisu): picking request baru masuk.
+      realtimeHub.publish({
+        type: 'PART_REQUESTED',
+        targetRoles: ['Warehouse', 'SA'],
+        title: 'Picking Request Baru',
+        message: `Estimasi ${estNo} (${formCustomer.no_polisi || '-'} - ${formCustomer.nama_customer || 'Pelanggan Walk-In'}) menunggu picking gudang (${prPick}).`,
+        linkTab: 'beli-part-picking',
+        urgency: 'urgent',
+      });
       toast.success('Transaksi Estimasi Beli Part berhasil dibuat & diteruskan ke Warehouse Picking!');
       setActiveTab('transaksi');
     },
@@ -347,6 +364,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       });
 
       toast.success(`Barang resmi diserahkan ke Customer! Memo Keluar ${memoNo} telah dikirim ke Pos Security.`);
+      setPickingStep(null);
       setActiveTab('transaksi');
     },
     onError: (err: any) => toast.error('Gagal memproses penyerahan barang: ' + (err?.message || 'Coba lagi.')),
@@ -376,6 +394,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       });
 
       toast.success(`Picking selesai! Barang untuk ${trx.no_transaksi} kini berstatus "Barang Siap Diambil".`);
+      // Lanjut bertahap: tutup modal picking, buka modal penyerahan.
+      setPickingStep('serah');
     },
     onError: (err: any) => toast.error('Gagal konfirmasi picking: ' + (err?.message || 'Coba lagi.')),
   });
@@ -519,10 +539,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       {/* TAB 1: DAFTAR TRANSAKSI BELI PART & DETAIL SPLIT VIEW   */}
       {/* ======================================================== */}
       {activeTab === 'transaksi' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Left Column: List Transaksi (2 Cols) */}
-          <div className="lg:col-span-2 bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-black text-ink">Daftar Transaksi Pembelian Barang</h2>
@@ -612,17 +629,32 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
             />
           </div>
 
-          {/* Right Column: Detail Transaksi Aktif & Cetak Struk */}
-          <div className="bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
+      )}
+
+      {/* MODAL: Detail Transaksi Aktif & Cetak Struk */}
+      {selectedTransaksi && (
+        <ModalPortal onClose={() => setSelectedTransaksi(null)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-surface-raised rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border my-8">
             {activeTransaksi ? (
               <div className="space-y-4 text-xs">
-                <div className="border-b border-border pb-3 flex items-center justify-between">
+                <div className="border-b border-border pb-3 flex items-center justify-between gap-3">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-accent">Detail Pembelian</span>
                     <h3 className="text-base font-black text-ink">{activeTransaksi.no_transaksi}</h3>
                     <p className="text-xs text-ink-muted font-medium">{activeTransaksi.no_polisi} • {activeTransaksi.nama_customer}</p>
                   </div>
-                  <StatusBadge status={activeTransaksi.status_transaksi} size="md" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <StatusBadge status={activeTransaksi.status_transaksi} size="md" />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTransaksi(null)}
+                      className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
+                      aria-label="Tutup detail transaksi"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Info Card */}
@@ -743,24 +775,19 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="py-12 text-center text-ink-subtle text-xs">
-                Pilih transaksi di sebelah kiri untuk melihat rincian lengkap.
-              </div>
-            )}
+            ) : null}
+            </div>
           </div>
-
-        </div>
+        </ModalPortal>
       )}
 
       {/* ======================================================== */}
       {/* TAB 2: KATALOG SPAREPART & ESTIMASI BARU (SA POS)       */}
       {/* ======================================================== */}
       {activeTab === 'estimasi' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Left Column: Form Customer & Keranjang Belanja (2 Cols) */}
-          <div className="lg:col-span-2 space-y-5">
+        <div className="max-w-3xl mx-auto space-y-5">
+          {/* Form Customer & Keranjang Belanja (single column) */}
+          <div className="space-y-5">
             
             {/* Customer & Vehicle Header Box */}
             <div className="bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs space-y-4">
@@ -899,6 +926,16 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 </span>
               </div>
 
+              <button
+                type="button"
+                onClick={() => setShowKatalogModal(true)}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-accent hover:bg-accent-hover text-white border border-accent font-bold text-xs transition-all shadow-xs"
+                title="Buka katalog sparepart"
+              >
+                <Plus className="w-4 h-4" />
+                Tambah Barang dari Katalog
+              </button>
+
               {cartItems.length > 0 ? (
                 <div className="divide-y divide-border border border-border rounded-md overflow-hidden">
                   {cartItems.map((item, idx) => (
@@ -951,7 +988,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 </div>
               ) : (
                 <div className="py-8 text-center text-ink-subtle text-xs border border-dashed border-border rounded-md">
-                  Keranjang belanja masih kosong. Pilih suku cadang dari katalog di sebelah kanan.
+                  Keranjang belanja masih kosong. Ketuk "Tambah Barang dari Katalog" untuk memilih suku cadang.
                 </div>
               )}
 
@@ -999,14 +1036,27 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
 
           </div>
 
-          {/* Right Column: Live Search Stok Sparepart (Katalog POS) */}
-          <div className="bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="border-b border-border pb-3">
-              <span className="text-[10px] uppercase font-bold text-accent">Gudang KIM 3</span>
-              <h3 className="text-base font-black text-ink">Pilih / Cari Barang</h3>
-              <p className="text-xs text-ink-muted">Katalog stok suku cadang siap kirim</p>
-            </div>
-
+          {/* MODAL: Katalog Sparepart (bottom-sheet picker) */}
+          {showKatalogModal && (
+            <ModalPortal onClose={() => setShowKatalogModal(false)}>
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
+                <div className="bg-surface-raised rounded-t-2xl sm:rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border my-0 sm:my-8 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
+                  <div className="flex items-center justify-between border-b border-border pb-3 mb-4 shrink-0">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-accent">Gudang KIM 3</span>
+                      <h3 className="text-base font-black text-ink">Pilih / Cari Barang</h3>
+                      <p className="text-xs text-ink-muted">{cartItems.length} item di keranjang • tetap terbuka untuk tambah banyak</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowKatalogModal(false)}
+                      className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors shrink-0"
+                      aria-label="Tutup katalog"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="overflow-y-auto space-y-4 pr-0.5">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-subtle" />
               <input
@@ -1050,7 +1100,11 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 </div>
               )}
             </div>
-          </div>
+                  </div>
+                </div>
+              </div>
+            </ModalPortal>
+          )}
 
         </div>
       )}
@@ -1059,20 +1113,81 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       {/* TAB 3: WAREHOUSE PICKING & PENYERAHAN BARANG (MOCKUP 3 & 4) */}
       {/* ======================================================== */}
       {activeTab === 'picking' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Card 1: Warehouse Picking Request (image2.png Mockup 3) */}
-          <div className="bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="border-b border-border pb-3 flex items-center justify-between">
+        <div className="space-y-6">
+          {/* Pemilih transaksi (mandiri — tidak bergantung tab Transaksi) */}
+          <div className="bg-surface-raised rounded-md border border-border p-4 sm:p-5 shadow-xs">
+            <label className="block text-xs font-bold text-ink-muted mb-1.5">
+              Transaksi yang diproses Warehouse:
+            </label>
+            <select
+              value={activeTransaksi?.id || ''}
+              onChange={(e) => {
+                const found = (transaksiList || []).find((t) => t.id === Number(e.target.value));
+                setSelectedTransaksi(found || null);
+              }}
+              className="w-full px-3.5 py-2.5 rounded-md border border-border text-xs font-bold bg-surface-raised text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+            >
+              <option value="">-- Pilih transaksi --</option>
+              {(transaksiList || []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.no_transaksi} — {t.no_polisi} ({t.status_transaksi})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <span className="text-[10px] uppercase font-bold text-accent">Langkah 4: Warehouse</span>
-                <h3 className="text-base font-black text-ink">Picking Request Gudang</h3>
-                <p className="text-xs text-ink-muted">Pengambilan barang sesuai rak penyimpanan</p>
+                <span className="text-[10px] uppercase font-bold text-accent">Langkah 4-6: Warehouse & Penyerahan</span>
+                <h3 className="text-base font-black text-ink">
+                  {activeTransaksi ? `${activeTransaksi.no_transaksi} • ${activeTransaksi.no_polisi}` : 'Belum ada transaksi dipilih'}
+                </h3>
+                <p className="text-xs text-ink-muted">Selesaikan satu tahap dalam modal, lalu lanjut ke tahap berikut.</p>
               </div>
-              <span className="px-2.5 py-1 rounded-md bg-status-amber-bg text-status-amber font-bold text-[11px] border border-status-amber/30">
-                {activeTransaksi?.no_picking_request || activeTransaksi?.no_transaksi || '-'}
-              </span>
+              {activeTransaksi && <StatusBadge status={activeTransaksi.status_transaksi} size="md" />}
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={pickingSiapMutation.isPending || !activeTransaksi || activeTransaksi.status_transaksi !== 'Picking Warehouse'}
+                onClick={() => setPickingStep('picking')}
+                className="py-3 px-4 bg-status-amber hover:bg-status-amber/90 disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-md shadow-status-amber/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+              >
+                <PackageCheck className="w-4 h-4" />
+                1. PROSES PICKING
+              </button>
+              <button
+                type="button"
+                disabled={serahkanBarangMutation.isPending || !activeTransaksi}
+                onClick={() => setPickingStep('serah')}
+                className="py-3 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-md shadow-accent/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+              >
+                <Check className="w-4 h-4" />
+                2. SERAHKAN BARANG
+              </button>
+            </div>
+          </div>
+      {pickingStep === 'picking' && activeTransaksi && (
+        <ModalPortal onClose={() => setPickingStep(null)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
+            <div className="bg-surface-raised rounded-t-2xl sm:rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border my-0 sm:my-8 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between border-b border-border pb-3 mb-4 shrink-0">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-accent">Langkah 4: Warehouse</span>
+                  <h3 className="text-base font-black text-ink">Picking Request Gudang</h3>
+                  <p className="text-xs text-ink-muted font-mono">{activeTransaksi.no_transaksi} • {activeTransaksi.no_polisi}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPickingStep(null)}
+                  className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors shrink-0"
+                  aria-label="Tutup"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="overflow-y-auto space-y-4 pr-0.5">
 
             <div className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2 bg-surface p-3 rounded-md border border-border">
@@ -1130,20 +1245,31 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 Konfirmasi menandai barang siap &amp; otomatis memberi tahu SA untuk mengambil barang lalu proses pembayaran kasir.
               </p>
             </div>
-          </div>
-
-          {/* Card 2: Penyerahan Barang ke Customer (image2.png Mockup 4) */}
-          <div className="bg-surface-raised rounded-md border border-border p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="border-b border-border pb-3 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-accent">Langkah 5 & 6: Service Advisor</span>
-                <h3 className="text-base font-black text-ink">Serahkan Barang ke Customer</h3>
-                <p className="text-xs text-ink-muted">Serah terima barang dan dokumentasi foto</p>
               </div>
-              <span className="px-2.5 py-1 rounded-md bg-status-green-bg text-status-green font-bold text-[11px] border border-status-green/30">
-                Siap Diambil
-              </span>
             </div>
+          </div>
+        </ModalPortal>
+      )}
+      {pickingStep === 'serah' && activeTransaksi && (
+        <ModalPortal onClose={() => setPickingStep(null)}>
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
+            <div className="bg-surface-raised rounded-t-2xl sm:rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border my-0 sm:my-8 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between border-b border-border pb-3 mb-4 shrink-0">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-accent">Langkah 5 & 6: Service Advisor</span>
+                  <h3 className="text-base font-black text-ink">Serahkan Barang ke Customer</h3>
+                  <p className="text-xs text-ink-muted font-mono">{activeTransaksi.no_transaksi} • {activeTransaksi.no_polisi}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPickingStep(null)}
+                  className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors shrink-0"
+                  aria-label="Tutup"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="overflow-y-auto space-y-4 pr-0.5">
 
             <div className="space-y-3 text-xs">
               <div className="p-3.5 bg-status-green-bg rounded-md border border-status-green/30 flex items-center gap-3">
@@ -1193,6 +1319,17 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                     toast.warning('Pilih transaksi yang akan diserahkan terlebih dahulu dari daftar transaksi.');
                     return;
                   }
+                  // Peringatan non-blokir: serah-terima idealnya setelah lunas + ada foto.
+                  const belumLunas = activeTransaksi.status_transaksi !== 'Selesai';
+                  const tanpaFoto = !fotoPenyerahan;
+                  if ((belumLunas || tanpaFoto) && !window.confirm(
+                    `Perhatian sebelum serah-terima ${activeTransaksi.no_transaksi}:\n` +
+                    (belumLunas ? `• Status "${activeTransaksi.status_transaksi}" (belum lunas di Kasir)\n` : '') +
+                    (tanpaFoto ? '• Foto penyerahan belum diunggah\n' : '') +
+                    'Lanjutkan serah-terima?'
+                  )) {
+                    return;
+                  }
                   serahkanBarangMutation.mutate(activeTransaksi);
                 }}
                 className="w-full py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-md shadow-md shadow-accent/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
@@ -1208,8 +1345,11 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 Otomatis menerbitkan Memo Keluar resmi (format MK-YYMMDD-XXXX) dan memvalidasi checkout Security di gerbang.
               </p>
             </div>
+              </div>
+            </div>
           </div>
-
+        </ModalPortal>
+      )}
         </div>
       )}
 

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
 import { PaginationBar } from '../components/common/PaginationBar';
+import { isTanggalSamaHariIni } from '../utils/tanggal';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 import { realtimeHub } from '../services/realtimeService';
@@ -176,9 +177,9 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
   // Murni hasil fetch API booking tanpa mock data
   const bookingList: BookingService[] = rawBookingList || [];
 
-  // Filter booking khusus service hari ini
+  // Filter booking khusus service yang dijadwalkan hari ini
   const todayBookings = bookingList.filter(
-    (b) => !b.tujuan_kunjungan || b.tujuan_kunjungan === 'Service'
+    (b) => (!b.tujuan_kunjungan || b.tujuan_kunjungan === 'Service') && isTanggalSamaHariIni(b.tanggal_booking)
   );
 
   // Mutations

@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { isSpkAssignedToMechanic } from '../utils/spkAccess';
+import { isTanggalHariIni } from '../utils/tanggal';
 import { 
   Truck, 
   Wrench, 
@@ -914,7 +915,7 @@ export const DashboardView: React.FC = () => {
     const spkSiapFaktur = spkList.filter((s) => s.status_spk === 'FIR Closed' || s.status_spk === 'QC Passed');
     const invoiceUnpaid = invoiceList.filter((inv) => inv.status_pembayaran === 'Unpaid');
     const totalKasHariIni = invoiceList
-      .filter((inv) => inv.status_pembayaran === 'Paid')
+      .filter((inv) => inv.status_pembayaran === 'Paid' && isTanggalHariIni(inv.tanggal_bayar))
       .reduce((sum, inv) => sum + (inv.grand_total || 0), 0);
 
     return (
@@ -1181,7 +1182,7 @@ export const DashboardView: React.FC = () => {
               <span className="text-[10px] font-bold text-status-green uppercase bg-status-green-bg px-2 py-0.5 rounded-md">Selesai</span>
             </div>
             <div className="text-2xl font-black text-ink">
-              {antrianList.filter((a) => a.tujuan_kedatangan === 'Kunjungan' && a.waktu_keluar).length}
+              {antrianList.filter((a) => a.tujuan_kedatangan === 'Kunjungan' && a.waktu_keluar && isTanggalHariIni(a.waktu_keluar)).length}
             </div>
             <div className="text-xs font-semibold text-ink-muted mt-0.5">Kunjungan Selesai Hari Ini</div>
           </div>

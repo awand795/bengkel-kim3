@@ -53,6 +53,8 @@ export interface AuthUser {
   id_pelanggan?: number | null;
   nama_perusahaan?: string | null;
   status_aktif?: boolean;
+  no_telepon?: string | null;
+  foto_profil?: string | null;
 }
 
 export interface LoginResponse {

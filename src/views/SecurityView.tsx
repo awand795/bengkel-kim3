@@ -38,6 +38,7 @@ import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
 import { usePemilikPlat } from '../hooks/usePemilikPlat';
 import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
 import { PaginationBar } from '../components/common/PaginationBar';
+import { isTanggalHariIni, isTanggalSamaHariIni, isDalamRentang, tanggalKey } from '../utils/tanggal';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 
@@ -71,10 +72,27 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
   // Global filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 10));
   const [selesaiTimeRange, setSelesaiTimeRange] = useState<'Semua' | 'Hari Ini' | 'Kemarin' | 'Minggu Ini' | 'Bulan Ini'>('Semua');
 
+  // Filter tanggal per tab ('' = semua tanggal)
+  const [bookingTanggal, setBookingTanggal] = useState('');
+  const [onProgressTanggal, setOnProgressTanggal] = useState('');
+  const [selesaiTanggal, setSelesaiTanggal] = useState('');
+  const [memoTanggal, setMemoTanggal] = useState('');
+  // Panel filter expandable per tab
+  const [showBookingFilter, setShowBookingFilter] = useState(false);
+  const [showOnProgressFilter, setShowOnProgressFilter] = useState(false);
+  const [showSelesaiFilter, setShowSelesaiFilter] = useState(false);
+  const [showMemoFilter, setShowMemoFilter] = useState(false);
+  // Filter status/tujuan per tab ('Semua' = tanpa filter)
+  const [bookingStatus, setBookingStatus] = useState('Semua');
+  const [onProgressStatus, setOnProgressStatus] = useState('Semua');
+  const [selesaiStatus, setSelesaiStatus] = useState('Semua');
+  const [memoTujuan, setMemoTujuan] = useState('Semua');
+
   // Pagination states
+  const [bookingPage, setBookingPage] = useState(1);
+  const [bookingLimit, setBookingLimit] = useState(10);
   const [onProgressPage, setOnProgressPage] = useState(1);
   const [onProgressLimit, setOnProgressLimit] = useState(10);
   const [selesaiPage, setSelesaiPage] = useState(1);
@@ -190,12 +208,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   // Admin/Security/Customer tidak bisa menerima kunjungan (sesuai aturan alur):
   // - Service     → SA (penerima & pembuat SPK)
   // - Beli Part   → SA (penerima estimasi POS) atau Warehouse (langsung ke gudang)
-  // - Kunjungan   → PIC Terkait / Foreman / Mekanik / Purchasing / Kasir / Warehouse
+  // - Kunjungan   → SA / PIC Terkait / Foreman / Mekanik / Purchasing / Kasir / Warehouse
   // - Lainnya     → semua role internal (bebas)
   const PIC_ROLE_ALLOWED: Record<string, string[]> = {
     'Service': ['SA'],
     'Beli Part': ['SA', 'Warehouse'],
-    'Kunjungan': ['PIC Terkait', 'Foreman', 'Mekanik', 'Admin Purchasing', 'Admin Invoice', 'Warehouse'],
+    'Kunjungan': ['SA', 'PIC Terkait', 'Foreman', 'Mekanik', 'Admin Purchasing', 'Admin Invoice', 'Warehouse'],
     'Lainnya': ['SA', 'Foreman', 'Mekanik', 'Admin Purchasing', 'Admin Invoice', 'Warehouse', 'PIC Terkait'],
   };
   const allowedPicRoles = PIC_ROLE_ALLOWED[formCheckin.tujuan_kedatangan] || [];
@@ -219,32 +237,59 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   const onProgressList = antrianData.filter(a => a.status_kunjungan !== 'Keluar' && a.status_kunjungan !== 'Selesai');
   const selesaiList = antrianData.filter(a => a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai');
 
+  // Metrik "Hari Ini": saring by tanggal lokal (label jujur — bukan akumulasi semua waktu).
+  const bookingHariIni = bookingList.filter((b) => isTanggalSamaHariIni(b.tanggal_booking));
+  const selesaiHariIni = selesaiList.filter((a) => isTanggalHariIni(a.waktu_keluar));
+  const checkinHariIni = antrianData.filter((a) => isTanggalHariIni(a.waktu_masuk));
+
   // Stats calculation for Screen 2 (Excel Sheet 4 Panel 2)
   const countTotalOnProgress = onProgressList.length;
   const countSedangDikerjakan = onProgressList.filter(a => a.status_kunjungan === 'Sedang Dikerjakan').length;
   const countMenungguPart = onProgressList.filter(a => a.status_kunjungan === 'Menunggu Part').length;
   const countMenungguQC = onProgressList.filter(a => a.status_kunjungan === 'Menunggu QC').length;
 
-  // Filtered queries
-  const filteredBookingList = bookingList.filter(b => 
-    b.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (b.nama_customer || b.nama_perusahaan || '').toLowerCase().includes(searchQuery.toLowerCase())
+  // Filtered queries (search + tanggal + status/tujuan per tab)
+  const filteredBookingList = bookingList.filter(b =>
+    (b.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (b.nama_customer || b.nama_perusahaan || '').toLowerCase().includes(searchQuery.toLowerCase())) &&
+    (!bookingTanggal || (b.tanggal_booking || '').slice(0, 10) === bookingTanggal) &&
+    (bookingStatus === 'Semua' || b.status === bookingStatus)
   );
 
   const filteredOnProgressList = onProgressList.filter(item =>
-    item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())) &&
+    (!onProgressTanggal || tanggalKey(item.waktu_masuk) === onProgressTanggal) &&
+    (onProgressStatus === 'Semua' || item.status_kunjungan === onProgressStatus)
   );
 
   const filteredSelesaiList = selesaiList.filter(item =>
-    item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())) &&
+    isDalamRentang(item.waktu_keluar || item.waktu_masuk, selesaiTimeRange) &&
+    (!selesaiTanggal || tanggalKey(item.waktu_keluar || item.waktu_masuk) === selesaiTanggal) &&
+    (selesaiStatus === 'Semua' || item.status_kunjungan === selesaiStatus)
   );
 
   const filteredMemoList = memoList.filter(m =>
-    m.no_memo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (m.no_memo.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (m.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (m.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase())) &&
+    (!memoTanggal || tanggalKey(m.waktu_keluar) === memoTanggal) &&
+    (memoTujuan === 'Semua' || (m.tujuan_kedatangan || '') === memoTujuan)
+  );
+
+  // Opsi distinct untuk select filter (dari data)
+  const bookingStatusOptions = ['Semua', ...Array.from(new Set(bookingList.map((b) => b.status).filter(Boolean)))];
+  const onProgressStatusOptions = ['Semua', ...Array.from(new Set(onProgressList.map((a) => a.status_kunjungan).filter(Boolean)))];
+  const selesaiStatusOptions = ['Semua', ...Array.from(new Set(selesaiList.map((a) => a.status_kunjungan).filter(Boolean)))];
+  const memoTujuanOptions = ['Semua', ...Array.from(new Set(memoList.map((m) => m.tujuan_kedatangan).filter(Boolean)))];
+
+  const totalBooking = filteredBookingList.length;
+  const totalBookingPages = Math.ceil(totalBooking / bookingLimit) || 1;
+  const paginatedBookingList = filteredBookingList.slice(
+    (bookingPage - 1) * bookingLimit,
+    bookingPage * bookingLimit
   );
 
   const totalOnProgress = filteredOnProgressList.length;
@@ -269,19 +314,40 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   );
 
   // Check-In Mutation
-  // Pemilik plat di-resolve fresh by plat (walk-in primary key): bila ketemu,
-  // notif customer dikirim personal (bukan broadcast ke semua customer).
-  const lookupCustomerFlow =
-    formCheckin.tujuan_kedatangan === 'Service' || formCheckin.tujuan_kedatangan === 'Beli Part';
+  // Pemilik plat di-resolve fresh by plat (walk-in primary key) untuk SEMUA
+  // tujuan (Service, Beli Part, Kunjungan, Lainnya): bila ketemu, notice tampil
+  // dan notif customer dikirim personal (bukan broadcast ke semua customer).
   const { pemilik: pemilikPlat, loading: pemilikLoading } = usePemilikPlat(
     formCheckin.no_polisi,
-    lookupCustomerFlow
+    true
   );
+
+  // Auto-isi Data Pengemudi/PIC dari profil pemilik plat terdaftar —
+  // hanya mengisi kolom yang masih kosong (tidak menimpa ketikan Security).
+  useEffect(() => {
+    if (!pemilikPlat) return;
+    const namaProfil = pemilikPlat.nama_perusahaan || pemilikPlat.nama_lengkap || '';
+    const telpProfil = pemilikPlat.no_telepon || '';
+    if (!namaProfil && !telpProfil) return;
+    setFormCheckin((prev) => {
+      const next = { ...prev };
+      let berubah = false;
+      if ((!next.nama_customer || !next.nama_customer.trim()) && namaProfil) {
+        next.nama_customer = namaProfil;
+        berubah = true;
+      }
+      if ((!next.no_hp_customer || !next.no_hp_customer.trim()) && telpProfil) {
+        next.no_hp_customer = telpProfil;
+        berubah = true;
+      }
+      return berubah ? next : prev;
+    });
+  }, [pemilikPlat]);
 
   const checkinMutation = useMutation({
     mutationFn: async (data: typeof formCheckin) => {
       const ticketNo = `ANT-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
-      const pemilikRows = lookupCustomerFlow ? await api.cariPemilikPlat(data.no_polisi).catch(() => []) : [];
+      const pemilikRows = await api.cariPemilikPlat(data.no_polisi).catch(() => []);
       const res = await api.checkInSecurity({
         no_tiket: ticketNo,
         ...data,
@@ -305,6 +371,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           linkTab: 'pic-terkait',
           urgency: 'urgent',
         });
+        // Notif personal ke pemilik armada bila plat terdaftar.
+        if (pemilik?.user_id) {
+          realtimeHub.publish({
+            type: 'KUNJUNGAN_ARRIVED',
+            targetRoles: ['Customer Fleet'],
+            targetUserId: pemilik.user_id,
+            targetPelangganId: pemilik.id_pelanggan,
+            title: 'Kunjungan Tercatat di Pos Gerbang',
+            message: `Unit ${formCheckin.no_polisi} tercatat berkunjung ke Pos Security KIM 3 menuju ${formCheckin.pic_tujuan || 'tujuan internal'}. Riwayat tersimpan by plat.`,
+            linkTab: 'fleet-history',
+            urgency: 'info',
+          });
+        }
       } else if (formCheckin.tujuan_kedatangan === 'Beli Part') {
         // Alur Beli Part tanpa service: SA yang menerima & membuat estimasi,
         // Warehouse yang menyiapkan barang. Kasir & Purchasing ikut dipantau.
@@ -316,6 +395,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           linkTab: 'beli-part',
           urgency: 'urgent',
         });
+        // Notif personal ke pemilik armada bila plat terdaftar.
+        if (pemilik?.user_id) {
+          realtimeHub.publish({
+            type: 'VEHICLE_CHECKED_IN',
+            targetRoles: ['Customer Fleet'],
+            targetUserId: pemilik.user_id,
+            targetPelangganId: pemilik.id_pelanggan,
+            title: 'Kunjungan Beli Part Tercatat',
+            message: `Unit ${formCheckin.no_polisi} tercatat di Pos Security KIM 3 untuk pembelian part. Riwayat tersimpan by plat.`,
+            linkTab: 'fleet-history',
+            urgency: 'info',
+          });
+        }
       } else {
         // 1. Notifikasi untuk Service Advisor (Internal Staff)
         realtimeHub.publish({
@@ -523,7 +615,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <Calendar className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-accent mt-2 tabular-nums">{bookingList.length} Unit</div>
+              <div className="text-2xl font-black text-accent mt-2 tabular-nums">{bookingHariIni.length} Unit</div>
               <p className="text-[11px] text-accent font-semibold mt-1 flex items-center gap-1">
                 Buka List Booking →
               </p>
@@ -557,7 +649,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <CheckCircle className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-black text-status-green mt-2 tabular-nums">{selesaiList.length} Unit</div>
+              <div className="text-2xl font-black text-status-green mt-2 tabular-nums">{selesaiHariIni.length} Unit</div>
               <p className="text-[11px] text-status-green font-semibold mt-1 flex items-center gap-1">
                 Histori Keluar →
               </p>
@@ -598,7 +690,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             <div className="divide-y divide-border">
-              {antrianData.slice(0, 6).map((item) => (
+              {checkinHariIni.slice(0, 6).map((item) => (
                 <div key={`feed-${item.id}`} className="py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-md flex items-center justify-center font-bold text-xs ${
@@ -679,10 +771,10 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
           </div>
 
-          {/* Split Layout: Left = Form Check-In, Right = Riwayat Check-In Hari Ini */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* LEFT COLUMN: Input Form (7 cols) */}
-            <div className="lg:col-span-7 bg-surface-raised rounded-md p-5 sm:p-6 border border-border shadow-xs space-y-5">
+          {/* Stack Layout: Form Check-In di atas, Riwayat Check-In Hari Ini di bawah */}
+          <div className="space-y-6">
+            {/* Form Check-In (full width) */}
+            <div className="bg-surface-raised rounded-md p-5 sm:p-6 border border-border shadow-xs space-y-5">
               <div className="flex items-center justify-between border-b border-border pb-4">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold">
@@ -802,8 +894,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </div>
                 </div>
 
-                {/* Pemilik terdaftar by plat (walk-in primary key) */}
-                {lookupCustomerFlow && formCheckin.no_polisi.trim().length >= 3 && (
+                {/* Pemilik terdaftar by plat (walk-in primary key, semua tujuan) */}
+                {formCheckin.no_polisi.trim().length >= 3 && (
                   <div className={`p-3.5 rounded-md border text-xs flex items-start gap-2.5 ${
                     pemilikLoading
                       ? 'bg-surface border-border text-ink-muted'
@@ -1030,8 +1122,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </form>
             </div>
 
-            {/* RIGHT COLUMN: Riwayat Check-In Hari Ini (5 cols) */}
-            <div className="lg:col-span-5 bg-surface-raised rounded-md p-5 sm:p-6 border border-border shadow-xs space-y-4 flex flex-col justify-between">
+            {/* Riwayat Check-In Hari Ini (full width, di bawah form) */}
+            <div className="bg-surface-raised rounded-md p-5 sm:p-6 border border-border shadow-xs space-y-4 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <div>
@@ -1039,19 +1131,19 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <p className="text-xs text-ink-muted">Daftar unit yang baru masuk gerbang</p>
                   </div>
                   <span className="px-2.5 py-1 rounded bg-status-green-bg text-status-green border border-status-green/20 text-xs font-black tabular-nums">
-                    {antrianData.length} Unit
+                    {checkinHariIni.length} Unit
                   </span>
                 </div>
 
                 {/* Quick List */}
                 <div className="divide-y divide-border max-h-[580px] overflow-y-auto space-y-2 pt-2">
-                  {antrianData.length === 0 ? (
+                  {checkinHariIni.length === 0 ? (
                     <div className="py-12 text-center text-ink-subtle">
                       <Truck className="w-10 h-10 mx-auto mb-2 opacity-30" />
                       <p className="font-semibold text-xs">Belum ada kendaraan yang di-check in hari ini</p>
                     </div>
                   ) : (
-                    antrianData.map((item) => (
+                    checkinHariIni.map((item) => (
                       <div
                         key={item.id}
                         className="py-3 px-3 hover:bg-surface rounded-md transition-all border border-transparent hover:border-border flex items-center justify-between gap-3"
@@ -1137,20 +1229,65 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted">
+                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal booking">
                   <span className="text-ink-subtle font-medium">Tanggal</span>
-                  <span className="font-bold text-ink">{todayFormatted}</span>
-                  <Calendar className="w-3.5 h-3.5 text-ink-subtle ml-1" />
-                </div>
+                  <input
+                    type="date"
+                    value={bookingTanggal}
+                    onChange={(e) => {
+                      setBookingTanggal(e.target.value);
+                      setBookingPage(1);
+                    }}
+                    className="bg-transparent text-xs font-bold text-ink focus:outline-none cursor-pointer"
+                    aria-label="Filter tanggal booking"
+                  />
+                </label>
 
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded-md border border-border bg-surface-raised hover:bg-surface text-xs font-bold text-ink-muted flex items-center gap-1.5 transition-colors"
+                  onClick={() => setShowBookingFilter((v) => !v)}
+                  className={`px-3 py-1.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-colors ${showBookingFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface-raised hover:bg-surface text-ink-muted'}`}
+                  aria-expanded={showBookingFilter}
                 >
-                  <Filter className="w-3.5 h-3.5 text-ink-subtle" />
+                  <Filter className="w-3.5 h-3.5" />
                   Filter
                 </button>
               </div>
+
+              {/* Panel filter expandable */}
+              {showBookingFilter && (
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-md bg-surface border border-border">
+                  <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+                    <span className="font-semibold">Status:</span>
+                    <select
+                      value={bookingStatus}
+                      onChange={(e) => {
+                        setBookingStatus(e.target.value);
+                        setBookingPage(1);
+                      }}
+                      className="px-2 py-1.5 rounded-md border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                    >
+                      {bookingStatusOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {(bookingTanggal || bookingStatus !== 'Semua' || searchQuery) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBookingTanggal('');
+                        setBookingStatus('Semua');
+                        setSearchQuery('');
+                        setBookingPage(1);
+                      }}
+                      className="px-2.5 py-1.5 rounded-md text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                    >
+                      Reset filter
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Table: No, No. Polisi, Nama Customer, Tujuan Kunjungan, Jenis Armada, Tgl Booking, Jam Booking, Status */}
@@ -1177,7 +1314,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       </td>
                     </tr>
                   ) : (
-                    filteredBookingList.map((b, idx) => {
+                    paginatedBookingList.map((b, idx) => {
                       const isSelected = selectedBooking?.id === b.id;
                       return (
                         <tr 
@@ -1190,7 +1327,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             isSelected ? 'bg-accent-subtle/70 font-medium' : 'hover:bg-surface/80'
                           }`}
                         >
-                          <td className="py-3 px-3 text-ink-subtle font-semibold">{idx + 1}</td>
+                          <td className="py-3 px-3 text-ink-subtle font-semibold">{(bookingPage - 1) * bookingLimit + idx + 1}</td>
                           <td className="py-3 px-3 font-black text-ink tracking-wide font-mono">{b.no_polisi}</td>
                           <td className="py-3 px-3 text-ink font-medium">{b.nama_customer || b.nama_perusahaan}</td>
                           <td className="py-3 px-3 text-ink-muted">{b.tujuan_kunjungan || b.jenis_layanan}</td>
@@ -1224,18 +1361,18 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-ink-subtle">
-              <div>Menampilkan {filteredBookingList.length > 0 ? `1 - ${filteredBookingList.length}` : '0'} dari {bookingList.length} data</div>
-              <div className="flex items-center gap-1">
-                <button className="px-2 py-1 rounded border border-border text-ink-subtle hover:bg-surface">&lt;</button>
-                <button className="px-2.5 py-1 rounded bg-accent text-white font-bold">1</button>
-                <button className="px-2.5 py-1 rounded border border-border text-ink-muted hover:bg-surface">2</button>
-                <button className="px-2.5 py-1 rounded border border-border text-ink-muted hover:bg-surface">3</button>
-                <span className="px-1 text-ink-subtle">...</span>
-                <button className="px-2.5 py-1 rounded border border-border text-ink-muted hover:bg-surface">5</button>
-                <button className="px-2.5 py-1 rounded border border-border text-ink-subtle hover:bg-surface">&gt;</button>
-              </div>
-            </div>
+            <PaginationBar
+              page={bookingPage}
+              totalPages={totalBookingPages}
+              totalRecords={totalBooking}
+              limit={bookingLimit}
+              onPageChange={setBookingPage}
+              onLimitChange={(l) => {
+                setBookingLimit(l);
+                setBookingPage(1);
+              }}
+              label="booking kendaraan"
+            />
 
             {/* MODAL: Detail Booking + PILIH & ISI OTOMATIS */}
             {bookingPreview && (
@@ -1394,20 +1531,65 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted">
+                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal masuk">
                   <span className="text-ink-subtle font-medium">Tanggal</span>
-                  <span className="font-bold text-ink">{todayFormatted}</span>
-                  <Calendar className="w-3.5 h-3.5 text-ink-subtle ml-1" />
-                </div>
+                  <input
+                    type="date"
+                    value={onProgressTanggal}
+                    onChange={(e) => {
+                      setOnProgressTanggal(e.target.value);
+                      setOnProgressPage(1);
+                    }}
+                    className="bg-transparent text-xs font-bold text-ink focus:outline-none cursor-pointer"
+                    aria-label="Filter tanggal masuk"
+                  />
+                </label>
 
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised text-xs font-bold text-ink flex items-center gap-1.5 transition-colors"
+                  onClick={() => setShowOnProgressFilter((v) => !v)}
+                  className={`px-3 py-1.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-colors ${showOnProgressFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
+                  aria-expanded={showOnProgressFilter}
                 >
-                  <Filter className="w-3.5 h-3.5 text-ink-muted" />
+                  <Filter className="w-3.5 h-3.5" />
                   Filter
                 </button>
               </div>
+
+              {/* Panel filter expandable */}
+              {showOnProgressFilter && (
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-md bg-surface border border-border">
+                  <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+                    <span className="font-semibold">Status:</span>
+                    <select
+                      value={onProgressStatus}
+                      onChange={(e) => {
+                        setOnProgressStatus(e.target.value);
+                        setOnProgressPage(1);
+                      }}
+                      className="px-2 py-1.5 rounded-md border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                    >
+                      {onProgressStatusOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {(onProgressTanggal || onProgressStatus !== 'Semua' || searchQuery) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOnProgressTanggal('');
+                        setOnProgressStatus('Semua');
+                        setSearchQuery('');
+                        setOnProgressPage(1);
+                      }}
+                      className="px-2.5 py-1.5 rounded-md text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                    >
+                      Reset filter
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Table: No, No. Polisi, Nama Customer, Jenis Armada, Tujuan, Masuk, Status, PIC / Mekanik, Aksi */}
@@ -1540,21 +1722,68 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted">
+                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal keluar (mengalahkan pill rentang)">
                   <span className="text-ink-subtle font-medium">Tanggal</span>
-                  <span className="font-bold text-ink">{todayFormatted}</span>
-                  <Calendar className="w-3.5 h-3.5 text-ink-subtle ml-1" />
-                </div>
+                  <input
+                    type="date"
+                    value={selesaiTanggal}
+                    onChange={(e) => {
+                      setSelesaiTanggal(e.target.value);
+                      if (e.target.value) setSelesaiTimeRange('Semua');
+                      setSelesaiPage(1);
+                    }}
+                    className="bg-transparent text-xs font-bold text-ink focus:outline-none cursor-pointer"
+                    aria-label="Filter tanggal keluar"
+                  />
+                </label>
 
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised text-xs font-bold text-ink flex items-center gap-1.5 transition-colors"
+                  onClick={() => setShowSelesaiFilter((v) => !v)}
+                  className={`px-3 py-1.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-colors ${showSelesaiFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
+                  aria-expanded={showSelesaiFilter}
                 >
-                  <Filter className="w-3.5 h-3.5 text-ink-muted" />
+                  <Filter className="w-3.5 h-3.5" />
                   Filter
                 </button>
               </div>
             </div>
+
+            {/* Panel filter expandable */}
+            {showSelesaiFilter && (
+              <div className="flex flex-wrap items-center gap-2 p-3 rounded-md bg-surface border border-border mb-4">
+                <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+                  <span className="font-semibold">Status:</span>
+                  <select
+                    value={selesaiStatus}
+                    onChange={(e) => {
+                      setSelesaiStatus(e.target.value);
+                      setSelesaiPage(1);
+                    }}
+                    className="px-2 py-1.5 rounded-md border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                  >
+                    {selesaiStatusOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+                {(selesaiTanggal || selesaiStatus !== 'Semua' || searchQuery || selesaiTimeRange !== 'Semua') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelesaiTanggal('');
+                      setSelesaiStatus('Semua');
+                      setSelesaiTimeRange('Semua');
+                      setSearchQuery('');
+                      setSelesaiPage(1);
+                    }}
+                    className="px-2.5 py-1.5 rounded-md text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                  >
+                    Reset filter
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Filter Pills matching Excel screenshot: Semua, Hari Ini, Kemarin, Minggu Ini, Bulan Ini */}
             <div className="flex flex-wrap items-center gap-1.5">
@@ -1562,7 +1791,11 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <button
                   key={pill}
                   type="button"
-                  onClick={() => setSelesaiTimeRange(pill)}
+                  onClick={() => {
+                    setSelesaiTimeRange(pill);
+                    setSelesaiTanggal('');
+                    setSelesaiPage(1);
+                  }}
                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                     selesaiTimeRange === pill
                       ? 'bg-accent text-white shadow-xs'
@@ -1687,20 +1920,65 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-ink-subtle" />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2 py-1.5 text-[11px] text-ink-muted">
+                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2 py-1.5 text-[11px] text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal memo keluar">
                   <span className="text-ink-subtle font-medium">Tanggal</span>
-                  <span className="font-bold text-ink">{todayFormatted}</span>
-                  <Calendar className="w-3 h-3 text-ink-subtle ml-0.5" />
-                </div>
+                  <input
+                    type="date"
+                    value={memoTanggal}
+                    onChange={(e) => {
+                      setMemoTanggal(e.target.value);
+                      setMemoPage(1);
+                    }}
+                    className="bg-transparent text-[11px] font-bold text-ink focus:outline-none cursor-pointer"
+                    aria-label="Filter tanggal memo keluar"
+                  />
+                </label>
 
                 <button
                   type="button"
-                  className="px-2.5 py-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised text-xs font-bold text-ink flex items-center gap-1 transition-colors"
+                  onClick={() => setShowMemoFilter((v) => !v)}
+                  className={`px-2.5 py-1.5 rounded-md border text-xs font-bold flex items-center gap-1 transition-colors ${showMemoFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
+                  aria-expanded={showMemoFilter}
                 >
-                  <Filter className="w-3 h-3 text-ink-muted" />
+                  <Filter className="w-3 h-3" />
                   Filter
                 </button>
               </div>
+
+              {/* Panel filter expandable */}
+              {showMemoFilter && (
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-md bg-surface border border-border">
+                  <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+                    <span className="font-semibold">Tujuan:</span>
+                    <select
+                      value={memoTujuan}
+                      onChange={(e) => {
+                        setMemoTujuan(e.target.value);
+                        setMemoPage(1);
+                      }}
+                      className="px-2 py-1.5 rounded-md border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                    >
+                      {memoTujuanOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {(memoTanggal || memoTujuan !== 'Semua' || searchQuery) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMemoTanggal('');
+                        setMemoTujuan('Semua');
+                        setSearchQuery('');
+                        setMemoPage(1);
+                      }}
+                      className="px-2.5 py-1.5 rounded-md text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                    >
+                      Reset filter
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Table: No., No. Memo, No. Polisi, Nama Customer, Keluar, Aksi */}
               <div className="overflow-x-auto">

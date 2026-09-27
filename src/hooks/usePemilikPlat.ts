@@ -9,6 +9,7 @@ export interface PemilikPlat {
   user_id: number | null;
   nama_lengkap: string | null;
   email: string | null;
+  no_telepon: string | null;
 }
 
 /**

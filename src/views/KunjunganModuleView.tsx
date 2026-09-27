@@ -138,7 +138,15 @@ export const KunjunganModuleView: React.FC = () => {
   };
 
   // Status visual kartu: Menunggu / Diterima / Ditolak / Selesai (keluar gerbang)
-  const getStatusVis = (item: AntrianKunjungan) => {
+  const getStatusVis = (item: AntrianKunjungan): {
+    label: string;
+    icon: any;
+    ring: string;
+    iconBox: string;
+    badge: string;
+    catatan: string | undefined;
+    iconSpin?: boolean;
+  } => {
     if (item.status_konfirmasi_pic === 'Ditolak') {
       return {
         label: 'DITOLAK',
@@ -183,10 +191,11 @@ export const KunjunganModuleView: React.FC = () => {
       : {
           label: 'MENUNGGU KONFIRMASI',
           icon: Hourglass,
-          ring: 'border-status-amber/60 bg-status-amber-bg/30 animate-pulse',
+          ring: 'border-status-amber/60 bg-status-amber-bg/30',
           iconBox: 'bg-status-amber-bg text-status-amber',
           badge: 'bg-status-amber text-white',
           catatan: undefined,
+          iconSpin: true,
         };
   };
 
@@ -210,14 +219,14 @@ export const KunjunganModuleView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${vis.iconBox}`}>
-              <VisIcon className="w-5 h-5" />
+                <VisIcon className={`w-5 h-5 ${vis.iconSpin ? 'animate-spin [animation-duration:2.5s]' : ''}`} />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-black text-ink">{item.no_polisi}</span>
                 {/* Badge status utama: DITERIMA / DITOLAK / SELESAI / MENUNGGU */}
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 ${vis.badge}`}>
-                  <VisIcon className="w-3 h-3" /> {vis.label}
+                  <VisIcon className={`w-3 h-3 ${vis.iconSpin ? 'animate-spin [animation-duration:2.5s]' : ''}`} /> {vis.label}
                 </span>
                 {item.status_kunjungan !== 'Keluar' && (
                   <StatusBadge status={item.status_kunjungan} size="sm" />

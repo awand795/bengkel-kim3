@@ -11,6 +11,7 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
+import { ProfileModal } from './ProfileModal';
 import { FloatingNotificationToast } from '../common/FloatingNotificationToast';
 import { PeranUser } from '../../types';
 
@@ -69,6 +70,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
 export const Navbar: React.FC = () => {
   const { currentRole, currentUser, authUser, activeTab, setActiveTab, logout } = useAppStore();
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const defaultTab = roleDefaultTabs[currentRole] || 'dashboard';
   const isRootTab = activeTab === defaultTab;
@@ -131,8 +133,12 @@ export const Navbar: React.FC = () => {
               className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-surface active:bg-accent-subtle transition-colors"
               aria-label="Buka profil pengguna"
             >
-              <div className="w-8 h-8 rounded-md bg-accent text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                {currentUser?.charAt(0) || 'U'}
+              <div className="w-8 h-8 rounded-md bg-accent text-white font-bold flex items-center justify-center text-xs shadow-2xs overflow-hidden">
+                {authUser?.foto_profil ? (
+                  <img src={authUser.foto_profil} alt="Foto profil" className="w-full h-full object-cover" />
+                ) : (
+                  currentUser?.charAt(0) || 'U'
+                )}
               </div>
             </button>
           </div>
@@ -164,17 +170,29 @@ export const Navbar: React.FC = () => {
 
             {/* User Profile Pill & Logout */}
             <div className="flex items-center gap-3 pl-3 border-l border-border">
-              <div className="w-8 h-8 rounded-md bg-accent text-white font-bold flex items-center justify-center text-xs shadow-2xs">
-                {currentUser?.charAt(0) || 'U'}
-              </div>
-              <div className="text-left">
-                <div className="text-xs font-bold text-ink leading-tight">
-                  {currentUser || 'Pengguna'}
-                </div>
-                <div className="text-[10px] text-ink-subtle font-medium">
-                  {authUser?.nama_perusahaan || currentRole}
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setProfileOpen(true)}
+                className="flex items-center gap-2.5 rounded-md px-1.5 py-1 -mx-1.5 hover:bg-surface transition-colors cursor-pointer group"
+                title="Buka profil saya"
+                aria-label="Buka profil saya"
+              >
+                <span className="w-8 h-8 rounded-md bg-accent text-white font-bold flex items-center justify-center text-xs shadow-2xs overflow-hidden group-hover:ring-2 group-hover:ring-accent/40 transition shrink-0">
+                  {authUser?.foto_profil ? (
+                    <img src={authUser.foto_profil} alt="Foto profil" className="w-full h-full object-cover" />
+                  ) : (
+                    currentUser?.charAt(0) || 'U'
+                  )}
+                </span>
+                <span className="text-left">
+                  <span className="block text-xs font-bold text-ink leading-tight group-hover:text-accent transition-colors">
+                    {currentUser || 'Pengguna'}
+                  </span>
+                  <span className="block text-[10px] text-ink-subtle font-medium">
+                    {authUser?.nama_perusahaan || currentRole}
+                  </span>
+                </span>
+              </button>
               <button
                 type="button"
                 onClick={logout}
@@ -228,8 +246,12 @@ export const Navbar: React.FC = () => {
             <div className="p-4 space-y-4">
               {/* User Identity Card */}
               <div className="flex items-center gap-3 p-3 bg-surface rounded-md border border-border">
-                <div className="w-12 h-12 rounded-md bg-accent text-white font-bold flex items-center justify-center text-lg shadow-xs">
-                  {currentUser?.charAt(0) || 'U'}
+                <div className="w-12 h-12 rounded-md bg-accent text-white font-bold flex items-center justify-center text-lg shadow-xs overflow-hidden shrink-0">
+                  {authUser?.foto_profil ? (
+                    <img src={authUser.foto_profil} alt="Foto profil" className="w-full h-full object-cover" />
+                  ) : (
+                    currentUser?.charAt(0) || 'U'
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-bold text-ink truncate">
@@ -265,6 +287,19 @@ export const Navbar: React.FC = () => {
                 <p>Navigasi dioptimalkan untuk mobile app-shell. Mode offline aktif dengan cache lokal.</p>
               </div>
 
+              {/* Edit Profil Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileProfileOpen(false);
+                  setProfileOpen(true);
+                }}
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-accent-subtle text-accent border border-accent/25 font-bold text-xs hover:bg-accent hover:text-white transition-colors"
+              >
+                <User className="w-4 h-4" />
+                <span>Edit Profil Saya</span>
+              </button>
+
               {/* Logout Button (min 44px touch target) */}
               <button
                 type="button"
@@ -281,6 +316,9 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Profil Saya (desktop & mobile) */}
+      {profileOpen && <ProfileModal onClose={() => setProfileOpen(false)} />}
     </>
   );
 };
