@@ -95,7 +95,7 @@ export const StepModal: React.FC<StepModalProps> = ({
           aria-labelledby="step-modal-title"
           tabIndex={-1}
           onKeyDown={handleKeyDown}
-          className={`card-modern app-modal-in bg-surface-raised w-full ${sizeClasses} rounded-t-2xl sm:rounded-2xl shadow-2xl border border-border flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden focus:outline-none`}
+          className={`app-modal-in bg-surface-raised w-full ${sizeClasses} rounded-t-2xl sm:rounded-2xl shadow-2xl border border-border flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden focus:outline-none`}
         >
           {/* Mobile Drag Handle */}
           <div className="sm:hidden pt-2.5 pb-1 flex justify-center shrink-0">
@@ -105,11 +105,11 @@ export const StepModal: React.FC<StepModalProps> = ({
           {/* Modal Header */}
           <div className="px-5 py-4 border-b border-border flex items-start justify-between gap-3 shrink-0">
             <div className="min-w-0 flex-1">
-              <h2 id="step-modal-title" className="text-base sm:text-lg font-bold text-ink truncate leading-tight">
+              <h2 id="step-modal-title" className="text-base sm:text-lg font-black text-ink leading-snug">
                 {title}
               </h2>
               {subtitle && (
-                <p className="text-xs text-ink-muted mt-0.5 truncate">{subtitle}</p>
+                <p className="text-xs text-ink-muted mt-1 leading-normal">{subtitle}</p>
               )}
             </div>
             <button
@@ -125,13 +125,13 @@ export const StepModal: React.FC<StepModalProps> = ({
           {/* Horizontal Stepper */}
           <div className="px-5 py-3 border-b border-border bg-surface shrink-0">
             {/* Desktop Stepper */}
-            <div className="hidden sm:flex items-center justify-between gap-2">
+            <div className="hidden sm:flex items-center justify-between gap-2 overflow-x-auto py-0.5">
               {steps.map((st, idx) => {
                 const isPassed = idx < stepIndex;
                 const isCurrent = idx === stepIndex;
                 return (
                   <React.Fragment key={st.id}>
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <div
                         className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
                           isPassed
@@ -144,8 +144,8 @@ export const StepModal: React.FC<StepModalProps> = ({
                         {isPassed ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                       </div>
                       <span
-                        className={`text-xs font-semibold truncate ${
-                          isCurrent ? 'text-ink font-bold' : isPassed ? 'text-ink-muted' : 'text-ink-subtle'
+                        className={`text-xs whitespace-nowrap ${
+                          isCurrent ? 'text-ink font-bold' : isPassed ? 'text-ink font-semibold' : 'text-ink-muted font-medium'
                         }`}
                       >
                         {st.label}
@@ -167,9 +167,9 @@ export const StepModal: React.FC<StepModalProps> = ({
             <div className="sm:hidden space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-accent">
-                  Langkah {stepIndex + 1} dari {steps.length}: <span className="text-ink">{activeStep?.label}</span>
+                  Langkah {stepIndex + 1} dari {steps.length}: <span className="text-ink font-bold">{activeStep?.label}</span>
                 </span>
-                <span className="text-ink-subtle font-medium text-xs">
+                <span className="text-ink-muted font-bold text-xs">
                   {Math.round(((stepIndex + 1) / steps.length) * 100)}%
                 </span>
               </div>
@@ -210,7 +210,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isPending}
-                className="px-4 py-2.5 rounded-xl text-ink-muted hover:text-ink hover:bg-surface font-semibold text-xs transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-border bg-surface hover:bg-surface-raised text-ink font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>

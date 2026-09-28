@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, normalizePlat, getApiErrorMessage } from '../api/client';
+import { api, normalizePlat, formatPlat, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart, AntrianKunjungan, TransaksiBeliPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
@@ -174,7 +174,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-lg font-bold text-ink">{spk.no_polisi}</h2>
+                      <h2 className="text-lg font-black font-mono text-ink tracking-wide">{formatPlat(spk.no_polisi)}</h2>
                       <StatusBadge status={spk.status_spk} size="sm" />
                     </div>
                     <p className="text-xs text-ink-muted font-medium">{spk.nama_customer || '-'} • <span className="font-mono text-ink">{spk.no_spk}</span></p>
@@ -214,7 +214,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         </span>
                       </div>
                       <p className="text-xs text-ink-muted leading-relaxed">
-                        Unit {spk.no_polisi} dijeda sementara karena memerlukan suku cadang yang sedang dalam proses pengadaan. Pengerjaan akan dilanjutkan otomatis saat barang tiba.
+                        Unit {formatPlat(spk.no_polisi)} dijeda sementara karena memerlukan suku cadang yang sedang dalam proses pengadaan. Pengerjaan akan dilanjutkan otomatis saat barang tiba.
                       </p>
                     </div>
                   </div>
@@ -2223,7 +2223,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   {upcomingBookings.slice(0, 3).map((b) => (
                     <div key={b.id} className="p-3 rounded-xl border border-border bg-surface flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <span className="font-bold text-ink text-xs">{b.no_polisi}</span>
+                        <span className="font-mono font-bold text-ink text-xs">{formatPlat(b.no_polisi)}</span>
                         <p className="text-xs text-ink-muted truncate">{b.jenis_layanan}</p>
                       </div>
                       <div className="text-right shrink-0 space-y-1">
@@ -2271,11 +2271,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         {k.foto_kendaraan ? (
                           <img
                             src={k.foto_kendaraan}
-                            alt={k.no_polisi}
+                            alt={formatPlat(k.no_polisi)}
                             onClick={() =>
                               setPreviewImage({
                                 url: k.foto_kendaraan!,
-                                title: k.no_polisi,
+                                title: formatPlat(k.no_polisi),
                                 subtitle: `${k.merk} ${k.model} • ${k.jenis_armada || 'Truk'} (${k.tahun || '-'})`,
                               })
                             }
@@ -2288,7 +2288,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </div>
                         )}
                         <div className="min-w-0">
-                          <span className="font-bold text-ink text-xs">{k.no_polisi}</span>
+                          <span className="font-mono font-bold text-ink text-xs">{formatPlat(k.no_polisi)}</span>
                           <p className="text-xs text-ink-muted truncate">{k.merk} {k.model} • {k.jenis_armada}</p>
                         </div>
                       </div>
@@ -2397,7 +2397,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     return (
                       <ListItemCard
                         key={b.id}
-                        title={b.no_polisi}
+                        title={formatPlat(b.no_polisi)}
                         subtitle={`${b.jenis_layanan} • Jadwal: ${b.tanggal_booking} ${b.jam_booking} WIB`}
                         badge={
                           <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
@@ -2513,7 +2513,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   label: 'Pilih Kendaraan',
                   isValid: !!bookingForm.no_polisi && myKendaraanList.length > 0,
                   content: (
-                    <div className="space-y-3">
+                    <div className="space-y-3.5">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-ink">Pilih kendaraan yang akan diservice:</span>
                         <button
@@ -2525,58 +2525,71 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           <span>Tambah Kendaraan</span>
                         </button>
                       </div>
-                      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      <div className="space-y-2.5">
                         {myKendaraanList.length > 0 ? (
-                          myKendaraanList.map((k) => (
-                            <label
-                              key={k.id}
-                              className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
-                                bookingForm.no_polisi === k.no_polisi
-                                  ? 'border-accent bg-accent-subtle shadow-xs'
-                                  : 'border-border hover:border-border bg-surface-raised'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <input
-                                  type="radio"
-                                  name="booking_kendaraan"
-                                  checked={bookingForm.no_polisi === k.no_polisi}
-                                  onChange={() => setBookingForm({ ...bookingForm, no_polisi: k.no_polisi })}
-                                  className="text-accent shrink-0"
-                                />
-                                {k.foto_kendaraan ? (
-                                  <img
-                                    src={k.foto_kendaraan}
-                                    alt={k.no_polisi}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setPreviewImage({
-                                        url: k.foto_kendaraan!,
-                                        title: k.no_polisi,
-                                        subtitle: `${k.merk} ${k.model} (${k.tahun})`,
-                                      });
-                                    }}
-                                    className="w-11 h-11 rounded-lg object-cover border border-border shrink-0 cursor-pointer hover:scale-105 transition-transform"
-                                    title="Klik untuk memperbesar foto"
+                          myKendaraanList.map((k) => {
+                            const isSelected = bookingForm.no_polisi === k.no_polisi;
+                            return (
+                              <label
+                                key={k.id}
+                                className={`flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                                  isSelected
+                                    ? 'border-accent bg-accent-subtle/50 shadow-xs ring-1 ring-accent/30'
+                                    : 'border-border hover:border-accent/40 bg-surface-raised hover:bg-surface'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                                  <input
+                                    type="radio"
+                                    name="booking_kendaraan"
+                                    checked={isSelected}
+                                    onChange={() => setBookingForm({ ...bookingForm, no_polisi: k.no_polisi })}
+                                    className="text-accent shrink-0 w-4 h-4 cursor-pointer"
                                   />
-                                ) : (
-                                  <div className="w-11 h-11 rounded-lg bg-accent-subtle text-accent flex items-center justify-center shrink-0">
-                                    <Truck className="w-5 h-5" />
+                                  {k.foto_kendaraan ? (
+                                    <img
+                                      src={k.foto_kendaraan}
+                                      alt=""
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPreviewImage({
+                                          url: k.foto_kendaraan!,
+                                          title: formatPlat(k.no_polisi),
+                                          subtitle: `${k.merk} ${k.model} (${k.tahun})`,
+                                        });
+                                      }}
+                                      className="w-12 h-12 rounded-xl object-cover border border-border shrink-0 cursor-pointer hover:scale-105 transition-transform shadow-2xs"
+                                      title="Klik untuk memperbesar foto"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-xl bg-accent-subtle text-accent flex items-center justify-center shrink-0 border border-accent/20">
+                                      <Truck className="w-6 h-6" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-md border border-border bg-surface font-mono font-black text-xs tracking-wider text-ink mb-1">
+                                      {formatPlat(k.no_polisi)}
+                                    </div>
+                                    <div className="text-xs font-bold text-ink truncate">
+                                      {k.merk} {k.model} {k.tahun ? `(${k.tahun})` : ''}
+                                    </div>
+                                    <div className="text-[11px] text-ink-muted truncate font-medium">
+                                      {k.jenis_armada || 'Truk'}
+                                    </div>
                                   </div>
-                                )}
-                                <div className="min-w-0">
-                                  <div className="text-sm font-black text-ink">{k.no_polisi}</div>
-                                  <div className="text-xs text-ink-muted truncate">{k.merk} {k.model} ({k.tahun})</div>
                                 </div>
-                              </div>
-                              <span className="px-2 py-0.5 rounded-xl bg-status-green-bg text-status-green font-bold text-xs border border-status-green/30">
-                                Kendaraan Aktif
-                              </span>
-                            </label>
-                          ))
+                                <div className="shrink-0 pl-2">
+                                  <span className="px-2.5 py-1 rounded-lg bg-status-green-bg text-status-green font-bold text-xs border border-status-green/30 inline-flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Kendaraan Aktif</span>
+                                  </span>
+                                </div>
+                              </label>
+                            );
+                          })
                         ) : (
                           <div className="p-6 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-2">
-                            <p className="text-xs text-ink-muted">Belum ada kendaraan terdaftar untuk akun fleet Anda.</p>
+                            <p className="text-xs text-ink-muted font-medium">Belum ada kendaraan terdaftar untuk akun fleet Anda.</p>
                             <button
                               type="button"
                               onClick={() => setOpenTambahArmadaModal(true)}
@@ -2594,9 +2607,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   id: 'layanan',
                   label: 'Pilih Layanan',
                   content: (
-                    <div className="space-y-3">
+                    <div className="space-y-3.5">
                       <span className="text-xs font-bold text-ink block">Pilih jenis perbaikan atau service berkala:</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[
                           'Service Berkala (Ganti Oli & Filter)',
                           'Perbaikan Rem & Kaki-kaki',
@@ -2604,23 +2617,27 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           'Kelistrikan & Starter / Alternator',
                           'Overhaul Mesin / Transmisi',
                           'Pemeriksaan Umum / Keluhan Khusus',
-                        ].map((srv) => (
-                          <button
-                            key={srv}
-                            type="button"
-                            onClick={() => {
-                              setIsCustomService(false);
-                              setBookingForm({ ...bookingForm, jenis_layanan: srv });
-                            }}
-                            className={`p-3 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer ${
-                              !isCustomService && bookingForm.jenis_layanan === srv
-                                ? 'border-accent bg-accent-subtle text-accent font-bold shadow-xs'
-                                : 'border-border text-ink-muted hover:bg-surface'
-                            }`}
-                          >
-                            {srv}
-                          </button>
-                        ))}
+                        ].map((srv) => {
+                          const isSelected = !isCustomService && bookingForm.jenis_layanan === srv;
+                          return (
+                            <button
+                              key={srv}
+                              type="button"
+                              onClick={() => {
+                                setIsCustomService(false);
+                                setBookingForm({ ...bookingForm, jenis_layanan: srv });
+                              }}
+                              className={`p-3.5 rounded-xl border-2 text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                isSelected
+                                  ? 'border-accent bg-accent-subtle/50 text-ink font-bold shadow-xs ring-1 ring-accent/30'
+                                  : 'border-border text-ink bg-surface-raised hover:bg-surface hover:border-accent/40 font-semibold'
+                              }`}
+                            >
+                              <span>{srv}</span>
+                              {isSelected && <Check className="w-4 h-4 text-accent shrink-0" />}
+                            </button>
+                          );
+                        })}
 
                         <button
                           type="button"
@@ -2631,20 +2648,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               jenis_layanan: customServiceText.trim() || 'Perbaikan Kustom',
                             });
                           }}
-                          className={`p-3 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer flex items-center justify-between ${
+                          className={`p-3.5 rounded-xl border-2 text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-2 ${
                             isCustomService
-                              ? 'border-accent bg-accent-subtle text-accent font-bold shadow-xs'
-                              : 'border-dashed border-accent/40 text-accent hover:bg-accent-subtle/30'
+                              ? 'border-accent bg-accent-subtle/50 text-ink font-bold shadow-xs ring-1 ring-accent/30'
+                              : 'border-dashed border-accent/60 text-accent hover:bg-accent-subtle/40 font-bold bg-surface-raised'
                           }`}
                         >
-                          <span>+ Lainnya / Perbaikan Kustom (Ketik Sendiri)</span>
-                          <Edit3 className="w-4 h-4" />
+                          <span className="flex items-center gap-1.5">
+                            <Plus className="w-4 h-4" /> Lainnya / Perbaikan Kustom (Ketik Sendiri)
+                          </span>
+                          <Edit3 className="w-4 h-4 shrink-0" />
                         </button>
                       </div>
 
                       {isCustomService && (
-                        <div className="p-3.5 rounded-xl bg-accent-subtle/30 border border-accent/40">
-                          <label className="block text-xs font-bold text-accent mb-1.5">
+                        <div className="p-4 rounded-xl bg-accent-subtle/30 border border-accent/40 space-y-1.5">
+                          <label className="block text-xs font-bold text-ink">
                             Tuliskan Jenis Layanan / Perbaikan Kustom Anda: <span className="text-status-red">*</span>
                           </label>
                           <input
@@ -2660,20 +2679,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             }}
                             className="w-full px-3.5 py-2.5 rounded-xl border border-accent/50 text-xs focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
                           />
-                          <p className="text-xs text-ink-subtle mt-1.5">
+                          <p className="text-xs text-ink-muted">
                             Tulis jenis pekerjaan atau modifikasi khusus yang dibutuhkan kendaraan Anda.
                           </p>
                         </div>
                       )}
 
                       <div className="mt-3">
-                        <label className="block text-xs font-bold text-ink-muted mb-1">Jelaskan Keluhan Kendaraan:</label>
+                        <label className="block text-xs font-bold text-ink mb-1.5">Jelaskan Keluhan Kendaraan:</label>
                         <textarea
                           rows={3}
                           value={bookingForm.keluhan}
                           onChange={(e) => setBookingForm({ ...bookingForm, keluhan: e.target.value })}
                           placeholder="Contoh: Rem bunyi saat pengereman dan tarikan mesin agak berat..."
-                          className="w-full px-3 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised text-ink font-medium leading-relaxed"
                         />
                       </div>
                     </div>
@@ -2686,7 +2705,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-ink-muted mb-1">
+                          <label className="block text-xs font-bold text-ink mb-1.5">
                             Tanggal Rencana Masuk <span className="text-status-red">*</span>
                           </label>
                           <input
@@ -2704,7 +2723,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             }}
                             className="w-full px-3.5 py-2.5 rounded-xl border border-border font-mono text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
                           />
-                          <div className="text-xs text-ink-subtle mt-1">
+                          <div className="text-xs text-ink-muted mt-1.5 font-medium">
                             Pilih hari ini atau tanggal kedatangan berikutnya
                           </div>
                         </div>
@@ -2716,7 +2735,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             value={bookingForm.jam_booking}
                             onChange={(time) => setBookingForm({ ...bookingForm, jam_booking: time })}
                           />
-                          <div className="text-xs text-ink-subtle mt-1">
+                          <div className="text-xs text-ink-muted mt-1.5 font-medium">
                             Jam operasional bengkel: 07:30 - 17:00 WIB
                           </div>
                         </div>
@@ -2729,23 +2748,30 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   label: 'Konfirmasi',
                   content: (
                     <div className="space-y-4">
-                      <div className="bg-surface p-4 rounded-xl border border-border text-xs space-y-2.5">
-                        <div className="font-bold text-sm text-ink border-b border-border pb-2">Ringkasan Pemesanan Booking Service</div>
-                        <div className="flex justify-between py-1 border-b border-border/50">
-                          <span className="text-ink-muted">Kendaraan:</span>
-                          <span className="font-bold text-ink">{bookingForm.no_polisi}</span>
+                      <div className="bg-surface p-4 sm:p-5 rounded-2xl border border-border text-xs space-y-3">
+                        <div className="font-bold text-sm text-ink border-b border-border pb-2.5 flex items-center justify-between">
+                          <span>Ringkasan Pemesanan Booking Service</span>
+                          <span className="px-2.5 py-0.5 rounded-md bg-accent-subtle text-accent text-xs font-bold border border-accent/20">Siap Konfirmasi</span>
                         </div>
-                        <div className="flex justify-between py-1 border-b border-border/50">
-                          <span className="text-ink-muted">Jenis Layanan:</span>
+                        <div className="flex items-center justify-between py-1.5 border-b border-border/60">
+                          <span className="text-ink-muted font-medium">Kendaraan:</span>
+                          <span className="font-mono font-black text-ink text-sm bg-surface-raised px-2.5 py-0.5 rounded-md border border-border">
+                            {formatPlat(bookingForm.no_polisi)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-border/60">
+                          <span className="text-ink-muted font-medium">Jenis Layanan:</span>
                           <span className="font-bold text-ink">{bookingForm.jenis_layanan}</span>
                         </div>
-                        <div className="flex justify-between py-1 border-b border-border/50">
-                          <span className="text-ink-muted">Jadwal Masuk:</span>
-                          <span className="font-mono font-bold text-accent">{bookingForm.tanggal_booking} ({bookingForm.jam_booking} WIB)</span>
+                        <div className="flex items-center justify-between py-1.5 border-b border-border/60">
+                          <span className="text-ink-muted font-medium">Jadwal Masuk:</span>
+                          <span className="font-mono font-bold text-accent">{bookingForm.tanggal_booking} • Pukul {bookingForm.jam_booking} WIB</span>
                         </div>
                         <div className="pt-2 text-ink-muted">
-                          <span className="font-semibold text-ink">Catatan Keluhan:</span>
-                          <p className="mt-1 italic">{bookingForm.keluhan || '-'}</p>
+                          <span className="font-bold text-ink block mb-1">Catatan Keluhan:</span>
+                          <p className="text-ink font-medium leading-relaxed bg-surface-raised p-2.5 rounded-xl border border-border">
+                            {bookingForm.keluhan || 'Tidak ada catatan keluhan khusus.'}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -2860,7 +2886,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         onClick={() =>
                           setPreviewImage({
                             url: k.foto_kendaraan!,
-                            title: k.no_polisi,
+                            title: formatPlat(k.no_polisi),
                             subtitle: `${k.merk} ${k.model} • ${k.jenis_armada || 'Truk'} (${k.tahun || '-'})`,
                           })
                         }
@@ -2868,7 +2894,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       >
                         <img
                           src={k.foto_kendaraan}
-                          alt={k.no_polisi}
+                          alt={formatPlat(k.no_polisi)}
                           className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500 ease-out"
                           loading="lazy"
                         />
@@ -2963,7 +2989,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           <div>
                             <div className="inline-flex items-center px-3 py-1 rounded-lg border-2 border-border bg-surface font-mono font-black text-sm tracking-wider text-ink shadow-2xs">
                               <span className="w-2 h-2 rounded-full bg-accent mr-2 inline-block"></span>
-                              {k.no_polisi}
+                              {formatPlat(k.no_polisi)}
                             </div>
                             <h3 className="text-base font-black text-ink tracking-tight mt-1.5">
                               {k.merk} {k.model}
@@ -3158,7 +3184,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <option value="">Semua Kendaraan</option>
                 {myKendaraanList.map((k) => (
                   <option key={k.id} value={k.no_polisi}>
-                    {k.no_polisi} — {k.merk} {k.model}
+                    {formatPlat(k.no_polisi)} — {k.merk} {k.model}
                   </option>
                 ))}
               </select>
@@ -3200,7 +3226,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               {inv ? 'Faktur' : (item as DokumenKendaraan).jenis_dokumen}
                             </span>
                           </td>
-                          <td className="py-3 px-3 font-mono font-bold text-ink">{item.no_polisi}</td>
+                          <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(item.no_polisi)}</td>
                           <td className="py-3 px-3 text-ink-muted font-mono">
                             {inv
                               ? (inv.tanggal_invoice ? new Date(inv.tanggal_invoice).toLocaleDateString('id-ID') : '-')
@@ -3248,7 +3274,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="text-sm font-bold text-ink leading-snug">{inv ? inv.no_invoice : (item as DokumenKendaraan).nama_dokumen}</div>
-                          <div className="font-mono text-xs font-bold text-ink-muted mt-0.5">{item.no_polisi}</div>
+                          <div className="font-mono text-xs font-bold text-ink-muted mt-0.5">{formatPlat(item.no_polisi)}</div>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-xs font-bold shrink-0 ${inv ? 'bg-accent-subtle text-accent' : 'bg-surface text-ink-muted'}`}>
                           {inv ? 'Faktur' : (item as DokumenKendaraan).jenis_dokumen}
@@ -3569,7 +3595,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       return (
                       <tr key={spk.id} onClick={() => setHistoryDetail(spk)} className="hover:bg-surface transition-colors cursor-pointer">
                         <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
-                        <td className="py-3 px-3 font-bold text-ink">{spk.no_polisi}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(spk.no_polisi)}</td>
                         <td className="py-3 px-3 text-ink-muted">{spk.keluhan_customer}</td>
                         <td className="py-3 px-3 font-mono text-ink-muted">{new Date(spk.created_at).toLocaleDateString('id-ID')}</td>
                         <td className="py-3 px-3 font-mono font-bold text-ink">Rp {Number(spk.estimasi_biaya || 0).toLocaleString()}</td>
@@ -3629,7 +3655,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="font-mono text-xs font-bold text-accent">{spk.no_spk}</div>
-                        <div className="text-base font-black text-ink mt-0.5">{spk.no_polisi}</div>
+                        <div className="text-base font-black font-mono text-ink mt-0.5">{formatPlat(spk.no_polisi)}</div>
                       </div>
                       <StatusBadge status={spk.status_spk} size="sm" />
                     </div>
@@ -3751,7 +3777,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         {kunjunganRows.map((a) => (
                           <tr key={a.id} onClick={() => setKunjunganDetail(a)} className="hover:bg-surface transition-colors cursor-pointer">
                             <td className="py-3 px-3 font-mono font-bold text-accent">{a.no_tiket}</td>
-                            <td className="py-3 px-3 font-bold text-ink">{a.no_polisi}</td>
+                            <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(a.no_polisi)}</td>
                             <td className="py-3 px-3 text-ink-muted">{a.tujuan_kedatangan || '-'}</td>
                             <td className="py-3 px-3 font-mono text-ink-muted text-xs">
                               {a.waktu_masuk ? new Date(a.waktu_masuk).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
@@ -3788,7 +3814,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <div className="font-mono text-xs font-bold text-accent">{a.no_tiket}</div>
-                            <div className="text-base font-black text-ink mt-0.5">{a.no_polisi}</div>
+                            <div className="text-base font-black font-mono text-ink mt-0.5">{formatPlat(a.no_polisi)}</div>
                           </div>
                           <StatusBadge status={a.status_kunjungan} size="sm" />
                         </div>
@@ -3850,7 +3876,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         {beliPartRows.map((t) => (
                           <tr key={t.id} onClick={() => setBeliPartDetail(t)} className="hover:bg-surface transition-colors cursor-pointer">
                             <td className="py-3 px-3 font-mono font-bold text-accent">{t.no_transaksi}</td>
-                            <td className="py-3 px-3 font-bold text-ink">{t.no_polisi}</td>
+                            <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(t.no_polisi)}</td>
                             <td className="py-3 px-3 text-right font-mono font-bold text-ink">Rp {Number(t.total_biaya || 0).toLocaleString('id-ID')}</td>
                             <td className="py-3 px-3">
                               <StatusBadge status={t.status_transaksi} size="sm" />
@@ -3884,7 +3910,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <div className="font-mono text-xs font-bold text-accent">{t.no_transaksi}</div>
-                            <div className="text-base font-black text-ink mt-0.5">{t.no_polisi}</div>
+                            <div className="text-base font-black font-mono text-ink mt-0.5">{formatPlat(t.no_polisi)}</div>
                           </div>
                           <StatusBadge status={t.status_transaksi} size="sm" />
                         </div>
@@ -3925,7 +3951,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         open={!!historyDetail}
         onClose={() => setHistoryDetail(null)}
         title={historyDetail ? `Detail Service ${historyDetail.no_spk}` : 'Detail Service'}
-        subtitle={historyDetail ? `${historyDetail.no_polisi} • ${historyDetail.keluhan_customer || ''}` : undefined}
+        subtitle={historyDetail ? `${formatPlat(historyDetail.no_polisi)} • ${historyDetail.keluhan_customer || ''}` : undefined}
         badge={historyDetail ? <StatusBadge status={historyDetail.status_spk} /> : undefined}
         size="xl"
       >
@@ -3961,7 +3987,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-ink">Detail Kunjungan</h3>
-                    <p className="text-xs text-ink-muted font-mono">{kunjunganDetail.no_tiket} • {kunjunganDetail.no_polisi}</p>
+                    <p className="text-xs text-ink-muted font-mono">{kunjunganDetail.no_tiket} • {formatPlat(kunjunganDetail.no_polisi)}</p>
                   </div>
                 </div>
                 <button
@@ -4003,7 +4029,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           onClick={() =>
                             setPreviewImage({
                               url: kunjunganDetail.foto_kendaraan_masuk!,
-                              title: kunjunganDetail.no_polisi,
+                              title: formatPlat(kunjunganDetail.no_polisi),
                               subtitle: `Dokumentasi Masuk • No. Tiket: ${kunjunganDetail.no_tiket}`,
                             })
                           }
@@ -4026,7 +4052,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           onClick={() =>
                             setPreviewImage({
                               url: kunjunganDetail.foto_kendaraan_keluar!,
-                              title: kunjunganDetail.no_polisi,
+                              title: formatPlat(kunjunganDetail.no_polisi),
                               subtitle: `Dokumentasi Keluar • No. Tiket: ${kunjunganDetail.no_tiket}`,
                             })
                           }
@@ -4067,7 +4093,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-ink">Detail Pembelian Part</h3>
-                    <p className="text-xs text-ink-muted font-mono">{beliPartDetail.no_transaksi} • {beliPartDetail.no_polisi}</p>
+                    <p className="text-xs text-ink-muted font-mono">{beliPartDetail.no_transaksi} • {formatPlat(beliPartDetail.no_polisi)}</p>
                   </div>
                 </div>
                 <button
@@ -4106,7 +4132,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       onClick={() =>
                         setPreviewImage({
                           url: beliPartDetail.foto_penyerahan!,
-                          title: beliPartDetail.no_polisi,
+                          title: formatPlat(beliPartDetail.no_polisi),
                           subtitle: `Foto Penyerahan Part • No. Transaksi: ${beliPartDetail.no_transaksi}`,
                         })
                       }
@@ -4190,7 +4216,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div className="p-5 sm:p-6 space-y-4 overflow-y-auto">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-base font-black text-ink">{previewInvoice.no_polisi}</div>
+                    <div className="text-base font-black font-mono text-ink">{formatPlat(previewInvoice.no_polisi)}</div>
                     <div className="text-xs text-ink-muted">
                       Invoice: {previewInvoice.tanggal_invoice ? new Date(previewInvoice.tanggal_invoice).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
                     </div>
@@ -4505,7 +4531,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <option value="">-- Pilih Nomor Polisi --</option>
                   {myKendaraanList.map((k) => (
                     <option key={k.id} value={k.no_polisi}>
-                      {k.no_polisi} — {k.merk} {k.model}
+                      {formatPlat(k.no_polisi)} — {k.merk} {k.model}
                     </option>
                   ))}
                 </select>
@@ -4604,7 +4630,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-ink">Edit Unit Kendaraan</h3>
-                  <p className="text-xs text-ink-muted font-mono">{editArmadaData.no_polisi} — No. polisi tidak dapat diubah</p>
+                  <p className="text-xs text-ink-muted font-mono">{formatPlat(editArmadaData.no_polisi)} — No. polisi tidak dapat diubah</p>
                 </div>
               </div>
               <button
@@ -4766,7 +4792,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {hapusArmadaTarget && (
         <ConfirmModal
           title="Hapus Unit Kendaraan?"
-          message={`Unit ${hapusArmadaTarget.no_polisi} (${hapusArmadaTarget.merk || '-'} ${hapusArmadaTarget.model || '-'}) akan dihapus permanen dari daftar kendaraan Anda. Riwayat service & faktur tetap tersimpan.`}
+          message={`Unit ${formatPlat(hapusArmadaTarget.no_polisi)} (${hapusArmadaTarget.merk || '-'} ${hapusArmadaTarget.model || '-'}) akan dihapus permanen dari daftar kendaraan Anda. Riwayat service & faktur tetap tersimpan.`}
           confirmLabel="Ya, Hapus"
           tone="red"
           isPending={hapusArmadaMutation.isPending}
@@ -4781,7 +4807,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {cancelBookingTarget && (
         <ConfirmModal
           title="Batalkan Booking?"
-          message={`Batalkan booking ${cancelBookingTarget.no_booking} (${cancelBookingTarget.no_polisi}) jadwal ${cancelBookingTarget.tanggal_booking} ${cancelBookingTarget.jam_booking}?`}
+          message={`Batalkan booking ${cancelBookingTarget.no_booking} (${formatPlat(cancelBookingTarget.no_polisi)}) jadwal ${cancelBookingTarget.tanggal_booking} ${cancelBookingTarget.jam_booking}?`}
           confirmLabel="Ya, Batalkan"
           tone="red"
           isPending={batalkanBookingMutation.isPending}

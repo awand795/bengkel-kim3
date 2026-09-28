@@ -186,6 +186,17 @@ const fetchList = async <T,>(url: string, query: ListQuery = {}): Promise<Pagina
 export const normalizePlat = (nopol: string | null | undefined): string =>
   (nopol || '').toUpperCase().replace(/\s+/g, '');
 
+// Format plat nomor untuk display UI berstandar otomotif Indonesia (mis. "BK3737RR" -> "BK 3737 RR")
+export const formatPlat = (nopol?: string | null): string => {
+  if (!nopol) return '-';
+  const clean = String(nopol).trim().toUpperCase().replace(/\s+/g, '');
+  const match = clean.match(/^([A-Z]{1,2})(\d{1,4})([A-Z]{0,3})$/);
+  if (match) {
+    return `${match[1]} ${match[2]}${match[3] ? ' ' + match[3] : ''}`.trim();
+  }
+  return String(nopol).trim();
+};
+
 // Helper: ambil pesan error paling informatif dari respons API Builder
 // (validasi parameter 400 / business rule / DB error) agar tidak tertutup
 // pesan generik "Terjadi kesalahan."

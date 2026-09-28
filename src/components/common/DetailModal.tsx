@@ -106,7 +106,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           aria-labelledby="detail-modal-title"
           tabIndex={-1}
           onKeyDown={handleKeyDown}
-          className={`card-modern app-modal-in bg-surface-raised w-full ${sizeClasses} rounded-t-2xl sm:rounded-2xl shadow-2xl border border-border flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden focus:outline-none`}
+          className={`app-modal-in bg-surface-raised w-full ${sizeClasses} rounded-t-2xl sm:rounded-2xl shadow-2xl border border-border flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden focus:outline-none`}
         >
           {/* Mobile Drag Handle */}
           <div className="sm:hidden pt-2.5 pb-1 flex justify-center shrink-0">
@@ -117,13 +117,13 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="px-5 py-4 border-b border-border flex items-start justify-between gap-3 shrink-0">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 id="detail-modal-title" className="text-base sm:text-lg font-bold text-ink truncate leading-tight">
+                <h2 id="detail-modal-title" className="text-base sm:text-lg font-black text-ink leading-snug">
                   {title}
                 </h2>
                 {badge && <div className="shrink-0">{badge}</div>}
               </div>
               {subtitle && (
-                <p className="text-xs text-ink-muted mt-1 truncate">{subtitle}</p>
+                <p className="text-xs text-ink-muted mt-1 leading-normal">{subtitle}</p>
               )}
             </div>
             <button
