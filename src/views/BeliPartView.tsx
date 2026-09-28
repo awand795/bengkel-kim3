@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, formatPlat } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -213,7 +213,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       await publishKeCustomer({
         type: 'PART_REQUESTED',
         title: 'Estimasi Pembelian Part Menunggu Persetujuan',
-        message: `Estimasi pembelian part untuk ${formCustomer.no_polisi.toUpperCase().trim()} (${formCustomer.nama_customer || 'Pelanggan Walk-In'}) menunggu persetujuan Anda di portal.`,
+        message: `Estimasi pembelian part untuk ${formatPlat(formCustomer.no_polisi)} (${formCustomer.nama_customer || 'Pelanggan Walk-In'}) menunggu persetujuan Anda di portal.`,
         linkTab: idBaru != null ? `fleet-history:part:${idBaru}` : 'fleet-history',
         urgency: 'warning',
         noPolisi: formCustomer.no_polisi.toUpperCase().trim(),
@@ -270,7 +270,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
         type: 'INVOICE_PAID',
         targetRoles: ['Admin Invoice', 'SA'],
         title: 'Pembayaran Part Lunas',
-        message: `Faktur ${invNo} untuk pembelian part kendaraan ${item.no_polisi} (${item.nama_customer}) telah lunas dan masuk rekap kasir.`,
+        message: `Faktur ${invNo} untuk pembelian part kendaraan ${formatPlat(item.no_polisi)} (${item.nama_customer}) telah lunas dan masuk rekap kasir.`,
         linkTab: 'kasir',
         urgency: 'success',
       });
@@ -343,7 +343,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
         type: 'PART_READY',
         targetRoles: ['Security'],
         title: 'Barang Part Diserahkan — Siap Checkout Gerbang',
-        message: `Barang untuk ${trx.no_polisi} (${trx.nama_customer}) telah diserahkan oleh gudang. Lakukan checkout gerbang & terbitkan Memo Keluar seperti alur Service.`,
+        message: `Barang untuk ${formatPlat(trx.no_polisi)} (${trx.nama_customer}) telah diserahkan oleh gudang. Lakukan checkout gerbang & terbitkan Memo Keluar seperti alur Service.`,
         linkTab: 'security-onprogress',
         urgency: 'urgent',
       });
@@ -351,7 +351,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       await publishKeCustomer({
         type: 'PART_READY',
         title: 'Pengambilan Part Selesai',
-        message: `Barang untuk ${trx.no_polisi} telah diserahkan oleh gudang. Selesaikan pembayaran di Kasir bila belum lunas, lalu lakukan checkout di Pos Security untuk keluar gerbang.`,
+        message: `Barang untuk ${formatPlat(trx.no_polisi)} telah diserahkan oleh gudang. Selesaikan pembayaran di Kasir bila belum lunas, lalu lakukan checkout di Pos Security untuk keluar gerbang.`,
         linkTab: 'fleet-status',
         urgency: 'success',
         noPolisi: trx.no_polisi,
@@ -382,7 +382,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
         type: 'PART_READY',
         targetRoles: ['SA', 'Admin Invoice'],
         title: 'Barang Siap Diambil (Picking Selesai)',
-        message: `Gudang telah selesai picking untuk transaksi ${trx.no_transaksi} (${trx.no_polisi} - ${trx.nama_customer}). Barang siap diambil SA di gudang${lokasiRakPicking.trim() ? ` (Rak: ${lokasiRakPicking.trim()})` : ''}.`,
+        message: `Gudang telah selesai picking untuk transaksi ${trx.no_transaksi} (${formatPlat(trx.no_polisi)} - ${trx.nama_customer}). Barang siap diambil SA di gudang${lokasiRakPicking.trim() ? ` (Rak: ${lokasiRakPicking.trim()})` : ''}.`,
         linkTab: 'beli-part',
         urgency: 'success',
       });
@@ -662,7 +662,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                         className="cursor-pointer hover:bg-surface-raised/80 transition-colors"
                       >
                         <td className="py-3.5 px-3.5 font-mono font-bold text-accent">{item.no_transaksi}</td>
-                        <td className="py-3.5 px-3.5 font-bold text-ink">{item.no_polisi}</td>
+                        <td className="py-3.5 px-3.5 font-bold font-mono text-ink">{formatPlat(item.no_polisi)}</td>
                         <td className="py-3.5 px-3.5 text-ink-muted">{item.nama_customer || '-'}</td>
                         <td className="py-3.5 px-3.5 text-right font-mono font-bold text-ink">
                           Rp {Number(item.total_biaya || 0).toLocaleString('id-ID')}
@@ -706,7 +706,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                   <ListItemCard
                     key={item.id}
                     title={item.no_transaksi}
-                    subtitle={`${item.no_polisi} • ${item.nama_customer || 'Pelanggan Umum'}`}
+                    subtitle={`${formatPlat(item.no_polisi)} • ${item.nama_customer || 'Pelanggan Umum'}`}
                     badge={<StatusBadge status={item.status_transaksi} size="sm" />}
                     chips={[
                       `Rp ${Number(item.total_biaya || 0).toLocaleString('id-ID')}`,
@@ -801,7 +801,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 <option value="">-- Pilih Kendaraan Antrean Gerbang atau Ketik Manual di Bawah --</option>
                 {antrianBeliPart.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.no_polisi} - {a.nama_customer || 'Pelanggan'} ({new Date(a.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                    {formatPlat(a.no_polisi)} - {a.nama_customer || 'Pelanggan'} ({new Date(a.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
                   </option>
                 ))}
               </select>
@@ -1065,7 +1065,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 <option value="">-- Pilih Transaksi Beli Part --</option>
                 {(transaksiList || []).map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.no_transaksi} — {t.no_polisi} ({t.status_transaksi})
+                    {t.no_transaksi} — {formatPlat(t.no_polisi)} ({t.status_transaksi})
                   </option>
                 ))}
               </select>
@@ -1077,7 +1077,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                   <div>
                     <span className="text-xs uppercase font-bold text-accent">Status Transaksi</span>
                     <h3 className="text-base font-bold text-ink">
-                      {activeTransaksi.no_transaksi} • {activeTransaksi.no_polisi}
+                      {activeTransaksi.no_transaksi} • {formatPlat(activeTransaksi.no_polisi)}
                     </h3>
                     <p className="text-xs text-ink-muted">{activeTransaksi.nama_customer || 'Pelanggan Umum'}</p>
                   </div>
@@ -1129,7 +1129,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
           open={true}
           onClose={() => setSelectedTransaksi(null)}
           title={selectedTransaksi.no_transaksi}
-          subtitle={`${selectedTransaksi.no_polisi} • ${selectedTransaksi.nama_customer || 'Pelanggan Umum'}`}
+          subtitle={`${formatPlat(selectedTransaksi.no_polisi)} • ${selectedTransaksi.nama_customer || 'Pelanggan Umum'}`}
           badge={<StatusBadge status={selectedTransaksi.status_transaksi} size="sm" />}
           size="md"
           footer={
@@ -1271,7 +1271,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 <div>
                   <span className="text-xs uppercase font-bold text-accent">Gudang KIM 3</span>
                   <h3 className="text-base font-bold text-ink">Konfirmasi Picking Part</h3>
-                  <p className="text-xs text-ink-muted">{activeTransaksi.no_transaksi} • {activeTransaksi.no_polisi}</p>
+                  <p className="text-xs text-ink-muted">{activeTransaksi.no_transaksi} • {formatPlat(activeTransaksi.no_polisi)}</p>
                 </div>
                 <button
                   type="button"
@@ -1322,7 +1322,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 <div>
                   <span className="text-xs uppercase font-bold text-accent">Penyerahan Barang</span>
                   <h3 className="text-base font-bold text-ink">Serahkan ke Customer</h3>
-                  <p className="text-xs text-ink-muted">{activeTransaksi.no_transaksi} • {activeTransaksi.no_polisi}</p>
+                  <p className="text-xs text-ink-muted">{activeTransaksi.no_transaksi} • {formatPlat(activeTransaksi.no_polisi)}</p>
                 </div>
                 <button
                   type="button"

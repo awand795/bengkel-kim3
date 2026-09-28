@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, formatPlat } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { StatCard } from '../components/common/StatCard';
@@ -201,7 +201,7 @@ export const DashboardView: React.FC = () => {
                     antrianMenunggu.map((item) => (
                       <tr key={item.id} className="hover:bg-surface/80 transition-colors">
                         <td className="py-3 px-3 font-mono font-bold text-accent">{item.no_tiket}</td>
-                        <td className="py-3 px-3 font-bold text-ink">{item.no_polisi}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(item.no_polisi)}</td>
                         <td className="py-3 px-3">
                           <div className="font-medium text-ink">{item.nama_customer || '-'}</div>
                           <div className="text-xs text-ink-subtle">{item.jenis_armada} • {item.keperluan || 'Service'}</div>
@@ -257,7 +257,7 @@ export const DashboardView: React.FC = () => {
                         <StatusBadge status={item.status_pr} size="sm" />
                       </div>
                       <div className="text-xs font-bold text-ink">
-                        {item.no_polisi} - {item.nama_customer}
+                        <span className="font-mono">{formatPlat(item.no_polisi)}</span> - {item.nama_customer}
                       </div>
                       <div className="text-xs text-ink-muted">
                         {item.catatan_pr || 'Pengadaan part khusus untuk SPK unit.'}
@@ -403,7 +403,7 @@ export const DashboardView: React.FC = () => {
                     spkList.slice(0, 5).map((spk) => (
                       <tr key={spk.id} className="hover:bg-surface/80 transition-colors">
                         <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
-                        <td className="py-3 px-3 font-bold text-ink">{spk.no_polisi}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(spk.no_polisi)}</td>
                         <td className="py-3 px-3">
                           <StatusBadge status={spk.status_spk} size="sm" />
                         </td>
@@ -461,7 +461,7 @@ export const DashboardView: React.FC = () => {
                         <StatusBadge status={spk.status_spk} size="sm" />
                       </div>
                       <div className="text-xs font-bold text-ink">
-                        {spk.no_polisi} - {spk.nama_customer}
+                        <span className="font-mono">{formatPlat(spk.no_polisi)}</span> - {spk.nama_customer}
                       </div>
                       <div className="text-xs text-ink-muted">
                         Mekanik: <span className="font-semibold">{spk.nama_mekanik || '-'}</span>
@@ -599,7 +599,7 @@ export const DashboardView: React.FC = () => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold text-accent">{spk.no_spk}</span>
-                        <span className="font-black text-ink text-sm">{spk.no_polisi}</span>
+                        <span className="font-black text-ink text-sm font-mono">{formatPlat(spk.no_polisi)}</span>
                         <StatusBadge status={spk.status_spk} size="sm" />
                       </div>
                       <p className="text-xs text-ink-muted font-medium">
@@ -647,7 +647,7 @@ export const DashboardView: React.FC = () => {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-xs font-bold text-accent">{spk.no_spk}</span>
-                          <span className="font-black text-ink text-sm">{spk.no_polisi}</span>
+                          <span className="font-black text-ink text-sm font-mono">{formatPlat(spk.no_polisi)}</span>
                         </div>
                         <p className="text-xs text-ink-muted truncate mt-0.5">Customer: {spk.nama_customer || '-'}</p>
                       </div>
@@ -795,7 +795,7 @@ export const DashboardView: React.FC = () => {
                       <tr key={item.pr_id} className="hover:bg-surface/80 transition-colors">
                         <td className="py-3 px-3 font-mono font-bold text-status-red">{item.no_pr}</td>
                         <td className="py-3 px-3">
-                          <div className="font-bold text-ink">{item.no_polisi}</div>
+                          <div className="font-bold font-mono text-ink">{formatPlat(item.no_polisi)}</div>
                           <div className="text-xs text-ink-muted">{item.nama_customer || '-'}</div>
                         </td>
                         <td className="py-3 px-3 text-ink-muted">{item.nama_sa_pemohon || '-'}</td>
@@ -838,7 +838,7 @@ export const DashboardView: React.FC = () => {
                       <span className="font-mono font-bold text-accent">{po.no_po || '-'}</span>
                       <span className="text-xs font-bold text-accent bg-accent-subtle px-2 py-0.5 rounded">Vendor: {po.vendor_terpilih || '-'}</span>
                     </div>
-                    <div className="text-xs font-bold text-ink">{po.no_polisi} - {po.nama_customer}</div>
+                    <div className="text-xs font-bold text-ink"><span className="font-mono">{formatPlat(po.no_polisi)}</span> - {po.nama_customer}</div>
                     <div className="text-xs text-ink-muted flex items-center justify-between pt-1 border-t border-status-blue/30">
                       <span>ETA Tiba:</span>
                       <span className="font-bold text-status-blue">{po.estimasi_tanggal_ready_eta || '-'} {po.estimasi_jam_ready_eta || ''}</span>
@@ -970,7 +970,7 @@ export const DashboardView: React.FC = () => {
                     spkSiapFaktur.map((spk) => (
                       <tr key={spk.id} className="hover:bg-surface/80 transition-colors">
                         <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
-                        <td className="py-3 px-3 font-bold text-ink">{spk.no_polisi}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(spk.no_polisi)}</td>
                         <td className="py-3 px-3 text-ink-muted">{spk.nama_customer || '-'}</td>
                         <td className="py-3 px-3 font-semibold text-ink">
                           Rp {(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
@@ -1011,7 +1011,7 @@ export const DashboardView: React.FC = () => {
                       <span className="font-mono font-bold text-accent">{inv.no_invoice}</span>
                       <StatusBadge status={inv.status_pembayaran} size="sm" />
                     </div>
-                    <div className="text-xs font-bold text-ink">{inv.no_polisi} - {inv.nama_customer}</div>
+                    <div className="text-xs font-bold text-ink"><span className="font-mono">{formatPlat(inv.no_polisi)}</span> - {inv.nama_customer}</div>
                     <div className="text-xs font-black text-status-amber pt-1 border-t border-status-amber/30 flex items-center justify-between">
                       <span>Total:</span>
                       <span>Rp {(inv.grand_total || 0).toLocaleString('id-ID')}</span>
@@ -1120,7 +1120,7 @@ export const DashboardView: React.FC = () => {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs font-bold text-accent">{tamu.no_tiket}</span>
-                      <span className="font-bold text-ink text-sm">{tamu.no_polisi}</span>
+                      <span className="font-bold font-mono text-ink text-sm">{formatPlat(tamu.no_polisi)}</span>
                       <span className="text-xs font-semibold text-ink-muted">({tamu.nama_customer || 'Tamu'})</span>
                     </div>
                     <p className="text-xs text-ink-muted">
@@ -1300,7 +1300,7 @@ export const DashboardView: React.FC = () => {
                     spkList.slice(0, 5).map((spk) => (
                       <tr key={spk.id} className="hover:bg-surface/80 transition-colors">
                         <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
-                        <td className="py-3 px-3 font-bold text-ink">{spk.no_polisi}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(spk.no_polisi)}</td>
                         <td className="py-3 px-3">
                           <div className="font-medium text-ink">{spk.nama_customer || '-'}</div>
                           <div className="text-xs text-ink-subtle line-clamp-1">{spk.keluhan_customer}</div>
@@ -1349,7 +1349,7 @@ export const DashboardView: React.FC = () => {
                         <StatusBadge status={item.status_pr} size="sm" />
                       </div>
                       <div className="text-xs font-bold text-ink">
-                        {item.no_polisi} - {item.nama_customer}
+                        <span className="font-mono">{formatPlat(item.no_polisi)}</span> - {item.nama_customer}
                       </div>
                       <p className="text-xs text-ink-muted line-clamp-2">
                         {item.catatan_pr || 'Pengadaan sparepart untuk kelanjutan pekerjaan service.'}

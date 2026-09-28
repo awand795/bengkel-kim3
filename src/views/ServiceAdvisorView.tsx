@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, getApiErrorMessage } from '../api/client';
+import { api, getApiErrorMessage, formatPlat } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
@@ -607,7 +607,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         type: 'SPK_CREATED',
         targetRoles: ['Foreman'],
         title: 'SPK Penerimaan Dibuat',
-        message: `SPK untuk unit ${formPenerimaan.no_polisi} (${formPenerimaan.nama_customer || 'Kendaraan'}) siap untuk dicek dan didistribusikan ke Mekanik.`,
+        message: `SPK untuk unit ${formatPlat(formPenerimaan.no_polisi)} (${formPenerimaan.nama_customer || 'Kendaraan'}) siap untuk dicek dan didistribusikan ke Mekanik.`,
         linkTab: 'foreman',
         urgency: 'info',
       });
@@ -616,7 +616,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       await publishKeCustomer({
         type: 'SPK_CREATED',
         title: 'SPK Penerimaan Kendaraan Diterbitkan',
-        message: `Unit ${formPenerimaan.no_polisi} telah diinspeksi awal oleh Service Advisor dan SPK resmi telah diterbitkan.`,
+        message: `Unit ${formatPlat(formPenerimaan.no_polisi)} telah diinspeksi awal oleh Service Advisor dan SPK resmi telah diterbitkan.`,
         linkTab: 'fleet-status',
         urgency: 'info',
         noPolisi: formPenerimaan.no_polisi,
@@ -866,7 +866,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       await publishKeCustomer({
         type: 'SPK_STATUS_CHANGED',
         title: 'Invoice Service Terbit',
-        message: `Invoice ${result.invNo} untuk unit ${spk.no_polisi} (SPK: ${spk.no_spk}) sebesar Rp ${Number(result.grandTotal || 0).toLocaleString('id-ID')} telah terbit. Silakan lakukan pembayaran di Kasir.`,
+        message: `Invoice ${result.invNo} untuk unit ${formatPlat(spk.no_polisi)} (SPK: ${spk.no_spk}) sebesar Rp ${Number(result.grandTotal || 0).toLocaleString('id-ID')} telah terbit. Silakan lakukan pembayaran di Kasir.`,
         linkTab: 'fleet-history',
         urgency: 'urgent',
         noPolisi: spk.no_polisi,
@@ -876,7 +876,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         type: 'SPK_STATUS_CHANGED',
         targetRoles: ['Admin Invoice'],
         title: 'Invoice Baru Masuk Kasir',
-        message: `Invoice ${result.invNo} (${spk.no_polisi}) Rp ${Number(result.grandTotal || 0).toLocaleString('id-ID')} menunggu pembayaran.`,
+        message: `Invoice ${result.invNo} (${formatPlat(spk.no_polisi)}) Rp ${Number(result.grandTotal || 0).toLocaleString('id-ID')} menunggu pembayaran.`,
         linkTab: 'kasir',
         urgency: 'info',
       });
@@ -941,7 +941,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       await publishKeCustomer({
         type: 'PART_REQUESTED',
         title: 'Estimasi Pembelian Part Menunggu Persetujuan',
-        message: `Estimasi pembelian part untuk ${nopolBaru} (${namaBaru}) menunggu persetujuan Anda di portal.`,
+        message: `Estimasi pembelian part untuk ${formatPlat(nopolBaru)} (${namaBaru}) menunggu persetujuan Anda di portal.`,
         linkTab: idBaru != null ? `fleet-history:part:${idBaru}` : 'fleet-history',
         urgency: 'warning',
         noPolisi: nopolBaru,
@@ -973,7 +973,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         type: 'PART_REQUESTED',
         targetRoles: ['Warehouse'],
         title: 'Picking Request Part Baru',
-        message: `Estimasi ${item.no_transaksi} (${item.no_polisi} - ${item.nama_customer}) telah disetujui, menunggu picking gudang.`,
+        message: `Estimasi ${item.no_transaksi} (${formatPlat(item.no_polisi)} - ${item.nama_customer}) telah disetujui, menunggu picking gudang.`,
         linkTab: 'beli-part-picking',
         urgency: 'info',
       });
@@ -1175,7 +1175,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   <ListItemCard
                     key={spk.id}
                     icon={ClipboardList}
-                    title={`${spk.no_polisi} — ${spk.nama_customer || 'Pelanggan'}`}
+                    title={`${formatPlat(spk.no_polisi)} — ${spk.nama_customer || 'Pelanggan'}`}
                     subtitle={`${spk.no_spk} • ${spk.nama_mekanik ? `${spk.nama_mekanik}${spk.nama_foreman ? ` (${spk.nama_foreman})` : ''}` : 'Belum Ditugaskan'} • Rp ${Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}`}
                     badge={<StatusBadge status={spk.status_spk} size="sm" />}
                     chips={prAktif ? [`PR ${prAktif.status_pr}`] : undefined}
@@ -1338,7 +1338,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     <ListItemCard
                       key={a.id}
                       icon={Car}
-                      title={`${a.no_polisi} — ${a.nama_customer || 'Tanpa Nama'}`}
+                      title={`${formatPlat(a.no_polisi)} — ${a.nama_customer || 'Tanpa Nama'}`}
                       subtitle={`${a.keperluan || a.catatan_security || 'Service Umum'} • Masuk: ${a.waktu_masuk ? new Date(a.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'} WIB`}
                       chips={a.jenis_armada ? [a.jenis_armada] : undefined}
                       selected={formPenerimaan.id_antrian === a.id}
@@ -1354,7 +1354,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               <div className="p-4 bg-surface rounded-xl border border-border grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <span className="text-xs text-ink-subtle font-semibold block">No. Polisi Unit</span>
-                  <span className="text-base font-bold font-mono text-ink">{formPenerimaan.no_polisi}</span>
+                  <span className="text-base font-bold font-mono text-ink">{formatPlat(formPenerimaan.no_polisi)}</span>
                 </div>
                 <div>
                   <span className="text-xs text-ink-subtle font-semibold block">Nama Pelanggan / Kendaraan</span>
@@ -1501,7 +1501,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             <div className="text-xs sm:text-sm text-ink-muted font-medium truncate w-full sm:w-auto">
               {formPenerimaan.no_polisi ? (
                 <span className="flex items-center gap-2">
-                  <span className="font-bold font-mono text-ink">{formPenerimaan.no_polisi}</span>
+                  <span className="font-bold font-mono text-ink">{formatPlat(formPenerimaan.no_polisi)}</span>
                   <span>•</span>
                   <span>{formPenerimaan.odometer_km ? `${formPenerimaan.odometer_km.toLocaleString()} KM` : 'KM belum diisi'}</span>
                   <span>•</span>
@@ -1589,7 +1589,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   <ListItemCard
                     key={pr.pr_id}
                     icon={ShoppingBag}
-                    title={`${pr.no_polisi} — ${pr.nama_customer}`}
+                    title={`${formatPlat(pr.no_polisi)} — ${pr.nama_customer}`}
                     subtitle={`${pr.no_pr} • ${pr.catatan_pr}`}
                     badge={
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -1692,7 +1692,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                         className="cursor-pointer hover:bg-surface transition-colors"
                       >
                         <td className="py-3 px-3 font-mono font-bold text-accent">{item.no_transaksi}</td>
-                        <td className="py-3 px-3 font-black text-ink">{item.no_polisi}</td>
+                        <td className="py-3 px-3 font-mono font-black text-ink">{formatPlat(item.no_polisi)}</td>
                         <td className="py-3 px-3 text-ink-muted">{item.nama_customer}</td>
                         <td className="py-3 px-3 text-right font-mono font-bold">Rp {Number(item.total_biaya || 0).toLocaleString('id-ID')}</td>
                         <td className="py-3 px-3"><StatusBadge status={item.status_transaksi} size="sm" /></td>
@@ -1774,7 +1774,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     className="border border-status-amber/40 bg-status-amber-bg/30 rounded-xl p-4 space-y-2.5"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-black text-sm text-ink">{a.no_polisi}</span>
+                      <span className="font-mono font-black text-sm text-ink">{formatPlat(a.no_polisi)}</span>
                       <span className="px-2 py-0.5 rounded-full text-xs font-black bg-status-amber text-white">
                         {a.status_kunjungan}
                       </span>
@@ -1854,7 +1854,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     <option value="">-- Input Manual / Walk-In --</option>
                     {antrianBeliPart.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.no_polisi} - {a.nama_customer || 'Pelanggan'} ({new Date(a.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})
+                        {formatPlat(a.no_polisi)} - {a.nama_customer || 'Pelanggan'} ({new Date(a.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})
                       </option>
                     ))}
                   </select>
@@ -2036,7 +2036,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           onClose={() => setShowPartDetailModal(null)}
           size="md"
           title={posActive.no_transaksi}
-          subtitle={`${posActive.no_polisi} • ${posActive.nama_customer}`}
+          subtitle={`${formatPlat(posActive.no_polisi)} • ${posActive.nama_customer}`}
           badge={<StatusBadge status={posActive.status_transaksi} size="sm" />}
           footer={
             <div className="flex flex-col gap-2 w-full">
@@ -2138,7 +2138,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           open={Boolean(selectedPr)}
           onClose={() => setSelectedPrId(null)}
           size="lg"
-          title={`${selectedPr.no_polisi} — ${selectedPr.nama_customer}`}
+          title={`${formatPlat(selectedPr.no_polisi)} — ${selectedPr.nama_customer}`}
           subtitle={`No. PR: ${selectedPr.no_pr}`}
           badge={<StatusBadge status={selectedPr.status_pr} size="sm" />}
           tabs={[
@@ -2155,7 +2155,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                       </div>
                       <div>
                         <span className="text-ink-subtle font-semibold block">Unit &amp; Pelanggan</span>
-                        <span className="font-bold text-ink text-sm">{selectedPr.no_polisi} — {selectedPr.nama_customer}</span>
+                        <span className="font-bold text-ink text-sm"><span className="font-mono">{formatPlat(selectedPr.no_polisi)}</span> — {selectedPr.nama_customer}</span>
                       </div>
                     </div>
                     <div className="pt-2 border-t border-border">
@@ -2298,7 +2298,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       {prRejectConfirmOpen && selectedPr && (
         <ConfirmModal
           title="Tolak Penawaran PO"
-          message={`Apakah Anda yakin ingin menolak penawaran PO ${selectedPr.no_po || ''} untuk unit ${selectedPr.no_polisi}?`}
+          message={`Apakah Anda yakin ingin menolak penawaran PO ${selectedPr.no_po || ''} untuk unit ${formatPlat(selectedPr.no_polisi)}?`}
           confirmLabel="Ya, Tolak PO"
           cancelLabel="Batal"
           tone="red"
@@ -2324,7 +2324,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           open={Boolean(showEstimasiModal)}
           onClose={() => { setShowEstimasiModal(null); resetEstimasiForm(); }}
           title="Buat Estimasi Biaya & Waktu"
-          subtitle={`Berdasarkan hasil pengecekan ${showEstimasiModal.nama_foreman ? `Foreman (${showEstimasiModal.nama_foreman})` : 'Foreman'} untuk ${showEstimasiModal.no_polisi}`}
+          subtitle={`Berdasarkan hasil pengecekan ${showEstimasiModal.nama_foreman ? `Foreman (${showEstimasiModal.nama_foreman})` : 'Foreman'} untuk ${formatPlat(showEstimasiModal.no_polisi)}`}
           size="xl"
           footer={
             <div className="flex items-center justify-between gap-3 w-full">
@@ -2557,7 +2557,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         >
           <div className="space-y-4 text-xs">
             <div className="p-3.5 rounded-xl bg-surface border border-border">
-              <div className="font-bold text-ink text-sm">{showPrModal.no_spk} - {showPrModal.no_polisi}</div>
+              <div className="font-bold text-ink text-sm">{showPrModal.no_spk} - <span className="font-mono">{formatPlat(showPrModal.no_polisi)}</span></div>
               <div className="text-ink-muted mt-0.5">{showPrModal.nama_customer}</div>
             </div>
 
@@ -2707,7 +2707,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               </div>
               <div className="flex items-baseline justify-between">
                 <div>
-                  <div className="text-base font-black text-ink">{showFinalCheckModal.no_polisi}</div>
+                  <div className="text-base font-black font-mono text-ink">{formatPlat(showFinalCheckModal.no_polisi)}</div>
                   <div className="text-xs text-ink-muted font-semibold">{showFinalCheckModal.nama_customer}</div>
                 </div>
                 <div className="text-right">
@@ -2863,7 +2863,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           open={Boolean(selectedSpk)}
           onClose={() => setSelectedSpk(null)}
           title={`SPK ${selectedSpk.no_spk}`}
-          subtitle={`${selectedSpk.no_polisi} • ${selectedSpk.nama_customer || 'Kendaraan'}`}
+          subtitle={`${formatPlat(selectedSpk.no_polisi)} • ${selectedSpk.nama_customer || 'Kendaraan'}`}
           badge={<StatusBadge status={selectedSpk.status_spk} size="sm" />}
           size="lg"
           tabs={[
@@ -2875,7 +2875,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 bg-surface rounded-xl border border-border">
                       <span className="text-xs text-ink-muted block">No. Polisi</span>
-                      <span className="text-sm font-black text-ink">{selectedSpk.no_polisi}</span>
+                      <span className="text-sm font-black font-mono text-ink">{formatPlat(selectedSpk.no_polisi)}</span>
                     </div>
                     <div className="p-3 bg-surface rounded-xl border border-border">
                       <span className="text-xs text-ink-muted block">Odometer</span>

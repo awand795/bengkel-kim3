@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, formatPlat } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PurchaseRequestPart } from '../types';
@@ -137,7 +137,7 @@ export const PurchasingView: React.FC = () => {
         type: 'SPK_STATUS_CHANGED',
         targetRoles: ['SA'],
         title: 'ETA Barang Diperbarui',
-        message: `Purchasing menginput ETA barang ready untuk ${selectedPr?.no_pr} (${selectedPr?.no_polisi}): ${poForm.estimasi_tanggal_ready_eta} ${poForm.estimasi_jam_ready_eta}.`,
+        message: `Purchasing menginput ETA barang ready untuk ${selectedPr?.no_pr} (${formatPlat(selectedPr?.no_polisi)}): ${poForm.estimasi_tanggal_ready_eta} ${poForm.estimasi_jam_ready_eta}.`,
         linkTab: 'sa',
         urgency: 'info',
       });
@@ -166,7 +166,7 @@ export const PurchasingView: React.FC = () => {
           targetRoles: ['Mekanik'],
           targetUserId: mechanicId,
           title: 'Barang Ready di Bengkel KIM3',
-          message: `Sparepart untuk kendaraan ${pr.no_polisi} telah ready di bengkel. SA finalisasi estimasi untuk approval customer sebelum WO dimulai.`,
+          message: `Sparepart untuk kendaraan ${formatPlat(pr.no_polisi)} telah ready di bengkel. SA finalisasi estimasi untuk approval customer sebelum WO dimulai.`,
           linkTab: 'mekanik',
           urgency: 'info',
         });
@@ -176,7 +176,7 @@ export const PurchasingView: React.FC = () => {
         type: 'SPK_STATUS_CHANGED',
         targetRoles: ['Foreman', 'SA'],
         title: 'Barang Ready di Bengkel KIM3',
-        message: `Sparepart untuk kendaraan ${pr.no_polisi} telah ready di bengkel. SA finalisasi estimasi untuk approval customer.`,
+        message: `Sparepart untuk kendaraan ${formatPlat(pr.no_polisi)} telah ready di bengkel. SA finalisasi estimasi untuk approval customer.`,
         linkTab: 'foreman',
         urgency: 'success',
       });
@@ -184,12 +184,12 @@ export const PurchasingView: React.FC = () => {
       await publishKeCustomer({
         type: 'SPK_STATUS_CHANGED',
         title: 'Sparepart Kendaraan Tersedia',
-        message: `Sparepart untuk kendaraan ${pr.no_polisi} telah tiba di bengkel. SA sedang finalisasi estimasi untuk persetujuan Anda.`,
+        message: `Sparepart untuk kendaraan ${formatPlat(pr.no_polisi)} telah tiba di bengkel. SA sedang finalisasi estimasi untuk persetujuan Anda.`,
         linkTab: 'fleet-status',
         urgency: 'info',
         noPolisi: pr.no_polisi,
       });
-      toast.success(`Barang untuk ${pr.no_polisi} telah dikonfirmasi READY! Status SPK kembali ke "Estimasi Dibuat" untuk finalisasi SA.`);
+      toast.success(`Barang untuk ${formatPlat(pr.no_polisi)} telah dikonfirmasi READY! Status SPK kembali ke "Estimasi Dibuat" untuk finalisasi SA.`);
     },
     onError: (err: any) => toast.error('Gagal konfirmasi barang ready: ' + (err?.message || 'Terjadi kesalahan.')),
   });
@@ -329,7 +329,7 @@ export const PurchasingView: React.FC = () => {
             paginatedPrList.map((item) => (
               <ListItemCard
                 key={item.pr_id}
-                title={item.no_polisi}
+                title={formatPlat(item.no_polisi)}
                 subtitle={`${item.no_pr} • ${item.nama_customer || 'Customer'} • Pemohon: ${item.nama_sa_pemohon || '-'}`}
                 badge={<StatusBadge status={item.status_pr} size="sm" />}
                 chips={[
@@ -375,7 +375,7 @@ export const PurchasingView: React.FC = () => {
             setIsProcessingPo(false);
           }}
           title={`Purchase Request ${selectedPr.no_pr}`}
-          subtitle={`${selectedPr.no_polisi} • ${selectedPr.nama_customer}`}
+          subtitle={`${formatPlat(selectedPr.no_polisi)} • ${selectedPr.nama_customer}`}
           badge={<StatusBadge status={selectedPr.status_pr} size="sm" />}
           size="lg"
           tabs={[
@@ -387,7 +387,7 @@ export const PurchasingView: React.FC = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="p-3 bg-surface rounded-xl border border-border">
                       <span className="text-ink-muted text-xs block">Kendaraan</span>
-                      <span className="font-bold text-ink text-sm">{selectedPr.no_polisi}</span>
+                      <span className="font-bold font-mono text-ink text-sm">{formatPlat(selectedPr.no_polisi)}</span>
                     </div>
                     <div className="p-3 bg-surface rounded-xl border border-border">
                       <span className="text-ink-muted text-xs block">Customer</span>
@@ -580,7 +580,7 @@ export const PurchasingView: React.FC = () => {
           open={true}
           onClose={() => setIsProcessingPo(false)}
           title={`Proses PO untuk ${selectedPr.no_pr}`}
-          subtitle={`Kendaraan: ${selectedPr.no_polisi} • ${selectedPr.nama_customer || 'Customer'}`}
+          subtitle={`Kendaraan: ${formatPlat(selectedPr.no_polisi)} • ${selectedPr.nama_customer || 'Customer'}`}
           currentStep={poStep}
           onNext={() => setPoStep((prev) => prev + 1)}
           onBack={() => setPoStep((prev) => prev - 1)}
@@ -722,7 +722,7 @@ export const PurchasingView: React.FC = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-ink-muted">Kendaraan:</span>
-                        <span className="font-bold text-ink">{selectedPr.no_polisi}</span>
+                        <span className="font-bold font-mono text-ink">{formatPlat(selectedPr.no_polisi)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-ink-muted">Vendor 1:</span>

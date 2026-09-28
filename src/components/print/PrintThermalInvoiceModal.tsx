@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../api/client';
+import { api, formatPlat } from '../../api/client';
 import { InvoicePembayaran } from '../../types';
 import { Printer, X, CheckCircle2 } from 'lucide-react';
 import { ModalPortal } from '../common/ModalPortal';
@@ -88,7 +88,7 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
                 </div>
                 <div className="flex justify-between">
                   <span>No. Pol :</span>
-                  <span className="font-bold">{invoice.no_polisi}</span>
+                  <span className="font-bold">{formatPlat(invoice.no_polisi)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Customer:</span>

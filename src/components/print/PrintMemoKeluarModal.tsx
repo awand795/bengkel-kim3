@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../api/client';
+import { api, formatPlat } from '../../api/client';
 import { MemoKeluar, InvoicePembayaran } from '../../types';
 import { Printer, X, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { ModalPortal } from '../common/ModalPortal';
@@ -145,7 +145,7 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
               <div className="space-y-2">
                 <div className="flex">
                   <span className="w-32 text-ink-muted">No. Polisi</span>
-                  <span className="font-black text-ink text-sm">: {memo.no_polisi}</span>
+                  <span className="font-black text-ink text-sm">: {formatPlat(memo.no_polisi)}</span>
                 </div>
                 <div className="flex">
                   <span className="w-32 text-ink-muted">Customer / Kendaraan</span>

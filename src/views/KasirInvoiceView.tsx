@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, formatPlat } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { StatCard } from '../components/common/StatCard';
@@ -83,7 +83,7 @@ export const KasirInvoiceView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
 
-      const lunasMsg = `Pembayaran ${inv.no_invoice} (${inv.no_polisi}) Rp ${Number(inv.grand_total || 0).toLocaleString('id-ID')} telah diterima via ${metodeBayar}.`;
+      const lunasMsg = `Pembayaran ${inv.no_invoice} (${formatPlat(inv.no_polisi)}) Rp ${Number(inv.grand_total || 0).toLocaleString('id-ID')} telah diterima via ${metodeBayar}.`;
       await publishKeCustomer({
         type: 'INVOICE_PAID',
         title: 'Pembayaran Lunas',
@@ -171,7 +171,7 @@ export const KasirInvoiceView: React.FC = () => {
           <div className="p-4 bg-surface rounded-xl border border-border flex items-center justify-between">
             <div>
               <span className="text-xs text-ink-subtle uppercase font-bold tracking-wider">Kendaraan &amp; Customer</span>
-              <div className="text-base font-bold text-ink mt-0.5">{selectedInvoice.no_polisi}</div>
+              <div className="text-base font-bold font-mono text-ink mt-0.5">{formatPlat(selectedInvoice.no_polisi)}</div>
               <div className="text-xs text-ink-muted">{selectedInvoice.nama_customer || 'Pelanggan Bengkel'}</div>
             </div>
             <div className="text-right">
@@ -389,8 +389,8 @@ export const KasirInvoiceView: React.FC = () => {
                       <td className="py-3.5 px-3.5 font-mono font-bold text-accent">
                         {inv.no_invoice}
                       </td>
-                      <td className="py-3.5 px-3.5 font-bold text-ink">
-                        {inv.no_polisi}
+                      <td className="py-3.5 px-3.5 font-bold font-mono text-ink">
+                        {formatPlat(inv.no_polisi)}
                       </td>
                       <td className="py-3.5 px-3.5 text-ink-muted">
                         {inv.nama_customer || '-'}
@@ -462,7 +462,7 @@ export const KasirInvoiceView: React.FC = () => {
               <ListItemCard
                 key={inv.id}
                 title={inv.no_invoice}
-                subtitle={`${inv.no_polisi} • ${inv.nama_customer || 'Pelanggan Umum'}`}
+                subtitle={`${formatPlat(inv.no_polisi)} • ${inv.nama_customer || 'Pelanggan Umum'}`}
                 badge={<StatusBadge status={inv.status_pembayaran} size="sm" />}
                 chips={[
                   `Rp ${Number(inv.grand_total || 0).toLocaleString('id-ID')}`,
@@ -501,7 +501,7 @@ export const KasirInvoiceView: React.FC = () => {
           open={true}
           onClose={handleCloseModal}
           title={selectedInvoice.no_invoice}
-          subtitle={`${selectedInvoice.no_polisi} • ${selectedInvoice.nama_customer || 'Pelanggan Umum'}`}
+          subtitle={`${formatPlat(selectedInvoice.no_polisi)} • ${selectedInvoice.nama_customer || 'Pelanggan Umum'}`}
           badge={<StatusBadge status={selectedInvoice.status_pembayaran} size="sm" />}
           size="md"
           footer={
@@ -528,7 +528,7 @@ export const KasirInvoiceView: React.FC = () => {
             <div className="p-4 bg-surface rounded-xl border border-border space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-ink-subtle">No. Polisi / Unit:</span>
-                <span className="font-bold text-ink">{selectedInvoice.no_polisi}</span>
+                <span className="font-bold font-mono text-ink">{formatPlat(selectedInvoice.no_polisi)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-ink-subtle">Nama Customer:</span>

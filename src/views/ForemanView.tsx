@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, getApiErrorMessage } from '../api/client';
+import { api, getApiErrorMessage, formatPlat } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { SpkService, BookingService } from '../types';
@@ -230,7 +230,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
           targetRoles: ['Mekanik'],
           targetUserId: assignedId,
           title: 'Penugasan Pengecekan Awal',
-          message: `SPK ${spk.no_spk} unit ${spk.no_polisi} ditugaskan Foreman ke Anda untuk pengecekan awal. Hasil cek diinput Foreman ke sistem.`,
+          message: `SPK ${spk.no_spk} unit ${formatPlat(spk.no_polisi)} ditugaskan Foreman ke Anda untuk pengecekan awal. Hasil cek diinput Foreman ke sistem.`,
           linkTab: 'mekanik',
           urgency: 'urgent',
         });
@@ -459,7 +459,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                     {todayBookings.map((b) => (
                       <ListItemCard
                         key={b.id}
-                        title={`${b.no_polisi} — ${b.nama_perusahaan || b.nama_customer}`}
+                        title={`${formatPlat(b.no_polisi)} — ${b.nama_perusahaan || b.nama_customer}`}
                         subtitle={`${b.jenis_layanan || 'Service Berkala'} • Driver: ${b.pic_driver || '-'} • Telp: ${b.no_telepon || '-'}${b.keluhan ? ` • "${b.keluhan}"` : ''}`}
                         badge={
                           <StatusBadge 
@@ -494,7 +494,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
               <div className="text-xs text-ink-muted bg-surface p-3 rounded-xl border border-border flex items-center justify-between">
                 <span>
                   <strong>{todayBookings.length} Kendaraan Terjadwal:</strong>{' '}
-                  {todayBookings.map((b) => `${b.no_polisi} (${b.jam_booking || '08:00'})`).join(', ')}
+                  {todayBookings.map((b) => `${formatPlat(b.no_polisi)} (${b.jam_booking || '08:00'})`).join(', ')}
                 </span>
                 <button
                   type="button"
@@ -574,7 +574,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                     <ListItemCard
                       key={spk.id}
                       onClick={() => setSelectedSpk(spk)}
-                      title={`${spk.no_spk} — ${spk.no_polisi}`}
+                      title={`${spk.no_spk} — ${formatPlat(spk.no_polisi)}`}
                       subtitle={`${spk.nama_customer || 'Pelanggan Bengkel'} • SA: ${spk.nama_sa} • Mekanik: ${spk.nama_mekanik || 'Belum Ditugaskan'}`}
                       badge={<StatusBadge status={spk.status_spk} size="sm" />}
                       chips={[
@@ -682,7 +682,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
               open={Boolean(selectedSpk)}
               onClose={() => setSelectedSpk(null)}
               title={`SPK ${selectedSpk.no_spk}`}
-              subtitle={`${selectedSpk.no_polisi} • ${selectedSpk.nama_customer || 'Pelanggan Bengkel'}`}
+              subtitle={`${formatPlat(selectedSpk.no_polisi)} • ${selectedSpk.nama_customer || 'Pelanggan Bengkel'}`}
               badge={<StatusBadge status={selectedSpk.status_spk} size="sm" />}
               size="lg"
               tabs={[
@@ -854,7 +854,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 <option value="">-- Pilih SPK Kendaraan --</option>
                 {spkList?.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.no_spk} - {s.no_polisi} ({s.nama_customer})
+                    {s.no_spk} - {formatPlat(s.no_polisi)} ({s.nama_customer})
                   </option>
                 ))}
               </select>
@@ -1009,7 +1009,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 <option value="">-- Pilih SPK Selesai Dikerjakan --</option>
                 {spkList?.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.no_spk} - {s.no_polisi} ({s.status_spk})
+                    {s.no_spk} - {formatPlat(s.no_polisi)} ({s.status_spk})
                   </option>
                 ))}
               </select>
@@ -1091,7 +1091,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
           open={Boolean(assignSpk)}
           onClose={() => setAssignSpk(null)}
           title={`Penugasan Mekanik: ${assignSpk.no_spk}`}
-          subtitle={`${assignSpk.no_polisi} • ${assignSpk.nama_customer || 'Pelanggan Bengkel'}`}
+          subtitle={`${formatPlat(assignSpk.no_polisi)} • ${assignSpk.nama_customer || 'Pelanggan Bengkel'}`}
           currentStep={assignStep}
           onNext={() => setAssignStep((s) => Math.min(s + 1, 2))}
           onBack={() => setAssignStep((s) => Math.max(s - 1, 0))}
@@ -1117,7 +1117,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-ink-muted">No. Polisi:</span>
-                      <span className="font-bold text-ink">{assignSpk.no_polisi}</span>
+                      <span className="font-bold font-mono text-ink">{formatPlat(assignSpk.no_polisi)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-ink-muted">Customer:</span>
@@ -1182,7 +1182,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                     </div>
                     <div className="flex justify-between">
                       <span className="text-ink-muted">Unit Kendaraan:</span>
-                      <span className="font-bold text-ink">{assignSpk.no_polisi} ({assignSpk.no_spk})</span>
+                      <span className="font-bold text-ink"><span className="font-mono">{formatPlat(assignSpk.no_polisi)}</span> ({assignSpk.no_spk})</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-ink-muted">Mekanik Ditugaskan:</span>
@@ -1206,7 +1206,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
           open={showCekModal}
           onClose={() => setShowCekModal(false)}
           title="Input Perbaikan Hasil Pengecekan"
-          subtitle={`SPK ${selectedSpk.no_spk} • ${selectedSpk.no_polisi}`}
+          subtitle={`SPK ${selectedSpk.no_spk} • ${formatPlat(selectedSpk.no_polisi)}`}
           currentStep={cekStep}
           onNext={() => setCekStep((s) => Math.min(s + 1, 2))}
           onBack={() => setCekStep((s) => Math.max(s - 1, 0))}
@@ -1228,7 +1228,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                   <div className="p-3.5 bg-surface rounded-xl border border-border space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-ink-muted">SPK Kendaraan:</span>
-                      <span className="font-bold text-ink">{selectedSpk.no_spk} — {selectedSpk.no_polisi}</span>
+                      <span className="font-bold text-ink">{selectedSpk.no_spk} — <span className="font-mono">{formatPlat(selectedSpk.no_polisi)}</span></span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-ink-muted">Customer:</span>
@@ -1394,7 +1394,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
           open={showQcModal}
           onClose={() => setShowQcModal(false)}
           title="Quality Control &amp; Final Inspection Report"
-          subtitle={`SPK ${selectedSpk.no_spk} • ${selectedSpk.no_polisi}`}
+          subtitle={`SPK ${selectedSpk.no_spk} • ${formatPlat(selectedSpk.no_polisi)}`}
           currentStep={qcStep}
           onNext={() => setQcStep((s) => Math.min(s + 1, 2))}
           onBack={() => setQcStep((s) => Math.max(s - 1, 0))}
@@ -1420,7 +1420,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-ink-muted">No. Polisi:</span>
-                      <span className="font-bold text-ink">{selectedSpk.no_polisi}</span>
+                      <span className="font-bold font-mono text-ink">{formatPlat(selectedSpk.no_polisi)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-ink-muted">Customer:</span>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, getApiErrorMessage } from '../api/client';
+import { api, getApiErrorMessage, formatPlat } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { useAppStore } from '../store/useAppStore';
@@ -382,7 +382,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           targetUserId: targetPicUser?.id,
           targetUserEmail: targetPicUser?.email,
           title: 'Tamu Tiba di Pos Security',
-          message: `Tamu ${formCheckin.nama_customer || 'Pengunjung'} (${formCheckin.no_polisi}) telah tiba di Pos Security menuju ${formCheckin.pic_tujuan}.`,
+          message: `Tamu ${formCheckin.nama_customer || 'Pengunjung'} (${formatPlat(formCheckin.no_polisi)}) telah tiba di Pos Security menuju ${formCheckin.pic_tujuan}.`,
           linkTab: 'pic-terkait',
           urgency: 'urgent',
         });
@@ -394,7 +394,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             targetUserId: pemilik.user_id,
             targetPelangganId: pemilik.id_pelanggan,
             title: 'Kunjungan Tercatat di Pos Gerbang',
-            message: `Unit ${formCheckin.no_polisi} tercatat berkunjung ke Pos Security KIM 3 menuju ${formCheckin.pic_tujuan || 'tujuan internal'}. Riwayat tersimpan by plat.`,
+            message: `Unit ${formatPlat(formCheckin.no_polisi)} tercatat berkunjung ke Pos Security KIM 3 menuju ${formCheckin.pic_tujuan || 'tujuan internal'}. Riwayat tersimpan by plat.`,
             linkTab: 'fleet-history',
             urgency: 'info',
           });
@@ -406,7 +406,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           type: 'VEHICLE_CHECKED_IN',
           targetRoles: ['SA', 'Warehouse', 'Admin Invoice', 'Admin Purchasing'],
           title: 'Customer Beli Part Datang',
-          message: `${formCheckin.nama_customer || 'Pelanggan'} (${formCheckin.no_polisi}) tiba di pos untuk pembelian part. SA silakan buka menu Penjualan Part Langsung untuk membuat estimasi.`,
+          message: `${formCheckin.nama_customer || 'Pelanggan'} (${formatPlat(formCheckin.no_polisi)}) tiba di pos untuk pembelian part. SA silakan buka menu Penjualan Part Langsung untuk membuat estimasi.`,
           linkTab: 'beli-part',
           urgency: 'urgent',
         });
@@ -418,7 +418,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             targetUserId: pemilik.user_id,
             targetPelangganId: pemilik.id_pelanggan,
             title: 'Kunjungan Beli Part Tercatat',
-            message: `Unit ${formCheckin.no_polisi} tercatat di Pos Security KIM 3 untuk pembelian part. Riwayat tersimpan by plat.`,
+            message: `Unit ${formatPlat(formCheckin.no_polisi)} tercatat di Pos Security KIM 3 untuk pembelian part. Riwayat tersimpan by plat.`,
             linkTab: 'fleet-history',
             urgency: 'info',
           });
@@ -429,7 +429,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           type: 'VEHICLE_CHECKED_IN',
           targetRoles: ['SA'],
           title: 'Kendaraan Masuk (Perlu SPK)',
-          message: `Unit ${formCheckin.no_polisi} (${formCheckin.nama_customer || 'Pelanggan'}) telah di-check in di pos security. Siap untuk inspeksi awal & pembuatan SPK.`,
+          message: `Unit ${formatPlat(formCheckin.no_polisi)} (${formCheckin.nama_customer || 'Pelanggan'}) telah di-check in di pos security. Siap untuk inspeksi awal & pembuatan SPK.`,
           linkTab: 'sa',
           urgency: 'urgent',
         });
@@ -444,7 +444,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             targetUserId: pemilik.user_id,
             targetPelangganId: pemilik.id_pelanggan,
             title: 'Kendaraan Tiba di Pos Gerbang',
-            message: `Unit ${formCheckin.no_polisi} telah berhasil di-check in di Pos Security KIM 3 dan sedang menunggu antrian inspeksi awal.`,
+            message: `Unit ${formatPlat(formCheckin.no_polisi)} telah berhasil di-check in di Pos Security KIM 3 dan sedang menunggu antrian inspeksi awal.`,
             linkTab: 'fleet-status',
             urgency: 'info',
           });
@@ -515,7 +515,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       await publishKeCustomer({
         type: 'VEHICLE_CHECKED_OUT',
         title: 'Kendaraan Telah Keluar Bengkel',
-        message: `Unit ${showCheckoutModal?.no_polisi || 'kendaraan'} telah resmi check-out & keluar melalui pos Security.`,
+        message: `Unit ${showCheckoutModal?.no_polisi ? formatPlat(showCheckoutModal.no_polisi) : 'kendaraan'} telah resmi check-out & keluar melalui pos Security.`,
         linkTab: 'fleet-status',
         urgency: 'success',
         noPolisi: showCheckoutModal?.no_polisi,
@@ -526,7 +526,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
         type: 'VEHICLE_CHECKED_OUT',
         targetRoles: ['SA'],
         title: 'Kendaraan Selesai & Keluar Gerbang',
-        message: `Unit ${showCheckoutModal?.no_polisi || 'kendaraan'} telah selesai dan keluar melalui pos Security.`,
+        message: `Unit ${showCheckoutModal?.no_polisi ? formatPlat(showCheckoutModal.no_polisi) : 'kendaraan'} telah selesai dan keluar melalui pos Security.`,
         linkTab: 'sa',
         urgency: 'info',
       });
@@ -560,7 +560,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     });
     setSelectedBooking(b);
     changeTab('checkin');
-    toast.success(`Data booking kendaraan ${b.no_polisi} (${b.nama_perusahaan || b.nama_customer || 'Pelanggan'}) berhasil diisi otomatis ke formulir check-in!`);
+    toast.success(`Data booking kendaraan ${formatPlat(b.no_polisi)} (${b.nama_perusahaan || b.nama_customer || 'Pelanggan'}) berhasil diisi otomatis ke formulir check-in!`);
   };
 
   return (
@@ -693,7 +693,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-ink">{item.no_polisi}</span>
+                        <span className="text-xs font-black font-mono text-ink">{formatPlat(item.no_polisi)}</span>
                         <span className="text-xs font-semibold text-ink-muted">({item.nama_customer})</span>
                         <span className="text-xs px-2 py-0.5 rounded bg-surface font-bold text-ink-muted border border-border">
                           {item.tujuan_kedatangan}
@@ -769,7 +769,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-ink">{item.no_polisi}</span>
+                          <span className="text-xs font-black font-mono text-ink">{formatPlat(item.no_polisi)}</span>
                           <span className="text-xs font-semibold text-ink-muted">({item.nama_customer})</span>
                           <span className="text-xs px-2 py-0.5 rounded bg-surface font-bold text-ink-muted border border-border">
                             {item.tujuan_kedatangan}
@@ -862,7 +862,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       <option value="">-- Pilih Booking untuk Isi Otomatis --</option>
                       {bookingList.map((b) => (
                         <option key={b.id} value={b.id}>
-                          {b.no_polisi} - {b.nama_customer || b.nama_perusahaan} ({b.jam_booking || 'Hari Ini'})
+                          {formatPlat(b.no_polisi)} - {b.nama_customer || b.nama_perusahaan} ({b.jam_booking || 'Hari Ini'})
                         </option>
                       ))}
                     </select>
@@ -1178,7 +1178,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="px-2.5 py-1 rounded bg-surface-dark text-white font-mono font-black text-xs tracking-wider">
-                              {item.no_polisi}
+                              {formatPlat(item.no_polisi)}
                             </span>
                             <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent border border-accent/30 text-xs font-bold">
                               {item.tujuan_kedatangan}
@@ -1332,7 +1332,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <ListItemCard
                       key={b.id}
                       selected={isSelected}
-                      title={`${b.no_polisi} — ${b.nama_customer || b.nama_perusahaan}`}
+                      title={`${formatPlat(b.no_polisi)} — ${b.nama_customer || b.nama_perusahaan}`}
                       subtitle={`${b.tujuan_kunjungan || b.jenis_layanan || 'Service'} • Tgl: ${b.tanggal_booking} Jam: ${b.jam_booking}`}
                       badge={<StatusBadge status={b.status} size="sm" />}
                       chips={[b.jenis_armada || 'Truk']}
@@ -1377,7 +1377,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             <DetailModal
               open={!!bookingPreview}
               onClose={() => setBookingPreview(null)}
-              title={bookingPreview ? `Detail Booking: ${bookingPreview.no_polisi}` : 'Detail Booking'}
+              title={bookingPreview ? `Detail Booking: ${formatPlat(bookingPreview.no_polisi)}` : 'Detail Booking'}
               subtitle={bookingPreview ? `${bookingPreview.nama_customer || bookingPreview.nama_perusahaan || '-'} • ${bookingPreview.tujuan_kunjungan || 'Service'}` : undefined}
               badge={bookingPreview ? <StatusBadge status={bookingPreview.status} /> : undefined}
               footer={
@@ -1408,7 +1408,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                   <div>
                     <div className="text-ink-subtle text-xs">No. Polisi</div>
-                    <div className="text-base font-bold text-ink mt-0.5 font-mono">{bookingPreview.no_polisi}</div>
+                    <div className="text-base font-bold text-ink mt-0.5 font-mono">{formatPlat(bookingPreview.no_polisi)}</div>
                     <div className="text-ink-subtle text-xs mt-2">Jenis Kendaraan</div>
                     <div className="font-semibold text-ink">{bookingPreview.jenis_armada || 'Truk'}</div>
                     <div className="text-ink-subtle text-xs mt-2">Tujuan Kunjungan</div>
@@ -1593,7 +1593,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 paginatedOnProgressList.map((item) => (
                   <ListItemCard
                     key={item.id}
-                    title={`${item.no_polisi} — ${item.nama_customer}`}
+                    title={`${formatPlat(item.no_polisi)} — ${item.nama_customer}`}
                     subtitle={`${item.tujuan_kedatangan} • Masuk: ${item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'} • PIC: ${item.nama_mekanik || item.pic_tujuan || '-'}`}
                     badge={<StatusBadge status={labelStatusAntrian(item)} size="sm" />}
                     chips={[item.jenis_armada || 'Truk']}
@@ -1785,7 +1785,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 paginatedSelesaiList.map((item) => (
                   <ListItemCard
                     key={item.id}
-                    title={`${item.no_polisi} — ${item.nama_customer}`}
+                    title={`${formatPlat(item.no_polisi)} — ${item.nama_customer}`}
                     subtitle={`${item.tujuan_kedatangan} • Masuk: ${item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'} • Keluar: ${item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}`}
                     badge={<StatusBadge status="Selesai" size="sm" />}
                     chips={[item.jenis_armada || 'Truk']}
@@ -1834,7 +1834,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     paginatedSelesaiList.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-surface/80 transition-colors">
                         <td className="py-3 px-3 text-ink-muted font-semibold">{(selesaiPage - 1) * selesaiLimit + idx + 1}</td>
-                        <td className="py-3 px-3 font-black text-ink tracking-wide">{item.no_polisi}</td>
+                        <td className="py-3 px-3 font-black font-mono text-ink tracking-wide">{formatPlat(item.no_polisi)}</td>
                         <td className="py-3 px-3 text-ink font-medium">{item.nama_customer}</td>
                         <td className="py-3 px-3 text-ink-muted">{item.jenis_armada}</td>
                         <td className="py-3 px-3 text-ink font-medium">{item.tujuan_kedatangan}</td>
@@ -1995,7 +1995,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       <ListItemCard
                         key={m.id}
                         selected={isSelected}
-                        title={`${m.no_memo} — ${m.no_polisi}`}
+                        title={`${m.no_memo} — ${formatPlat(m.no_polisi)}`}
                         subtitle={`${m.nama_customer} • Keluar: ${new Date(m.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                         badge={<StatusBadge status="Selesai" size="sm" />}
                         chips={[m.jenis_armada || 'Truk']}
@@ -2066,7 +2066,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           >
                             <td className="py-2.5 px-2.5 text-ink-muted font-semibold">{(memoPage - 1) * memoLimit + idx + 1}</td>
                             <td className="py-2.5 px-2.5 font-mono font-bold text-accent">{m.no_memo}</td>
-                            <td className="py-2.5 px-2.5 font-bold text-ink">{m.no_polisi}</td>
+                            <td className="py-2.5 px-2.5 font-mono font-bold text-ink">{formatPlat(m.no_polisi)}</td>
                             <td className="py-2.5 px-2.5 text-ink">{m.nama_customer}</td>
                             <td className="py-2.5 px-2.5 text-ink-muted font-mono text-xs">
                               <div>{new Date(m.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
@@ -2197,7 +2197,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-xs">
                 <div className="flex">
                   <span className="w-28 text-ink-muted">No. Polisi</span>
-                  <span className="font-black text-ink">: {selectedMemo.no_polisi}</span>
+                  <span className="font-black font-mono text-ink">: {formatPlat(selectedMemo.no_polisi)}</span>
                 </div>
                 <div className="flex">
                   <span className="w-28 text-ink-muted">Jenis Kendaraan</span>
@@ -2319,7 +2319,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         <option value="">-- Pilih Booking untuk Isi Otomatis --</option>
                         {bookingList.map((b) => (
                           <option key={b.id} value={b.id}>
-                            {b.no_polisi} - {b.nama_customer || b.nama_perusahaan} ({b.jam_booking || 'Hari Ini'})
+                            {formatPlat(b.no_polisi)} - {b.nama_customer || b.nama_perusahaan} ({b.jam_booking || 'Hari Ini'})
                           </option>
                         ))}
                       </select>
@@ -2518,7 +2518,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             setCheckoutStep(0);
           }}
           title="Proses Check Out Kendaraan"
-          subtitle={`${showCheckoutModal.no_polisi} - ${showCheckoutModal.nama_customer}`}
+          subtitle={`${formatPlat(showCheckoutModal.no_polisi)} - ${showCheckoutModal.nama_customer}`}
           currentStep={checkoutStep}
           onNext={() => {
             if (checkoutStep === 0 && formCheckout.barang_dibawa_keluar && !formCheckout.detail_barang_keluar.trim()) {
@@ -2620,7 +2620,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
         <DetailModal
           open={!!showDetailModal}
           onClose={() => setShowDetailModal(null)}
-          title={`Histori Kunjungan: ${showDetailModal.no_polisi}`}
+          title={`Histori Kunjungan: ${formatPlat(showDetailModal.no_polisi)}`}
           subtitle={`${showDetailModal.nama_customer} • Tiket #${showDetailModal.no_tiket}`}
           badge={<StatusBadge status={labelStatusAntrian(showDetailModal)} />}
           footer={

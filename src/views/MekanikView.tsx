@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { api, formatPlat } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { SpkService } from '../types';
@@ -314,7 +314,7 @@ export const MekanikView: React.FC = () => {
                     : 'bg-surface-raised text-ink-muted border-border hover:border-accent/40'
                 }`}
               >
-                <span>{job.no_polisi}</span>
+                <span>{formatPlat(job.no_polisi)}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                   job.status_spk === 'Dalam Pengerjaan' ? 'bg-white text-accent' : 'bg-surface text-ink'
                 }`}>
@@ -334,7 +334,7 @@ export const MekanikView: React.FC = () => {
             <div className="min-w-0">
               <span className="text-xs text-accent uppercase tracking-widest font-extrabold">Active Work Order</span>
               <div className="text-xl sm:text-2xl font-black font-mono mt-0.5 break-all tracking-tight text-ink">{myJob.no_spk}</div>
-              <div className="text-xs text-ink-muted font-semibold truncate mt-0.5">{myJob.no_polisi} • {myJob.nama_customer}</div>
+              <div className="text-xs text-ink-muted font-semibold truncate mt-0.5"><span className="font-mono">{formatPlat(myJob.no_polisi)}</span> • {myJob.nama_customer}</div>
             </div>
             <div className="flex items-center gap-2 flex-wrap shrink-0">
               <button
@@ -562,7 +562,7 @@ export const MekanikView: React.FC = () => {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono font-bold text-accent">{job.no_spk}</span>
-                    <span className="font-black text-ink">{job.no_polisi}</span>
+                    <span className="font-black font-mono text-ink">{formatPlat(job.no_polisi)}</span>
                   </div>
                   <div className="text-ink-muted truncate mt-0.5">Customer: {job.nama_customer || '-'}</div>
                 </div>
@@ -582,7 +582,7 @@ export const MekanikView: React.FC = () => {
             setTambahanStep(1);
           }}
           title="Pengajuan Pekerjaan Tambahan"
-          subtitle={`Unit ${activeJob?.no_polisi || myJob?.no_polisi || ''} • Foreman: ${myJob?.nama_foreman || 'Foreman'}`}
+          subtitle={`Unit ${formatPlat(activeJob?.no_polisi || myJob?.no_polisi || '')} • Foreman: ${myJob?.nama_foreman || 'Foreman'}`}
           currentStep={tambahanStep}
           onNext={() => setTambahanStep(2)}
           onBack={() => setTambahanStep(1)}

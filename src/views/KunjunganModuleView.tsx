@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, getApiErrorMessage } from '../api/client';
+import { api, getApiErrorMessage, formatPlat } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { StatCard } from '../components/common/StatCard';
@@ -162,7 +162,7 @@ export const KunjunganModuleView: React.FC = () => {
         type: 'KUNJUNGAN_CONFIRMED',
         targetRoles: ['Security'],
         title: `Kunjungan ${variables.status_konfirmasi_pic}`,
-        message: `Kunjungan #${variables.id} (${selected?.no_polisi || rejecting?.no_polisi || 'tamu'}) telah ${variables.status_konfirmasi_pic.toLowerCase()} oleh ${currentUser || 'penerima'}.`,
+        message: `Kunjungan #${variables.id} (${(selected?.no_polisi || rejecting?.no_polisi) ? formatPlat(selected?.no_polisi || rejecting?.no_polisi) : 'tamu'}) telah ${variables.status_konfirmasi_pic.toLowerCase()} oleh ${currentUser || 'penerima'}.`,
         urgency: variables.status_konfirmasi_pic === 'Diterima' ? 'success' : 'warning',
       });
 
@@ -327,7 +327,7 @@ export const KunjunganModuleView: React.FC = () => {
               {kunjunganMasuk.map((item) => (
                 <ListItemCard
                   key={item.id}
-                  title={`${item.no_polisi} — ${item.nama_customer || 'Pelanggan Tamu'}`}
+                  title={`${formatPlat(item.no_polisi)} — ${item.nama_customer || 'Pelanggan Tamu'}`}
                   subtitle={`Tiket: ${item.no_tiket} • Jam: ${formatWaktu(item.waktu_masuk)}`}
                   badge={<StatusBadge status={item.status_kunjungan} size="sm" />}
                   chips={item.keperluan ? [item.keperluan] : undefined}
@@ -349,7 +349,7 @@ export const KunjunganModuleView: React.FC = () => {
                 {paginatedRiwayat.map((item) => (
                   <ListItemCard
                     key={item.id}
-                    title={`${item.no_polisi} — ${item.nama_customer || 'Pelanggan Tamu'}`}
+                    title={`${formatPlat(item.no_polisi)} — ${item.nama_customer || 'Pelanggan Tamu'}`}
                     subtitle={`Tiket: ${item.no_tiket} • Masuk: ${formatWaktu(item.waktu_masuk)}${item.waktu_keluar ? ` • Keluar: ${formatWaktu(item.waktu_keluar)}` : ''}`}
                     badge={
                       <div className="flex items-center gap-1.5">
@@ -404,7 +404,7 @@ export const KunjunganModuleView: React.FC = () => {
         <DetailModal
           open={true}
           onClose={() => setSelected(null)}
-          title={selected.no_polisi}
+          title={formatPlat(selected.no_polisi)}
           subtitle={`${selected.nama_customer || 'Pelanggan'} • Tiket ${selected.no_tiket || `#${selected.id}`}`}
           badge={<StatusBadge
             status={selected.status_kunjungan === 'Keluar' ? 'Selesai' : selected.status_kunjungan}
@@ -502,7 +502,7 @@ export const KunjunganModuleView: React.FC = () => {
             setCatatanTolak('');
           }}
           title="Tolak Izin Kunjungan"
-          subtitle={`Tamu: ${rejecting.no_polisi} • ${rejecting.nama_customer || 'Pelanggan'}`}
+          subtitle={`Tamu: ${formatPlat(rejecting.no_polisi)} • ${rejecting.nama_customer || 'Pelanggan'}`}
           currentStep={rejectStep}
           onNext={() => setRejectStep(1)}
           onBack={() => setRejectStep(0)}
@@ -525,7 +525,7 @@ export const KunjunganModuleView: React.FC = () => {
                   <div className="p-4 bg-surface rounded-xl border border-border space-y-2">
                     <div className="flex justify-between">
                       <span className="text-ink-subtle">No. Polisi:</span>
-                      <span className="font-bold text-ink">{rejecting.no_polisi}</span>
+                      <span className="font-bold font-mono text-ink">{formatPlat(rejecting.no_polisi)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-ink-subtle">Nama Tamu:</span>

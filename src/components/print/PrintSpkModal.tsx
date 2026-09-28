@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../api/client';
+import { api, formatPlat } from '../../api/client';
 import { SpkService, SpkItemPekerjaan, SpkItemPart } from '../../types';
 import { Printer, X, FileText, CheckCircle2, Wrench } from 'lucide-react';
 import { ModalPortal } from '../common/ModalPortal';
@@ -124,7 +124,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
               <div className="space-y-1.5">
                 <div className="flex">
                   <span className="w-28 text-slate-500">No. Polisi</span>
-                  <span className="font-black text-slate-900 text-sm">: {spk.no_polisi}</span>
+                  <span className="font-black text-slate-900 text-sm">: {formatPlat(spk.no_polisi)}</span>
                 </div>
                 <div className="flex">
                   <span className="w-28 text-slate-500">Customer / Kendaraan</span>

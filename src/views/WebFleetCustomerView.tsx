@@ -524,7 +524,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         Status Terkini & Petunjuk:
                       </span>
                       <p className="text-ink-muted leading-relaxed">
-                        Kendaraan <span className="font-semibold text-ink">{spk.no_polisi}</span>{' '}
+                        Kendaraan <span className="font-semibold font-mono text-ink">{formatPlat(spk.no_polisi)}</span>{' '}
                         {spk.waktu_check_out ? (
                           <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> pada {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB. Terima kasih telah menggunakan Bengkel KIM 3.</>
                         ) : spk.status_spk === 'Waiting QC' ? (
@@ -675,7 +675,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                 onClick={() =>
                                   setPreviewImage({
                                     url: (spk as any).foto_kendaraan_masuk,
-                                    title: spk.no_polisi,
+                                    title: formatPlat(spk.no_polisi),
                                     subtitle: `Foto Masuk Pos Security • SPK: ${spk.no_spk}`,
                                   })
                                 }
@@ -774,7 +774,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             </div>
                             <button
                               type="button"
-                              onClick={() => toast.info('Mengunduh Riwayat', `Riwayat service kendaraan ${spk.no_polisi} sedang disiapkan.`)}
+                              onClick={() => toast.info('Mengunduh Riwayat', `Riwayat service kendaraan ${formatPlat(spk.no_polisi)} sedang disiapkan.`)}
                               className="p-1.5 text-accent hover:bg-accent-subtle rounded-xl"
                               title="Unduh Riwayat"
                             >
@@ -794,7 +794,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
         open={showEstimasiWizard}
         onClose={() => setShowEstimasiWizard(false)}
         title="Persetujuan Estimasi Service"
-        subtitle={`${spk.no_spk} • ${spk.no_polisi}`}
+        subtitle={`${spk.no_spk} • ${formatPlat(spk.no_polisi)}`}
         currentStep={estimasiWizardStep}
         onNext={() => setEstimasiWizardStep((s) => Math.min(s + 1, 2))}
         onBack={() => setEstimasiWizardStep((s) => Math.max(s - 1, 0))}
@@ -900,7 +900,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-ink-muted">No. Polisi:</span>
-                    <span className="font-bold text-ink">{spk.no_polisi}</span>
+                    <span className="font-bold text-ink">{formatPlat(spk.no_polisi)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-ink-muted">Total Bayar:</span>
@@ -946,7 +946,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
           open={!!targetTambahanWizard}
           onClose={() => setTargetTambahanWizard(null)}
           title="Persetujuan Pekerjaan Tambahan"
-          subtitle={`${spk.no_spk} • ${spk.no_polisi}`}
+          subtitle={`${spk.no_spk} • ${formatPlat(spk.no_polisi)}`}
           currentStep={tambahanWizardStep}
           onNext={() => setTambahanWizardStep((s) => Math.min(s + 1, 2))}
           onBack={() => setTambahanWizardStep((s) => Math.max(s - 1, 0))}
@@ -1618,7 +1618,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         type: 'BOOKING_CREATED',
         targetRoles: ['SA', 'Security'],
         title: 'Booking Dibatalkan Customer',
-        message: `Booking ${b?.no_booking || ''} (${b?.no_polisi || ''}) jadwal ${b?.tanggal_booking || ''} ${b?.jam_booking || ''} dibatalkan customer.`,
+        message: `Booking ${b?.no_booking || ''} (${b?.no_polisi ? formatPlat(b.no_polisi) : ''}) jadwal ${b?.tanggal_booking || ''} ${b?.jam_booking || ''} dibatalkan customer.`,
         linkTab: 'security-booking',
         urgency: 'warning',
       });
@@ -1747,7 +1747,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           type: 'SPK_STATUS_CHANGED',
           targetRoles: ['SA'],
           title: 'Estimasi Disetujui Customer',
-          message: `Estimasi ${spk?.no_spk} (${spk?.no_polisi}) disetujui. WO terbit — mekanik siap start.`,
+          message: `Estimasi ${spk?.no_spk} (${formatPlat(spk?.no_polisi || '')}) disetujui. WO terbit — mekanik siap start.`,
           linkTab: 'sa',
           urgency: 'success',
         });
@@ -1758,7 +1758,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             targetRoles: ['Mekanik'],
             targetUserId: mid,
             title: 'WO Siap Dikerjakan',
-            message: `Estimasi ${spk?.no_spk} unit ${spk?.no_polisi} disetujui customer. Silakan START JOB.`,
+            message: `Estimasi ${spk?.no_spk} unit ${formatPlat(spk?.no_polisi || '')} disetujui customer. Silakan START JOB.`,
             linkTab: 'mekanik',
             urgency: 'urgent',
           });
@@ -1769,7 +1769,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           type: 'SPK_STATUS_CHANGED',
           targetRoles: ['SA'],
           title: 'Estimasi Ditolak Customer',
-          message: `Estimasi ${spk?.no_spk} (${spk?.no_polisi}) ditolak. Mohon revisi & kirim ulang.`,
+          message: `Estimasi ${spk?.no_spk} (${formatPlat(spk?.no_polisi || '')}) ditolak. Mohon revisi & kirim ulang.`,
           linkTab: 'sa',
           urgency: 'warning',
         });
@@ -1798,7 +1798,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           type: 'PART_REQUESTED',
           targetRoles: ['Warehouse'],
           title: 'Picking Request Part Baru',
-          message: `Estimasi ${trx?.no_transaksi} (${trx?.no_polisi} - ${trx?.nama_customer}) telah disetujui customer, menunggu picking gudang.`,
+          message: `Estimasi ${trx?.no_transaksi} (${formatPlat(trx?.no_polisi || '')} - ${trx?.nama_customer}) telah disetujui customer, menunggu picking gudang.`,
           linkTab: 'beli-part-picking',
           urgency: 'info',
         });
@@ -1809,7 +1809,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           type: 'PART_REQUESTED',
           targetRoles: ['SA'],
           title: 'Estimasi Part Ditolak Customer',
-          message: `Estimasi ${trx?.no_transaksi} (${trx?.no_polisi} - ${trx?.nama_customer}) ditolak. Mohon revisi & buat ulang.`,
+          message: `Estimasi ${trx?.no_transaksi} (${formatPlat(trx?.no_polisi || '')} - ${trx?.nama_customer}) ditolak. Mohon revisi & buat ulang.`,
           linkTab: 'beli-part',
           urgency: 'warning',
         });
@@ -1857,13 +1857,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         type: 'BOOKING_CREATED',
         targetRoles: ['SA', 'Security'],
         title: 'Booking Baru Diterima',
-        message: `Customer telah membuat booking service nopol ${bookingForm.no_polisi} (${bookingForm.jenis_layanan}) untuk ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking}.`,
+        message: `Customer telah membuat booking service nopol ${formatPlat(bookingForm.no_polisi)} (${bookingForm.jenis_layanan}) untuk ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking}.`,
         linkTab: 'security-booking',
         urgency: 'info',
       });
       toast.success(
         'Booking Service Berhasil Dibuat!',
-        `Kendaraan ${bookingForm.no_polisi} dijadwalkan pada ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking} WIB.`
+        `Kendaraan ${formatPlat(bookingForm.no_polisi)} dijadwalkan pada ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking} WIB.`
       );
       setOpenBookingModal(false);
       setBookingStep(1);
@@ -1982,7 +1982,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
       queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
-      toast.success('Unit Kendaraan Diperbarui', `Data ${editArmadaData?.no_polisi || ''} berhasil disimpan.`);
+      toast.success('Unit Kendaraan Diperbarui', `Data ${editArmadaData?.no_polisi ? formatPlat(editArmadaData.no_polisi) : ''} berhasil disimpan.`);
       setEditArmadaData(null);
     },
     onError: (err) => toast.error('Gagal Memperbarui Unit', getApiErrorMessage(err, 'Periksa kembali data kendaraan Anda.')),
@@ -1994,7 +1994,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
       queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
-      toast.success('Unit Kendaraan Dihapus', `${hapusArmadaTarget?.no_polisi || 'Unit'} telah dihapus dari daftar kendaraan Anda.`);
+      toast.success('Unit Kendaraan Dihapus', `${hapusArmadaTarget?.no_polisi ? formatPlat(hapusArmadaTarget.no_polisi) : 'Unit'} telah dihapus dari daftar kendaraan Anda.`);
       setHapusArmadaTarget(null);
     },
     onError: (err) => toast.error('Gagal Menghapus Unit', getApiErrorMessage(err, 'Unit mungkin sedang dipakai transaksi aktif.')),
@@ -2025,7 +2025,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dokumen-list'] });
-      toast.success('Dokumen Berhasil Disimpan', `Berkas ${dokumenForm.nama_dokumen} untuk kendaraan ${dokumenForm.no_polisi} aman tersimpan.`);
+      toast.success('Dokumen Berhasil Disimpan', `Berkas ${dokumenForm.nama_dokumen} untuk kendaraan ${formatPlat(dokumenForm.no_polisi)} aman tersimpan.`);
       setOpenTambahDokumenModal(false);
       setDokumenForm({
         no_polisi: '',
@@ -2131,7 +2131,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-black text-ink">{activeTrackSpk.no_polisi}</span>
+                      <span className="text-base font-black font-mono text-ink">{formatPlat(activeTrackSpk.no_polisi)}</span>
                       {activeTrackSpk.status_spk === 'Selesai' || activeTrackSpk.status_spk === 'FIR Closed' ? (
                         <span className="px-2 py-0.5 rounded-full bg-status-green-bg text-status-green text-xs font-bold">
                           Selesai
