@@ -392,10 +392,17 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     }
   }, [saPendingAntrianId, antrianMenungguSA, fillAntrianToForm, setSaPendingAntrianId]);
 
-  const { data: purchasingList } = useQuery({
-    queryKey: ['purchasing-list'],
-    queryFn: api.getPurchasingList,
+  // Part Indent (PR): data per halaman dari server (pagination API Builder)
+  const [prPage, setPrPage] = useState(1);
+  const [prLimit, setPrLimit] = useState(10);
+  const { data: purchasingList, isFetching: purchasingFetching } = useQuery({
+    queryKey: ['purchasing-page', prPage, prLimit],
+    queryFn: () => api.getPurchasingListPage({ page: prPage, limit: prLimit }),
+    placeholderData: (prev) => prev,
   });
+  const prPagination = purchasingList?.pagination ?? null;
+  const prRows = purchasingList?.rows ?? [];
+  const allPrCount = prPagination?.total_records ?? prRows.length;
 
   // Daftar transaksi penjualan part langsung (modul modal-driven SA)
   const { data: beliPartList, isLoading: loadingBeliPart } = useQuery({
@@ -407,18 +414,27 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
   // PR aktif untuk sebuah SPK (belum selesai barangnya): kunci ajuan PR ganda
   // dan jadi penanda bahwa estimasi sudah terkirim (bagian "ketutup").
   const prAktifUntukSpk = (idSpk: number) =>
-    (purchasingList || []).find(
+    prRows.find(
       (p) => p.id_spk === idSpk && p.status_pr !== 'Barang Ready' && (p.status_pr || '') !== 'Ditolak'
     );
 
-  // Tab Kotak Merah SA: default sembunyikan PR yang sudah selesai (Barang Ready).
-  // Toggle untuk melihat riwayat selesai (read-only).
+  // Tab Part Indent SA: default sembunyikan PR yang sudah selesai (Barang Ready).
+  // Toggle untuk melihat riwayat selesai (read-only). Pagination client-side
+  // di atas halaman data server (endpoint /kim3/purchasing memakai auto-pagination).
   const [prShowSelesai, setPrShowSelesai] = useState<boolean>(false);
-  const prListSA = (purchasingList || []).filter((p) =>
+  const [prViewPage, setPrViewPage] = useState(1);
+  const [prViewLimit, setPrViewLimit] = useState(10);
+  const prListSA = prRows.filter((p) =>
     prShowSelesai ? p.status_pr === 'Barang Ready' : p.status_pr !== 'Barang Ready'
   );
+  const prViewTotalPages = Math.max(1, Math.ceil(prListSA.length / prViewLimit));
+  const prViewSafePage = Math.min(prViewPage, prViewTotalPages);
+  const prViewRows = prListSA.slice((prViewSafePage - 1) * prViewLimit, prViewSafePage * prViewLimit);
+  React.useEffect(() => {
+    setPrViewPage(1);
+  }, [prShowSelesai, prViewLimit]);
 
-  const selectedPr = (purchasingList || []).find((p) => p.pr_id === selectedPrId) || null;
+  const selectedPr = prRows.find((p) => p.pr_id === selectedPrId) || null;
 
   // ═══ Derived data modul Penjualan Part Langsung (butuh antrianList & masterStokPart) ═══
   // Antrian gerbang dengan tujuan "Beli Part" yang masih aktif di bengkel
@@ -1480,8 +1496,8 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             </div>
           </div>
 
-          {/* STICKY ACTION BAR */}
-          <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] md:bottom-0 z-10 bg-surface-raised/95 backdrop-blur-sm border-t border-border -mx-5 -mb-5 sm:-mx-7 sm:-mb-7 p-4 sm:p-5 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+          {/* ACTION BAR (normal, bukan floating/sticky) */}
+          <div className="bg-surface border-t border-border -mx-5 -mb-5 sm:-mx-7 sm:-mb-7 p-4 sm:p-5 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="text-xs sm:text-sm text-ink-muted font-medium truncate w-full sm:w-auto">
               {formPenerimaan.no_polisi ? (
                 <span className="flex items-center gap-2">
@@ -1522,15 +1538,15 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             </div>
             <FilterChips
               options={[
-                { id: 'aktif', label: 'Aktif', count: (purchasingList || []).filter((p) => p.status_pr !== 'Barang Ready').length },
-                { id: 'selesai', label: 'Selesai', count: (purchasingList || []).filter((p) => p.status_pr === 'Barang Ready').length },
+                { id: 'aktif', label: 'Aktif' },
+                { id: 'selesai', label: 'Selesai' },
               ]}
               selectedId={prShowSelesai ? 'selesai' : 'aktif'}
               onChange={(id) => setPrShowSelesai(id === 'selesai')}
             />
           </div>
 
-          {/* Daftar PR (Satu Kolom ListItemCard) */}
+          {/* Daftar PR (Satu Kolom ListItemCard + Pagination) */}
           {prListSA.length === 0 ? (
             <EmptyState
               title={prShowSelesai ? 'Belum ada PR yang selesai' : 'Tidak ada PR aktif'}
@@ -1542,8 +1558,9 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               icon={ShoppingBag}
             />
           ) : (
+            <>
             <div className="space-y-2.5">
-              {prListSA.map((pr) => {
+              {prViewRows.map((pr) => {
                 const chips: string[] = [];
                 if (pr.no_po) chips.push(`PO: ${pr.no_po}`);
                 if (pr.estimasi_tanggal_ready_eta) {
@@ -1586,6 +1603,18 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 );
               })}
             </div>
+
+            <PaginationBar
+              page={prViewSafePage}
+              totalPages={prViewTotalPages}
+              totalRecords={prListSA.length}
+              limit={prViewLimit}
+              label="part indent"
+              isLoading={purchasingFetching}
+              onPageChange={setPrViewPage}
+              onLimitChange={(l) => setPrViewLimit(l)}
+            />
+            </>
           )}
         </div>
       )}

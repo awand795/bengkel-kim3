@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, normalizePlat, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -1323,7 +1323,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   };
   const myKunjunganList = (kunjunganList || [])
     .filter((a) => isMyKunjungan(a))
-    .filter((a) => matchHistSearch([a.no_tiket, a.no_polisi, a.nama_customer, a.tujuan_kedatangan, a.status_kunjungan]))
+    .filter((a) => a.tujuan_kedatangan === 'Kunjungan')
+    .filter((a) => matchHistSearch([a.no_tiket, a.no_polisi, a.nama_customer, a.tujuan_kedatangan, a.status_kunjungan, a.pic_tujuan, a.keperluan]))
     .sort((a, b) => String(b.waktu_masuk || '').localeCompare(String(a.waktu_masuk || '')));
   const myBeliPartList = (beliPartList || [])
     .filter((t) => isMyBeliPart(t))
@@ -1398,11 +1399,57 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return false;
   });
 
+  // Helper: Cek apakah kendaraan dari jadwal booking ini sudah di-check in di gerbang atau terbit SPK
+  const isBookingCheckedIn = useCallback((b: BookingService): boolean => {
+    if (b.status === 'Check In') return true;
+    if (b.status === 'Dibatalkan') return false;
+
+    const bPlate = normalizePlat(b.no_polisi);
+
+    // 1. Cek dari kunjungan antrian gerbang (Pos Security check-in)
+    const hasAntrian = (kunjunganList || []).some((a) => {
+      // Cocok langsung berdasarkan relasi id_booking
+      if (a.id_booking != null && a.id_booking === b.id) return true;
+      // Atau cocok berdasarkan nopol
+      if (bPlate && normalizePlat(a.no_polisi) === bPlate) {
+        const aTime = a.waktu_masuk || '';
+        const bDate = (b.tanggal_booking || '').slice(0, 10);
+        if (!bDate || !aTime || aTime.slice(0, 10) >= bDate) return true;
+      }
+      return false;
+    });
+    if (hasAntrian) return true;
+
+    // 2. Cek dari SPK yang telah diterbitkan bengkel
+    const hasSpk = (spkList || []).some((s) => {
+      if (s.id_booking != null && s.id_booking === b.id) return true;
+      if (bPlate && normalizePlat(s.no_polisi) === bPlate) {
+        const sTime = s.waktu_check_in || s.created_at || '';
+        const bDate = (b.tanggal_booking || '').slice(0, 10);
+        if (!bDate || !sTime || sTime.slice(0, 10) >= bDate) return true;
+      }
+      return false;
+    });
+
+    return hasSpk;
+  }, [kunjunganList, spkList]);
+
+  // Status operasional booking: 'Check In' bila sudah tiba di Pos Security / terbit SPK
+  const getBookingEffectiveStatus = useCallback((b: BookingService): 'Booked' | 'Check In' | 'Dibatalkan' => {
+    if (b.status === 'Dibatalkan') return 'Dibatalkan';
+    if (b.status === 'Check In' || isBookingCheckedIn(b)) return 'Check In';
+    return 'Booked';
+  }, [isBookingCheckedIn]);
+
   // Aturan cancel booking: status masih Booked dan minimal 10 menit sebelum
   // jadwal (tanggal_booking + jam_booking). Server juga menolak bila status
   // sudah berubah / sudah ada check-in dari booking tersebut.
   const getCancelState = (b: BookingService): { allowed: boolean; reason: string } => {
-    if (b.status !== 'Booked') {
+    const effStatus = getBookingEffectiveStatus(b);
+    if (effStatus === 'Check In') {
+      return { allowed: false, reason: 'Kendaraan sudah di-check in di gerbang bengkel.' };
+    }
+    if (effStatus !== 'Booked') {
       return { allowed: false, reason: `Status "${b.status}" sudah tidak bisa dibatalkan.` };
     }
     const [h, m] = (b.jam_booking || '00:00').split(':').map(Number);
@@ -1416,18 +1463,45 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return { allowed: true, reason: '' };
   };
 
-  // Booking Saya: urut jadwal terdekat, yang Dibatalkan di bawah
+  // Booking Saya: urut jadwal terdekat, yang masih aktif di atas, lalu selesai, dan yang Dibatalkan di bawah
   const myBookingSorted = [...myBookingList].sort((a, b) => {
-    if (a.status === 'Dibatalkan' && b.status !== 'Dibatalkan') return 1;
-    if (b.status === 'Dibatalkan' && a.status !== 'Dibatalkan') return -1;
+    const aStat = getBookingEffectiveStatus(a);
+    const bStat = getBookingEffectiveStatus(b);
+    if (aStat === 'Dibatalkan' && bStat !== 'Dibatalkan') return 1;
+    if (bStat === 'Dibatalkan' && aStat !== 'Dibatalkan') return -1;
+    if (aStat === 'Check In' && bStat === 'Booked') return 1;
+    if (bStat === 'Check In' && aStat === 'Booked') return -1;
     return `${a.tanggal_booking} ${a.jam_booking}`.localeCompare(`${b.tanggal_booking} ${b.jam_booking}`);
   });
+
+  // ── Booking Saya: kategori Aktif / Selesai / Dibatalkan + pagination ─────────
+  // Aktif  = masih Booked (belum di-check-in oleh Security)
+  // Selesai = sudah check-in / diproses oleh Security (kendaraan sudah ditangani)
+  const [bookingViewFilter, setBookingViewFilter] = useState<'aktif' | 'selesai' | 'dibatalkan'>('aktif');
+  const [bookingViewPage, setBookingViewPage] = useState(1);
+  const [bookingViewLimit, setBookingViewLimit] = useState(10);
+  const bookingAktifList = myBookingSorted.filter((b) => getBookingEffectiveStatus(b) === 'Booked');
+  const bookingSelesaiList = myBookingSorted.filter((b) => getBookingEffectiveStatus(b) === 'Check In');
+  const bookingDibatalkanList = myBookingSorted.filter((b) => getBookingEffectiveStatus(b) === 'Dibatalkan');
+  const bookingFiltered =
+    bookingViewFilter === 'aktif' ? bookingAktifList
+    : bookingViewFilter === 'selesai' ? bookingSelesaiList
+    : bookingDibatalkanList;
+  const bookingViewTotalPages = Math.max(1, Math.ceil(bookingFiltered.length / bookingViewLimit));
+  const bookingViewSafePage = Math.min(bookingViewPage, bookingViewTotalPages);
+  const bookingViewRows = bookingFiltered.slice(
+    (bookingViewSafePage - 1) * bookingViewLimit,
+    bookingViewSafePage * bookingViewLimit
+  );
+  React.useEffect(() => {
+    setBookingViewPage(1);
+  }, [bookingViewFilter, bookingViewLimit]);
 
   // Jadwal Booking Terdekat: hanya yang masih Booked DAN jadwalnya belum lewat.
   // Booking yang sudah check-in (Diproses), Selesai, Dibatalkan, atau terlewat
   // tidak tampil di kartu ringkas (tetap ada di tab Booking Saya).
   const upcomingBookings = myBookingSorted.filter((b) => {
-    if (b.status !== 'Booked') return false;
+    if (getBookingEffectiveStatus(b) !== 'Booked') return false;
     const [h, m] = (b.jam_booking || '00:00').split(':').map(Number);
     const sched = new Date(
       `${b.tanggal_booking}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
@@ -1465,10 +1539,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Tombol Batalkan Booking (dipakai di Dashboard & seksi Booking Saya).
   // Terkunci bila aturan H-10 menit / status tidak memungkinkan.
   const BookingCancelButton = ({ b, compact = false }: { b: BookingService; compact?: boolean }) => {
-    if (b.status === 'Dibatalkan') {
+    const effStatus = getBookingEffectiveStatus(b);
+    if (effStatus === 'Dibatalkan') {
       return (
-        <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-ink-subtle border border-border font-bold">
+        <span className="text-xs px-2.5 py-1 rounded-xl bg-surface text-ink-subtle border border-border font-bold">
           Dibatalkan
+        </span>
+      );
+    }
+    if (effStatus === 'Check In') {
+      return (
+        <span className="text-xs px-2.5 py-1 rounded-xl bg-status-green-bg text-status-green font-bold border border-status-green/30">
+          Sudah di Bengkel
         </span>
       );
     }
@@ -1481,7 +1563,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         onClick={() => setCancelBookingTarget(b)}
         className={`${compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'} rounded-xl font-bold transition-all ${
           st.allowed
-            ? 'bg-status-red-bg text-status-red hover:bg-status-red hover:text-white border border-status-red/30'
+            ? 'bg-status-red-bg text-status-red hover:bg-status-red hover:text-white border border-status-red/30 cursor-pointer'
             : 'bg-surface text-ink-subtle border border-border cursor-not-allowed'
         } disabled:opacity-60`}
       >
@@ -1690,10 +1772,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       );
       setOpenBookingModal(false);
       setBookingStep(1);
-      // Mendarat di dashboard agar booking baru langsung terlihat di
-      // "Jadwal Booking Terdekat" (bukan Riwayat yang hanya berisi SPK).
-      setFleetMenu('dashboard');
-      setActiveTab('fleet-dashboard');
+      setBookingViewFilter('aktif');
+      setFleetMenu('booking');
+      setActiveTab('fleet-booking');
     },
     onError: (err: any) =>
       toast.error('Gagal Membuat Booking', err?.message || 'Periksa kembali koneksi atau data formulir Anda.'),
@@ -2056,7 +2137,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </span>
                         <div className="flex items-center justify-end gap-1.5">
                           <span className="text-xs px-2 py-0.5 rounded-full bg-accent-subtle text-accent font-bold">
-                            {b.status}
+                            {getBookingEffectiveStatus(b)}
                           </span>
                           <BookingCancelButton b={b} compact />
                         </div>
@@ -2184,55 +2265,83 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </button>
           </div>
 
-          {/* Booking Saya: jadwal milik customer + batalkan (maks. H-10 menit) */}
+          {/* Booking Saya: kategori Aktif / Selesai / Dibatalkan + pagination */}
           <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="text-sm font-bold text-ink flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-accent" /> Daftar Booking Saya
               </h3>
-              <span className="text-xs font-bold text-ink-muted px-2.5 py-0.5 rounded-full bg-surface border border-border">
-                {myBookingSorted.filter((b) => b.status !== 'Dibatalkan').length} aktif
-              </span>
+              <FilterChips
+                options={[
+                  { id: 'aktif', label: 'Aktif', count: bookingAktifList.length },
+                  { id: 'selesai', label: 'Selesai', count: bookingSelesaiList.length },
+                  { id: 'dibatalkan', label: 'Dibatalkan', count: bookingDibatalkanList.length },
+                ]}
+                selectedId={bookingViewFilter}
+                onChange={(id) => setBookingViewFilter(id as 'aktif' | 'selesai' | 'dibatalkan')}
+              />
             </div>
 
-            {myBookingSorted.length > 0 ? (
-              <div className="space-y-2.5">
-                {myBookingSorted.map((b) => (
-                  <ListItemCard
-                    key={b.id}
-                    title={b.no_polisi}
-                    subtitle={`${b.jenis_layanan} • Jadwal: ${b.tanggal_booking} ${b.jam_booking} WIB`}
-                    badge={
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
-                        b.status === 'Dibatalkan'
-                          ? 'bg-surface text-ink-subtle border border-border'
-                          : b.status === 'Check In'
-                          ? 'bg-status-green-bg text-status-green'
-                          : 'bg-accent-subtle text-accent'
-                      }`}>
-                        {b.status}
-                      </span>
-                    }
-                    actions={<BookingCancelButton b={b} />}
-                  />
-                ))}
-              </div>
+            {bookingFiltered.length > 0 ? (
+              <>
+                <div className="space-y-2.5">
+                  {bookingViewRows.map((b) => {
+                    const effStatus = getBookingEffectiveStatus(b);
+                    return (
+                      <ListItemCard
+                        key={b.id}
+                        title={b.no_polisi}
+                        subtitle={`${b.jenis_layanan} • Jadwal: ${b.tanggal_booking} ${b.jam_booking} WIB`}
+                        badge={
+                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                            effStatus === 'Dibatalkan'
+                              ? 'bg-surface text-ink-subtle border border-border'
+                              : effStatus === 'Check In'
+                              ? 'bg-status-green-bg text-status-green'
+                              : 'bg-accent-subtle text-accent'
+                          }`}>
+                            {effStatus === 'Check In' ? 'Check In' : effStatus}
+                          </span>
+                        }
+                        actions={<BookingCancelButton b={b} />}
+                      />
+                    );
+                  })}
+                </div>
+                <PaginationBar
+                  page={bookingViewSafePage}
+                  totalPages={bookingViewTotalPages}
+                  totalRecords={bookingFiltered.length}
+                  limit={bookingViewLimit}
+                  label="booking"
+                  onPageChange={setBookingViewPage}
+                  onLimitChange={(l) => setBookingViewLimit(l)}
+                />
+              </>
             ) : (
               <EmptyState
                 icon={Calendar}
-                title="Belum Ada Booking Service"
-                description="Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3."
-                action={{
+                title={
+                  bookingViewFilter === 'selesai' ? 'Belum Ada Booking Selesai'
+                  : bookingViewFilter === 'dibatalkan' ? 'Tidak Ada Booking Dibatalkan'
+                  : 'Belum Ada Booking Aktif'
+                }
+                description={
+                  bookingViewFilter === 'aktif'
+                    ? 'Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3.'
+                    : 'Booking yang sudah diproses/dibatalkan akan muncul di kategori ini.'
+                }
+                action={bookingViewFilter === 'aktif' ? {
                   label: '+ Buat Booking Baru',
                   onClick: () => {
                     setBookingStep(1);
                     setOpenBookingModal(true);
                   },
-                }}
+                } : undefined}
               />
             )}
             <p className="text-xs text-ink-subtle">
-              Pembatalan maksimal 10 menit sebelum jadwal kedatangan. Setelah check-in, pembatalan melalui Security/SA.
+              Aktif = belum check-in di gerbang. Setelah Security melakukan check-in, booking pindah ke kategori Selesai. Pembatalan maksimal 10 menit sebelum jadwal.
             </p>
           </div>
 

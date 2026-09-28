@@ -91,17 +91,21 @@ export const KunjunganModuleView: React.FC = () => {
   ).length;
 
   // Filtered Riwayat based on filter chips
+  // "Diterima" = tamu diterima PIC dan MASIH berada di dalam bengkel (belum
+  // check-out). Yang sudah check-out hanya masuk kategori "Selesai".
+  const isSudahKeluar = (a: AntrianKunjungan) =>
+    a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar;
   const filteredRiwayat = useMemo(() => {
     return kunjunganRiwayat.filter((item) => {
       if (riwayatTanggal && tanggalKey(item.waktu_masuk) !== riwayatTanggal) return false;
       if (riwayatFilter === 'Diterima') {
-        return item.status_konfirmasi_pic === 'Diterima';
+        return item.status_konfirmasi_pic === 'Diterima' && !isSudahKeluar(item);
       }
       if (riwayatFilter === 'Ditolak') {
         return item.status_konfirmasi_pic === 'Ditolak';
       }
       if (riwayatFilter === 'Selesai') {
-        return item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar;
+        return isSudahKeluar(item);
       }
       return true;
     });
@@ -122,11 +126,12 @@ export const KunjunganModuleView: React.FC = () => {
   );
 
   const countRiwayatSemua = kunjunganRiwayat.length;
-  const countRiwayatDiterima = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Diterima').length;
-  const countRiwayatDitolak = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Ditolak').length;
-  const countRiwayatSudahKeluar = kunjunganRiwayat.filter(
-    (a) => a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar
+  // Konsisten dengan filter: "Diterima" hanya yang masih di dalam bengkel
+  const countRiwayatDiterima = kunjunganRiwayat.filter(
+    (a) => a.status_konfirmasi_pic === 'Diterima' && !isSudahKeluar(a)
   ).length;
+  const countRiwayatDitolak = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Ditolak').length;
+  const countRiwayatSudahKeluar = kunjunganRiwayat.filter(isSudahKeluar).length;
 
   useEffect(() => {
     if (kunjunganPendingId == null) return;

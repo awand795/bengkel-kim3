@@ -124,11 +124,12 @@ export const PicTerkaitView: React.FC = () => {
     (a) => a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar
   ).length;
 
-  // Filtering for Riwayat Tab
+  // Filtering for Riwayat Tab — "Diterima" hanya tamu yang belum check-out
   const filteredRiwayat = useMemo(() => {
     return kunjunganRiwayat.filter((item) => {
       if (riwayatFilter === 'Diterima') {
         if (item.status_konfirmasi_pic !== 'Diterima') return false;
+        if (item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar) return false;
       } else if (riwayatFilter === 'Ditolak') {
         if (item.status_konfirmasi_pic !== 'Ditolak') return false;
       } else if (riwayatFilter === 'Selesai') {
@@ -150,7 +151,13 @@ export const PicTerkaitView: React.FC = () => {
   }, [kunjunganRiwayat, riwayatFilter, searchQuery]);
 
   const countRiwayatSemua = kunjunganRiwayat.length;
-  const countRiwayatDiterima = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Diterima').length;
+  // Konsisten dengan kartu statistik: "Diterima" hanya tamu yang MASIH di dalam
+  // bengkel — yang sudah check-out masuk kategori Selesai.
+  const isSudahKeluarPic = (a: AntrianKunjungan) =>
+    a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar;
+  const countRiwayatDiterima = kunjunganRiwayat.filter(
+    (a) => a.status_konfirmasi_pic === 'Diterima' && !isSudahKeluarPic(a)
+  ).length;
   const countRiwayatDitolak = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Ditolak').length;
   const countRiwayatSudahKeluar = kunjunganRiwayat.filter(
     (a) => a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar
