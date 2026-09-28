@@ -31,6 +31,13 @@ import { isTanggalSamaHariIni } from '../utils/tanggal';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 import { realtimeHub } from '../services/realtimeService';
+import { StatCard } from '../components/common/StatCard';
+import { DetailModal } from '../components/common/DetailModal';
+import { EmptyState } from '../components/common/EmptyState';
+import { SectionHeader } from '../components/common/SectionHeader';
+import { StepModal } from '../components/common/StepModal';
+import { ListItemCard } from '../components/common/ListItemCard';
+import { FilterChips } from '../components/common/FilterChips';
 
 export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengecekan' | 'qc-fir' }> = ({ initialTab = 'dashboard' }) => {
   const queryClient = useQueryClient();
@@ -51,6 +58,16 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
   }, [navTick, storeActiveTab]);
   const [selectedSpk, setSelectedSpk] = useState<SpkService | null>(null);
   const [showPrintSpk, setShowPrintSpk] = useState<SpkService | null>(null);
+
+  // StepModal States
+  const [assignSpk, setAssignSpk] = useState<SpkService | null>(null);
+  const [assignStep, setAssignStep] = useState<number>(0);
+
+  const [showCekModal, setShowCekModal] = useState<boolean>(false);
+  const [cekStep, setCekStep] = useState<number>(0);
+
+  const [showQcModal, setShowQcModal] = useState<boolean>(false);
+  const [qcStep, setQcStep] = useState<number>(0);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -350,83 +367,49 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
     <div className="space-y-6">
       
       {/* Top Header */}
-      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold">
-            <Wrench className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-ink">Dashboard Foreman</h1>
-            <p className="text-xs text-ink-muted">Distribusi Pekerjaan, Pengecekan Mekanik, dan Quality Control (FIR)</p>
-          </div>
-        </div>
-      </div>
+      <SectionHeader
+        title="Dashboard Foreman"
+        description="Distribusi Pekerjaan, Pengecekan Mekanik, dan Quality Control (FIR)"
+      />
 
       {/* Mini KPI Banners for Foreman */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div 
-          onClick={() => setStatusFilter('Semua')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Semua' ? 'bg-accent-subtle border-accent/30 ring-2 ring-accent/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-ink-muted">Total SPK</span>
-            <div className="w-7 h-7 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
-              <Wrench className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-accent mt-1">{totalSpkCount}</div>
-          <span className="text-[10px] text-ink-subtle">Seluruh SPK aktif</span>
-        </div>
-
-        <div 
-          onClick={() => setStatusFilter('Perlu Ditugaskan')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Perlu Ditugaskan' ? 'bg-status-amber-bg border-status-amber/30 ring-2 ring-status-amber/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-status-amber">Perlu Ditugaskan</span>
-            <div className="w-7 h-7 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
-              <UserCheck className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-status-amber mt-1">{unassignedCount}</div>
-          <span className="text-[10px] text-status-amber">Belum ada mekanik</span>
-        </div>
-
-        <div 
-          onClick={() => setStatusFilter('Dalam Pengerjaan')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Dalam Pengerjaan' ? 'bg-status-blue-bg border-status-blue/30 ring-2 ring-status-blue/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-status-blue">Dalam Pengerjaan</span>
-            <div className="w-7 h-7 rounded-md bg-status-blue-bg text-status-blue flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-status-blue mt-1">{inProgressCount}</div>
-          <span className="text-[10px] text-status-blue">Teknisi aktif di pit</span>
-        </div>
-
-        <div 
-          onClick={() => setStatusFilter('Waiting QC')}
-          className={`p-3.5 sm:p-4 rounded-md border transition-all cursor-pointer ${
-            statusFilter === 'Waiting QC' ? 'bg-status-green-bg border-status-green/30 ring-2 ring-status-green/20 shadow-xs' : 'bg-surface-raised border-border hover:border-border'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-status-green">Siap QC (FIR)</span>
-            <div className="w-7 h-7 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-status-green mt-1">{waitingQcCount}</div>
-          <span className="text-[10px] text-status-green">Siap diinspeksi</span>
-        </div>
+        <StatCard
+          title="Total SPK"
+          value={totalSpkCount}
+          subtitle="Seluruh SPK aktif"
+          icon={Wrench}
+          tone="accent"
+          active={statusFilter === 'Semua'}
+          onClick={() => { setStatusFilter('Semua'); setSpkPage(1); }}
+        />
+        <StatCard
+          title="Perlu Ditugaskan"
+          value={unassignedCount}
+          subtitle="Belum ada mekanik"
+          icon={UserCheck}
+          tone="amber"
+          active={statusFilter === 'Perlu Ditugaskan'}
+          onClick={() => { setStatusFilter('Perlu Ditugaskan'); setSpkPage(1); }}
+        />
+        <StatCard
+          title="Dalam Pengerjaan"
+          value={inProgressCount}
+          subtitle="Teknisi aktif di pit"
+          icon={Clock}
+          tone="blue"
+          active={statusFilter === 'Dalam Pengerjaan'}
+          onClick={() => { setStatusFilter('Dalam Pengerjaan'); setSpkPage(1); }}
+        />
+        <StatCard
+          title="Siap QC (FIR)"
+          value={waitingQcCount}
+          subtitle="Siap diinspeksi"
+          icon={CheckCircle2}
+          tone="green"
+          active={statusFilter === 'Waiting QC'}
+          onClick={() => { setStatusFilter('Waiting QC'); setSpkPage(1); }}
+        />
       </div>
 
       {/* TAB 1: DASHBOARD SPK FOREMAN */}
@@ -434,10 +417,10 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
         <div className="space-y-6">
 
           {/* Card: Jadwal Booking Hari Ini (Estimasi Beban Kerja yang Akan Datang) */}
-          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-accent-subtle text-accent flex items-center justify-center font-bold shrink-0">
                   <CalendarDays className="w-5 h-5" />
                 </div>
                 <div>
@@ -454,14 +437,14 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
               </div>
 
               <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="text-xs text-ink-muted font-medium flex items-center gap-1.5 bg-surface px-3 py-1.5 rounded-md border border-border">
+                <span className="text-xs text-ink-muted font-medium flex items-center gap-1.5 bg-surface px-3 py-1.5 rounded-xl border border-border">
                   <Clock className="w-3.5 h-3.5 text-ink-subtle" />
                   <span>{todayFormatted}</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsBookingExpanded(!isBookingExpanded)}
-                  className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface rounded-md transition-colors"
+                  className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface rounded-xl transition-colors"
                   title={isBookingExpanded ? 'Ciutkan Card' : 'Perluas Card'}
                 >
                   {isBookingExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -472,75 +455,35 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
             {isBookingExpanded ? (
               <div className="space-y-3">
                 {todayBookings.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+                  <div className="space-y-2.5">
                     {todayBookings.map((b) => (
-                      <div
+                      <ListItemCard
                         key={b.id}
-                        className="p-3.5 rounded-md border border-border bg-surface/60 hover:bg-surface-raised hover:border-accent/30 hover:shadow-xs transition-all space-y-2.5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-accent-subtle text-accent font-bold text-xs border border-accent/30">
-                              <Clock className="w-3.5 h-3.5 text-accent" />
-                              {b.jam_booking || '08:00'} WIB
-                            </span>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-surface/80 text-ink-muted flex items-center gap-1">
-                              <Truck className="w-3 h-3" />
-                              {b.jenis_armada || 'Truk'}
-                            </span>
-                          </div>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              b.status === 'Check In'
-                                ? 'bg-status-green-bg text-status-green'
-                                : 'bg-status-amber-bg text-status-amber'
-                            }`}
-                          >
-                            {b.status === 'Check In' ? '✓ Sudah Check-In' : '⏳ Menunggu Masuk'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-baseline justify-between">
-                          <div>
-                            <span className="text-base font-black text-ink tracking-tight">{b.no_polisi}</span>
-                            <div className="text-xs font-semibold text-ink-muted">{b.nama_perusahaan || b.nama_customer}</div>
-                          </div>
-                          {b.prioritas === 'Prioritas Booking' && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-status-red-bg text-status-red border border-status-red/30">
-                              Prioritas
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="text-xs bg-surface-raised p-2.5 rounded-md border border-border space-y-1">
-                          <div className="flex items-center gap-1.5 text-ink font-semibold">
-                            <Wrench className="w-3.5 h-3.5 text-accent shrink-0" />
-                            <span>{b.jenis_layanan || 'Service Berkala'}</span>
-                          </div>
-                          {(b.keluhan || b.keterangan) && (
-                            <p className="text-[11px] text-ink-muted line-clamp-2 italic">
-                              "{b.keluhan || b.keterangan}"
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between text-[11px] text-ink-muted pt-1 border-t border-border">
-                          <span>Driver: <strong className="text-ink-muted">{b.pic_driver || '-'}</strong></span>
-                          {b.no_telepon && (
-                            <span className="font-mono text-ink-muted">{b.no_telepon}</span>
-                          )}
-                        </div>
-                      </div>
+                        title={`${b.no_polisi} — ${b.nama_perusahaan || b.nama_customer}`}
+                        subtitle={`${b.jenis_layanan || 'Service Berkala'} • Driver: ${b.pic_driver || '-'} • Telp: ${b.no_telepon || '-'}${b.keluhan ? ` • "${b.keluhan}"` : ''}`}
+                        badge={
+                          <StatusBadge 
+                            status={b.status === 'Check In' ? 'Check In' : 'Menunggu Masuk'} 
+                            size="sm" 
+                          />
+                        }
+                        chips={[
+                          b.jam_booking ? `Jam: ${b.jam_booking} WIB` : null,
+                          b.jenis_armada || 'Truk',
+                          b.prioritas === 'Prioritas Booking' ? 'Prioritas' : null,
+                        ].filter(Boolean)}
+                      />
                     ))}
                   </div>
                 ) : (
-                  <div className="p-6 text-center text-ink-subtle text-xs bg-surface rounded-md border border-dashed border-border">
-                    <Calendar className="w-8 h-8 text-ink-subtle mx-auto mb-2" />
-                    Belum ada armada booking yang dijadwalkan untuk hari ini.
-                  </div>
+                  <EmptyState
+                    title="Belum Ada Jadwal Booking Hari Ini"
+                    description="Belum ada armada booking yang dijadwalkan untuk hari ini."
+                    icon={Calendar}
+                  />
                 )}
 
-                <div className="text-[11px] text-ink-muted bg-accent-subtle p-2.5 rounded-md border border-accent/30 flex items-center gap-2">
+                <div className="text-xs text-ink-muted bg-accent-subtle p-2.5 rounded-xl border border-accent/30 flex items-center gap-2">
                   <Info className="w-4 h-4 text-accent shrink-0" />
                   <span>
                     Armada yang tiba di pos security gerbang dan telah dibuatkan SPK oleh SA akan otomatis muncul pada daftar <strong>SPK Menunggu &amp; On Progress</strong> di bawah untuk didistribusikan ke mekanik.
@@ -548,7 +491,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-ink-muted bg-surface p-3 rounded-md border border-border flex items-center justify-between">
+              <div className="text-xs text-ink-muted bg-surface p-3 rounded-xl border border-border flex items-center justify-between">
                 <span>
                   <strong>{todayBookings.length} Armada Terjadwal:</strong>{' '}
                   {todayBookings.map((b) => `${b.no_polisi} (${b.jam_booking || '08:00'})`).join(', ')}
@@ -565,7 +508,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
           </div>
 
           {/* Daftar SPK (full width — panel aksi pindah ke modal) */}
-          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-bold text-ink">Daftar SPK Menunggu &amp; On Progress</h2>
@@ -588,7 +531,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                     setSearchQuery(e.target.value);
                     setSpkPage(1);
                   }}
-                  className="w-full pl-9 pr-8 py-2 rounded-md border border-border text-xs bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none transition-all"
+                  className="w-full pl-9 pr-8 py-2 rounded-xl border border-border text-xs bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none transition-all"
                 />
                 {searchQuery && (
                   <button
@@ -604,69 +547,117 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
               </div>
 
               {/* Status Chips */}
-              <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
-                {(['Semua', 'Perlu Ditugaskan', 'Dalam Pengerjaan', 'Waiting QC'] as const).map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => {
-                      setStatusFilter(st);
-                      setSpkPage(1);
-                    }}
-                    className={`px-3 py-1.5 rounded-md text-xs font-bold whitespace-nowrap transition-all ${
-                      statusFilter === st
-                        ? 'bg-ink text-surface shadow-xs'
-                        : 'bg-surface text-ink-muted hover:bg-surface-raised'
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
-              </div>
+              <FilterChips
+                options={[
+                  { id: 'Semua', label: 'Semua' },
+                  { id: 'Perlu Ditugaskan', label: 'Perlu Ditugaskan' },
+                  { id: 'Dalam Pengerjaan', label: 'Dalam Pengerjaan' },
+                  { id: 'Waiting QC', label: 'Waiting QC' },
+                ]}
+                selectedId={statusFilter}
+                onChange={(st) => {
+                  setStatusFilter(st as any);
+                  setSpkPage(1);
+                }}
+              />
             </div>
 
             {/* List SPK */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {filteredSpkList.length > 0 ? (
-                paginatedSpkList.map((spk) => (
-                  <div
-                    key={spk.id}
-                    onClick={() => setSelectedSpk(spk)}
-                    className={`p-4 rounded-md border transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${
-                      selectedSpk?.id === spk.id
-                        ? 'border-accent bg-accent-subtle shadow-xs'
-                        : 'border-border hover:border-border hover:bg-surface/80'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-accent">{spk.no_spk}</span>
-                      <StatusBadge status={spk.status_spk} size="sm" />
-                    </div>
+                paginatedSpkList.map((spk) => {
+                  const needsAssignment = !spk.nama_mekanik && spk.status_spk !== 'Selesai';
+                  const needsInspection = spk.status_spk === 'Menunggu Pengecekan Mekanik' || spk.status_spk === 'Estimasi Dibuat';
+                  const needsQc = spk.status_spk === 'Waiting QC';
 
-                    <div className="flex items-center justify-between mt-2">
-                      <div>
-                        <div className="text-sm font-black text-ink">{spk.no_polisi}</div>
-                        <div className="text-xs text-ink-muted">{spk.nama_customer}</div>
-                      </div>
-                      <div className="text-right text-xs">
-                        <span className="text-ink-subtle block text-[10px]">Lead Time:</span>
-                        <span className="font-bold text-accent">{spk.estimasi_waktu_jam || spk.lead_time_jam ? `${spk.estimasi_waktu_jam || spk.lead_time_jam} Jam` : '-'}</span>
-                      </div>
-                    </div>
+                  return (
+                    <ListItemCard
+                      key={spk.id}
+                      onClick={() => setSelectedSpk(spk)}
+                      title={`${spk.no_spk} — ${spk.no_polisi}`}
+                      subtitle={`${spk.nama_customer || 'Pelanggan Bengkel'} • SA: ${spk.nama_sa} • Mekanik: ${spk.nama_mekanik || 'Belum Ditugaskan'}`}
+                      badge={<StatusBadge status={spk.status_spk} size="sm" />}
+                      chips={[
+                        spk.estimasi_waktu_jam || spk.lead_time_jam ? `Lead Time: ${spk.estimasi_waktu_jam || spk.lead_time_jam} Jam` : null,
+                        spk.keluhan_customer ? `"${spk.keluhan_customer}"` : null,
+                      ].filter(Boolean)}
+                      actions={
+                        <div className="flex items-center gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setSelectedSpk(spk); }}
+                            className="px-2.5 py-1.5 rounded-xl border border-border text-ink-muted hover:text-ink hover:bg-surface text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                          >
+                            <Info className="w-3.5 h-3.5 text-ink-subtle" />
+                            <span>Detail</span>
+                          </button>
 
-                    <div className="mt-2 text-xs text-ink-muted bg-surface-raised/80 p-2 rounded-md border border-border line-clamp-1">
-                      <span className="font-semibold text-ink-muted">Keluhan:</span> {spk.keluhan_customer}
-                    </div>
+                          {needsAssignment && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAssignSpk(spk);
+                                setAssignStep(0);
+                                setSelectedMekanik(spk.nama_mekanik || (mekanikList[0]?.nama_lengkap || ''));
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-xs inline-flex items-center gap-1.5 transition-all"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                              <span>Tugaskan</span>
+                            </button>
+                          )}
 
-                    <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-xs text-ink-muted">
-                      <span>Mekanik: <strong className="text-ink">{spk.nama_mekanik || 'Belum ditugaskan'}</strong></span>
-                      <span className="text-accent font-semibold">Pilih untuk Aksi →</span>
-                    </div>
-                  </div>
-                ))
+                          {needsInspection && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSpk(spk);
+                                setCekStep(0);
+                                setShowCekModal(true);
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-accent-subtle hover:bg-accent/20 text-accent text-xs font-bold inline-flex items-center gap-1.5 transition-all"
+                            >
+                              <Wrench className="w-3.5 h-3.5" />
+                              <span>Hasil Cek</span>
+                            </button>
+                          )}
+
+                          {needsQc && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSpk(spk);
+                                setQcStep(0);
+                                setShowQcModal(true);
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-status-green hover:bg-status-green/90 text-white text-xs font-bold shadow-xs inline-flex items-center gap-1.5 transition-all"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>QC (FIR)</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setShowPrintSpk(spk); }}
+                            className="px-2.5 py-1.5 rounded-xl border border-border text-ink-muted hover:bg-surface text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                            title="Cetak SPK A4"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      }
+                    />
+                  );
+                })
               ) : (
-                <div className="p-8 text-center text-ink-subtle text-xs bg-surface rounded-md border border-dashed border-border">
-                  Tidak ditemukan SPK yang sesuai dengan pencarian atau filter "{statusFilter}".
-                </div>
+                <EmptyState
+                  title="Tidak Ditemukan SPK"
+                  description={`Tidak ditemukan SPK yang sesuai dengan filter "${statusFilter}" atau kata kunci pencarian.`}
+                />
               )}
             </div>
 
@@ -685,147 +676,180 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
             />
           </div>
 
-          {/* MODAL: Panel Distribusi & Aksi Foreman */}
+          {/* DetailModal: Panel Distribusi & Aksi Foreman */}
           {selectedSpk && (
-            <ModalPortal onClose={() => setSelectedSpk(null)}>
-              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-                <div className="bg-surface-raised rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border my-8">
-            {selectedSpk ? (
-              <div className="space-y-4">
-                <div className="border-b border-border pb-3 flex items-start justify-between gap-3">
-                  <div>
-                  <span className="text-[10px] uppercase font-bold text-ink-subtle">Armada Terpilih</span>
-                  <h3 className="text-lg font-black text-ink">{selectedSpk.no_polisi}</h3>
-                  <p className="text-xs text-ink-muted">{selectedSpk.nama_customer}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSpk(null)}
-                    className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors shrink-0"
-                    aria-label="Tutup panel foreman"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+            <DetailModal
+              open={Boolean(selectedSpk)}
+              onClose={() => setSelectedSpk(null)}
+              title={`SPK ${selectedSpk.no_spk}`}
+              subtitle={`${selectedSpk.no_polisi} • ${selectedSpk.nama_customer || 'Pelanggan Bengkel'}`}
+              badge={<StatusBadge status={selectedSpk.status_spk} size="sm" />}
+              size="lg"
+              tabs={[
+                {
+                  id: 'distribusi',
+                  label: 'Distribusi & Mekanik',
+                  content: (
+                    <div className="space-y-4 text-xs">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="p-3 bg-surface rounded-xl border border-border">
+                          <span className="text-ink-muted text-xs block">Service Advisor</span>
+                          <span className="font-bold text-ink text-sm">{selectedSpk.nama_sa}</span>
+                        </div>
+                        <div className="p-3 bg-surface rounded-xl border border-border">
+                          <span className="text-ink-muted text-xs block">Mekanik Terpilih</span>
+                          <span className="font-bold text-ink text-sm">{selectedSpk.nama_mekanik || 'Belum ditugaskan'}</span>
+                        </div>
+                        <div className="p-3 bg-surface rounded-xl border border-border">
+                          <span className="text-ink-muted text-xs block">Lead Time</span>
+                          <span className="font-bold text-accent text-sm font-mono">
+                            {selectedSpk.estimasi_waktu_jam || selectedSpk.lead_time_jam ? `${selectedSpk.estimasi_waktu_jam || selectedSpk.lead_time_jam} Jam` : '-'}
+                          </span>
+                        </div>
+                      </div>
 
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between py-1 border-b border-border">
-                    <span className="text-ink-muted">Status Saat Ini:</span>
-                    <StatusBadge status={selectedSpk.status_spk} size="sm" />
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-border">
-                    <span className="text-ink-muted">Service Advisor:</span>
-                    <span className="font-bold text-ink">{selectedSpk.nama_sa}</span>
-                  </div>
-                  <div>
-                    <span className="text-ink-muted block mb-1">Keluhan:</span>
-                    <p className="p-2 bg-surface rounded-md text-ink font-medium">
-                      {selectedSpk.keluhan_customer}
-                    </p>
-                  </div>
-                </div>
+                      <div className="p-3.5 bg-surface rounded-xl border border-border space-y-1">
+                        <span className="font-bold text-ink uppercase tracking-wider text-xs block">Keluhan Customer:</span>
+                        <p className="text-ink leading-relaxed">
+                          {selectedSpk.keluhan_customer || 'Tidak ada catatan keluhan.'}
+                        </p>
+                      </div>
 
-                {/* Assign Mekanik Section — terkunci bila WO sudah selesai/QC/closed */}
-                {['Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(selectedSpk.status_spk as string) ? (
-                  <div className="pt-2 space-y-2 text-xs">
-                    <div className="flex justify-between py-1 border-b border-border">
-                      <span className="text-ink-muted">Mekanik Pelaksana:</span>
-                      <span className="font-bold text-ink">{selectedSpk.nama_mekanik || '-'}</span>
+                      {/* Assign Mekanik Section */}
+                      {['Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(selectedSpk.status_spk as string) ? (
+                        <div className="p-3.5 bg-surface rounded-xl border border-dashed border-border text-ink-muted text-center font-medium">
+                          Penugasan terkunci — SPK sudah mencapai tahap {selectedSpk.status_spk}.
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-surface rounded-xl border border-border space-y-3">
+                          <label className="block text-xs font-bold text-ink">
+                            Pilih Mekanik untuk Pengerjaan:
+                          </label>
+                          <select
+                            value={selectedMekanik}
+                            onChange={(e) => setSelectedMekanik(e.target.value)}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs font-bold bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none"
+                          >
+                            {mekanikList.length === 0 ? (
+                              <option value="">Memuat daftar mekanik...</option>
+                            ) : (
+                              mekanikList.map((m) => (
+                                <option key={m.id} value={m.nama_lengkap}>
+                                  {m.nama_lengkap} (Teknisi Mekanik)
+                                </option>
+                              ))
+                            )}
+                          </select>
+
+                          <button
+                            type="button"
+                            disabled={assignMekanikMutation.isPending}
+                            onClick={() => assignMekanikMutation.mutate(selectedSpk)}
+                            className="w-full py-2.5 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all"
+                          >
+                            <UserCheck className="w-4 h-4" /> {assignMekanikMutation.isPending ? 'Menugaskan...' : 'Tugaskan ke Mekanik'}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <p className="p-2.5 rounded-md bg-surface border border-dashed border-border text-ink-muted font-semibold text-center">
-                      Penugasan terkunci — WO sudah selesai dikerjakan ({selectedSpk.status_spk}).
-                    </p>
-                  </div>
-                ) : (
-                <div className="pt-2">
-                  <label className="block text-xs font-bold text-ink mb-1.5">
-                    Pilih Mekanik untuk Pengerjaan:
-                  </label>
-                  <select
-                    value={selectedMekanik}
-                    onChange={(e) => setSelectedMekanik(e.target.value)}
-                    className="w-full px-3 py-2 rounded-md border border-border text-xs font-bold bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none"
+                  ),
+                },
+                {
+                  id: 'part',
+                  label: 'Kebutuhan Part',
+                  content: (() => {
+                    const parts = (spkPartList || []).filter((p) => p.id_spk === selectedSpk.id);
+                    if (parts.length === 0) {
+                      return (
+                        <EmptyState
+                          title="Belum Ada Sparepart Terdaftar"
+                          description="Daftar sparepart dapat ditambahkan melalui menu Input Hasil Cek."
+                        />
+                      );
+                    }
+                    return (
+                      <div className="space-y-2">
+                        {parts.map((p) => (
+                          <div key={p.id} className="p-3 bg-surface rounded-xl border border-border flex items-center justify-between gap-3 text-xs">
+                            <div className="min-w-0">
+                              <div className="font-bold text-ink truncate">{p.nama_part}</div>
+                              <div className="text-xs text-ink-muted font-mono">{p.kode_part || '-'} • {p.jumlah} {p.satuan}</div>
+                            </div>
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                              p.status_ketersediaan === 'Ready di Stock' ? 'bg-status-green-bg text-status-green' : 'bg-status-amber-bg text-status-amber'
+                            }`}>
+                              {p.status_ketersediaan || '-'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })(),
+                }
+              ]}
+              footer={
+                <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const spk = selectedSpk;
+                      setSelectedSpk(null);
+                      setShowPrintSpk(spk);
+                    }}
+                    className="px-3.5 py-2 bg-surface hover:bg-surface-raised text-ink font-semibold text-xs rounded-xl border border-border flex items-center gap-1.5 transition-colors"
                   >
-                    {mekanikList.length === 0 ? (
-                      <option value="">Memuat daftar mekanik...</option>
-                    ) : (
-                      mekanikList.map((m) => (
-                        <option key={m.id} value={m.nama_lengkap}>
-                          {m.nama_lengkap} (Teknisi Mekanik)
-                        </option>
-                      ))
+                    <Printer className="w-4 h-4" /> Cetak SPK A4
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {(selectedSpk.status_spk === 'Menunggu Pengecekan Mekanik' || selectedSpk.status_spk === 'Estimasi Dibuat') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('hasil-pengecekan');
+                        }}
+                        className="px-4 py-2 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+                      >
+                        <Wrench className="w-4 h-4" /> Input Hasil Cek →
+                      </button>
                     )}
-                  </select>
-
-                  <button
-                    type="button"
-                    disabled={assignMekanikMutation.isPending}
-                    onClick={() => assignMekanikMutation.mutate(selectedSpk)}
-                    className="w-full mt-3 py-2.5 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-md shadow-xs flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <UserCheck className="w-4 h-4" /> TUGASKAN KE MEKANIK
-                  </button>
+                    {selectedSpk.status_spk === 'Waiting QC' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('qc-fir');
+                        }}
+                        className="px-4 py-2 bg-status-green hover:bg-status-green/90 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Buka Form QC (FIR) →
+                      </button>
+                    )}
+                  </div>
                 </div>
-                )}
-
-                {/* Quick Link to Hasil Cek or QC */}
-                <div className="pt-2 border-t border-border flex flex-col gap-2">
-                  {(selectedSpk.status_spk === 'Menunggu Pengecekan Mekanik' || selectedSpk.status_spk === 'Estimasi Dibuat') ? (
-                    <button
-                      onClick={() => setActiveTab('hasil-pengecekan')}
-                      className="w-full py-2 bg-accent-subtle text-accent hover:bg-accent-subtle rounded-md font-bold text-xs transition-colors"
-                    >
-                      Input Hasil Pengecekan Fisik →
-                    </button>
-                  ) : (
-                    <p className="p-2 rounded-md bg-surface border border-dashed border-border text-ink-muted font-semibold text-[11px] text-center">
-                      Hasil pengecekan sudah difinalisasi.
-                    </p>
-                  )}
-                  {selectedSpk.status_spk === 'Waiting QC' && (
-                    <button
-                      onClick={() => setActiveTab('qc-fir')}
-                      className="w-full py-2 bg-status-green text-white hover:bg-status-green/90 rounded-md font-bold text-xs transition-colors shadow-xs"
-                    >
-                      Buka Form Quality Control (QC) →
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setShowPrintSpk(selectedSpk)}
-                    className="w-full py-2 bg-surface text-ink-muted hover:bg-surface-raised border border-border rounded-md font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Printer className="w-3.5 h-3.5" /> Cetak Lembar SPK (A4)
-                  </button>
-                </div>
-              </div>
-            ) : null}
-              </div>
-            </div>
-          </ModalPortal>
-        )}
+              }
+            />
+          )}
 
       </div>
       )}
 
-      {/* TAB 2: INPUT PERBAIKAN HASIL PENGECEKAN (image1.png Mockup 5) */}
+      {/* TAB 2: INPUT PERBAIKAN HASIL PENGECEKAN */}
       {activeTab === 'hasil-pengecekan' && (
-        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs max-w-2xl mx-auto">
-          <div className="border-b border-border pb-3 mb-4">
-            <h2 className="text-base font-bold text-ink">Input Perbaikan Hasil Pengecekan Mekanik & Foreman</h2>
+        <div className="bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs max-w-2xl mx-auto space-y-5">
+          <div className="border-b border-border pb-3">
+            <h2 className="text-base font-bold text-ink">Input Perbaikan Hasil Pengecekan Mekanik &amp; Foreman</h2>
             <p className="text-xs text-ink-muted">Pengecekan fisik komponen yang perlu diperbaiki / diganti untuk disubmit ke SA</p>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-ink-muted mb-1">Pilih SPK Armada:</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1.5">Pilih SPK Armada:</label>
               <select
                 value={selectedSpk?.id || ''}
                 onChange={(e) => {
                   const spk = spkList?.find(s => s.id === Number(e.target.value));
                   setSelectedSpk(spk || null);
                 }}
-                className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-bold bg-surface-raised focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs font-bold bg-surface-raised focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">-- Pilih SPK Armada --</option>
                 {spkList?.map(s => (
@@ -837,55 +861,51 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-ink-muted mb-1">
-                Hasil Pengecekan & Rekomendasi Perbaikan
+              <label className="block text-xs font-bold text-ink-muted mb-1.5">
+                Hasil Pengecekan &amp; Rekomendasi Perbaikan
               </label>
               <textarea
                 rows={4}
                 placeholder="Contoh:&#10;1. Ganti Kampas Rem Depan&#10;2. Bubut / Ganti Disc Brake Depan&#10;3. Ganti Minyak Rem"
                 value={hasilPengecekan.rekomendasi}
                 onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, rekomendasi: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Removed Estimasi Biaya and Waktu Jam, this is SA's job */}
-            </div>
-
             <div>
-              <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Tambahan Foreman</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1.5">Catatan Tambahan Foreman</label>
               <textarea
                 rows={2}
                 placeholder="Contoh: Piringan rem sudah beralur dalam, disarankan sekalian ganti kampas dan minyak rem."
                 value={hasilPengecekan.catatan_tambahan}
                 onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, catatan_tambahan: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
               />
             </div>
 
-            {/* Kebutuhan Sparepart hasil pengecekan (wajib >= 1: gerbang START mekanik & estimasi SA) */}
-            <div className="bg-surface p-4 rounded-md border border-border space-y-3">
+            {/* Kebutuhan Sparepart hasil pengecekan */}
+            <div className="bg-surface p-4 rounded-xl border border-border space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-ink flex items-center gap-1.5">
                   <Wrench className="w-4 h-4 text-accent" /> Sparepart yang Dibutuhkan
                   <span className="text-status-red">*</span>
                 </span>
-                <span className="text-[10px] font-bold text-ink-subtle">
+                <span className="text-xs font-bold text-ink-subtle">
                   {existingCekParts.length + cekParts.length} item
                 </span>
               </div>
 
               {existingCekParts.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-ink-subtle uppercase">Sudah tersimpan (inputan sebelumnya):</span>
+                  <span className="text-xs font-bold text-ink-subtle uppercase">Sudah tersimpan (inputan sebelumnya):</span>
                   {existingCekParts.map((p) => (
-                    <div key={`saved-${p.id}`} className="flex items-center justify-between px-3 py-2 rounded-md bg-surface-raised border border-border text-xs">
+                    <div key={`saved-${p.id}`} className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-raised border border-border text-xs">
                       <div className="min-w-0">
                         <div className="font-bold text-ink truncate">{p.nama_part}</div>
-                        <div className="text-[11px] text-ink-muted font-mono">{p.kode_part || '-'} | Qty: {p.jumlah} {p.satuan}</div>
+                        <div className="text-xs text-ink-muted font-mono">{p.kode_part || '-'} | Qty: {p.jumlah} {p.satuan}</div>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${p.status_ketersediaan === 'Ready di Stock' ? 'bg-status-green-bg text-status-green' : 'bg-status-amber-bg text-status-amber'}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap ${p.status_ketersediaan === 'Ready di Stock' ? 'bg-status-green-bg text-status-green' : 'bg-status-amber-bg text-status-amber'}`}>
                         {p.status_ketersediaan || '-'}
                       </span>
                     </div>
@@ -897,7 +917,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 <select
                   value={cekPartPickerId}
                   onChange={(e) => setCekPartPickerId(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-border text-xs font-semibold bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none min-w-0 truncate"
+                  className="px-3 py-2 rounded-xl border border-border text-xs font-semibold bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none min-w-0 truncate"
                 >
                   <option value="">-- Pilih sparepart gudang --</option>
                   {masterStokPart?.map((p) => (
@@ -911,14 +931,14 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                   min={1}
                   value={cekPartPickerQty}
                   onChange={(e) => setCekPartPickerQty(Math.max(1, Number(e.target.value) || 1))}
-                  className="px-2 py-2 rounded-md border border-border text-xs font-mono font-bold text-center focus:ring-2 focus:ring-accent focus:outline-none"
+                  className="px-2 py-2 rounded-xl border border-border text-xs font-mono font-bold text-center focus:ring-2 focus:ring-accent focus:outline-none"
                   title="Jumlah"
                 />
                 <button
                   type="button"
                   disabled={!cekPartPickerId}
                   onClick={handleAddCekPart}
-                  className="px-3 py-2 rounded-md bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs font-bold transition-all flex items-center gap-1"
+                  className="px-3.5 py-2 rounded-xl bg-accent hover:bg-accent-hover disabled:opacity-40 text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> Tambah
                 </button>
@@ -927,15 +947,15 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
               {cekParts.length > 0 && (
                 <div className="space-y-1.5">
                   {cekParts.map((p) => (
-                    <div key={`new-${p.kode_part}`} className="flex items-center justify-between px-3 py-2 rounded-md bg-accent-subtle/50 border border-accent/30 text-xs">
+                    <div key={`new-${p.kode_part}`} className="flex items-center justify-between px-3 py-2 rounded-lg bg-accent-subtle/50 border border-accent/30 text-xs">
                       <div className="min-w-0">
                         <div className="font-bold text-ink truncate">{p.nama_part}</div>
-                        <div className="text-[11px] text-ink-muted font-mono">{p.kode_part} | Qty: {p.jumlah} {p.satuan} | Stok gudang: {p.stok}</div>
+                        <div className="text-xs text-ink-muted font-mono">{p.kode_part} | Qty: {p.jumlah} {p.satuan} | Stok gudang: {p.stok}</div>
                       </div>
                       <button
                         type="button"
                         onClick={() => setCekParts(cekParts.filter((x) => x.kode_part !== p.kode_part))}
-                        className="p-1.5 rounded-md text-status-red hover:bg-status-red-bg transition-colors"
+                        className="p-1.5 rounded-lg text-status-red hover:bg-status-red-bg transition-colors"
                         title="Hapus dari daftar"
                       >
                         <X className="w-4 h-4" />
@@ -946,8 +966,8 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
               )}
 
               {existingCekParts.length + cekParts.length === 0 && (
-                <p className="text-[11px] text-status-red font-semibold">
-                  Wajib tambah minimal 1 sparepart — tanpa ini SA tidak bisa estimasi & mekanik tidak bisa START.
+                <p className="text-xs text-status-red font-semibold">
+                  Wajib tambah minimal 1 sparepart — tanpa ini SA tidak bisa estimasi &amp; mekanik tidak bisa START.
                 </p>
               )}
             </div>
@@ -956,7 +976,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
               type="button"
               disabled={!selectedSpk || submitHasilPengecekanMutation.isPending}
               onClick={() => selectedSpk && submitHasilPengecekanMutation.mutate(selectedSpk)}
-              className="w-full py-3 rounded-md bg-accent hover:bg-accent-hover disabled:bg-surface text-white font-bold text-sm shadow-md shadow-accent/20 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-sm shadow-md shadow-accent/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <Send className="w-4 h-4" /> SUBMIT KE SA BY SISTEM
             </button>
@@ -964,10 +984,10 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
         </div>
       )}
 
-      {/* TAB 3: QUALITY CONTROL (QC) & FIR (image1.png Mockup QC) */}
+      {/* TAB 3: QUALITY CONTROL (QC) & FIR */}
       {activeTab === 'qc-fir' && (
-        <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs max-w-2xl mx-auto">
-          <div className="border-b border-border pb-3 mb-4">
+        <div className="bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs max-w-2xl mx-auto space-y-5">
+          <div className="border-b border-border pb-3">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-status-green"></span>
               <h2 className="text-base font-bold text-ink">Final Inspection Report (FIR) - Quality Control</h2>
@@ -977,14 +997,14 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-ink-muted mb-1">Pilih SPK Armada untuk QC:</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1.5">Pilih SPK Armada untuk QC:</label>
               <select
                 value={selectedSpk?.id || ''}
                 onChange={(e) => {
                   const spk = spkList?.find(s => s.id === Number(e.target.value));
                   setSelectedSpk(spk || null);
                 }}
-                className="w-full px-3.5 py-2 rounded-md border border-border text-xs font-bold bg-surface-raised focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs font-bold bg-surface-raised focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 <option value="">-- Pilih SPK Selesai Dikerjakan --</option>
                 {spkList?.map(s => (
@@ -996,7 +1016,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
             </div>
 
             {/* Checklist FIR */}
-            <div className="p-4 rounded-md bg-surface border border-border space-y-3">
+            <div className="p-4 rounded-xl bg-surface border border-border space-y-2.5">
               <span className="block text-xs font-bold text-ink">5 Parameter Wajib Inspeksi Akhir:</span>
               
               {[
@@ -1005,30 +1025,40 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 { key: 'bebas_kebocoran', label: '3. Bebas Kebocoran', desc: 'Tidak ada kebocoran oli, minyak rem, atau cairan pendingin' },
                 { key: 'test_jalan', label: '4. Test Jalan', desc: 'Uji jalan singkat tidak ada getaran dan bunyi abnormal' },
                 { key: 'kebersihan', label: '5. Kebersihan', desc: 'Kabin, ruang mesin, dan bodi armada bersih dari oli mekanik' },
-              ].map((param) => (
-                <label key={param.key} className="flex items-start gap-3 p-2 bg-surface-raised rounded-md border border-border cursor-pointer hover:bg-surface transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={(firForm as any)[param.key]}
-                    onChange={(e) => setFirForm({ ...firForm, [param.key]: e.target.checked })}
-                    className="w-4 h-4 mt-0.5 rounded text-status-green focus:ring-status-green"
-                  />
-                  <div>
-                    <div className="text-xs font-bold text-ink">{param.label}</div>
-                    <div className="text-[11px] text-ink-muted">{param.desc}</div>
-                  </div>
-                </label>
-              ))}
+              ].map((param) => {
+                const isChecked = Boolean((firForm as any)[param.key]);
+                return (
+                  <label
+                    key={param.key}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      isChecked
+                        ? 'border-status-green/40 bg-status-green-bg text-ink'
+                        : 'border-border bg-surface-raised hover:bg-surface'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => setFirForm({ ...firForm, [param.key]: e.target.checked })}
+                      className="w-4 h-4 mt-0.5 rounded text-status-green focus:ring-status-green cursor-pointer"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-ink">{param.label}</div>
+                      <div className="text-xs text-ink-muted">{param.desc}</div>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Hasil QC Foreman</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1.5">Catatan Hasil QC Foreman</label>
               <textarea
                 rows={2}
                 placeholder="Contoh: Pengereman responsif, tidak ada getaran dan kebocoran."
                 value={firForm.catatan_foreman}
                 onChange={(e) => setFirForm({ ...firForm, catatan_foreman: e.target.value })}
-                className="w-full px-3.5 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
               />
             </div>
 
@@ -1037,7 +1067,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 type="button"
                 disabled={!selectedSpk || submitQcMutation.isPending}
                 onClick={() => selectedSpk && submitQcMutation.mutate({ spk: selectedSpk, passed: false })}
-                className="py-3 rounded-md bg-status-red-bg hover:bg-status-red/10 text-status-red border border-status-red/30 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                className="py-3 rounded-xl bg-status-red-bg hover:bg-status-red/10 text-status-red border border-status-red/30 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <XCircle className="w-4 h-4" /> TIDAK SESUAI (KEMBALIKAN)
               </button>
@@ -1046,13 +1076,477 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 type="button"
                 disabled={!selectedSpk || submitQcMutation.isPending}
                 onClick={() => selectedSpk && submitQcMutation.mutate({ spk: selectedSpk, passed: true })}
-                className="py-3 rounded-md bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
+                className="py-3 rounded-xl bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" /> QC PASSED (KE SA)
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* STEP MODAL 1: PENUGASAN MEKANIK */}
+      {assignSpk && (
+        <StepModal
+          open={Boolean(assignSpk)}
+          onClose={() => setAssignSpk(null)}
+          title={`Penugasan Mekanik: ${assignSpk.no_spk}`}
+          subtitle={`${assignSpk.no_polisi} • ${assignSpk.nama_customer || 'Pelanggan Bengkel'}`}
+          currentStep={assignStep}
+          onNext={() => setAssignStep((s) => Math.min(s + 1, 2))}
+          onBack={() => setAssignStep((s) => Math.max(s - 1, 0))}
+          onSubmit={() => {
+            assignMekanikMutation.mutate(assignSpk, {
+              onSuccess: () => setAssignSpk(null),
+            });
+          }}
+          submitLabel="Konfirmasi Penugasan"
+          isPending={assignMekanikMutation.isPending}
+          size="md"
+          steps={[
+            {
+              id: 'pekerjaan',
+              label: 'Pilih Pekerjaan',
+              isValid: true,
+              content: (
+                <div className="space-y-3.5 text-xs">
+                  <div className="p-3.5 bg-surface rounded-xl border border-border space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">No. SPK:</span>
+                      <span className="font-mono font-bold text-accent">{assignSpk.no_spk}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">No. Polisi:</span>
+                      <span className="font-bold text-ink">{assignSpk.no_polisi}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Customer:</span>
+                      <span className="font-semibold text-ink">{assignSpk.nama_customer || '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Service Advisor:</span>
+                      <span className="font-semibold text-ink">{assignSpk.nama_sa}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Lead Time:</span>
+                      <span className="font-mono font-bold text-accent">
+                        {assignSpk.estimasi_waktu_jam || assignSpk.lead_time_jam ? `${assignSpk.estimasi_waktu_jam || assignSpk.lead_time_jam} Jam` : '-'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-3.5 bg-surface rounded-xl border border-border">
+                    <span className="text-ink-subtle text-xs block mb-1 font-bold">Keluhan Customer:</span>
+                    <p className="text-ink italic">"{assignSpk.keluhan_customer || 'Tidak ada catatan keluhan.'}"</p>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'tugaskan',
+              label: 'Tugaskan Mekanik',
+              isValid: Boolean(selectedMekanik),
+              content: (
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <label className="block text-xs font-bold text-ink mb-1.5">
+                      Pilih Teknisi / Mekanik Bertugas:
+                    </label>
+                    <select
+                      value={selectedMekanik}
+                      onChange={(e) => setSelectedMekanik(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs font-bold bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none"
+                    >
+                      <option value="">-- Pilih Mekanik --</option>
+                      {mekanikList.map((m) => (
+                        <option key={m.id} value={m.nama_lengkap}>
+                          {m.nama_lengkap} (Teknisi Mekanik)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="p-3 bg-accent-subtle rounded-xl border border-accent/20 text-accent text-xs">
+                    Mekanik yang dipilih akan menerima notifikasi otomatis dan SPK ini akan masuk ke antrian pengerjaan mekanik tersebut.
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'konfirmasi',
+              label: 'Konfirmasi',
+              isValid: true,
+              content: (
+                <div className="space-y-3.5 text-xs">
+                  <div className="p-4 bg-surface rounded-xl border border-border space-y-2">
+                    <div className="text-xs font-bold text-ink uppercase tracking-wider mb-2 border-b border-border pb-1">
+                      Ringkasan Penugasan
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Unit Armada:</span>
+                      <span className="font-bold text-ink">{assignSpk.no_polisi} ({assignSpk.no_spk})</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Mekanik Ditugaskan:</span>
+                      <span className="font-bold text-accent text-sm">{selectedMekanik}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Instruksi:</span>
+                      <span className="text-ink text-right">Pengecekan awal dan estimasi kebutuhan sparepart</span>
+                    </div>
+                  </div>
+                </div>
+              ),
+            },
+          ]}
+        />
+      )}
+
+      {/* STEP MODAL 2: HASIL PENGECEKAN */}
+      {showCekModal && selectedSpk && (
+        <StepModal
+          open={showCekModal}
+          onClose={() => setShowCekModal(false)}
+          title="Input Perbaikan Hasil Pengecekan"
+          subtitle={`SPK ${selectedSpk.no_spk} • ${selectedSpk.no_polisi}`}
+          currentStep={cekStep}
+          onNext={() => setCekStep((s) => Math.min(s + 1, 2))}
+          onBack={() => setCekStep((s) => Math.max(s - 1, 0))}
+          onSubmit={() => {
+            submitHasilPengecekanMutation.mutate(selectedSpk, {
+              onSuccess: () => setShowCekModal(false),
+            });
+          }}
+          submitLabel="Submit ke SA by Sistem"
+          isPending={submitHasilPengecekanMutation.isPending}
+          size="lg"
+          steps={[
+            {
+              id: 'pekerjaan',
+              label: 'Pilih Pekerjaan',
+              isValid: true,
+              content: (
+                <div className="space-y-3.5 text-xs">
+                  <div className="p-3.5 bg-surface rounded-xl border border-border space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">SPK Armada:</span>
+                      <span className="font-bold text-ink">{selectedSpk.no_spk} — {selectedSpk.no_polisi}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Customer:</span>
+                      <span className="font-semibold text-ink">{selectedSpk.nama_customer}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Mekanik:</span>
+                      <span className="font-semibold text-ink">{selectedSpk.nama_mekanik || '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Status SPK:</span>
+                      <StatusBadge status={selectedSpk.status_spk} size="sm" />
+                    </div>
+                  </div>
+                  <div className="p-3.5 bg-surface rounded-xl border border-border">
+                    <span className="text-ink-subtle text-xs block mb-1 font-bold">Keluhan Customer:</span>
+                    <p className="text-ink italic">"{selectedSpk.keluhan_customer || 'Tidak ada keluhan.'}"</p>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'periksa',
+              label: 'Periksa & Kebutuhan Part',
+              isValid: Boolean(hasilPengecekan.rekomendasi.trim() && (existingCekParts.length + cekParts.length > 0)),
+              content: (
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <label className="block text-xs font-bold text-ink-muted mb-1.5">
+                      Hasil Pengecekan &amp; Rekomendasi Perbaikan <span className="text-status-red">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Contoh:&#10;1. Ganti Kampas Rem Depan&#10;2. Bubut / Ganti Disc Brake Depan"
+                      value={hasilPengecekan.rekomendasi}
+                      onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, rekomendasi: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-ink-muted mb-1.5">Catatan Tambahan Foreman</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Catatan tambahan (opsional)"
+                      value={hasilPengecekan.catatan_tambahan}
+                      onChange={(e) => setHasilPengecekan({ ...hasilPengecekan, catatan_tambahan: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Picker Kebutuhan Part */}
+                  <div className="p-3.5 bg-surface rounded-xl border border-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-ink flex items-center gap-1.5">
+                        <Wrench className="w-4 h-4 text-accent" /> Kebutuhan Part <span className="text-status-red">*</span>
+                      </span>
+                      <span className="font-bold text-ink-subtle">
+                        {existingCekParts.length + cekParts.length} item
+                      </span>
+                    </div>
+
+                    {/* Existing parts */}
+                    {existingCekParts.map((p) => (
+                      <div key={`saved-${p.id}`} className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-raised border border-border text-xs">
+                        <div>
+                          <div className="font-bold text-ink">{p.nama_part}</div>
+                          <div className="text-ink-muted font-mono">{p.kode_part} | Qty: {p.jumlah} {p.satuan}</div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-status-green-bg text-status-green">Tersimpan</span>
+                      </div>
+                    ))}
+
+                    {/* New parts */}
+                    {cekParts.map((p, idx) => (
+                      <div key={`new-${p.kode_part}`} className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-raised border border-accent/30 text-xs">
+                        <div>
+                          <div className="font-bold text-ink">{p.nama_part}</div>
+                          <div className="text-ink-muted font-mono">{p.kode_part} | Qty: {p.jumlah} {p.satuan}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCekParts(cekParts.filter((_, i) => i !== idx))}
+                          className="text-status-red hover:underline font-bold text-xs"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Part picker */}
+                    <div className="flex gap-2">
+                      <select
+                        value={cekPartPickerId}
+                        onChange={(e) => setCekPartPickerId(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-border text-xs bg-surface-raised"
+                      >
+                        <option value="">-- Tambah Sparepart dari Gudang --</option>
+                        {masterStokPart?.map((p) => (
+                          <option key={p.kode_part} value={p.kode_part}>
+                            {p.nama_part} ({p.kode_part}) - Stok: {p.stok}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min={1}
+                        value={cekPartPickerQty}
+                        onChange={(e) => setCekPartPickerQty(Math.max(1, Number(e.target.value)))}
+                        className="w-16 px-2 py-2 rounded-xl border border-border text-xs text-center"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCekPart}
+                        className="px-3 py-2 rounded-xl bg-accent text-white font-bold text-xs"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'konfirmasi',
+              label: 'Konfirmasi',
+              isValid: true,
+              content: (
+                <div className="space-y-3.5 text-xs">
+                  <div className="p-4 bg-surface rounded-xl border border-border space-y-2.5">
+                    <div className="font-bold text-ink uppercase tracking-wider border-b border-border pb-1">
+                      Konfirmasi Hasil Pengecekan
+                    </div>
+                    <div>
+                      <span className="text-ink-muted block">Rekomendasi Perbaikan:</span>
+                      <div className="p-2.5 bg-surface-raised rounded-lg border border-border whitespace-pre-line mt-1">
+                        {hasilPengecekan.rekomendasi}
+                      </div>
+                    </div>
+                    {hasilPengecekan.catatan_tambahan && (
+                      <div>
+                        <span className="text-ink-muted block">Catatan Tambahan:</span>
+                        <div className="p-2 bg-surface-raised rounded-lg border border-border mt-1">
+                          {hasilPengecekan.catatan_tambahan}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-ink-muted block">Total Sparepart:</span>
+                      <span className="font-bold text-accent">{existingCekParts.length + cekParts.length} jenis sparepart akan dikirim ke SA</span>
+                    </div>
+                  </div>
+                </div>
+              ),
+            },
+          ]}
+        />
+      )}
+
+      {/* STEP MODAL 3: QC / FIR */}
+      {showQcModal && selectedSpk && (
+        <StepModal
+          open={showQcModal}
+          onClose={() => setShowQcModal(false)}
+          title="Quality Control &amp; Final Inspection Report"
+          subtitle={`SPK ${selectedSpk.no_spk} • ${selectedSpk.no_polisi}`}
+          currentStep={qcStep}
+          onNext={() => setQcStep((s) => Math.min(s + 1, 2))}
+          onBack={() => setQcStep((s) => Math.max(s - 1, 0))}
+          onSubmit={() => {
+            submitQcMutation.mutate({ spk: selectedSpk, passed: true }, {
+              onSuccess: () => setShowQcModal(false),
+            });
+          }}
+          submitLabel="QC Passed (Ke SA)"
+          isPending={submitQcMutation.isPending}
+          size="lg"
+          steps={[
+            {
+              id: 'pekerjaan',
+              label: 'Pilih Pekerjaan',
+              isValid: true,
+              content: (
+                <div className="space-y-3.5 text-xs">
+                  <div className="p-3.5 bg-surface rounded-xl border border-border space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">No. SPK:</span>
+                      <span className="font-mono font-bold text-accent">{selectedSpk.no_spk}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">No. Polisi:</span>
+                      <span className="font-bold text-ink">{selectedSpk.no_polisi}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Customer:</span>
+                      <span className="font-semibold text-ink">{selectedSpk.nama_customer || '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Mekanik Pengerjaan:</span>
+                      <span className="font-semibold text-ink">{selectedSpk.nama_mekanik || '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-ink-muted">Status SPK:</span>
+                      <StatusBadge status={selectedSpk.status_spk} size="sm" />
+                    </div>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'periksa',
+              label: 'Pemeriksaan 5 Parameter',
+              isValid: true,
+              content: (
+                <div className="space-y-4 text-xs">
+                  <span className="block text-xs font-bold text-ink">5 Parameter Wajib Inspeksi Akhir:</span>
+                  
+                  {[
+                    { key: 'pekerjaan_sesuai_wo', label: '1. Pekerjaan Sesuai WO', desc: 'Item jasa & part terpasang sesuai SPK' },
+                    { key: 'fungsi_normal', label: '2. Fungsi Normal', desc: 'Sistem rem, kelistrikan, dan mesin bekerja optimal' },
+                    { key: 'bebas_kebocoran', label: '3. Bebas Kebocoran', desc: 'Tidak ada kebocoran oli, minyak rem, atau cairan pendingin' },
+                    { key: 'test_jalan', label: '4. Test Jalan', desc: 'Uji jalan singkat tidak ada getaran dan bunyi abnormal' },
+                    { key: 'kebersihan', label: '5. Kebersihan', desc: 'Kabin, ruang mesin, dan bodi armada bersih dari oli mekanik' },
+                  ].map((param) => {
+                    const isChecked = Boolean((firForm as any)[param.key]);
+                    return (
+                      <label
+                        key={param.key}
+                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                          isChecked
+                            ? 'border-status-green/40 bg-status-green-bg text-ink'
+                            : 'border-border bg-surface-raised hover:bg-surface'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => setFirForm({ ...firForm, [param.key]: e.target.checked })}
+                          className="w-4 h-4 mt-0.5 rounded text-status-green focus:ring-status-green cursor-pointer"
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-ink">{param.label}</div>
+                          <div className="text-xs text-ink-muted">{param.desc}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+
+                  <div>
+                    <label className="block text-xs font-bold text-ink-muted mb-1.5">Catatan Hasil QC Foreman</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Contoh: Pengereman responsif, tidak ada getaran dan kebocoran."
+                      value={firForm.catatan_foreman}
+                      onChange={(e) => setFirForm({ ...firForm, catatan_foreman: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
+                    />
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'konfirmasi',
+              label: 'Konfirmasi Keputusan',
+              isValid: true,
+              content: (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 bg-surface rounded-xl border border-border space-y-2.5">
+                    <div className="font-bold text-ink uppercase tracking-wider border-b border-border pb-1">
+                      Konfirmasi Keputusan QC (FIR)
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Pekerjaan Sesuai WO:</span>
+                      <span className={firForm.pekerjaan_sesuai_wo ? 'text-status-green font-bold' : 'text-status-red font-bold'}>{firForm.pekerjaan_sesuai_wo ? '✓ Ya' : '✕ Tidak'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Fungsi Normal:</span>
+                      <span className={firForm.fungsi_normal ? 'text-status-green font-bold' : 'text-status-red font-bold'}>{firForm.fungsi_normal ? '✓ Ya' : '✕ Tidak'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Bebas Kebocoran:</span>
+                      <span className={firForm.bebas_kebocoran ? 'text-status-green font-bold' : 'text-status-red font-bold'}>{firForm.bebas_kebocoran ? '✓ Ya' : '✕ Tidak'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Test Jalan:</span>
+                      <span className={firForm.test_jalan ? 'text-status-green font-bold' : 'text-status-red font-bold'}>{firForm.test_jalan ? '✓ Ya' : '✕ Tidak'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-muted">Kebersihan:</span>
+                      <span className={firForm.kebersihan ? 'text-status-green font-bold' : 'text-status-red font-bold'}>{firForm.kebersihan ? '✓ Ya' : '✕ Tidak'}</span>
+                    </div>
+                    {firForm.catatan_foreman && (
+                      <div className="pt-1 border-t border-border">
+                        <span className="text-ink-muted block">Catatan:</span>
+                        <p className="font-medium text-ink mt-0.5">{firForm.catatan_foreman}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      disabled={submitQcMutation.isPending}
+                      onClick={() => {
+                        submitQcMutation.mutate({ spk: selectedSpk, passed: false }, {
+                          onSuccess: () => setShowQcModal(false),
+                        });
+                      }}
+                      className="flex-1 py-2.5 rounded-xl bg-status-red-bg hover:bg-status-red/10 text-status-red border border-status-red/30 font-bold text-xs flex items-center justify-center gap-1.5"
+                    >
+                      <XCircle className="w-4 h-4" /> Kembalikan (Tidak Sesuai)
+                    </button>
+                  </div>
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
 
       {/* Printable SPK A4 Modal */}

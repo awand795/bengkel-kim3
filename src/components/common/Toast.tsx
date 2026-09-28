@@ -96,22 +96,22 @@ export const ToastContainer: React.FC = () => {
           <div
             key={t.id}
             role="status"
-            className={`pointer-events-auto w-full p-4 rounded-lg shadow-xl border backdrop-blur-md transition-all duration-300 animate-in slide-in-from-top-3 fade-in ${
+            className={`pointer-events-auto w-full p-4 rounded-xl shadow-xl border backdrop-blur-md transition-all duration-300 ${
               isSuccess
-                ? 'bg-slate-900/95 border-emerald-500/40 text-white'
+                ? 'bg-surface-raised border-status-green/40 text-ink'
                 : isError
-                ? 'bg-slate-900/95 border-rose-500/40 text-white'
+                ? 'bg-surface-raised border-status-red/40 text-ink'
                 : isWarning
-                ? 'bg-slate-900/95 border-amber-500/40 text-white'
-                : 'bg-slate-900/95 border-sky-500/40 text-white'
+                ? 'bg-surface-raised border-status-amber/40 text-ink'
+                : 'bg-surface-raised border-status-blue/40 text-ink'
             }`}
           >
             <div className="flex items-start gap-3">
               <div className="shrink-0 mt-0.5">
-                {isSuccess && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-                {isError && <AlertCircle className="w-5 h-5 text-rose-400" />}
-                {isWarning && <AlertTriangle className="w-5 h-5 text-amber-400" />}
-                {isInfo && <Info className="w-5 h-5 text-sky-400" />}
+                {isSuccess && <CheckCircle2 className="w-5 h-5 text-status-green" />}
+                {isError && <AlertCircle className="w-5 h-5 text-status-red" />}
+                {isWarning && <AlertTriangle className="w-5 h-5 text-status-amber" />}
+                {isInfo && <Info className="w-5 h-5 text-status-blue" />}
               </div>
 
               <div className="flex-1 min-w-0">
@@ -119,7 +119,7 @@ export const ToastContainer: React.FC = () => {
                   {t.title}
                 </div>
                 {t.message && (
-                  <div className="text-[11px] text-slate-300 mt-1 leading-relaxed break-words">
+                  <div className="text-xs text-ink-muted mt-1 leading-relaxed break-words">
                     {t.message}
                   </div>
                 )}
@@ -128,7 +128,7 @@ export const ToastContainer: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toast.dismiss(t.id)}
-                className="shrink-0 p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="shrink-0 p-1 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors cursor-pointer"
                 aria-label="Tutup notifikasi"
               >
                 <X className="w-4 h-4" />

@@ -153,7 +153,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   value={nama}
                   onChange={(e) => setNama(e.target.value)}
                   placeholder="Nama lengkap Anda"
-                  className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                  className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-lg border border-border bg-surface text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                 />
               </div>
             </div>
@@ -172,12 +172,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   value={telepon}
                   onChange={(e) => setTelepon(e.target.value)}
                   placeholder="0812xxxxxxx"
-                  className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                  className="w-full pl-10 pr-3.5 py-2.5 text-xs sm:text-sm rounded-lg border border-border bg-surface text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] text-ink-subtle bg-surface rounded-md border border-border px-3 py-2">
+            <div className="flex items-center gap-2 text-xs text-ink-subtle bg-surface rounded-lg border border-border px-3 py-2">
               <Mail className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{authUser?.email || '-'}</span>
               <span className="ml-auto shrink-0 font-semibold">{authUser?.peran || ''}</span>
@@ -186,7 +186,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-sm rounded-md shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-sm rounded-lg shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -225,7 +225,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                     onChange={(e) => f.set(e.target.value)}
                     placeholder={f.ph}
                     autoComplete="new-password"
-                    className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm rounded-md border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all font-sans"
+                    className="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm rounded-lg border border-border bg-surface text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all font-sans"
                   />
                   <button
                     type="button"

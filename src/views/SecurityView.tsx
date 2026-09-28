@@ -41,6 +41,13 @@ import { PaginationBar } from '../components/common/PaginationBar';
 import { isTanggalHariIni, isTanggalSamaHariIni, isDalamRentang, tanggalKey } from '../utils/tanggal';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
+import { StepModal } from '../components/common/StepModal';
+import { DetailModal } from '../components/common/DetailModal';
+import { ListItemCard } from '../components/common/ListItemCard';
+import { StatCard } from '../components/common/StatCard';
+import { EmptyState } from '../components/common/EmptyState';
+import { SectionHeader } from '../components/common/SectionHeader';
+import { FilterChips } from '../components/common/FilterChips';
 
 interface SecurityViewProps {
   initialTab?: 'dashboard' | 'checkin' | 'booking' | 'onprogress' | 'selesai' | 'memo';
@@ -114,6 +121,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   const [showCheckoutModal, setShowCheckoutModal] = useState<AntrianKunjungan | null>(null);
   const [showDetailModal, setShowDetailModal] = useState<AntrianKunjungan | null>(null);
   const [showPrintMemo, setShowPrintMemo] = useState<MemoKeluar | null>(null);
+  const [checkinStep, setCheckinStep] = useState(0);
+  const [checkoutStep, setCheckoutStep] = useState(0);
 
   // Check In Form State
   const [formCheckin, setFormCheckin] = useState({
@@ -552,15 +561,15 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     <div className="space-y-6">
       
       {/* Top Banner / Pos Security Header */}
-      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-surface-raised rounded-xl p-4 sm:p-5 border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-md bg-accent text-white flex items-center justify-center font-black shadow-xs">
+          <div className="w-11 h-11 rounded-xl bg-accent text-white flex items-center justify-center font-black shadow-xs">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-black text-ink tracking-tight">SECURITY – BENGKEL KIM3</h1>
-              <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent text-[11px] font-bold tracking-wide border border-accent/30">
+              <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent text-xs font-bold tracking-wide border border-accent/30">
                 POS UTAMA
               </span>
             </div>
@@ -590,7 +599,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               });
               changeTab('checkin');
             }}
-            className="px-4 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
             + CHECK IN KENDARAAN MASUK
@@ -604,77 +613,42 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {currentTab === 'dashboard' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Booking Hari Ini (Kategori Utama: Netral + text-accent) */}
-            <div 
+            <StatCard
+              title="Booking Hari Ini"
+              value={`${bookingHariIni.length} Unit`}
+              subtitle="Tercatat di sistem"
+              icon={Calendar}
+              tone="accent"
               onClick={() => changeTab('booking')}
-              className="bg-surface-raised p-4 rounded-md border border-border shadow-xs cursor-pointer hover:border-accent transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-ink-muted">Booking Hari Ini</span>
-                <div className="w-8 h-8 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
-                  <Calendar className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-accent mt-2 tabular-nums">{bookingHariIni.length} Unit</div>
-              <p className="text-[11px] text-accent font-semibold mt-1 flex items-center gap-1">
-                Buka List Booking →
-              </p>
-            </div>
-
-            {/* Card 2: Armada di Dalam Bengkel (On Progress: Status Amber) */}
-            <div 
+            />
+            <StatCard
+              title="Armada di Dalam Bengkel"
+              value={`${onProgressList.length} Unit`}
+              subtitle="Aktif di KIM 3"
+              icon={Truck}
+              tone="amber"
               onClick={() => changeTab('onprogress')}
-              className="bg-surface-raised p-4 rounded-md border border-border shadow-xs cursor-pointer hover:border-status-amber transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-ink-muted">Armada di Dalam Bengkel</span>
-                <div className="w-8 h-8 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center">
-                  <Truck className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-status-amber mt-2 tabular-nums">{onProgressList.length} Unit</div>
-              <p className="text-[11px] text-status-amber font-semibold mt-1 flex items-center gap-1">
-                Pantau On Progress →
-              </p>
-            </div>
-
-            {/* Card 3: Keluar / Selesai Hari Ini (Selesai: Status Green) */}
-            <div 
+            />
+            <StatCard
+              title="Keluar / Selesai Hari Ini"
+              value={`${selesaiHariIni.length} Unit`}
+              subtitle="Gate pass diverifikasi"
+              icon={CheckCircle}
+              tone="green"
               onClick={() => changeTab('selesai')}
-              className="bg-surface-raised p-4 rounded-md border border-border shadow-xs cursor-pointer hover:border-status-green transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-ink-muted">Keluar / Selesai Hari Ini</span>
-                <div className="w-8 h-8 rounded-md bg-status-green-bg text-status-green flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-status-green mt-2 tabular-nums">{selesaiHariIni.length} Unit</div>
-              <p className="text-[11px] text-status-green font-semibold mt-1 flex items-center gap-1">
-                Histori Keluar →
-              </p>
-            </div>
-
-            {/* Card 4: Memo Keluar Diterbitkan (Arsip Dokumen: Netral) */}
-            <div 
+            />
+            <StatCard
+              title="Memo Keluar Diterbitkan"
+              value={`${memoList.length} Surat`}
+              subtitle="Total surat jalan"
+              icon={FileText}
+              tone="blue"
               onClick={() => changeTab('memo')}
-              className="bg-surface-raised p-4 rounded-md border border-border shadow-xs cursor-pointer hover:border-border transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-ink-muted">Memo Keluar Diterbitkan</span>
-                <div className="w-8 h-8 rounded-md bg-surface text-ink-subtle flex items-center justify-center border border-border">
-                  <FileText className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-ink mt-2 tabular-nums">{memoList.length} Surat</div>
-              <p className="text-[11px] text-ink-muted font-semibold mt-1 flex items-center gap-1">
-                Arsip &amp; Cetak Memo →
-              </p>
-            </div>
+            />
           </div>
 
           {/* Gate Control Live Stream */}
-          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs">
+          <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
             <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
               <div>
                 <h2 className="text-sm font-bold text-ink">Live Aktivitas Gerbang Masuk &amp; Keluar Pos Security</h2>
@@ -683,7 +657,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               <button
                 type="button"
                 onClick={() => setShowCheckinModal(true)}
-                className="px-3 py-1.5 rounded-md bg-accent-subtle text-accent hover:bg-accent hover:text-white font-bold text-xs transition-colors"
+                className="px-3 py-1.5 rounded-xl bg-accent-subtle text-accent hover:bg-accent hover:text-white font-bold text-xs transition-colors"
               >
                 + Check In Langsung
               </button>
@@ -693,7 +667,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               {checkinHariIni.slice(0, 6).map((item) => (
                 <div key={`feed-${item.id}`} className="py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-md flex items-center justify-center font-bold text-xs ${
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
                       item.status_kunjungan === 'Selesai' || item.status_kunjungan === 'Keluar'
                         ? 'bg-status-green-bg text-status-green'
                         : 'bg-accent-subtle text-accent'
@@ -707,12 +681,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-black text-ink">{item.no_polisi}</span>
-                        <span className="text-[11px] font-semibold text-ink-muted">({item.nama_customer})</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-surface font-bold text-ink-muted border border-border">
+                        <span className="text-xs font-semibold text-ink-muted">({item.nama_customer})</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-surface font-bold text-ink-muted border border-border">
                           {item.tujuan_kedatangan}
                         </span>
                       </div>
-                      <div className="text-[11px] text-ink-subtle mt-0.5 font-mono">
+                      <div className="text-xs text-ink-subtle mt-0.5 font-mono">
                         Masuk: {new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB 
                         {item.waktu_keluar && ` • Keluar: ${new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB`}
                       </div>
@@ -724,7 +698,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <button
                       type="button"
                       onClick={() => setShowDetailModal(item)}
-                      className="px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent-subtle rounded-md transition-colors"
+                      className="px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent-subtle rounded-xl transition-colors"
                     >
                       Detail →
                     </button>
@@ -741,43 +715,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {currentTab === 'checkin' && (
         <div className="space-y-6">
-          {/* Header Bar */}
-          <div className="bg-surface-dark rounded-md p-5 sm:p-6 text-white border border-border-dark shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded bg-accent-subtle/20 text-teal-100 text-[11px] font-black uppercase tracking-wider backdrop-blur-xs">
-                  POS SECURITY GERBANG
-                </span>
-                <span className="w-2 h-2 rounded-full bg-status-green animate-pulse"></span>
-                <span className="text-xs text-teal-100/80 font-medium">Live Recording &amp; Realtime Sync</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-black mt-2 tracking-tight">
-                Check In Kendaraan Masuk
-              </h2>
-              <p className="text-xs text-teal-100/70 mt-1 max-w-xl">
-                Catat nomor polisi, jenis armada, tujuan kedatangan, dan dokumentasi fisik saat armada tiba di gerbang KIM 3.
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="bg-white/5 backdrop-blur-xs rounded-md px-4 py-3 text-center border border-border-dark">
-                <div className="text-[10px] text-teal-200/70 uppercase font-bold">Total Masuk</div>
-                <div className="text-2xl font-black tabular-nums">{antrianData.length}</div>
-              </div>
-              <div className="bg-white/5 backdrop-blur-xs rounded-md px-4 py-3 text-center border border-border-dark">
-                <div className="text-[10px] text-teal-200/70 uppercase font-bold">On Progress</div>
-                <div className="text-2xl font-black text-status-amber tabular-nums">{onProgressList.length}</div>
-              </div>
-            </div>
-          </div>
-
           {/* Stack Layout: Form Check-In di atas, Riwayat Check-In Hari Ini di bawah */}
           <div className="space-y-6">
             {/* Form Check-In (full width) */}
-            <div className="bg-surface-raised rounded-md p-5 sm:p-6 border border-border shadow-xs space-y-5">
+            <div className="bg-surface-raised rounded-xl p-5 sm:p-6 border border-border shadow-xs space-y-5">
               <div className="flex items-center justify-between border-b border-border pb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-md bg-accent-subtle text-accent flex items-center justify-center font-bold">
+                  <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center font-bold">
                     <PlusCircle className="w-5 h-5" />
                   </div>
                   <div>
@@ -787,7 +731,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 </div>
                 {formCheckin.id_booking && (
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded bg-accent-subtle text-accent border border-accent/30 text-[11px] font-bold">
+                    <span className="px-2.5 py-1 rounded bg-accent-subtle text-accent border border-accent/30 text-xs font-bold">
                       Terkait Booking #{formCheckin.id_booking}
                     </span>
                     <button
@@ -815,12 +759,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
               {/* Quick Booking Selector: Tarik Langsung dari Booking Terdaftar */}
               {bookingList.length > 0 && (
-                <div className="p-3 bg-accent-subtle/30 rounded-md border border-accent/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-3 bg-accent-subtle/30 rounded-xl border border-accent/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-accent shrink-0" />
                     <div>
                       <div className="text-xs font-bold text-ink">Ada {bookingList.length} Booking Terdaftar</div>
-                      <div className="text-[11px] text-ink-muted">Tarik data booking armada agar tidak perlu mengetik manual</div>
+                      <div className="text-xs text-ink-muted">Tarik data booking armada agar tidak perlu mengetik manual</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -830,7 +774,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         if (b) handleFillFromBooking(b);
                       }}
                       value={formCheckin.id_booking || ''}
-                      className="w-full sm:w-auto px-3 py-1.5 rounded-md border border-border bg-surface text-xs font-bold text-ink focus:ring-1 focus:ring-accent focus:outline-none"
+                      className="w-full sm:w-auto px-3 py-1.5 rounded-xl border border-border bg-surface text-xs font-bold text-ink focus:ring-1 focus:ring-accent focus:outline-none"
                     >
                       <option value="">-- Pilih Booking untuk Isi Otomatis --</option>
                       {bookingList.map((b) => (
@@ -857,7 +801,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 className="space-y-6 text-xs"
               >
                 {/* Bagian 1: Identitas Kendaraan */}
-                <div className="bg-surface p-4 sm:p-5 rounded-md border border-border">
+                <div className="bg-surface p-4 sm:p-5 rounded-xl border border-border">
                   <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
                     <Truck className="w-4 h-4 text-ink-subtle" /> Identitas Kendaraan
                   </h4>
@@ -873,7 +817,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           placeholder="Contoh: BK 1234 AB"
                           value={formCheckin.no_polisi}
                           onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
-                          className="w-full px-4 py-3 rounded-md border border-border text-sm sm:text-base font-black uppercase tracking-wider focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs font-mono"
+                          className="w-full px-4 py-3 rounded-xl border border-border text-sm sm:text-base font-black uppercase tracking-wider focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs font-mono"
                         />
                       </div>
                     </div>
@@ -883,7 +827,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       <select
                         value={formCheckin.jenis_armada}
                         onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
-                        className="w-full px-4 py-3 rounded-md border border-border font-bold focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
+                        className="w-full px-4 py-3 rounded-xl border border-border font-bold focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                       >
                         <option value="Truk">Truk (Canter / Dutro / Tronton / Fuso)</option>
                         <option value="Mobil">Mobil Pribadi / Operasional</option>
@@ -896,7 +840,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                 {/* Pemilik terdaftar by plat (walk-in primary key, semua tujuan) */}
                 {formCheckin.no_polisi.trim().length >= 3 && (
-                  <div className={`p-3.5 rounded-md border text-xs flex items-start gap-2.5 ${
+                  <div className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${
                     pemilikLoading
                       ? 'bg-surface border-border text-ink-muted'
                       : pemilikPlat
@@ -913,7 +857,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             Pemilik terdaftar: {pemilikPlat.nama_perusahaan || pemilikPlat.nama_lengkap || '-'}
                             {pemilikPlat.user_id ? ' (akun terhubung — notif otomatis terkirim)' : ' (belum ada akun user)'}
                           </div>
-                          <div className="text-[11px] opacity-80 mt-0.5">
+                          <div className="text-xs opacity-80 mt-0.5">
                             Plat sebagai kunci: riwayat check-in, SPK & invoice tercatat untuk plat ini.
                           </div>
                         </div>
@@ -923,7 +867,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         <Info className="w-4 h-4 shrink-0 mt-0.5" />
                         <div>
                           <div className="font-semibold">Plat belum terdaftar di akun mana pun.</div>
-                          <div className="text-[11px] opacity-80 mt-0.5">
+                          <div className="text-xs opacity-80 mt-0.5">
                             Tetap diproses & tercatat by plat. Saat pemilik mendaftar + klaim plat ini, riwayat ikut masuk.
                           </div>
                         </div>
@@ -933,7 +877,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 )}
 
                 {/* Bagian 2: Detail Kedatangan */}
-                <div className="bg-surface p-4 sm:p-5 rounded-md border border-border">
+                <div className="bg-surface p-4 sm:p-5 rounded-xl border border-border">
                   <h4 className="font-bold text-ink mb-4 flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-accent" /> Detail Kedatangan
                   </h4>
@@ -966,14 +910,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                                 pic_tujuan: pic ? `${pic.nama_lengkap} (${pic.peran})` : '',
                               });
                             }}
-                            className={`p-3 rounded-md border text-left transition-all ${
+                            className={`p-3 rounded-xl border text-left transition-all ${
                               formCheckin.tujuan_kedatangan === t.id
                                 ? 'border-accent bg-surface-raised text-accent font-bold ring-1 ring-accent/30 shadow-xs'
                                 : 'border-border bg-surface-raised hover:border-accent/40 text-ink-muted shadow-2xs'
                             }`}
                           >
                             <div className="text-xs font-bold">{t.label}</div>
-                            <div className="text-[10px] text-ink-subtle mt-1">{t.desc}</div>
+                            <div className="text-xs text-ink-subtle mt-1">{t.desc}</div>
                           </button>
                         ))}
                       </div>
@@ -1006,7 +950,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                               });
                             }
                           }}
-                          className="w-full px-4 py-2.5 rounded-md border border-border font-semibold focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border font-semibold focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                         >
                           <option value="">
                             {picDiperbolehkan.length > 0
@@ -1019,7 +963,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             </option>
                           ))}
                         </select>
-                        <p className="text-[10px] text-ink-subtle mt-1">
+                        <p className="text-xs text-ink-subtle mt-1">
                           Penerima akan menerima notifikasi &amp; konfirmasi kunjungan di modulnya masing-masing.
                         </p>
                       </div>
@@ -1031,7 +975,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           placeholder="Contoh: Ganti oli rutin, servis rem, meeting"
                           value={formCheckin.keperluan}
                           onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-md border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                         />
                       </div>
                     </div>
@@ -1040,7 +984,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                 {/* Bagian 3: Data Customer & Dokumentasi */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="bg-surface p-4 sm:p-5 rounded-md border border-border space-y-4">
+                  <div className="bg-surface p-4 sm:p-5 rounded-xl border border-border space-y-4">
                     <h4 className="font-bold text-ink flex items-center gap-2">
                       <User className="w-4 h-4 text-ink-subtle" /> Data Pengemudi / PIC
                     </h4>
@@ -1051,7 +995,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         placeholder="Contoh: PT. Andi Jaya"
                         value={formCheckin.nama_customer}
                         onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-md border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
+                        className="w-full px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                       />
                     </div>
                     <div>
@@ -1061,12 +1005,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         placeholder="0812-xxxx-xxxx"
                         value={formCheckin.no_hp_customer}
                         onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-md border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs font-mono"
+                        className="w-full px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs font-mono"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-surface p-4 sm:p-5 rounded-md border border-border space-y-4">
+                  <div className="bg-surface p-4 sm:p-5 rounded-xl border border-border space-y-4">
                     <h4 className="font-bold text-ink flex items-center gap-2">
                       <Camera className="w-4 h-4 text-ink-subtle" /> Dokumentasi &amp; Catatan
                     </h4>
@@ -1082,7 +1026,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         placeholder="Catatan kondisi awal fisik atau kelengkapan armada..."
                         value={formCheckin.catatan_security}
                         onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-md border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
+                        className="w-full px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
                       />
                     </div>
                   </div>
@@ -1106,14 +1050,14 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         id_booking: undefined,
                       });
                     }}
-                    className="px-6 py-3.5 rounded-md bg-surface hover:bg-border text-ink-muted font-bold transition-all border border-border"
+                    className="px-6 py-3.5 rounded-xl bg-surface hover:bg-border text-ink-muted font-bold transition-all border border-border"
                   >
                     Reset Form
                   </button>
                   <button
                     type="submit"
                     disabled={checkinMutation.isPending}
-                    className="flex-1 py-3.5 bg-accent hover:bg-accent-hover text-white font-black rounded-md shadow-xs transition-all flex items-center justify-center gap-2 text-sm"
+                    className="flex-1 py-3.5 bg-accent hover:bg-accent-hover text-white font-black rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-sm"
                   >
                     <PlusCircle className="w-5 h-5" />
                     {checkinMutation.isPending ? 'Menyimpan ke Sistem...' : 'SUBMIT CHECK-IN KENDARAAN'}
@@ -1123,7 +1067,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             </div>
 
             {/* Riwayat Check-In Hari Ini (full width, di bawah form) */}
-            <div className="bg-surface-raised rounded-md p-5 sm:p-6 border border-border shadow-xs space-y-4 flex flex-col justify-between">
+            <div className="bg-surface-raised rounded-xl p-5 sm:p-6 border border-border shadow-xs space-y-4 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <div>
@@ -1146,21 +1090,21 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     checkinHariIni.map((item) => (
                       <div
                         key={item.id}
-                        className="py-3 px-3 hover:bg-surface rounded-md transition-all border border-transparent hover:border-border flex items-center justify-between gap-3"
+                        className="py-3 px-3 hover:bg-surface rounded-xl transition-all border border-transparent hover:border-border flex items-center justify-between gap-3"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="px-2.5 py-1 rounded bg-surface-dark text-white font-mono font-black text-xs tracking-wider">
                               {item.no_polisi}
                             </span>
-                            <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent border border-accent/30 text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded bg-accent-subtle text-accent border border-accent/30 text-xs font-bold">
                               {item.tujuan_kedatangan}
                             </span>
                           </div>
                           <div className="text-xs font-bold text-ink">
                             {item.nama_customer || '-'}
                           </div>
-                          <div className="text-[10px] text-ink-subtle flex items-center gap-2 font-mono">
+                          <div className="text-xs text-ink-subtle flex items-center gap-2 font-mono">
                             <Clock className="w-3 h-3 text-ink-subtle" />
                             <span>
                               {item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}
@@ -1175,7 +1119,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           <button
                             type="button"
                             onClick={() => setShowDetailModal(item)}
-                            className="text-[11px] font-bold text-accent hover:text-accent-hover"
+                            className="text-xs font-bold text-accent hover:text-accent-hover"
                           >
                             Detail →
                           </button>
@@ -1187,7 +1131,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </div>
 
               {/* Informational Alert Box */}
-              <div className="p-3.5 rounded-md bg-surface border border-border text-ink-muted text-[11px] flex items-start gap-2.5">
+              <div className="p-3.5 rounded-xl bg-surface border border-border text-ink-muted text-xs flex items-start gap-2.5">
                 <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                 <p>
                   Setiap kendaraan yang selesai di-check in akan otomatis memicu <strong>notifikasi realtime</strong> ke Service Advisor, Warehouse, atau PIC terkait serta mengupdate antrian bengkel.
@@ -1203,7 +1147,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {currentTab === 'booking' && (
         <div className="space-y-5">
-          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs space-y-4">
             
             {/* Header & Filter Controls matching screenshot */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1224,12 +1168,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Cari No. Polisi / Nama Customer"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-3.5 pr-8 py-1.5 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none w-64 bg-surface-raised text-ink"
+                    className="pl-3.5 pr-8 py-1.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none w-64 bg-surface-raised text-ink"
                   />
                   <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal booking">
+                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-xl px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal booking">
                   <span className="text-ink-subtle font-medium">Tanggal</span>
                   <input
                     type="date"
@@ -1246,7 +1190,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <button
                   type="button"
                   onClick={() => setShowBookingFilter((v) => !v)}
-                  className={`px-3 py-1.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-colors ${showBookingFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface-raised hover:bg-surface text-ink-muted'}`}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${showBookingFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface-raised hover:bg-surface text-ink-muted'}`}
                   aria-expanded={showBookingFilter}
                 >
                   <Filter className="w-3.5 h-3.5" />
@@ -1256,7 +1200,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
               {/* Panel filter expandable */}
               {showBookingFilter && (
-                <div className="flex flex-wrap items-center gap-2 p-3 rounded-md bg-surface border border-border">
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-surface border border-border">
                   <label className="flex items-center gap-1.5 text-xs text-ink-muted">
                     <span className="font-semibold">Status:</span>
                     <select
@@ -1265,7 +1209,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         setBookingStatus(e.target.value);
                         setBookingPage(1);
                       }}
-                      className="px-2 py-1.5 rounded-md border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                      className="px-2 py-1.5 rounded-xl border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
                     >
                       {bookingStatusOptions.map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -1281,7 +1225,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         setSearchQuery('');
                         setBookingPage(1);
                       }}
-                      className="px-2.5 py-1.5 rounded-md text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
                     >
                       Reset filter
                     </button>
@@ -1290,74 +1234,46 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               )}
             </div>
 
-            {/* Table: No, No. Polisi, Nama Customer, Tujuan Kunjungan, Jenis Armada, Tgl Booking, Jam Booking, Status */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-surface text-ink-muted border-y border-border">
-                  <tr>
-                    <th className="py-2.5 px-3 font-bold w-12">No.</th>
-                    <th className="py-2.5 px-3 font-bold">No. Polisi</th>
-                    <th className="py-2.5 px-3 font-bold">Nama Customer</th>
-                    <th className="py-2.5 px-3 font-bold">Tujuan Kunjungan</th>
-                    <th className="py-2.5 px-3 font-bold">Jenis Armada</th>
-                    <th className="py-2.5 px-3 font-bold">Tgl Booking</th>
-                    <th className="py-2.5 px-3 font-bold">Jam Booking</th>
-                    <th className="py-2.5 px-3 font-bold text-center">Status</th>
-                    <th className="py-2.5 px-3 font-bold text-center">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredBookingList.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-8 text-center text-ink-subtle font-medium">
-                        Tidak ada data booking kendaraan.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedBookingList.map((b, idx) => {
-                      const isSelected = selectedBooking?.id === b.id;
-                      return (
-                        <tr 
-                          key={b.id}
-                          onClick={() => {
-                            setSelectedBooking(b);
-                            setBookingPreview(b);
+            {/* Daftar Booking memakai ListItemCard */}
+            <div className="space-y-2.5">
+              {filteredBookingList.length === 0 ? (
+                <EmptyState
+                  title="Tidak ada data booking kendaraan"
+                  description="Tidak ada booking kendaraan yang cocok dengan kriteria filter."
+                  icon={Calendar}
+                />
+              ) : (
+                paginatedBookingList.map((b) => {
+                  const isSelected = selectedBooking?.id === b.id;
+                  return (
+                    <ListItemCard
+                      key={b.id}
+                      selected={isSelected}
+                      title={`${b.no_polisi} — ${b.nama_customer || b.nama_perusahaan}`}
+                      subtitle={`${b.tujuan_kunjungan || b.jenis_layanan || 'Service'} • Tgl: ${b.tanggal_booking} Jam: ${b.jam_booking}`}
+                      badge={<StatusBadge status={b.status} size="sm" />}
+                      chips={[b.jenis_armada || 'Truk']}
+                      onClick={() => {
+                        setSelectedBooking(b);
+                        setBookingPreview(b);
+                      }}
+                      actions={
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFillFromBooking(b);
                           }}
-                          className={`cursor-pointer transition-colors ${
-                            isSelected ? 'bg-accent-subtle/70 font-medium' : 'hover:bg-surface/80'
-                          }`}
+                          className="px-3 py-1.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-xs transition-colors inline-flex items-center gap-1.5 shrink-0"
                         >
-                          <td className="py-3 px-3 text-ink-subtle font-semibold">{(bookingPage - 1) * bookingLimit + idx + 1}</td>
-                          <td className="py-3 px-3 font-black text-ink tracking-wide font-mono">{b.no_polisi}</td>
-                          <td className="py-3 px-3 text-ink font-medium">{b.nama_customer || b.nama_perusahaan}</td>
-                          <td className="py-3 px-3 text-ink-muted">{b.tujuan_kunjungan || b.jenis_layanan}</td>
-                          <td className="py-3 px-3 text-ink-muted">{b.jenis_armada || 'Truk'}</td>
-                          <td className="py-3 px-3 text-ink-muted font-medium">{b.tanggal_booking}</td>
-                          <td className="py-3 px-3 font-bold text-ink font-mono">{b.jam_booking}</td>
-                          <td className="py-3 px-3 text-center">
-                            <span className="inline-block px-2.5 py-0.5 rounded bg-accent-subtle text-accent border border-accent/30 font-bold text-[11px]">
-                              {b.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleFillFromBooking(b);
-                              }}
-                              className="px-2.5 py-1 rounded bg-accent hover:bg-accent-hover text-white text-[11px] font-bold shadow-xs transition-colors inline-flex items-center gap-1"
-                            >
-                              <PlusCircle className="w-3.5 h-3.5" />
-                              Isi Check-In
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          Isi Check-In
+                        </button>
+                      }
+                    />
+                  );
+                })
+              )}
             </div>
 
             {/* Pagination Controls */}
@@ -1375,77 +1291,67 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             />
 
             {/* MODAL: Detail Booking + PILIH & ISI OTOMATIS */}
-            {bookingPreview && (
-              <ModalPortal onClose={() => setBookingPreview(null)}>
-                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-                  <div className="bg-surface-raised rounded-md max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border space-y-4 my-8">
-                    <div className="flex items-center justify-between border-b border-border pb-3">
-                      <div className="text-[11px] font-bold uppercase text-ink-subtle tracking-wider">
-                        DETAIL BOOKING
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setBookingPreview(null)}
-                        className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
-                        aria-label="Tutup detail booking"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
+            <DetailModal
+              open={!!bookingPreview}
+              onClose={() => setBookingPreview(null)}
+              title={bookingPreview ? `Detail Booking: ${bookingPreview.no_polisi}` : 'Detail Booking'}
+              subtitle={bookingPreview ? `${bookingPreview.nama_customer || bookingPreview.nama_perusahaan || '-'} • ${bookingPreview.tujuan_kunjungan || 'Service'}` : undefined}
+              badge={bookingPreview ? <StatusBadge status={bookingPreview.status} /> : undefined}
+              footer={
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setBookingPreview(null)}
+                    className="px-4 py-2.5 rounded-xl border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (bookingPreview) handleFillFromBooking(bookingPreview);
+                      setBookingPreview(null);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    PILIH &amp; ISI OTOMATIS
+                  </button>
+                </div>
+              }
+              size="md"
+            >
+              {bookingPreview && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <div className="text-ink-subtle text-xs">No. Polisi</div>
+                    <div className="text-base font-bold text-ink mt-0.5 font-mono">{bookingPreview.no_polisi}</div>
+                    <div className="text-ink-subtle text-xs mt-2">Jenis Armada</div>
+                    <div className="font-semibold text-ink">{bookingPreview.jenis_armada || 'Truk'}</div>
+                    <div className="text-ink-subtle text-xs mt-2">Tujuan Kunjungan</div>
+                    <div className="font-semibold text-ink">{bookingPreview.tujuan_kunjungan || 'Service'}</div>
+                  </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
-                      <div>
-                        <div className="text-ink-subtle text-[10px]">No. Polisi</div>
-                        <div className="text-base font-black text-ink mt-0.5 font-mono">{bookingPreview.no_polisi}</div>
-                        <div className="text-ink-subtle text-[10px] mt-1.5">Jenis Armada</div>
-                        <div className="font-bold text-ink">{bookingPreview.jenis_armada || 'Truk'}</div>
-                        <div className="text-ink-subtle text-[10px] mt-1.5">Tujuan Kunjungan</div>
-                        <div className="font-semibold text-ink">{bookingPreview.tujuan_kunjungan || 'Service'}</div>
-                      </div>
+                  <div>
+                    <div className="text-ink-subtle text-xs">Nama Customer</div>
+                    <div className="font-bold text-ink mt-0.5">{bookingPreview.nama_customer || bookingPreview.nama_perusahaan || '-'}</div>
+                    <div className="text-ink-subtle text-xs mt-2">No. Telepon</div>
+                    <div className="font-mono text-ink-muted font-semibold">{bookingPreview.no_telepon || '-'}</div>
+                    <div className="text-ink-subtle text-xs mt-2">PIC / Driver</div>
+                    <div className="font-semibold text-ink">{bookingPreview.pic_driver || '-'}</div>
+                  </div>
 
-                      <div>
-                        <div className="text-ink-subtle text-[10px]">Nama Customer</div>
-                        <div className="font-bold text-ink mt-0.5">{bookingPreview.nama_customer || bookingPreview.nama_perusahaan || '-'}</div>
-                        <div className="text-ink-subtle text-[10px] mt-1.5">No. Telepon</div>
-                        <div className="font-mono text-ink-muted font-semibold">{bookingPreview.no_telepon || '-'}</div>
-                        <div className="text-ink-subtle text-[10px] mt-1.5">PIC / Driver</div>
-                        <div className="font-semibold text-ink">{bookingPreview.pic_driver || '-'}</div>
-                      </div>
-
-                      <div>
-                        <div className="text-ink-subtle text-[10px]">Tanggal Booking</div>
-                        <div className="font-bold text-ink mt-0.5">{bookingPreview.tanggal_booking}</div>
-                        <div className="text-ink-subtle text-[10px] mt-1.5">Jam Booking</div>
-                        <div className="font-mono font-bold text-accent">{bookingPreview.jam_booking}</div>
-                        <div className="text-ink-subtle text-[10px] mt-1.5">Keterangan</div>
-                        <div className="text-ink-muted italic text-[11px]">{bookingPreview.keterangan || '-'}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setBookingPreview(null)}
-                        className="px-4 py-3 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
-                      >
-                        Tutup
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleFillFromBooking(bookingPreview);
-                          setBookingPreview(null);
-                        }}
-                        className="px-5 py-3 rounded-md bg-accent hover:bg-accent-hover text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2"
-                      >
-                        <PlusCircle className="w-4 h-4" />
-                        + PILIH &amp; ISI OTOMATIS
-                      </button>
-                    </div>
+                  <div>
+                    <div className="text-ink-subtle text-xs">Tanggal Booking</div>
+                    <div className="font-bold text-ink mt-0.5">{bookingPreview.tanggal_booking}</div>
+                    <div className="text-ink-subtle text-xs mt-2">Jam Booking</div>
+                    <div className="font-mono font-bold text-accent">{bookingPreview.jam_booking}</div>
+                    <div className="text-ink-subtle text-xs mt-2">Keterangan</div>
+                    <div className="text-ink-muted italic text-xs">{bookingPreview.keterangan || '-'}</div>
                   </div>
                 </div>
-              </ModalPortal>
-            )}
+              )}
+            </DetailModal>
 
           </div>
         </div>
@@ -1461,56 +1367,56 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
             
             {/* Total On Progress */}
-            <div className="bg-surface-raised p-3.5 rounded-md border border-border shadow-xs flex items-center gap-3">
-              <div className="w-11 h-11 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
+            <div className="bg-surface-raised p-3.5 rounded-xl border border-border shadow-xs flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-accent-subtle text-accent flex items-center justify-center shrink-0">
                 <Truck className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-[11px] text-ink-muted font-semibold leading-tight">Total On Progress</div>
+                <div className="text-xs text-ink-muted font-semibold leading-tight">Total On Progress</div>
                 <div className="text-xl font-black text-ink mt-0.5">{countTotalOnProgress} <span className="text-xs font-medium text-ink-subtle">Unit</span></div>
               </div>
             </div>
 
             {/* Sedang Dikerjakan */}
-            <div className="bg-surface-raised p-3.5 rounded-md border border-border shadow-xs flex items-center gap-3">
-              <div className="w-11 h-11 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
+            <div className="bg-surface-raised p-3.5 rounded-xl border border-border shadow-xs flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
                 <Wrench className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] text-ink-muted font-semibold leading-tight">Sedang Dikerjakan</div>
+                <div className="text-xs text-ink-muted font-semibold leading-tight">Sedang Dikerjakan</div>
                 <div className="text-xl font-black text-status-amber mt-0.5">{countSedangDikerjakan} <span className="text-xs font-medium text-ink-subtle">Unit</span></div>
               </div>
             </div>
 
             {/* Menunggu Part / Approval */}
-            <div className="bg-surface-raised p-3.5 rounded-md border border-border shadow-xs flex items-center gap-3">
-              <div className="w-11 h-11 rounded-md bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
+            <div className="bg-surface-raised p-3.5 rounded-xl border border-border shadow-xs flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] text-ink-muted font-semibold leading-tight">Menunggu Part / Approval</div>
+                <div className="text-xs text-ink-muted font-semibold leading-tight">Menunggu Part / Approval</div>
                 <div className="text-xl font-black text-status-amber mt-0.5">{countMenungguPart} <span className="text-xs font-medium text-ink-subtle">Unit</span></div>
               </div>
             </div>
 
             {/* Menunggu QC */}
-            <div className="bg-surface-raised p-3.5 rounded-md border border-border shadow-xs flex items-center gap-3">
-              <div className="w-11 h-11 rounded-md bg-accent-subtle text-accent flex items-center justify-center shrink-0">
+            <div className="bg-surface-raised p-3.5 rounded-xl border border-border shadow-xs flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-accent-subtle text-accent flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] text-ink-muted font-semibold leading-tight">Menunggu QC</div>
+                <div className="text-xs text-ink-muted font-semibold leading-tight">Menunggu QC</div>
                 <div className="text-xl font-black text-accent mt-0.5">{countMenungguQC} <span className="text-xs font-medium text-ink-subtle">Unit</span></div>
               </div>
             </div>
           </div>
 
-          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs space-y-4">
             
             {/* Header & Filter Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-md bg-accent text-white font-black text-xs flex items-center justify-center">
+                <span className="w-6 h-6 rounded-xl bg-accent text-white font-black text-xs flex items-center justify-center">
                   2
                 </span>
                 <h2 className="text-sm font-black text-ink tracking-tight uppercase">
@@ -1526,12 +1432,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Cari No. Polisi / Nama Customer"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-3.5 pr-8 py-1.5 rounded-md border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none w-64 bg-surface-raised text-ink"
+                    className="pl-3.5 pr-8 py-1.5 rounded-xl border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none w-64 bg-surface-raised text-ink"
                   />
                   <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal masuk">
+                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-xl px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal masuk">
                   <span className="text-ink-subtle font-medium">Tanggal</span>
                   <input
                     type="date"
@@ -1548,7 +1454,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <button
                   type="button"
                   onClick={() => setShowOnProgressFilter((v) => !v)}
-                  className={`px-3 py-1.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-colors ${showOnProgressFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${showOnProgressFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
                   aria-expanded={showOnProgressFilter}
                 >
                   <Filter className="w-3.5 h-3.5" />
@@ -1558,7 +1464,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
               {/* Panel filter expandable */}
               {showOnProgressFilter && (
-                <div className="flex flex-wrap items-center gap-2 p-3 rounded-md bg-surface border border-border">
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-surface border border-border">
                   <label className="flex items-center gap-1.5 text-xs text-ink-muted">
                     <span className="font-semibold">Status:</span>
                     <select
@@ -1567,7 +1473,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         setOnProgressStatus(e.target.value);
                         setOnProgressPage(1);
                       }}
-                      className="px-2 py-1.5 rounded-md border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                      className="px-2 py-1.5 rounded-xl border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
                     >
                       {onProgressStatusOptions.map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -1583,7 +1489,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         setSearchQuery('');
                         setOnProgressPage(1);
                       }}
-                      className="px-2.5 py-1.5 rounded-md text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
                     >
                       Reset filter
                     </button>
@@ -1592,85 +1498,62 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               )}
             </div>
 
-            {/* Table: No, No. Polisi, Nama Customer, Jenis Armada, Tujuan, Masuk, Status, PIC / Mekanik, Aksi */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-surface text-ink-muted border-y border-border">
-                  <tr>
-                    <th className="py-2.5 px-3 font-bold w-12">No.</th>
-                    <th className="py-2.5 px-3 font-bold">No. Polisi</th>
-                    <th className="py-2.5 px-3 font-bold">Nama Customer</th>
-                    <th className="py-2.5 px-3 font-bold">Jenis Armada</th>
-                    <th className="py-2.5 px-3 font-bold">Tujuan</th>
-                    <th className="py-2.5 px-3 font-bold">Masuk</th>
-                    <th className="py-2.5 px-3 font-bold text-center">Status</th>
-                    <th className="py-2.5 px-3 font-bold">PIC / Mekanik</th>
-                    <th className="py-2.5 px-3 font-bold text-center">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filteredOnProgressList.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-8 text-center text-ink-subtle font-medium">
-                        Tidak ada kendaraan yang sedang diproses.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedOnProgressList.map((item, idx) => (
-                      <tr key={item.id} className="hover:bg-surface/80 transition-colors">
-                        <td className="py-3 px-3 text-ink-muted font-semibold">{(onProgressPage - 1) * onProgressLimit + idx + 1}</td>
-                        <td className="py-3 px-3 font-black text-ink tracking-wide">{item.no_polisi}</td>
-                        <td className="py-3 px-3 text-ink font-medium">{item.nama_customer}</td>
-                        <td className="py-3 px-3 text-ink-muted">{item.jenis_armada}</td>
-                        <td className="py-3 px-3 text-ink font-medium">{item.tujuan_kedatangan}</td>
-                        <td className="py-3 px-3 text-ink font-mono text-[11px]">
-                          <div>{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
-                          <div className="text-ink-subtle font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          <StatusBadge status={labelStatusAntrian(item)} size="sm" />
-                        </td>
-                        <td className="py-3 px-3 font-medium text-ink">
-                          {item.nama_mekanik || item.pic_tujuan || '-'}
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          {/* Tombol Detail dan Check Out berdampingan sesuai instruksi user */}
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setShowDetailModal(item)}
-                              className="px-2.5 py-1 rounded-md border border-border text-ink hover:bg-surface font-bold text-xs transition-colors"
-                            >
-                              Detail
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowCheckoutModal(item);
-                                setFormCheckout({
-                                  barang_dibawa_keluar: false,
-                                  detail_barang_keluar: '',
-                                  foto_kendaraan_keluar: '',
-                                  foto_barang: '',
-                                  no_memo_keluar: '',
-                                });
-                              }}
-                              title={siapCheckout(item) ? 'SPK selesai — unit siap dikeluarkan' : 'Check-out kendaraan'}
-                              className={`px-2.5 py-1 rounded-md font-bold text-xs shadow-xs transition-colors flex items-center gap-1 ${
-                                siapCheckout(item)
-                                  ? 'bg-status-green hover:bg-status-green/90 text-white'
-                                  : 'bg-accent hover:bg-accent-hover text-white'
-                              }`}
-                            >
-                              <LogOut className="w-3 h-3" /> Check Out
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+            {/* Daftar On Progress memakai ListItemCard */}
+            <div className="space-y-2.5">
+              {filteredOnProgressList.length === 0 ? (
+                <EmptyState
+                  title="Tidak ada kendaraan on progress"
+                  description="Tidak ada kendaraan yang sedang diproses di bengkel saat ini."
+                  icon={Truck}
+                />
+              ) : (
+                paginatedOnProgressList.map((item) => (
+                  <ListItemCard
+                    key={item.id}
+                    title={`${item.no_polisi} — ${item.nama_customer}`}
+                    subtitle={`${item.tujuan_kedatangan} • Masuk: ${item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'} • PIC: ${item.nama_mekanik || item.pic_tujuan || '-'}`}
+                    badge={<StatusBadge status={labelStatusAntrian(item)} size="sm" />}
+                    chips={[item.jenis_armada || 'Truk']}
+                    onClick={() => setShowDetailModal(item)}
+                    actions={
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDetailModal(item);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl border border-border text-ink hover:bg-surface font-bold text-xs transition-colors shrink-0"
+                        >
+                          Detail
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowCheckoutModal(item);
+                            setFormCheckout({
+                              barang_dibawa_keluar: false,
+                              detail_barang_keluar: '',
+                              foto_kendaraan_keluar: '',
+                              foto_barang: '',
+                              no_memo_keluar: '',
+                            });
+                          }}
+                          title={siapCheckout(item) ? 'SPK selesai — unit siap dikeluarkan' : 'Check-out kendaraan'}
+                          className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 shrink-0 ${
+                            siapCheckout(item)
+                              ? 'bg-status-green hover:bg-status-green/90 text-white'
+                              : 'bg-accent hover:bg-accent-hover text-white'
+                          }`}
+                        >
+                          <LogOut className="w-3.5 h-3.5" /> Check Out
+                        </button>
+                      </div>
+                    }
+                  />
+                ))
+              )}
             </div>
 
             {/* Pagination Controls */}
@@ -1696,12 +1579,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {currentTab === 'selesai' && (
         <div className="space-y-5">
-          <div className="bg-surface-raised rounded-md border border-border p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs space-y-4">
             
             {/* Header & Filter Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-md bg-accent text-white font-black text-xs flex items-center justify-center">
+                <span className="w-6 h-6 rounded-xl bg-accent text-white font-black text-xs flex items-center justify-center">
                   3
                 </span>
                 <h2 className="text-sm font-black text-ink tracking-tight uppercase">
@@ -1717,12 +1600,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Cari No. Polisi / Nama Customer"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-3.5 pr-8 py-1.5 rounded-md border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none w-64 bg-surface-raised text-ink"
+                    className="pl-3.5 pr-8 py-1.5 rounded-xl border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none w-64 bg-surface-raised text-ink"
                   />
                   <Search className="w-3.5 h-3.5 absolute right-3 top-2.5 text-ink-subtle" />
                 </div>
 
-                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal keluar (mengalahkan pill rentang)">
+                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-xl px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal keluar (mengalahkan pill rentang)">
                   <span className="text-ink-subtle font-medium">Tanggal</span>
                   <input
                     type="date"
@@ -1740,7 +1623,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <button
                   type="button"
                   onClick={() => setShowSelesaiFilter((v) => !v)}
-                  className={`px-3 py-1.5 rounded-md border text-xs font-bold flex items-center gap-1.5 transition-colors ${showSelesaiFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${showSelesaiFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
                   aria-expanded={showSelesaiFilter}
                 >
                   <Filter className="w-3.5 h-3.5" />
@@ -1751,7 +1634,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
             {/* Panel filter expandable */}
             {showSelesaiFilter && (
-              <div className="flex flex-wrap items-center gap-2 p-3 rounded-md bg-surface border border-border mb-4">
+              <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-surface border border-border mb-4">
                 <label className="flex items-center gap-1.5 text-xs text-ink-muted">
                   <span className="font-semibold">Status:</span>
                   <select
@@ -1760,7 +1643,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       setSelesaiStatus(e.target.value);
                       setSelesaiPage(1);
                     }}
-                    className="px-2 py-1.5 rounded-md border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                    className="px-2 py-1.5 rounded-xl border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
                   >
                     {selesaiStatusOptions.map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -1777,7 +1660,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       setSearchQuery('');
                       setSelesaiPage(1);
                     }}
-                    className="px-2.5 py-1.5 rounded-md text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
                   >
                     Reset filter
                   </button>
@@ -1796,7 +1679,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     setSelesaiTanggal('');
                     setSelesaiPage(1);
                   }}
-                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
                     selesaiTimeRange === pill
                       ? 'bg-accent text-white shadow-xs'
                       : 'bg-surface text-ink-muted hover:bg-border/60'
@@ -1807,8 +1690,42 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               ))}
             </div>
 
-            {/* Table: No, No. Polisi, Nama Customer, Jenis Armada, Tujuan, Masuk, Keluar, Status, Aksi */}
-            <div className="overflow-x-auto">
+            {/* Mobile View: ListItemCard */}
+            <div className="block md:hidden space-y-2.5">
+              {filteredSelesaiList.length === 0 ? (
+                <EmptyState
+                  title="Tidak ada riwayat kendaraan selesai"
+                  description="Belum ada riwayat kendaraan yang selesai pada periode ini."
+                  icon={CheckCircle2}
+                />
+              ) : (
+                paginatedSelesaiList.map((item) => (
+                  <ListItemCard
+                    key={item.id}
+                    title={`${item.no_polisi} — ${item.nama_customer}`}
+                    subtitle={`${item.tujuan_kedatangan} • Masuk: ${item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'} • Keluar: ${item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}`}
+                    badge={<StatusBadge status="Selesai" size="sm" />}
+                    chips={[item.jenis_armada || 'Truk']}
+                    onClick={() => setShowDetailModal(item)}
+                    actions={
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDetailModal(item);
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl border border-border text-ink hover:bg-surface font-bold text-xs transition-colors shrink-0"
+                      >
+                        Detail
+                      </button>
+                    }
+                  />
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-surface text-ink-muted border-y border-border">
                   <tr>
@@ -1838,16 +1755,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         <td className="py-3 px-3 text-ink font-medium">{item.nama_customer}</td>
                         <td className="py-3 px-3 text-ink-muted">{item.jenis_armada}</td>
                         <td className="py-3 px-3 text-ink font-medium">{item.tujuan_kedatangan}</td>
-                        <td className="py-3 px-3 text-ink font-mono text-[11px]">
+                        <td className="py-3 px-3 text-ink font-mono text-xs">
                           <div>{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
                           <div className="text-ink-subtle font-medium">{item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
                         </td>
-                        <td className="py-3 px-3 text-ink font-mono text-[11px]">
+                        <td className="py-3 px-3 text-ink font-mono text-xs">
                           <div>{item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
                           <div className="text-ink-subtle font-medium">{item.waktu_keluar ? new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <span className="inline-block px-2.5 py-0.5 rounded-md bg-status-green-bg text-status-green font-bold text-[11px]">
+                          <span className="inline-block px-2.5 py-0.5 rounded-xl bg-status-green-bg text-status-green font-bold text-xs">
                             Selesai
                           </span>
                         </td>
@@ -1855,7 +1772,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           <button
                             type="button"
                             onClick={() => setShowDetailModal(item)}
-                            className="px-3 py-1 rounded-md border border-border text-ink hover:bg-surface font-bold text-xs transition-colors"
+                            className="px-3 py-1 rounded-xl border border-border text-ink hover:bg-surface font-bold text-xs transition-colors"
                           >
                             Detail
                           </button>
@@ -1891,7 +1808,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {currentTab === 'memo' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-md bg-accent text-white font-black text-xs flex items-center justify-center">
+            <span className="w-6 h-6 rounded-xl bg-accent text-white font-black text-xs flex items-center justify-center">
               4
             </span>
             <h2 className="text-sm font-black text-ink tracking-tight uppercase">
@@ -1900,7 +1817,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           </div>
 
           {/* LIST MEMO KELUAR (full width — preview pindah ke modal) */}
-          <div className="bg-surface-raised rounded-md border border-border p-4 sm:p-5 shadow-xs space-y-4">
+          <div className="bg-surface-raised rounded-xl border border-border p-4 sm:p-5 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase text-ink tracking-wider">
                   LIST MEMO KELUAR
@@ -1915,12 +1832,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     placeholder="Cari No. Polisi / Nama Customer"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-3 pr-7 py-1.5 rounded-md border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
+                    className="w-full pl-3 pr-7 py-1.5 rounded-xl border border-border text-xs focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
                   />
                   <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-ink-subtle" />
                 </div>
 
-                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-md px-2 py-1.5 text-[11px] text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal memo keluar">
+                <label className="flex items-center gap-1.5 bg-surface-raised border border-border rounded-xl px-2 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors" title="Filter tanggal memo keluar">
                   <span className="text-ink-subtle font-medium">Tanggal</span>
                   <input
                     type="date"
@@ -1929,7 +1846,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       setMemoTanggal(e.target.value);
                       setMemoPage(1);
                     }}
-                    className="bg-transparent text-[11px] font-bold text-ink focus:outline-none cursor-pointer"
+                    className="bg-transparent text-xs font-bold text-ink focus:outline-none cursor-pointer"
                     aria-label="Filter tanggal memo keluar"
                   />
                 </label>
@@ -1937,7 +1854,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <button
                   type="button"
                   onClick={() => setShowMemoFilter((v) => !v)}
-                  className={`px-2.5 py-1.5 rounded-md border text-xs font-bold flex items-center gap-1 transition-colors ${showMemoFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
+                  className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1 transition-colors ${showMemoFilter ? 'border-accent bg-accent-subtle text-accent' : 'border-border bg-surface hover:bg-surface-raised text-ink'}`}
                   aria-expanded={showMemoFilter}
                 >
                   <Filter className="w-3 h-3" />
@@ -1947,7 +1864,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
               {/* Panel filter expandable */}
               {showMemoFilter && (
-                <div className="flex flex-wrap items-center gap-2 p-3 rounded-md bg-surface border border-border">
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-surface border border-border">
                   <label className="flex items-center gap-1.5 text-xs text-ink-muted">
                     <span className="font-semibold">Tujuan:</span>
                     <select
@@ -1956,7 +1873,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         setMemoTujuan(e.target.value);
                         setMemoPage(1);
                       }}
-                      className="px-2 py-1.5 rounded-md border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                      className="px-2 py-1.5 rounded-xl border border-border bg-surface-raised text-xs font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
                     >
                       {memoTujuanOptions.map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -1972,7 +1889,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         setSearchQuery('');
                         setMemoPage(1);
                       }}
-                      className="px-2.5 py-1.5 rounded-md text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
                     >
                       Reset filter
                     </button>
@@ -1980,8 +1897,61 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 </div>
               )}
 
-              {/* Table: No., No. Memo, No. Polisi, Nama Customer, Keluar, Aksi */}
-              <div className="overflow-x-auto">
+              {/* Mobile View: ListItemCard */}
+              <div className="block md:hidden space-y-2.5">
+                {filteredMemoList.length === 0 ? (
+                  <EmptyState
+                    title="Tidak ada data memo keluar"
+                    description="Belum ada memo keluar kendaraan yang tercatat."
+                    icon={FileText}
+                  />
+                ) : (
+                  paginatedMemoList.map((m) => {
+                    const isSelected = selectedMemo?.id === m.id;
+                    return (
+                      <ListItemCard
+                        key={m.id}
+                        selected={isSelected}
+                        title={`${m.no_memo} — ${m.no_polisi}`}
+                        subtitle={`${m.nama_customer} • Keluar: ${new Date(m.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                        badge={<StatusBadge status="Selesai" size="sm" />}
+                        chips={[m.jenis_armada || 'Truk']}
+                        onClick={() => setSelectedMemo(m)}
+                        actions={
+                          <div className="flex items-center gap-1.5 text-ink-muted">
+                            <button
+                              type="button"
+                              title="Lihat Preview"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMemo(m);
+                              }}
+                              className="p-1.5 hover:text-accent rounded-lg transition-colors border border-border"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Cetak Memo A4"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMemo(m);
+                                setShowPrintMemo(m);
+                              }}
+                              className="p-1.5 hover:text-ink rounded-lg transition-colors border border-border"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+                          </div>
+                        }
+                      />
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Desktop View: Table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-surface text-ink-muted border-y border-border">
                     <tr>
@@ -2015,7 +1985,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             <td className="py-2.5 px-2.5 font-mono font-bold text-accent">{m.no_memo}</td>
                             <td className="py-2.5 px-2.5 font-bold text-ink">{m.no_polisi}</td>
                             <td className="py-2.5 px-2.5 text-ink">{m.nama_customer}</td>
-                            <td className="py-2.5 px-2.5 text-ink-muted font-mono text-[11px]">
+                            <td className="py-2.5 px-2.5 text-ink-muted font-mono text-xs">
                               <div>{new Date(m.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                               <div className="text-ink-subtle font-medium">{new Date(m.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                             </td>
@@ -2070,652 +2040,641 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
       {/* MODAL: PREVIEW MEMO KELUAR (Formal Letter Format) */}
       {selectedMemo && (
-        <ModalPortal onClose={() => setSelectedMemo(null)}>
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-surface-raised rounded-md max-w-3xl w-full p-5 sm:p-6 shadow-2xl border border-border space-y-4 my-8">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div>
-                  <h3 className="text-xs font-black uppercase text-ink tracking-wider">
-                    PREVIEW MEMO KELUAR
-                  </h3>
-                  <p className="text-[11px] text-ink-subtle font-mono">Format Resmi Pos Security</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedMemo(null)}
-                  className="p-2 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
-                  aria-label="Tutup preview memo"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+        <DetailModal
+          open={Boolean(selectedMemo)}
+          onClose={() => setSelectedMemo(null)}
+          title="PREVIEW MEMO KELUAR"
+          subtitle="Format Resmi Pos Security"
+          size="lg"
+          footer={
+            <div className="flex items-center justify-end gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setSelectedMemo(null)}
+                className="px-4 py-2.5 rounded-xl border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
+              >
+                Tutup
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPrintMemo(selectedMemo)}
+                className="px-4 py-2.5 rounded-xl border border-border hover:bg-surface text-ink font-bold text-xs flex items-center gap-2 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                CETAK MEMO (A4)
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                EXPORT PDF
+              </button>
+            </div>
+          }
+        >
+          {/* Formal Letter Paper Area */}
+          <div id="formal-memo-printable" className="p-6 bg-surface-raised rounded-xl border border-border shadow-xs space-y-4 text-xs font-sans">
+
+            {/* Official Letterhead / Kop Surat */}
+            <div className="border-b-2 border-ink pb-3 flex items-start justify-between">
+              <div>
+                <div className="text-base font-black text-ink tracking-wider">BENGKEL KIM 3 MEDAN</div>
+                <div className="text-xs text-ink-muted">Kawasan Industri Medan III, Jl. Pelita Raya No. 88</div>
+                <div className="text-xs text-ink-subtle">Security Division &amp; Gate Control Portal</div>
               </div>
-
-              {/* Formal Letter Paper Area */}
-              <div id="formal-memo-printable" className="p-6 bg-surface-raised rounded-md border border-border shadow-xs space-y-4 text-xs font-sans">
-
-                {/* Official Letterhead / Kop Surat */}
-                <div className="border-b-2 border-ink pb-3 flex items-start justify-between">
-                  <div>
-                    <div className="text-base font-black text-ink tracking-wider">BENGKEL KIM 3 MEDAN</div>
-                    <div className="text-[10px] text-ink-muted">Kawasan Industri Medan III, Jl. Pelita Raya No. 88</div>
-                    <div className="text-[10px] text-ink-subtle">Security Division &amp; Gate Control Portal</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-base font-black text-ink tracking-tight">MEMO KELUAR</div>
-                    <div className="font-mono text-xs font-black text-accent">{selectedMemo.no_memo}</div>
-                  </div>
-                </div>
-
-                {/* Date & Time Row */}
-                <div className="grid grid-cols-2 gap-4 text-xs pb-1 border-b border-border">
-                  <div>
-                    <span className="text-ink-subtle text-[10px] block">Tanggal Keluar:</span>
-                    <span className="font-bold text-ink">
-                      {new Date(selectedMemo.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <div className="text-right sm:text-left">
-                    <span className="text-ink-subtle text-[10px] block">Jam Keluar:</span>
-                    <span className="font-mono font-bold text-ink">
-                      {new Date(selectedMemo.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB
-                    </span>
-                  </div>
-                </div>
-
-                {/* DATA KENDARAAN */}
-                <div>
-                  <div className="text-[11px] font-black uppercase text-ink tracking-wide mb-2">
-                    DATA KENDARAAN
-                  </div>
-                  <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-xs">
-                    <div className="flex">
-                      <span className="w-28 text-ink-muted">No. Polisi</span>
-                      <span className="font-black text-ink">: {selectedMemo.no_polisi}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-28 text-ink-muted">Jenis Armada</span>
-                      <span className="font-semibold text-ink">: {selectedMemo.jenis_armada || 'Truk'}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-28 text-ink-muted">Nama Customer</span>
-                      <span className="font-semibold text-ink">: {selectedMemo.nama_customer}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-28 text-ink-muted">Tujuan Kunjungan</span>
-                      <span className="font-semibold text-ink">: {selectedMemo.tujuan_kedatangan}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* KETERANGAN */}
-                <div className="pt-2 border-t border-border">
-                  <div className="text-[11px] font-black uppercase text-ink tracking-wide mb-1.5">
-                    KETERANGAN
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-20 text-ink-muted">Status</span>
-                      <span className="font-bold text-status-green">: Selesai</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-20 text-ink-muted shrink-0">Catatan</span>
-                      <span className="text-ink">: {selectedMemo.catatan || 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Official Signature Box matching Excel */}
-                <div className="pt-5 flex items-end justify-between text-center">
-                  <div>
-                    <div className="text-[10px] text-ink-subtle mb-8">Penerima / Driver,</div>
-                    <div className="font-bold text-ink border-t border-border pt-1 px-3">
-                      ( {selectedMemo.nama_customer || 'Driver'} )
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-center">
-                    <div className="text-[10px] text-ink-subtle mb-2">Dibuat oleh,</div>
-
-                    {/* Signature graphic/stamp simulation */}
-                    <div className="w-20 h-10 border border-accent/40 rounded-md bg-accent-subtle/50 flex items-center justify-center text-[10px] text-accent font-serif italic mb-1 transform -rotate-3">
-                      Security
-                    </div>
-
-                    <div className="font-black text-ink text-xs">
-                      {selectedMemo.petugas_security || '( Petugas Security )'}
-                    </div>
-                    <div className="text-[10px] text-ink-subtle">Security Bengkel KIM 3</div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Print & Export Buttons matching Excel */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPrintMemo(selectedMemo)}
-                  className="px-4 py-2.5 rounded-md border border-border hover:bg-surface text-ink font-bold text-xs flex items-center gap-2 transition-colors"
-                >
-                  <Printer className="w-4 h-4" />
-                  CETAK MEMO (A4)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.print();
-                  }}
-                  className="px-4 py-2.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  EXPORT PDF
-                </button>
+              <div className="text-right">
+                <div className="text-base font-black text-ink tracking-tight">MEMO KELUAR</div>
+                <div className="font-mono text-xs font-black text-accent">{selectedMemo.no_memo}</div>
               </div>
             </div>
+
+            {/* Date & Time Row */}
+            <div className="grid grid-cols-2 gap-4 text-xs pb-1 border-b border-border">
+              <div>
+                <span className="text-ink-subtle text-xs block">Tanggal Keluar:</span>
+                <span className="font-bold text-ink">
+                  {new Date(selectedMemo.waktu_keluar || Date.now()).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="text-right sm:text-left">
+                <span className="text-ink-subtle text-xs block">Jam Keluar:</span>
+                <span className="font-mono font-bold text-ink">
+                  {new Date(selectedMemo.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB
+                </span>
+              </div>
+            </div>
+
+            {/* DATA KENDARAAN */}
+            <div>
+              <div className="text-xs font-black uppercase text-ink tracking-wide mb-2">
+                DATA KENDARAAN
+              </div>
+              <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-xs">
+                <div className="flex">
+                  <span className="w-28 text-ink-muted">No. Polisi</span>
+                  <span className="font-black text-ink">: {selectedMemo.no_polisi}</span>
+                </div>
+                <div className="flex">
+                  <span className="w-28 text-ink-muted">Jenis Armada</span>
+                  <span className="font-semibold text-ink">: {selectedMemo.jenis_armada || 'Truk'}</span>
+                </div>
+                <div className="flex">
+                  <span className="w-28 text-ink-muted">Nama Customer</span>
+                  <span className="font-semibold text-ink">: {selectedMemo.nama_customer}</span>
+                </div>
+                <div className="flex">
+                  <span className="w-28 text-ink-muted">Tujuan Kunjungan</span>
+                  <span className="font-semibold text-ink">: {selectedMemo.tujuan_kedatangan}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* KETERANGAN */}
+            <div className="pt-2 border-t border-border">
+              <div className="text-xs font-black uppercase text-ink tracking-wide mb-1.5">
+                KETERANGAN
+              </div>
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-20 text-ink-muted">Status</span>
+                  <span className="font-bold text-status-green">: Selesai</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="w-20 text-ink-muted shrink-0">Catatan</span>
+                  <span className="text-ink">: {selectedMemo.catatan || 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Official Signature Box matching Excel */}
+            <div className="pt-5 flex items-end justify-between text-center">
+              <div>
+                <div className="text-xs text-ink-subtle mb-8">Penerima / Driver,</div>
+                <div className="font-bold text-ink border-t border-border pt-1 px-3">
+                  ( {selectedMemo.nama_customer || 'Driver'} )
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <div className="text-xs text-ink-subtle mb-2">Dibuat oleh,</div>
+
+                {/* Signature graphic/stamp simulation */}
+                <div className="w-20 h-10 border border-accent/40 rounded-xl bg-accent-subtle/50 flex items-center justify-center text-xs text-accent font-serif italic mb-1 transform -rotate-3">
+                  Security
+                </div>
+
+                <div className="font-black text-ink text-xs">
+                  {selectedMemo.petugas_security || '( Petugas Security )'}
+                </div>
+                <div className="text-xs text-ink-subtle">Security Bengkel KIM 3</div>
+              </div>
+            </div>
+
           </div>
-        </ModalPortal>
+        </DetailModal>
       )}
         </div>
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: CHECK-IN KENDARAAN MASUK                            */}
+      {/* MODAL: CHECK-IN KENDARAAN MASUK (3-Step Wizard)           */}
       {/* ========================================================= */}
       {showCheckinModal && (
-        <ModalPortal onClose={() => setShowCheckinModal(false)}>
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-surface-raised rounded-md max-w-2xl w-full p-6 shadow-2xl border border-border space-y-5 my-8">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-accent-subtle rounded-md text-accent">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-black text-ink text-base">Check-In Kendaraan Masuk</h3>
-                  <p className="text-xs text-ink-muted">Pencatatan gerbang pos security Bengkel KIM 3</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowCheckinModal(false)}
-                className="p-1 rounded-md hover:bg-surface text-ink-subtle hover:text-ink transition-colors"
-              >
-                ✕
-              </button>
-            </div>
+        <StepModal
+          open={showCheckinModal}
+          onClose={() => {
+            setShowCheckinModal(false);
+            setCheckinStep(0);
+          }}
+          title="Check-In Kendaraan Masuk"
+          subtitle="Pencatatan gerbang pos security Bengkel KIM 3"
+          currentStep={checkinStep}
+          onNext={() => {
+            if (checkinStep === 0 && !formCheckin.no_polisi.trim()) {
+              toast.error('Plat Nomor Wajib', 'Silakan masukkan nomor polisi kendaraan.');
+              return;
+            }
+            setCheckinStep((s) => Math.min(s + 1, 2));
+          }}
+          onBack={() => setCheckinStep((s) => Math.max(s - 1, 0))}
+          onSubmit={() => {
+            if (!formCheckin.no_polisi.trim()) {
+              toast.error('Plat Nomor Wajib', 'Silakan masukkan nomor polisi kendaraan.');
+              return;
+            }
+            checkinMutation.mutate(formCheckin);
+          }}
+          submitLabel="Submit Check-In Kendaraan"
+          isPending={checkinMutation.isPending}
+          size="lg"
+          steps={[
+            {
+              id: 'armada',
+              label: 'Data Armada',
+              isValid: !!formCheckin.no_polisi.trim(),
+              content: (
+                <div className="space-y-4 text-xs">
+                  {bookingList.length > 0 && (
+                    <div className="p-3 bg-accent-subtle/50 rounded-xl border border-accent/30 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-accent shrink-0" />
+                        <div>
+                          <div className="text-xs font-bold text-ink">Ada {bookingList.length} Booking Terdaftar</div>
+                          <div className="text-xs text-ink-muted">Pilih armada untuk mengisi formulir otomatis</div>
+                        </div>
+                      </div>
+                      <select
+                        onChange={(e) => {
+                          const b = bookingList.find((item) => String(item.id) === e.target.value);
+                          if (b) handleFillFromBooking(b);
+                        }}
+                        value={formCheckin.id_booking || ''}
+                        className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-border bg-surface text-xs font-bold text-ink focus:ring-1 focus:ring-accent focus:outline-none"
+                      >
+                        <option value="">-- Pilih Booking untuk Isi Otomatis --</option>
+                        {bookingList.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.no_polisi} - {b.nama_customer || b.nama_perusahaan} ({b.jam_booking || 'Hari Ini'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
-            {bookingList.length > 0 && (
-              <div className="p-3 bg-accent-subtle/50 rounded-md border border-accent/30 flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-accent shrink-0" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block font-bold text-ink mb-1">
+                        Nomor Polisi (Plat Nomor) <span className="text-status-red">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: BK 1234 AB"
+                        value={formCheckin.no_polisi}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm font-black uppercase tracking-wider focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-ink mb-1">Jenis Armada</label>
+                      <select
+                        value={formCheckin.jenis_armada}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border font-semibold focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
+                      >
+                        <option value="Truk">Truk (Canter / Dutro / Tronton)</option>
+                        <option value="Mobil">Mobil Pribadi / Operasional</option>
+                        <option value="Pickup">Pickup / Box Kecil</option>
+                        <option value="Lainnya">Lainnya</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div>
-                    <div className="text-xs font-bold text-ink">Ada {bookingList.length} Booking Terdaftar</div>
-                    <div className="text-[11px] text-ink-muted">Pilih armada untuk mengisi formulir otomatis</div>
+                    <label className="block font-bold text-ink mb-1">
+                      Tujuan Kedatangan <span className="text-status-red">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'Service', label: '1. Service', desc: 'Perbaikan unit' },
+                        { id: 'Beli Part', label: '2. Beli Part', desc: 'Pembelian part' },
+                        { id: 'Kunjungan', label: '3. Kunjungan', desc: 'Tamu / Dinas' },
+                        { id: 'Lainnya', label: '4. Lainnya', desc: 'Keperluan lain' },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            let defaultPic = '';
+                            if (t.id === 'Service') {
+                              const saUser = picPetugasList.find((p) => p.peran === 'SA');
+                              defaultPic = saUser ? `${saUser.nama_lengkap} (SA)` : '';
+                            } else if (t.id === 'Beli Part') {
+                              const partUser = picPetugasList.find((p) => p.peran === 'Admin Purchasing' || p.peran === 'Admin Invoice');
+                              defaultPic = partUser ? `${partUser.nama_lengkap} (${partUser.peran})` : '';
+                            }
+                            setFormCheckin({
+                              ...formCheckin,
+                              tujuan_kedatangan: t.id as any,
+                              pic_tujuan: defaultPic || formCheckin.pic_tujuan,
+                            });
+                          }}
+                          className={`p-3 rounded-xl border text-left transition-all ${
+                            formCheckin.tujuan_kedatangan === t.id
+                              ? 'border-accent bg-accent-subtle text-accent font-bold shadow-xs'
+                              : 'border-border hover:border-accent/40 text-ink bg-surface'
+                          }`}
+                        >
+                          <div className="text-xs font-bold">{t.label}</div>
+                          <div className="text-xs text-ink-muted mt-0.5">{t.desc}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <select
-                  onChange={(e) => {
-                    const b = bookingList.find((item) => String(item.id) === e.target.value);
-                    if (b) handleFillFromBooking(b);
-                  }}
-                  value={formCheckin.id_booking || ''}
-                  className="w-full sm:w-auto px-3 py-1.5 rounded-md border border-border bg-surface text-xs font-bold text-ink focus:ring-1 focus:ring-accent focus:outline-none"
-                >
-                  <option value="">-- Pilih Booking untuk Isi Otomatis --</option>
-                  {bookingList.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.no_polisi} - {b.nama_customer || b.nama_perusahaan} ({b.jam_booking || 'Hari Ini'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+              ),
+            },
+            {
+              id: 'pic',
+              label: 'Kontak & PIC',
+              content: (
+                <div className="space-y-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block font-bold text-ink mb-1">Nama Customer / Perusahaan</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: PT. Andi Jaya"
+                        value={formCheckin.nama_customer}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
+                      />
+                    </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); checkinMutation.mutate(formCheckin); }} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block font-bold text-ink mb-1">
-                    Nomor Polisi (Plat Nomor) <span className="text-status-red">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: BK 1234 AB"
-                    value={formCheckin.no_polisi}
-                    onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2.5 rounded-md border border-border text-sm font-black uppercase tracking-wider focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
+                    <div>
+                      <label className="block font-bold text-ink mb-1">No. HP Driver / PIC</label>
+                      <input
+                        type="text"
+                        placeholder="0812-xxxx-xxxx"
+                        value={formCheckin.no_hp_customer}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block font-bold text-ink mb-1">PIC / Petugas Tujuan</label>
+                      <select
+                        value={formCheckin.id_pic ? String(formCheckin.id_pic) : formCheckin.pic_tujuan}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const found = picPetugasList.find((p) => String(p.id) === val);
+                          if (found) {
+                            setFormCheckin({
+                              ...formCheckin,
+                              id_pic: found.id,
+                              pic_tujuan: `${found.nama_lengkap} (${found.peran})`,
+                            });
+                          } else {
+                            setFormCheckin({
+                              ...formCheckin,
+                              id_pic: undefined,
+                              pic_tujuan: val,
+                            });
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border font-semibold focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
+                      >
+                        <option value="">-- Pilih PIC / Petugas Tujuan --</option>
+                        {picPetugasList.map((p) => (
+                          <option key={p.id} value={String(p.id)}>
+                            {p.nama_lengkap} ({p.peran})
+                          </option>
+                        ))}
+                        <option value="Admin Office">Admin Office</option>
+                        <option value="Management">Management</option>
+                        <option value="PIC Terkait">Lainnya / PIC Terkait</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-ink mb-1">Keperluan Singkat / Keluhan</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Service berkala, ganti kampas rem"
+                        value={formCheckin.keperluan}
+                        onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'dokumentasi',
+              label: 'Dokumentasi',
+              content: (
+                <div className="space-y-4 text-xs">
+                  <PhotoUploader
+                    label="Foto Kendaraan Saat Masuk Gerbang (Opsional)"
+                    value={formCheckin.foto_kendaraan_masuk}
+                    onChange={(url) => setFormCheckin({ ...formCheckin, foto_kendaraan_masuk: url })}
                   />
+
+                  <div>
+                    <label className="block font-bold text-ink mb-1">Catatan Security</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Catatan kondisi awal fisik atau kelengkapan armada..."
+                      value={formCheckin.catatan_security}
+                      onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block font-bold text-ink mb-1">Jenis Armada</label>
-                  <select
-                    value={formCheckin.jenis_armada}
-                    onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-md border border-border font-semibold focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink"
-                  >
-                    <option value="Truk">Truk (Canter / Dutro / Tronton)</option>
-                    <option value="Mobil">Mobil Pribadi / Operasional</option>
-                    <option value="Pickup">Pickup / Box Kecil</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-ink mb-1">
-                  Tujuan Kedatangan <span className="text-status-red">*</span>
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { id: 'Service', label: '1. Service', desc: 'Perbaikan unit' },
-                    { id: 'Beli Part', label: '2. Beli Part', desc: 'Pembelian part' },
-                    { id: 'Kunjungan', label: '3. Kunjungan', desc: 'Tamu / Dinas' },
-                    { id: 'Lainnya', label: '4. Lainnya', desc: 'Keperluan lain' },
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => {
-                        let defaultPic = '';
-                        if (t.id === 'Service') {
-                          const saUser = picPetugasList.find((p) => p.peran === 'SA');
-                          defaultPic = saUser ? `${saUser.nama_lengkap} (SA)` : '';
-                        } else if (t.id === 'Beli Part') {
-                          const partUser = picPetugasList.find((p) => p.peran === 'Admin Purchasing' || p.peran === 'Admin Invoice');
-                          defaultPic = partUser ? `${partUser.nama_lengkap} (${partUser.peran})` : '';
-                        }
-                        setFormCheckin({
-                          ...formCheckin,
-                          tujuan_kedatangan: t.id as any,
-                          pic_tujuan: defaultPic || formCheckin.pic_tujuan,
-                        });
-                      }}
-                      className={`p-2 rounded-md border text-left transition-all ${
-                        formCheckin.tujuan_kedatangan === t.id
-                          ? 'border-accent bg-accent-subtle text-accent font-bold shadow-xs'
-                          : 'border-border hover:border-accent/40 text-ink bg-surface'
-                      }`}
-                    >
-                      <div className="text-xs font-bold">{t.label}</div>
-                      <div className="text-[10px] text-ink-muted mt-0.5">{t.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block font-bold text-ink mb-1">Nama Customer / Perusahaan</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: PT. Andi Jaya"
-                    value={formCheckin.nama_customer}
-                    onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-md border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-ink mb-1">No. HP Driver / PIC</label>
-                  <input
-                    type="text"
-                    placeholder="0812-xxxx-xxxx"
-                    value={formCheckin.no_hp_customer}
-                    onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-md border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block font-bold text-ink mb-1">PIC / Petugas Tujuan</label>
-                  <select
-                    value={formCheckin.id_pic ? String(formCheckin.id_pic) : formCheckin.pic_tujuan}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const found = picPetugasList.find((p) => String(p.id) === val);
-                      if (found) {
-                        setFormCheckin({
-                          ...formCheckin,
-                          id_pic: found.id,
-                          pic_tujuan: `${found.nama_lengkap} (${found.peran})`,
-                        });
-                      } else {
-                        setFormCheckin({
-                          ...formCheckin,
-                          id_pic: undefined,
-                          pic_tujuan: val,
-                        });
-                      }
-                    }}
-                    className="w-full px-3.5 py-2 rounded-md border border-border font-semibold focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
-                  >
-                    <option value="">-- Pilih PIC / Petugas Tujuan --</option>
-                    {picPetugasList.map((p) => (
-                      <option key={p.id} value={String(p.id)}>
-                        {p.nama_lengkap} ({p.peran})
-                      </option>
-                    ))}
-                    <option value="Admin Office">Admin Office</option>
-                    <option value="Management">Management</option>
-                    <option value="PIC Terkait">Lainnya / PIC Terkait</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-ink mb-1">Keperluan Singkat / Keluhan</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Service berkala, ganti kampas rem"
-                    value={formCheckin.keperluan}
-                    onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-md border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* Photo Upload */}
-              <PhotoUploader
-                label="Foto Kendaraan Saat Masuk Gerbang (Opsional)"
-                value={formCheckin.foto_kendaraan_masuk}
-                onChange={(url) => setFormCheckin({ ...formCheckin, foto_kendaraan_masuk: url })}
-              />
-
-              <div>
-                <label className="block font-bold text-ink mb-1">Catatan Security</label>
-                <textarea
-                  rows={2}
-                  placeholder="Catatan kondisi awal fisik atau kelengkapan armada..."
-                  value={formCheckin.catatan_security}
-                  onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-md border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
-                />
-              </div>
-
-              <div className="flex gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCheckinModal(false)}
-                  className="flex-1 py-2.5 bg-surface hover:bg-border/40 text-ink font-bold rounded-md border border-border transition-colors text-xs"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={checkinMutation.isPending}
-                  className="flex-1 py-2.5 bg-accent hover:bg-accent-hover text-white font-bold rounded-md shadow-xs transition-colors flex items-center justify-center gap-2 text-xs"
-                >
-                  {checkinMutation.isPending ? 'Menyimpan...' : 'SUBMIT CHECK IN'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-        </ModalPortal>
+              ),
+            },
+          ]}
+        />
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: CHECK-OUT KENDARAAN (Mencatat barang & terbit memo) */}
+      {/* MODAL: CHECK-OUT KENDARAAN (2-Step Wizard)                */}
       {/* ========================================================= */}
       {showCheckoutModal && (
-        <ModalPortal onClose={() => setShowCheckoutModal(null)}>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-border space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div>
-                <h3 className="text-base font-black text-ink">Proses Check Out Kendaraan</h3>
-                <p className="text-xs text-ink-muted font-mono">{showCheckoutModal.no_polisi} - {showCheckoutModal.nama_customer}</p>
-              </div>
-              <button
-                onClick={() => setShowCheckoutModal(null)}
-                className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <StepModal
+          open={!!showCheckoutModal}
+          onClose={() => {
+            setShowCheckoutModal(null);
+            setCheckoutStep(0);
+          }}
+          title="Proses Check Out Kendaraan"
+          subtitle={`${showCheckoutModal.no_polisi} - ${showCheckoutModal.nama_customer}`}
+          currentStep={checkoutStep}
+          onNext={() => {
+            if (checkoutStep === 0 && formCheckout.barang_dibawa_keluar && !formCheckout.detail_barang_keluar.trim()) {
+              toast.error('Rincian Wajib', 'Silakan isi rincian barang yang dibawa keluar.');
+              return;
+            }
+            setCheckoutStep((s) => Math.min(s + 1, 1));
+          }}
+          onBack={() => setCheckoutStep((s) => Math.max(s - 1, 0))}
+          onSubmit={() => {
+            if (formCheckout.barang_dibawa_keluar && !formCheckout.detail_barang_keluar.trim()) {
+              toast.error('Rincian Wajib', 'Silakan isi rincian barang yang dibawa keluar.');
+              return;
+            }
+            checkoutMutation.mutate(showCheckoutModal);
+          }}
+          submitLabel="Konfirmasi Keluar & Terbitkan Memo"
+          isPending={checkoutMutation.isPending}
+          size="md"
+          steps={[
+            {
+              id: 'barang',
+              label: 'Pemeriksaan Barang',
+              content: (
+                <div className="space-y-3.5 text-xs">
+                  <div className="p-3.5 rounded-xl bg-accent-subtle/70 border border-accent/30 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-ink">Tujuan Kedatangan:</span>
+                      <span className="font-semibold text-accent">{showCheckoutModal.tujuan_kedatangan}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1 text-ink-muted">
+                      <span>Waktu Masuk:</span>
+                      <span className="font-mono">{new Date(showCheckoutModal.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB</span>
+                    </div>
+                  </div>
 
-            <div className="space-y-3.5 text-xs">
-              <div className="p-3.5 rounded-md bg-accent-subtle/70 border border-accent/30 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-ink">Tujuan Kedatangan:</span>
-                  <span className="font-semibold text-accent">{showCheckoutModal.tujuan_kedatangan}</span>
-                </div>
-                <div className="flex items-center justify-between mt-1 text-ink-muted">
-                  <span>Waktu Masuk:</span>
-                  <span className="font-mono">{new Date(showCheckoutModal.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB</span>
-                </div>
-              </div>
+                  <div>
+                    <label className="flex items-center gap-2 font-bold text-ink cursor-pointer p-3 bg-surface rounded-xl border border-border">
+                      <input
+                        type="checkbox"
+                        checked={formCheckout.barang_dibawa_keluar}
+                        onChange={(e) => setFormCheckout({ ...formCheckout, barang_dibawa_keluar: e.target.checked })}
+                        className="w-4 h-4 rounded text-accent focus:ring-accent"
+                      />
+                      <span>Ada Barang yang Dibawa Keluar? (Sparepart bekas / box / dokumen)</span>
+                    </label>
+                  </div>
 
-              <div>
-                <label className="flex items-center gap-2 font-bold text-ink cursor-pointer p-3 bg-surface rounded-md border border-border">
-                  <input
-                    type="checkbox"
-                    checked={formCheckout.barang_dibawa_keluar}
-                    onChange={(e) => setFormCheckout({ ...formCheckout, barang_dibawa_keluar: e.target.checked })}
-                    className="w-4 h-4 rounded text-accent focus:ring-accent"
+                  {formCheckout.barang_dibawa_keluar && (
+                    <div>
+                      <label className="block font-bold text-ink mb-1">Rincian Barang yang Dibawa Keluar <span className="text-status-red">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: 1 Dus Sparepart Bekas, Dokumen Faktur"
+                        value={formCheckout.detail_barang_keluar}
+                        onChange={(e) => setFormCheckout({ ...formCheckout, detail_barang_keluar: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border font-medium focus:ring-1 focus:ring-accent bg-surface-raised text-ink text-xs focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              id: 'dokumentasi',
+              label: 'Foto & Penerbitan Memo',
+              content: (
+                <div className="space-y-3.5 text-xs">
+                  <PhotoUploader
+                    label="Foto Kendaraan Saat Keluar Gerbang (Kamera/File)"
+                    value={formCheckout.foto_kendaraan_keluar}
+                    onChange={(url) => setFormCheckout({ ...formCheckout, foto_kendaraan_keluar: url })}
                   />
-                  <span>Ada Barang yang Dibawa Keluar? (Sparepart bekas / box / dokumen)</span>
-                </label>
-              </div>
 
-              {formCheckout.barang_dibawa_keluar && (
-                <div>
-                  <label className="block font-bold text-ink mb-1">Rincian Barang yang Dibawa Keluar <span className="text-status-red">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: 1 Dus Sparepart Bekas, Dokumen Faktur"
-                    value={formCheckout.detail_barang_keluar}
-                    onChange={(e) => setFormCheckout({ ...formCheckout, detail_barang_keluar: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-md border border-border font-medium focus:ring-1 focus:ring-accent bg-surface-raised text-ink text-xs focus:outline-none"
-                  />
+                  {formCheckout.barang_dibawa_keluar && (
+                    <PhotoUploader
+                      label="Foto Barang Bawaan (Opsional)"
+                      value={formCheckout.foto_barang}
+                      onChange={(url) => setFormCheckout({ ...formCheckout, foto_barang: url })}
+                    />
+                  )}
+
+                  <div className="p-3 bg-status-amber-bg rounded-xl border border-status-amber/30 text-status-amber text-xs flex items-start gap-2">
+                    <Info className="w-4 h-4 shrink-0 text-status-amber mt-0.5" />
+                    <span>Setelah konfirmasi, sistem akan secara otomatis menerbitkan <strong>Memo Keluar (Surat Jalan)</strong> resmi untuk armada ini.</span>
+                  </div>
                 </div>
-              )}
-
-              {/* Foto Keluar */}
-              <PhotoUploader
-                label="Foto Kendaraan Saat Keluar Gerbang (Kamera/File)"
-                value={formCheckout.foto_kendaraan_keluar}
-                onChange={(url) => setFormCheckout({ ...formCheckout, foto_kendaraan_keluar: url })}
-              />
-
-              {formCheckout.barang_dibawa_keluar && (
-                <PhotoUploader
-                  label="Foto Barang Bawaan (Opsional)"
-                  value={formCheckout.foto_barang}
-                  onChange={(url) => setFormCheckout({ ...formCheckout, foto_barang: url })}
-                />
-              )}
-
-              <div className="p-3 bg-status-amber-bg rounded-md border border-status-amber/30 text-status-amber text-[11px] flex items-start gap-2">
-                <Info className="w-4 h-4 shrink-0 text-status-amber mt-0.5" />
-                <span>Setelah konfirmasi, sistem akan secara otomatis menerbitkan <strong>Memo Keluar (Surat Jalan)</strong> resmi untuk armada ini.</span>
-              </div>
-
-              <div className="flex gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCheckoutModal(null)}
-                  className="flex-1 py-2.5 bg-surface hover:bg-border/40 text-ink font-bold rounded-md border border-border transition-colors text-xs"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  disabled={checkoutMutation.isPending}
-                  onClick={() => checkoutMutation.mutate(showCheckoutModal)}
-                  className="flex-1 py-2.5 bg-accent hover:bg-accent-hover text-white font-bold rounded-md shadow-xs transition-colors flex items-center justify-center gap-2 text-xs"
-                >
-                  {checkoutMutation.isPending ? 'Menerbitkan Memo...' : 'KONFIRMASI KELUAR & TERBITKAN MEMO'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        </ModalPortal>
+              ),
+            },
+          ]}
+        />
       )}
 
       {/* ========================================================= */}
       {/* MODAL: DETAIL HISTORI KENDARAAN                            */}
       {/* ========================================================= */}
       {showDetailModal && (
-        <ModalPortal onClose={() => setShowDetailModal(null)}>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-lg w-full shadow-2xl border border-border space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div>
-                <h3 className="text-base font-black text-ink">Rincian Histori Kunjungan Kendaraan</h3>
-                <p className="text-xs text-ink-muted font-mono">{showDetailModal.no_polisi} - {showDetailModal.nama_customer}</p>
-              </div>
+        <DetailModal
+          open={!!showDetailModal}
+          onClose={() => setShowDetailModal(null)}
+          title={`Histori Kunjungan: ${showDetailModal.no_polisi}`}
+          subtitle={`${showDetailModal.nama_customer} • Tiket #${showDetailModal.no_tiket}`}
+          badge={<StatusBadge status={labelStatusAntrian(showDetailModal)} />}
+          footer={
+            <div className="flex justify-end w-full">
               <button
+                type="button"
                 onClick={() => setShowDetailModal(null)}
-                className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface transition-colors"
+                className="px-4 py-2.5 rounded-lg border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
               >
-                <X className="w-5 h-5" />
+                Tutup
               </button>
             </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2.5 bg-surface p-3.5 rounded-md border border-border">
-                <div>
-                  <span className="text-ink-subtle text-[10px] block">No. Tiket Antrian</span>
-                  <span className="font-mono font-bold text-accent">{showDetailModal.no_tiket}</span>
-                </div>
-                <div>
-                  <span className="text-ink-subtle text-[10px] block">Jenis Armada</span>
-                  <span className="font-bold text-ink">{showDetailModal.jenis_armada || 'Truk'}</span>
-                </div>
-                <div>
-                  <span className="text-ink-subtle text-[10px] block">Waktu Masuk</span>
-                  <span className="font-medium text-ink-muted">
-                    {new Date(showDetailModal.waktu_masuk).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-ink-subtle text-[10px] block">Waktu Keluar</span>
-                  <span className="font-medium text-ink-muted">
-                    {showDetailModal.waktu_keluar ? new Date(showDetailModal.waktu_keluar).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '- (Masih di dalam)'}
-                  </span>
-                </div>
-              </div>
-
+          }
+          size="md"
+        >
+          <div className="space-y-3 text-xs">
+            <div className="grid grid-cols-2 gap-2.5 bg-surface p-3.5 rounded-xl border border-border">
               <div>
-                <span className="text-ink-subtle text-[10px] block mb-1">Status Kunjungan</span>
-                <StatusBadge status={labelStatusAntrian(showDetailModal)} />
+                <span className="text-ink-subtle text-xs block">No. Tiket Antrian</span>
+                <span className="font-mono font-bold text-accent">{showDetailModal.no_tiket}</span>
               </div>
-
-              {(() => {
-                const spk = spkUntukAntrian(showDetailModal);
-                if (!spk) return null;
-                const inv = (invoiceListSecurity || []).find((i) => i.id_spk === spk.id);
-                const lunas = !!inv && (inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas');
-                const keluar = !!showDetailModal.waktu_keluar;
-                const steps = [
-                  { label: 'Check-In', done: true },
-                  { label: 'SPK Selesai', done: ['Selesai', 'FIR Closed', 'QC Passed'].includes(spk.status_spk as string) },
-                  { label: 'Bayar Lunas', done: lunas },
-                  { label: 'Keluar', done: keluar },
-                ];
-                return (
-                  <>
-                    <div>
-                      <span className="text-ink-subtle text-[10px] block mb-1">Progress Checkout (alur Excel)</span>
-                      <div className="flex items-center gap-1">
-                        {steps.map((s, idx) => (
-                          <div key={s.label} className="flex-1 flex items-center gap-1 last:flex-none">
-                            <div className="flex flex-col items-center gap-1 flex-1">
-                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${s.done ? 'bg-status-green text-white' : 'bg-surface text-ink-subtle border border-border'}`}>
-                                {s.done ? '✓' : idx + 1}
-                              </span>
-                              <span className={`text-[9px] font-bold text-center leading-tight ${s.done ? 'text-status-green' : 'text-ink-subtle'}`}>{s.label}</span>
-                            </div>
-                            {idx < steps.length - 1 && (
-                              <div className={`h-0.5 flex-1 rounded-full mb-5 ${s.done ? 'bg-status-green' : 'bg-border'}`} />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    {lunas && spk.status_spk === 'Selesai' && !keluar && (
-                      <div className="p-3 rounded-md bg-status-green-bg border border-status-green/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <span className="text-[11px] text-status-green font-bold">
-                          Pekerjaan lunas & selesai — unit siap dikeluarkan.
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowDetailModal(null);
-                            setShowCheckoutModal(showDetailModal);
-                            setFormCheckout({
-                              barang_dibawa_keluar: false,
-                              detail_barang_keluar: '',
-                              foto_kendaraan_keluar: '',
-                              foto_barang: '',
-                              no_memo_keluar: '',
-                            });
-                          }}
-                          className="px-3 py-1.5 rounded-md bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
-                        >
-                          Check Out Sekarang →
-                        </button>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-
               <div>
-                <span className="text-ink-subtle text-[10px] block mb-1">Keperluan / Penugasan PIC</span>
-                <div className="p-3 bg-surface rounded-md border border-border text-ink font-medium">
-                  {showDetailModal.keperluan || 'Service berkala dan pemeliharaan armada.'}
-                </div>
+                <span className="text-ink-subtle text-xs block">Jenis Armada</span>
+                <span className="font-bold text-ink">{showDetailModal.jenis_armada || 'Truk'}</span>
               </div>
-
-              {showDetailModal.detail_barang_keluar && (
-                <div>
-                  <span className="text-ink-subtle text-[10px] block mb-1">Barang Bawaan Saat Keluar</span>
-                  <div className="p-3 bg-status-amber-bg border border-status-amber/30 rounded-md text-status-amber font-medium">
-                    {showDetailModal.detail_barang_keluar}
-                  </div>
-                </div>
-              )}
-
-              {showDetailModal.no_memo_keluar && (
-                <div className="p-3 bg-accent-subtle rounded-md border border-accent/30 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-accent font-bold block">No. Memo Keluar:</span>
-                    <span className="font-mono font-black text-accent">{showDetailModal.no_memo_keluar}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const memo = memoList.find(m => m.no_memo === showDetailModal.no_memo_keluar);
-                      if (memo) setSelectedMemo(memo);
-                      setShowDetailModal(null);
-                      changeTab('memo');
-                    }}
-                    className="px-3 py-1.5 rounded-md bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-xs transition-colors"
-                  >
-                    Buka Memo →
-                  </button>
-                </div>
-              )}
-
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowDetailModal(null)}
-                  className="w-full py-2.5 bg-surface hover:bg-border/40 text-ink font-bold rounded-md border border-border transition-colors text-xs"
-                >
-                  Tutup
-                </button>
+              <div>
+                <span className="text-ink-subtle text-xs block">Waktu Masuk</span>
+                <span className="font-medium text-ink-muted">
+                  {new Date(showDetailModal.waktu_masuk).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                </span>
+              </div>
+              <div>
+                <span className="text-ink-subtle text-xs block">Waktu Keluar</span>
+                <span className="font-medium text-ink-muted">
+                  {showDetailModal.waktu_keluar ? new Date(showDetailModal.waktu_keluar).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '- (Masih di dalam)'}
+                </span>
               </div>
             </div>
+
+            {(() => {
+              const spk = spkUntukAntrian(showDetailModal);
+              if (!spk) return null;
+              const inv = (invoiceListSecurity || []).find((i) => i.id_spk === spk.id);
+              const lunas = !!inv && (inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas');
+              const keluar = !!showDetailModal.waktu_keluar;
+              const steps = [
+                { label: 'Check-In', done: true },
+                { label: 'SPK Selesai', done: ['Selesai', 'FIR Closed', 'QC Passed'].includes(spk.status_spk as string) },
+                { label: 'Bayar Lunas', done: lunas },
+                { label: 'Keluar', done: keluar },
+              ];
+              return (
+                <>
+                  <div className="bg-surface p-3.5 rounded-xl border border-border">
+                    <span className="text-ink-subtle text-xs font-bold block mb-2">Progress Checkout</span>
+                    <div className="flex items-center gap-1">
+                      {steps.map((s, idx) => (
+                        <div key={s.label} className="flex-1 flex items-center gap-1 last:flex-none">
+                          <div className="flex flex-col items-center gap-1 flex-1">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${s.done ? 'bg-status-green text-white' : 'bg-surface text-ink-subtle border border-border'}`}>
+                              {s.done ? '✓' : idx + 1}
+                            </span>
+                            <span className={`text-xs font-bold text-center leading-tight ${s.done ? 'text-status-green' : 'text-ink-subtle'}`}>{s.label}</span>
+                          </div>
+                          {idx < steps.length - 1 && (
+                            <div className={`h-0.5 flex-1 rounded-full mb-5 ${s.done ? 'bg-status-green' : 'bg-border'}`} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {lunas && spk.status_spk === 'Selesai' && !keluar && (
+                    <div className="p-3 rounded-xl bg-status-green-bg border border-status-green/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="text-xs text-status-green font-bold">
+                        Pekerjaan lunas & selesai — unit siap dikeluarkan.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDetailModal(null);
+                          setShowCheckoutModal(showDetailModal);
+                          setFormCheckout({
+                            barang_dibawa_keluar: false,
+                            detail_barang_keluar: '',
+                            foto_kendaraan_keluar: '',
+                            foto_barang: '',
+                            no_memo_keluar: '',
+                          });
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
+                      >
+                        Check Out Sekarang →
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
+            <div>
+              <span className="text-ink-subtle text-xs block mb-1">Keperluan / Penugasan PIC</span>
+              <div className="p-3 bg-surface rounded-xl border border-border text-ink font-medium">
+                {showDetailModal.keperluan || 'Service berkala dan pemeliharaan armada.'}
+              </div>
+            </div>
+
+            {showDetailModal.detail_barang_keluar && (
+              <div>
+                <span className="text-ink-subtle text-xs block mb-1">Barang Bawaan Saat Keluar</span>
+                <div className="p-3 bg-status-amber-bg border border-status-amber/30 rounded-xl text-status-amber font-medium">
+                  {showDetailModal.detail_barang_keluar}
+                </div>
+              </div>
+            )}
+
+            {showDetailModal.no_memo_keluar && (
+              <div className="p-3 bg-accent-subtle rounded-xl border border-accent/30 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-accent font-bold block">No. Memo Keluar:</span>
+                  <span className="font-mono font-black text-accent">{showDetailModal.no_memo_keluar}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const memo = memoList.find(m => m.no_memo === showDetailModal.no_memo_keluar);
+                    if (memo) setSelectedMemo(memo);
+                    setShowDetailModal(null);
+                    changeTab('memo');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-xs transition-colors"
+                >
+                  Buka Memo →
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-        </ModalPortal>
+        </DetailModal>
       )}
 
       {/* Printable Memo Keluar A4 Modal */}

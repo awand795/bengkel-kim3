@@ -80,28 +80,28 @@ export const FloatingNotificationToast: React.FC = () => {
         const { event } = toast;
         const urgency = event.urgency || 'info';
 
-        let badgeBg = 'bg-blue-50 text-blue-700 border-blue-200';
-        let icon = <Info className="w-5 h-5 text-blue-600" />;
-        let borderAccent = 'border-l-4 border-l-blue-600';
+        let badgeBg = 'bg-status-blue-bg text-status-blue border border-status-blue/30';
+        let icon = <Info className="w-5 h-5 text-status-blue" />;
+        let borderAccent = 'border-l-4 border-l-status-blue';
 
         if (urgency === 'urgent') {
-          badgeBg = 'bg-rose-50 text-rose-700 border-rose-200';
-          icon = <AlertTriangle className="w-5 h-5 text-rose-600" />;
-          borderAccent = 'border-l-4 border-l-rose-600';
+          badgeBg = 'bg-status-red-bg text-status-red border border-status-red/30';
+          icon = <AlertTriangle className="w-5 h-5 text-status-red" />;
+          borderAccent = 'border-l-4 border-l-status-red';
         } else if (urgency === 'warning') {
-          badgeBg = 'bg-amber-50 text-amber-700 border-amber-200';
-          icon = <Clock className="w-5 h-5 text-amber-600" />;
-          borderAccent = 'border-l-4 border-l-amber-500';
+          badgeBg = 'bg-status-amber-bg text-status-amber border border-status-amber/30';
+          icon = <Clock className="w-5 h-5 text-status-amber" />;
+          borderAccent = 'border-l-4 border-l-status-amber';
         } else if (urgency === 'success') {
-          badgeBg = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-          icon = <CheckCircle2 className="w-5 h-5 text-emerald-600" />;
-          borderAccent = 'border-l-4 border-l-emerald-500';
+          badgeBg = 'bg-status-green-bg text-status-green border border-status-green/30';
+          icon = <CheckCircle2 className="w-5 h-5 text-status-green" />;
+          borderAccent = 'border-l-4 border-l-status-green';
         }
 
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto bg-white rounded-2xl p-4 shadow-xl shadow-slate-900/10 border border-slate-200 ${borderAccent} transition-all duration-300 animate-slide-in flex flex-col gap-2.5`}
+            className={`pointer-events-auto bg-surface-raised rounded-2xl p-4 shadow-xl border border-border ${borderAccent} transition-all duration-300 animate-slide-in flex flex-col gap-2.5`}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2.5">
@@ -110,14 +110,14 @@ export const FloatingNotificationToast: React.FC = () => {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-slate-900 leading-tight">
+                    <span className="text-xs font-black text-ink leading-tight">
                       {event.title}
                     </span>
-                    <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[9px] font-semibold">
+                    <span className="px-1.5 py-0.5 rounded-full bg-surface text-ink-subtle text-xs font-semibold border border-border">
                       Live
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-xs text-ink-subtle">
                     {new Date(event.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                   </span>
                 </div>
@@ -125,14 +125,14 @@ export const FloatingNotificationToast: React.FC = () => {
               <button
                 type="button"
                 onClick={() => dismissToast(toast.id)}
-                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1 text-ink-subtle hover:text-ink hover:bg-surface rounded-lg transition-colors cursor-pointer"
                 title="Tutup Notifikasi"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+            <p className="text-xs text-ink-muted font-medium leading-relaxed">
               {event.message}
             </p>
 
@@ -141,7 +141,7 @@ export const FloatingNotificationToast: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleAction(toast)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold shadow-xs shadow-blue-500/20 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
                   <span>Tindak Lanjuti</span>
                   <ArrowRight className="w-3.5 h-3.5" />

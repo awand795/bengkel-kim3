@@ -341,12 +341,17 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-64 bg-surface-raised border-r border-border hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] p-3 font-sans overflow-y-auto">
+    <aside className="w-64 bg-surface-raised border-r border-border hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] p-3.5 font-sans overflow-y-auto">
       <div>
-        <div className="px-2 mb-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-ink-subtle">
-            Menu {currentRole}
-          </p>
+        <div className="px-2 mb-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-subtle">
+              Navigasi
+            </p>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
+              {currentRole}
+            </span>
+          </div>
         </div>
         <nav className="space-y-1">
           {roleMenus.map((item) => {
@@ -362,7 +367,7 @@ export const Sidebar: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleToggleGroup(item)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs transition-all cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all cursor-pointer ${
                       hasActiveChild
                         ? 'bg-accent-subtle text-accent font-bold'
                         : 'text-ink-muted hover:text-ink hover:bg-surface font-medium'
@@ -381,7 +386,7 @@ export const Sidebar: React.FC = () => {
 
                   {/* Sub-menu accordion items */}
                   {isOpen && (
-                    <div className="ml-3.5 pl-3 border-l-2 border-border space-y-0.5 pt-0.5">
+                    <div className="ml-3 pl-3 border-l border-border space-y-0.5 pt-0.5">
                       {item.children.map((sub) => {
                         const SubIcon = sub.icon;
                         const isSubActive = isTabActive(sub.id);
@@ -396,7 +401,7 @@ export const Sidebar: React.FC = () => {
                             }}
                             className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
                               isSubActive
-                                ? 'bg-accent text-white font-bold shadow-2xs'
+                                ? 'bg-accent text-white font-bold shadow-xs'
                                 : 'text-ink-muted hover:text-ink hover:bg-surface font-medium'
                             }`}
                           >
@@ -422,10 +427,10 @@ export const Sidebar: React.FC = () => {
                   setActiveTab(item.id);
                   bumpNav();
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs transition-all cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-accent text-white font-semibold shadow-2xs'
-                    : 'text-ink-muted hover:text-ink hover:bg-accent-subtle/60 font-medium'
+                    ? 'bg-accent text-white font-semibold shadow-xs'
+                    : 'text-ink-muted hover:text-ink hover:bg-surface font-medium'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">

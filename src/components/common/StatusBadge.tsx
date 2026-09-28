@@ -69,18 +69,18 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
   };
 
   const sizeClasses = {
-    sm: 'px-2 py-0.5 text-[10px] rounded',
-    md: 'px-2.5 py-0.5 text-xs rounded',
-    lg: 'px-3 py-1 text-xs rounded-md',
+    sm: 'px-2.5 py-0.5 text-[11px] rounded-full font-semibold',
+    md: 'px-3 py-1 text-xs rounded-full font-semibold',
+    lg: 'px-3.5 py-1.5 text-xs rounded-full font-bold',
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-sans font-semibold tracking-tight tabular-nums border shadow-2xs ${getBadgeStyle(
+      className={`inline-flex items-center gap-1.5 font-sans tracking-tight tabular-nums border shadow-2xs ${getBadgeStyle(
         status
       )} ${sizeClasses[size]}`}
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-90 shrink-0" />
+      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-85 shrink-0" />
       <span className="truncate">{status || '-'}</span>
     </span>
   );

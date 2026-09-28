@@ -1,72 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { StatCard } from '../components/common/StatCard';
+import { SectionHeader } from '../components/common/SectionHeader';
+import { ListItemCard } from '../components/common/ListItemCard';
+import { DetailModal } from '../components/common/DetailModal';
+import { StepModal } from '../components/common/StepModal';
+import { FilterChips } from '../components/common/FilterChips';
+import { TabBar } from '../components/common/TabBar';
+import { EmptyState } from '../components/common/EmptyState';
 import { AntrianKunjungan } from '../types';
 import { realtimeHub } from '../services/realtimeService';
-import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 import {
-  UserCheck,
-  Truck,
   Clock,
-  Check,
-  X,
-  User,
-  Phone,
-  FileText,
-  AlertCircle,
   CheckCircle2,
   XCircle,
   PackageCheck,
-  Hourglass,
-  ShieldCheck,
+  History,
+  AlertCircle
 } from 'lucide-react';
 
-/**
- * Modul Kunjungan Internal (SA, Foreman, Mekanik, Purchasing, Kasir, Warehouse).
- *
- * Sesuai alur Excel (sheet "Kunjungan"): Security check-in + menunjuk penerima
- * (PIC) → penerima MENERIMA / MENOLAK kunjungan → notifikasi balik ke Security.
- *
- * Data GET /kim3/antrian sudah ter-restrict di server: setiap user internal
- * hanya melihat kunjungan yang ditujukan ke dia (id_pic = user login).
- * Konfirmasi memakai endpoint /kim3/antrian-konfirmasi-pic yang sama dengan
- * modul PIC Terkait.
- */
+type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Sudah Keluar';
+
 export const KunjunganModuleView: React.FC = () => {
   const queryClient = useQueryClient();
-  const { authUser, currentUser, kunjunganPendingId, setKunjunganPendingId, setApprovalModalOpen } = useAppStore();
+  const { currentUser, kunjunganPendingId, setKunjunganPendingId, setApprovalModalOpen } = useAppStore();
   const [subTab, setSubTab] = useState<'masuk' | 'riwayat'>('masuk');
+  const [riwayatFilter, setRiwayatFilter] = useState<RiwayatFilterType>('Semua');
   const [rejecting, setRejecting] = useState<AntrianKunjungan | null>(null);
+  const [rejectStep, setRejectStep] = useState(0);
   const [catatanTolak, setCatatanTolak] = useState('');
   const [selected, setSelected] = useState<AntrianKunjungan | null>(null);
 
-  // Kunjungan yang ditujukan ke user ini (server-side filter by id_pic)
-  const { data: antrianList, isLoading, isFetching } = useQuery({
+  const { data: antrianList } = useQuery({
     queryKey: ['antrian-list'],
     queryFn: api.getAntrian,
     refetchInterval: 8000,
   });
 
-  // Khusus kunjungan tamu murni: tujuan "Kunjungan" / "Lainnya".
-  // Service ditangani alur SPK (penerimaan SA), Beli Part ditangani alur
-  // Penjualan Part Langsung — keduanya TIDAK masuk modul kunjungan ini,
-  // baik di tab Masuk maupun Riwayat.
   const isKunjunganMurni = (a: AntrianKunjungan) =>
     a.tujuan_kedatangan === 'Kunjungan' || a.tujuan_kedatangan === 'Lainnya';
 
-  const kunjunganMasuk: AntrianKunjungan[] = (antrianList || [])
-    .filter(
+  const kunjunganMasuk: AntrianKunjungan[] = useMemo(() => {
+    return (antrianList || []).filter(
       (a) =>
         isKunjunganMurni(a) &&
         (a.status_kunjungan === 'Check In' || a.status_kunjungan === 'Sedang Dikerjakan') &&
         (!a.status_konfirmasi_pic || a.status_konfirmasi_pic === 'Menunggu Konfirmasi')
     );
+  }, [antrianList]);
 
-  const kunjunganRiwayat: AntrianKunjungan[] = (antrianList || [])
-    .filter(
+  const kunjunganRiwayat: AntrianKunjungan[] = useMemo(() => {
+    return (antrianList || []).filter(
       (a) =>
         isKunjunganMurni(a) &&
         (a.status_konfirmasi_pic === 'Diterima' ||
@@ -75,17 +63,53 @@ export const KunjunganModuleView: React.FC = () => {
           a.status_kunjungan === 'Selesai' ||
           !!a.waktu_keluar)
     );
+  }, [antrianList]);
 
   const jumlahMenunggu = kunjunganMasuk.length;
   const jumlahDiterima = (antrianList || []).filter(
-    (a) => isKunjunganMurni(a) && a.status_konfirmasi_pic === 'Diterima' &&
+    (a) =>
+      isKunjunganMurni(a) &&
+      a.status_konfirmasi_pic === 'Diterima' &&
       !(a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar)
   ).length;
 
-  // Deep-link approval realtime (konsumsi sekali): buka modal detail item tertuju.
+  const jumlahDitolak = (antrianList || []).filter(
+    (a) => isKunjunganMurni(a) && a.status_konfirmasi_pic === 'Ditolak'
+  ).length;
+
+  const jumlahSelesai = (antrianList || []).filter(
+    (a) =>
+      isKunjunganMurni(a) &&
+      a.status_konfirmasi_pic !== 'Ditolak' &&
+      (a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar)
+  ).length;
+
+  // Filtered Riwayat based on filter chips
+  const filteredRiwayat = useMemo(() => {
+    return kunjunganRiwayat.filter((item) => {
+      if (riwayatFilter === 'Diterima') {
+        return item.status_konfirmasi_pic === 'Diterima';
+      }
+      if (riwayatFilter === 'Ditolak') {
+        return item.status_konfirmasi_pic === 'Ditolak';
+      }
+      if (riwayatFilter === 'Sudah Keluar') {
+        return item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar;
+      }
+      return true;
+    });
+  }, [kunjunganRiwayat, riwayatFilter]);
+
+  const countRiwayatSemua = kunjunganRiwayat.length;
+  const countRiwayatDiterima = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Diterima').length;
+  const countRiwayatDitolak = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Ditolak').length;
+  const countRiwayatSudahKeluar = kunjunganRiwayat.filter(
+    (a) => a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar
+  ).length;
+
   useEffect(() => {
     if (kunjunganPendingId == null) return;
-    if (antrianList === undefined) return; // tunggu data termuat
+    if (antrianList === undefined) return;
     const target = kunjunganMasuk.find((a) => a.id === kunjunganPendingId);
     if (target) {
       setSubTab('masuk');
@@ -94,19 +118,9 @@ export const KunjunganModuleView: React.FC = () => {
     setKunjunganPendingId(null);
   }, [kunjunganPendingId, antrianList, kunjunganMasuk, setKunjunganPendingId]);
 
-  // Kunci antre popup global selama modal (auto/manual) terbuka.
   useEffect(() => {
     setApprovalModalOpen(!!selected || !!rejecting);
   }, [selected, rejecting, setApprovalModalOpen]);
-  const jumlahDitolak = (antrianList || []).filter(
-    (a) => isKunjunganMurni(a) && a.status_konfirmasi_pic === 'Ditolak'
-  ).length;
-  const jumlahSelesai = (antrianList || []).filter(
-    (a) =>
-      isKunjunganMurni(a) &&
-      a.status_konfirmasi_pic !== 'Ditolak' &&
-      (a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar)
-  ).length;
 
   const konfirmasiMutation = useMutation({
     mutationFn: (payload: {
@@ -118,12 +132,11 @@ export const KunjunganModuleView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
-      // Notifikasi balik ke Pos Security (penanda kunjungan diterima/ditolak)
       realtimeHub.publish({
         type: 'KUNJUNGAN_CONFIRMED',
         targetRoles: ['Security'],
         title: `Kunjungan ${variables.status_konfirmasi_pic}`,
-        message: `Kunjungan #${variables.id} (${selected?.no_polisi || 'tamu'}) telah ${variables.status_konfirmasi_pic.toLowerCase()} oleh ${currentUser || 'penerima'}.`,
+        message: `Kunjungan #${variables.id} (${selected?.no_polisi || rejecting?.no_polisi || 'tamu'}) telah ${variables.status_konfirmasi_pic.toLowerCase()} oleh ${currentUser || 'penerima'}.`,
         urgency: variables.status_konfirmasi_pic === 'Diterima' ? 'success' : 'warning',
       });
 
@@ -135,6 +148,7 @@ export const KunjunganModuleView: React.FC = () => {
       setRejecting(null);
       setCatatanTolak('');
       setSelected(null);
+      setSubTab('riwayat');
     },
     onError: (err: any) =>
       toast.error('Gagal mengirim konfirmasi kunjungan: ' + getApiErrorMessage(err)),
@@ -154,369 +168,326 @@ export const KunjunganModuleView: React.FC = () => {
     }
   };
 
-  // Status visual kartu: Menunggu / Diterima / Ditolak / Selesai (keluar gerbang)
-  const getStatusVis = (item: AntrianKunjungan): {
-    label: string;
-    icon: any;
-    ring: string;
-    iconBox: string;
-    badge: string;
-    catatan: string | undefined;
-    iconSpin?: boolean;
-  } => {
-    if (item.status_konfirmasi_pic === 'Ditolak') {
-      return {
-        label: 'DITOLAK',
-        icon: XCircle,
-        ring: 'border-status-red/50 bg-status-red-bg/40',
-        iconBox: 'bg-status-red-bg text-status-red',
-        badge: 'bg-status-red text-white',
-        catatan: item.catatan_pic ? `Alasan: ${item.catatan_pic}` : undefined,
-      };
-    }
-    if (item.status_konfirmasi_pic === 'Diterima') {
-      const selesai = item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar;
-      return selesai
-        ? {
-            label: 'SELESAI',
-            icon: PackageCheck,
-            ring: 'border-border bg-surface-raised opacity-80',
-            iconBox: 'bg-surface text-ink-subtle',
-            badge: 'bg-ink text-surface',
-            catatan: item.waktu_keluar ? `Keluar: ${formatWaktu(item.waktu_keluar)}` : undefined,
-          }
-        : {
-            label: 'DITERIMA',
-            icon: CheckCircle2,
-            ring: 'border-status-green/50 bg-status-green-bg/40',
-            iconBox: 'bg-status-green-bg text-status-green',
-            badge: 'bg-status-green text-white',
-            catatan: item.catatan_pic || undefined,
-          };
-    }
-    // Belum dikonfirmasi (atau status kunjungan sudah lewat tanpa konfirmasi)
-    const lewat = item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar;
-    return lewat
-      ? {
-          label: 'SELESAI',
-          icon: PackageCheck,
-          ring: 'border-border bg-surface-raised opacity-80',
-          iconBox: 'bg-surface text-ink-subtle',
-          badge: 'bg-ink text-surface',
-          catatan: undefined,
-        }
-      : {
-          label: 'MENUNGGU KONFIRMASI',
-          icon: Hourglass,
-          ring: 'border-status-amber/60 bg-status-amber-bg/30',
-          iconBox: 'bg-status-amber-bg text-status-amber',
-          badge: 'bg-status-amber text-white',
-          catatan: undefined,
-          iconSpin: true,
-        };
-  };
+  const tabsConfig = [
+    { id: 'masuk', label: 'Kunjungan Masuk', count: jumlahMenunggu, icon: Clock },
+    { id: 'riwayat', label: 'Riwayat Kunjungan', count: kunjunganRiwayat.length, icon: History },
+  ];
 
-  const renderCard = (item: AntrianKunjungan) => {
-    const vis = getStatusVis(item);
-    const VisIcon = vis.icon;
-    const sudahDikonfirmasi =
-      item.status_konfirmasi_pic === 'Diterima' || item.status_konfirmasi_pic === 'Ditolak';
-    const bisaKonfirmasi =
-      !sudahDikonfirmasi &&
-      item.status_kunjungan === 'Check In' &&
-      (!item.status_konfirmasi_pic || item.status_konfirmasi_pic === 'Menunggu Konfirmasi');
-
-    return (
-      <div
-        key={item.id}
-        className={`rounded-md border p-4 shadow-xs transition-all ${vis.ring} ${
-          selected?.id === item.id ? 'ring-2 ring-accent/20 border-accent' : 'hover:shadow-md'
-        }`}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${vis.iconBox}`}>
-                <VisIcon className={`w-5 h-5 ${vis.iconSpin ? 'animate-spin [animation-duration:2.5s]' : ''}`} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-black text-ink">{item.no_polisi}</span>
-                {/* Badge status utama: DITERIMA / DITOLAK / SELESAI / MENUNGGU */}
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 ${vis.badge}`}>
-                  <VisIcon className={`w-3 h-3 ${vis.iconSpin ? 'animate-spin [animation-duration:2.5s]' : ''}`} /> {vis.label}
-                </span>
-                {item.status_kunjungan !== 'Keluar' && (
-                  <StatusBadge status={item.status_kunjungan} size="sm" />
-                )}
-              </div>
-              <div className="text-xs text-ink-muted font-semibold truncate mt-0.5">
-                {item.nama_customer || 'Pelanggan'} • {item.tujuan_kedatangan}
-              </div>
-              <div className="text-[11px] text-ink-subtle mt-0.5 flex items-center gap-2 flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> {formatWaktu(item.waktu_masuk)}
-                </span>
-                {item.keperluan && <span className="truncate max-w-[240px]">• {item.keperluan}</span>}
-              </div>
-              {vis.catatan && (
-                <div className="text-[11px] mt-1 text-ink-muted italic truncate max-w-[320px]">{vis.catatan}</div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setSelected(item)}
-              className="px-3 py-1.5 rounded-md border border-border bg-surface hover:bg-surface-raised text-ink-muted font-bold text-[11px]"
-            >
-              Detail
-            </button>
-            {bisaKonfirmasi && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelected(null);
-                    konfirmasiMutation.mutate({ id: item.id, status_konfirmasi_pic: 'Diterima' });
-                  }}
-                  disabled={konfirmasiMutation.isPending}
-                  className="px-3 py-1.5 rounded-md bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white font-bold text-[11px] flex items-center gap-1"
-                >
-                  <Check className="w-3.5 h-3.5" /> Terima
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRejecting(item)}
-                  className="px-3 py-1.5 rounded-md bg-status-red-bg hover:bg-status-red/10 border border-status-red/30 text-status-red font-bold text-[11px] flex items-center gap-1"
-                >
-                  <X className="w-3.5 h-3.5" /> Tolak
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const filterChipsData = [
+    { id: 'Semua', label: 'Semua', count: countRiwayatSemua },
+    { id: 'Diterima', label: 'Diterima', count: countRiwayatDiterima },
+    { id: 'Ditolak', label: 'Ditolak', count: countRiwayatDitolak },
+    { id: 'Sudah Keluar', label: 'Sudah Keluar', count: countRiwayatSudahKeluar },
+  ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      
       {/* Header */}
-      <div className="bg-surface-raised rounded-md p-4 sm:p-5 border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-md bg-accent-subtle text-accent flex items-center justify-center">
-            <UserCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-ink">Kunjungan untuk Saya</h1>
-            <p className="text-xs text-ink-muted">
-              Khusus kunjungan tamu (non-service) — terima atau tolak kunjungan yang ditujukan ke Anda
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-          <span className="px-2.5 py-1 rounded-full bg-status-amber-bg text-status-amber text-[11px] font-black flex items-center gap-1">
-            <Hourglass className="w-3 h-3" /> {jumlahMenunggu} menunggu
+      <SectionHeader
+        title="Kunjungan untuk Saya"
+        description="Khusus kunjungan tamu (non-service) — konfirmasi menerima atau menolak kunjungan yang ditujukan ke Anda."
+        badge={
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-accent-subtle text-accent border border-accent/20">
+            {currentUser || 'Penerima'}
           </span>
-          <span className="px-2.5 py-1 rounded-full bg-status-green-bg text-status-green text-[11px] font-black flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> {jumlahDiterima} diterima
-          </span>
-          <span className="px-2.5 py-1 rounded-full bg-status-red-bg text-status-red text-[11px] font-black flex items-center gap-1">
-            <XCircle className="w-3 h-3" /> {jumlahDitolak} ditolak
-          </span>
-          <span className="px-2.5 py-1 rounded-full bg-surface text-ink-subtle border border-border text-[11px] font-black flex items-center gap-1">
-            <PackageCheck className="w-3 h-3" /> {jumlahSelesai} selesai
-          </span>
-          <span className="px-2.5 py-1 rounded-full bg-accent-subtle text-accent text-[11px] font-bold flex items-center gap-1">
-            <User className="w-3 h-3" /> {currentUser || 'Penerima'}
-          </span>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Sub-tab */}
-      <div className="flex gap-1.5">
-        <button
-          type="button"
+      {/* 4 Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        <StatCard
+          title="Menunggu Respon"
+          value={jumlahMenunggu}
+          subtitle="Perlu respon segera"
+          icon={Clock}
+          tone="amber"
+          active={subTab === 'masuk'}
           onClick={() => setSubTab('masuk')}
-          className={`px-4 py-2 rounded-md text-xs font-bold transition-all ${
-            subTab === 'masuk' ? 'bg-ink text-surface shadow-xs' : 'bg-surface-raised text-ink-muted hover:bg-surface border border-border'
-          }`}
-        >
-          Masuk ({kunjunganMasuk.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setSubTab('riwayat')}
-          className={`px-4 py-2 rounded-md text-xs font-bold transition-all ${
-            subTab === 'riwayat' ? 'bg-ink text-surface shadow-xs' : 'bg-surface-raised text-ink-muted hover:bg-surface border border-border'
-          }`}
-        >
-          Riwayat ({kunjunganRiwayat.length})
-        </button>
+        />
+        <StatCard
+          title="Tamu Diterima"
+          value={jumlahDiterima}
+          subtitle="Aktif di dalam bengkel"
+          icon={CheckCircle2}
+          tone="green"
+          active={subTab === 'riwayat' && riwayatFilter === 'Diterima'}
+          onClick={() => {
+            setSubTab('riwayat');
+            setRiwayatFilter('Diterima');
+          }}
+        />
+        <StatCard
+          title="Tamu Ditolak"
+          value={jumlahDitolak}
+          subtitle="Tidak diizinkan masuk"
+          icon={XCircle}
+          tone="red"
+          active={subTab === 'riwayat' && riwayatFilter === 'Ditolak'}
+          onClick={() => {
+            setSubTab('riwayat');
+            setRiwayatFilter('Ditolak');
+          }}
+        />
+        <StatCard
+          title="Kunjungan Selesai"
+          value={jumlahSelesai}
+          subtitle="Sudah check-out gerbang"
+          icon={PackageCheck}
+          tone="blue"
+          active={subTab === 'riwayat' && riwayatFilter === 'Sudah Keluar'}
+          onClick={() => {
+            setSubTab('riwayat');
+            setRiwayatFilter('Sudah Keluar');
+          }}
+        />
       </div>
 
-      {isLoading ? (
-        <div className="p-8 text-center text-ink-subtle text-xs bg-surface-raised rounded-md border border-border">
-          Memuat kunjungan...
-        </div>
-      ) : subTab === 'masuk' ? (
-        kunjunganMasuk.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3">
-            {kunjunganMasuk.map(renderCard)}
-          </div>
-        ) : (
-          <div className="p-8 text-center text-ink-subtle text-xs bg-surface-raised rounded-md border border-dashed border-border">
-            <AlertCircle className="w-6 h-6 mx-auto mb-2 text-ink-subtle" />
-            Tidak ada kunjungan yang menunggu konfirmasi Anda.
-            <div className="text-[11px] mt-1 text-ink-subtle">
-              Kunjungan yang ditujukan ke Anda oleh Pos Security akan muncul di sini.
+      {/* Standardized TabBar */}
+      <TabBar
+        tabs={tabsConfig}
+        activeTab={subTab}
+        onChange={(id) => setSubTab(id as 'masuk' | 'riwayat')}
+      />
+
+      {/* Content Section */}
+      <div className="card-modern p-5 space-y-4">
+        {subTab === 'riwayat' && (
+          <FilterChips
+            options={filterChipsData}
+            selectedId={riwayatFilter}
+            onChange={(id: string) => setRiwayatFilter(id as RiwayatFilterType)}
+          />
+        )}
+
+        {subTab === 'masuk' ? (
+          kunjunganMasuk.length > 0 ? (
+            <div className="space-y-3">
+              {kunjunganMasuk.map((item) => (
+                <ListItemCard
+                  key={item.id}
+                  title={`${item.no_polisi} — ${item.nama_customer || 'Pelanggan Tamu'}`}
+                  subtitle={`Tiket: ${item.no_tiket} • Jam: ${formatWaktu(item.waktu_masuk)}`}
+                  badge={<StatusBadge status={item.status_kunjungan} size="sm" />}
+                  chips={item.keperluan ? [item.keperluan] : undefined}
+                  onClick={() => setSelected(item)}
+                />
+              ))}
             </div>
-          </div>
-        )
-      ) : kunjunganRiwayat.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3">
-          {kunjunganRiwayat.map(renderCard)}
-        </div>
-      ) : (
-        <div className="p-8 text-center text-ink-subtle text-xs bg-surface-raised rounded-md border border-dashed border-border">
-          Belum ada riwayat kunjungan.
-        </div>
-      )}
-
-      {/* Modal Detail */}
-      {selected && (
-        <ModalPortal onClose={() => setSelected(null)}>
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div className="bg-surface-raised rounded-t-md sm:rounded-md p-5 sm:p-6 max-w-md w-full shadow-xl border border-border space-y-4 max-h-[92vh] overflow-y-auto">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div>
-                  <h3 className="text-base font-black text-ink">Detail Kunjungan</h3>
-                  <p className="text-[11px] text-ink-muted">Tiket {selected.no_tiket || `#${selected.id}`}</p>
-                </div>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-3 bg-surface rounded-md border border-border">
-                  <span className="font-black text-ink text-sm">{selected.no_polisi}</span>
-                  <StatusBadge status={selected.status_kunjungan} size="sm" />
-                </div>
-                <div className="p-3 bg-surface rounded-md border border-border space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-ink-subtle flex items-center gap-1"><User className="w-3 h-3" /> Customer:</span>
-                    <span className="font-semibold text-ink">{selected.nama_customer || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-ink-subtle flex items-center gap-1"><Phone className="w-3 h-3" /> Kontak:</span>
-                    <span className="font-medium text-ink">{selected.no_hp_customer || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-ink-subtle flex items-center gap-1"><FileText className="w-3 h-3" /> Keperluan:</span>
-                    <span className="font-medium text-ink text-right max-w-[55%] truncate">{selected.keperluan || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-ink-subtle">Waktu Masuk:</span>
-                    <span className="font-medium text-ink">{formatWaktu(selected.waktu_masuk)}</span>
-                  </div>
-                  {selected.catatan_security && (
-                    <div className="pt-1.5 border-t border-border">
-                      <span className="text-ink-subtle block">Catatan Security:</span>
-                      <span className="text-ink-muted italic">{selected.catatan_security}</span>
+          ) : (
+            <EmptyState
+              icon={Clock}
+              title="Tidak Ada Kunjungan Menunggu"
+              description="Semua kunjungan yang ditujukan ke Anda telah diproses."
+            />
+          )
+        ) : (
+          filteredRiwayat.length > 0 ? (
+            <div className="space-y-3">
+              {filteredRiwayat.map((item) => (
+                <ListItemCard
+                  key={item.id}
+                  title={`${item.no_polisi} — ${item.nama_customer || 'Pelanggan Tamu'}`}
+                  subtitle={`Tiket: ${item.no_tiket} • Masuk: ${formatWaktu(item.waktu_masuk)}${item.waktu_keluar ? ` • Keluar: ${formatWaktu(item.waktu_keluar)}` : ''}`}
+                  badge={
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge status={item.status_kunjungan} size="sm" />
+                      {item.status_konfirmasi_pic && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            item.status_konfirmasi_pic === 'Diterima'
+                              ? 'bg-status-green-bg text-status-green'
+                              : 'bg-status-red-bg text-status-red'
+                          }`}
+                        >
+                          {item.status_konfirmasi_pic}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  }
+                  chips={item.keperluan ? [item.keperluan] : undefined}
+                  onClick={() => setSelected(item)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={History}
+              title="Belum Ada Riwayat Kunjungan"
+              description="Riwayat tamu yang telah diproses akan tercatat di sini."
+            />
+          )
+        )}
+      </div>
 
+      {/* Modal Detail Kunjungan */}
+      {selected && (
+        <DetailModal
+          open={true}
+          onClose={() => setSelected(null)}
+          title={selected.no_polisi}
+          subtitle={`${selected.nama_customer || 'Pelanggan'} • Tiket ${selected.no_tiket || `#${selected.id}`}`}
+          badge={<StatusBadge status={selected.status_kunjungan} size="sm" />}
+          size="md"
+          footer={
+            <div className="flex items-center justify-between w-full gap-2">
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="px-4 py-2 rounded-xl border border-border text-ink font-semibold text-xs hover:bg-surface transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
               {selected.status_kunjungan === 'Check In' &&
-              (!selected.status_konfirmasi_pic || selected.status_konfirmasi_pic === 'Menunggu Konfirmasi') ? (
-                <div className="flex gap-2">
+              (!selected.status_konfirmasi_pic || selected.status_konfirmasi_pic === 'Menunggu Konfirmasi') && (
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => {
-                      konfirmasiMutation.mutate({ id: selected.id, status_konfirmasi_pic: 'Diterima' });
+                      setRejecting(selected);
+                      setRejectStep(0);
+                      setCatatanTolak('');
                     }}
-                    disabled={konfirmasiMutation.isPending}
-                    className="flex-1 py-2.5 bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white rounded-md font-bold text-xs flex items-center justify-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl border border-border text-status-red hover:bg-status-red-bg text-xs font-semibold transition-colors cursor-pointer"
                   >
-                    <CheckCircle2 className="w-4 h-4" /> Terima Kunjungan
+                    Tolak Kunjungan
                   </button>
                   <button
                     type="button"
-                    onClick={() => setRejecting(selected)}
-                    className="flex-1 py-2.5 bg-status-red-bg hover:bg-status-red/10 border border-status-red/30 text-status-red rounded-md font-bold text-xs flex items-center justify-center gap-1.5"
+                    disabled={konfirmasiMutation.isPending}
+                    onClick={() => {
+                      konfirmasiMutation.mutate({ id: selected.id, status_konfirmasi_pic: 'Diterima' });
+                    }}
+                    className="px-4 py-2 rounded-xl bg-status-green hover:bg-status-green/90 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    <X className="w-4 h-4" /> Tolak
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Terima Kunjungan</span>
                   </button>
-                </div>
-              ) : (
-                <div className="p-2.5 bg-status-green-bg rounded-md border border-status-green/30 text-status-green text-[11px] flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 shrink-0" />
-                  Kunjungan ini sudah diproses ({selected.status_konfirmasi_pic || selected.status_kunjungan}).
                 </div>
               )}
             </div>
-          </div>
-        </ModalPortal>
-      )}
-
-      {/* Modal Tolak */}
-      {rejecting && (
-        <ModalPortal onClose={() => { setRejecting(null); setCatatanTolak(''); }}>
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-surface-raised rounded-md p-5 sm:p-6 max-w-sm w-full shadow-xl border border-border space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <h3 className="text-base font-black text-ink">Tolak Kunjungan</h3>
-                <button
-                  onClick={() => { setRejecting(null); setCatatanTolak(''); }}
-                  className="p-1.5 rounded-md text-ink-subtle hover:text-ink hover:bg-surface"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+          }
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-4 bg-surface rounded-xl border border-border space-y-2">
+              <div className="flex justify-between">
+                <span className="text-ink-subtle">Nama Customer:</span>
+                <span className="font-semibold text-ink">{selected.nama_customer || '-'}</span>
               </div>
-              <p className="text-xs text-ink-muted">
-                Tolak kunjungan <strong className="text-ink">{rejecting.no_polisi}</strong> ({rejecting.nama_customer || 'tamu'})? Security akan dinotifikasi agar tamu diarahkan ulang.
-              </p>
-              <textarea
-                rows={3}
-                placeholder="Alasan penolakan (opsional)..."
-                value={catatanTolak}
-                onChange={(e) => setCatatanTolak(e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setRejecting(null); setCatatanTolak(''); }}
-                  className="flex-1 py-2.5 bg-surface hover:bg-surface-raised border border-border text-ink-muted font-bold text-xs rounded-md"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  disabled={konfirmasiMutation.isPending}
-                  onClick={() => konfirmasiMutation.mutate({ id: rejecting.id, status_konfirmasi_pic: 'Ditolak', catatan_pic: catatanTolak || undefined })}
-                  className="flex-1 py-2.5 bg-status-red hover:bg-status-red/90 disabled:opacity-50 text-white font-bold text-xs rounded-md"
-                >
-                  {konfirmasiMutation.isPending ? 'Mengirim...' : 'TOLAK KUNJUNGAN'}
-                </button>
+              <div className="flex justify-between">
+                <span className="text-ink-subtle">Nomor Telepon:</span>
+                <span className="font-medium text-ink">{selected.no_hp_customer || '-'}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-ink-subtle">Keperluan:</span>
+                <span className="font-medium text-ink">{selected.keperluan || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-subtle">Waktu Masuk:</span>
+                <span className="tabular-nums text-ink">{formatWaktu(selected.waktu_masuk)}</span>
+              </div>
+              {selected.waktu_keluar && (
+                <div className="flex justify-between">
+                  <span className="text-ink-subtle">Waktu Keluar:</span>
+                  <span className="tabular-nums text-ink">{formatWaktu(selected.waktu_keluar)}</span>
+                </div>
+              )}
             </div>
+
+            {selected.catatan_security && (
+              <div className="p-3 bg-surface-raised rounded-xl border border-border text-ink-muted">
+                <span className="text-ink-subtle block font-bold text-xs uppercase mb-0.5">Catatan Security:</span>
+                <p>{selected.catatan_security}</p>
+              </div>
+            )}
+
+            {selected.catatan_pic && (
+              <div className="p-3 bg-surface-raised rounded-xl border border-border text-ink-muted">
+                <span className="text-ink-subtle block font-bold text-xs uppercase mb-0.5">Catatan PIC:</span>
+                <p>{selected.catatan_pic}</p>
+              </div>
+            )}
           </div>
-        </ModalPortal>
+        </DetailModal>
       )}
 
-      {/* indikator refresh halus */}
-      {isFetching && (
-        <div className="fixed bottom-20 right-4 md:bottom-6 px-2.5 py-1 rounded-full bg-surface-raised border border-border text-[10px] font-bold text-ink-subtle shadow-md flex items-center gap-1.5">
-          <Clock className="w-3 h-3 animate-pulse" /> sinkron...
-        </div>
+      {/* Modal Tolak Kunjungan — StepModal 2 Langkah */}
+      {rejecting && (
+        <StepModal
+          open={true}
+          onClose={() => {
+            setRejecting(null);
+            setCatatanTolak('');
+          }}
+          title="Tolak Izin Kunjungan"
+          subtitle={`Tamu: ${rejecting.no_polisi} • ${rejecting.nama_customer || 'Pelanggan'}`}
+          currentStep={rejectStep}
+          onNext={() => setRejectStep(1)}
+          onBack={() => setRejectStep(0)}
+          onSubmit={() =>
+            konfirmasiMutation.mutate({
+              id: rejecting.id,
+              status_konfirmasi_pic: 'Ditolak',
+              catatan_pic: catatanTolak.trim() || undefined,
+            })
+          }
+          submitLabel="Konfirmasi Tolak"
+          isPending={konfirmasiMutation.isPending}
+          size="md"
+          steps={[
+            {
+              id: 'ringkasan',
+              label: 'Ringkasan Tamu',
+              content: (
+                <div className="space-y-3 text-xs">
+                  <div className="p-4 bg-surface rounded-xl border border-border space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-ink-subtle">No. Polisi:</span>
+                      <span className="font-bold text-ink">{rejecting.no_polisi}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-subtle">Nama Tamu:</span>
+                      <span className="font-semibold text-ink">{rejecting.nama_customer || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-subtle">No. Telepon:</span>
+                      <span className="text-ink">{rejecting.no_hp_customer || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ink-subtle">Keperluan:</span>
+                      <span className="text-ink">{rejecting.keperluan || '-'}</span>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-status-red-bg border border-status-red/20 rounded-xl text-status-red flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>Penolakan akan diteruskan langsung ke pos security di gerbang masuk.</span>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: 'alasan',
+              label: 'Alasan Penolakan',
+              content: (
+                <div className="space-y-3 text-xs">
+                  <label className="block text-xs font-semibold text-ink" htmlFor="kunjungan_catatan_tolak">
+                    Alasan Penolakan (akan dibaca oleh Security):
+                  </label>
+                  <textarea
+                    id="kunjungan_catatan_tolak"
+                    rows={4}
+                    placeholder="Tuliskan alasan penolakan kunjungan..."
+                    value={catatanTolak}
+                    onChange={(e) => setCatatanTolak(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none text-ink"
+                  />
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
+
     </div>
   );
 };

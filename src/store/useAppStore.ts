@@ -22,6 +22,9 @@ interface AppState {
   jwtToken: string | null;
   isLoggedIn: boolean;
   isVerifyingSession: boolean;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
   
   setRole: (role: PeranUser, user?: string) => void;
   setActiveTab: (tab: string) => void;
@@ -74,6 +77,16 @@ try {
   console.error('Failed to parse saved auth user:', e);
 }
 
+// Initial theme from localStorage
+const savedTheme = (typeof localStorage !== 'undefined' ? (localStorage.getItem('kim3_theme') as 'light' | 'dark') : null) || 'light';
+if (typeof document !== 'undefined') {
+  if (savedTheme === 'dark') {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
 export const useAppStore = create<AppState>((set) => ({
   currentRole: initialRole,
   currentUser: initialUser,
@@ -90,6 +103,30 @@ export const useAppStore = create<AppState>((set) => ({
   jwtToken: savedToken,
   isLoggedIn: !!savedToken && !!initialUser,
   isVerifyingSession: !!savedToken,
+  theme: savedTheme,
+
+  toggleTheme: () => {
+    set((state) => {
+      const nextTheme = state.theme === 'light' ? 'dark' : 'light';
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('kim3_theme', nextTheme);
+      }
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+      }
+      return { theme: nextTheme };
+    });
+  },
+
+  setTheme: (theme) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('kim3_theme', theme);
+    }
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    }
+    set({ theme });
+  },
 
   setRole: (role: PeranUser, user?: string) => {
     const defaultTab = roleDefaultTabs[role] || 'dashboard';

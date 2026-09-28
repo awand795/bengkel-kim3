@@ -8,7 +8,9 @@ import {
   X, 
   Building2, 
   Mail, 
-  CheckCircle2 
+  CheckCircle2,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
 import { ProfileModal } from './ProfileModal';
@@ -69,7 +71,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
 };
 
 export const Navbar: React.FC = () => {
-  const { currentRole, currentUser, authUser, activeTab, setActiveTab, logout } = useAppStore();
+  const { currentRole, currentUser, authUser, activeTab, setActiveTab, logout, theme, toggleTheme } = useAppStore();
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -124,8 +126,22 @@ export const Navbar: React.FC = () => {
             </p>
           </div>
 
-          {/* Right: Notifications & User Avatar Button */}
+          {/* Right: Theme Toggle, Notifications & User Avatar Button */}
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-ink-muted hover:text-ink hover:bg-surface active:bg-accent-subtle transition-colors cursor-pointer"
+              aria-label="Ganti tema tampilan"
+              title={theme === 'dark' ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-ink" />
+              )}
+            </button>
+
             <NotificationDropdown />
 
             <button
@@ -158,13 +174,28 @@ export const Navbar: React.FC = () => {
             />
           </div>
 
-          {/* Right Controls: Role Badge, Notifications, User Details, Logout */}
-          <div className="flex items-center gap-3">
+          {/* Right Controls: Role Badge, Theme Switcher, Notifications, User Details, Logout */}
+          <div className="flex items-center gap-2.5">
             {/* Locked Role Badge */}
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-accent/30 bg-accent-subtle text-accent text-xs font-bold">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>{currentRole}</span>
             </div>
+
+            {/* Desktop Theme Switcher */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-surface hover:bg-surface-raised text-ink transition-all cursor-pointer shadow-2xs hover:border-accent/40 group"
+              aria-label="Ganti tema tampilan"
+              title={theme === 'dark' ? 'Ganti ke Mode Terang (Light Mode)' : 'Ganti ke Mode Industri Gelap (Dark Mode)'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform" />
+              ) : (
+                <Moon className="w-4 h-4 text-slate-700 dark:text-ink-muted group-hover:-rotate-12 transition-transform" />
+              )}
+            </button>
 
             {/* Notification Center */}
             <NotificationDropdown />
@@ -286,6 +317,25 @@ export const Navbar: React.FC = () => {
                   <span>Sesi Bengkel KIM 3 Aktif</span>
                 </div>
                 <p>Navigasi dioptimalkan untuk mobile app-shell. Mode offline aktif dengan cache lokal.</p>
+              </div>
+
+              {/* Theme Switcher Row */}
+              <div className="flex items-center justify-between p-3 rounded-md bg-surface border border-border">
+                <div className="flex items-center gap-2">
+                  {theme === 'dark' ? (
+                    <Moon className="w-4 h-4 text-accent" />
+                  ) : (
+                    <Sun className="w-4 h-4 text-amber-500" />
+                  )}
+                  <span className="text-xs font-semibold text-ink">Tema Tampilan</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-raised border border-border text-xs font-bold text-ink shadow-2xs active:bg-accent-subtle"
+                >
+                  {theme === 'dark' ? 'Gelap (Dark)' : 'Terang (Light)'}
+                </button>
               </div>
 
               {/* Edit Profil Button */}

@@ -141,7 +141,7 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen flex flex-col lg:flex-row bg-surface text-ink antialiased font-sans relative">
+    <main className="login-legacy-theme min-h-screen flex flex-col lg:flex-row bg-surface text-ink antialiased font-sans relative">
       
       {/* Top Bar Aksen Tipis (--color-accent Petrol Teal) */}
       <div className="h-[2px] w-full bg-accent fixed top-0 left-0 z-50 pointer-events-none" />
