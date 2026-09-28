@@ -865,9 +865,9 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
       {/* MODAL: TAMBAH PENGGUNA */}
       {isAddUserOpen && (
         <ModalPortal onClose={() => setIsAddUserOpen(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="bg-surface-raised rounded-2xl shadow-2xl border border-border w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <div className="p-5 border-b border-border flex items-center justify-between bg-surface">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl shadow-2xl border border-border w-full max-w-lg overflow-hidden app-modal-in my-auto max-h-[90dvh] sm:max-h-[85vh] flex flex-col">
+              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
                 <div className="flex items-center gap-2">
                   <Plus className="w-4 h-4 text-accent" />
                   <h3 className="font-bold text-sm text-ink">Tambah Pengguna Baru</h3>
@@ -875,7 +875,7 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
                 <button
                   type="button"
                   onClick={() => setIsAddUserOpen(false)}
-                  className="p-1 rounded-lg text-ink-subtle hover:text-ink transition-colors"
+                  className="p-1 rounded-lg text-ink-subtle hover:text-ink transition-colors cursor-pointer"
                 >
                   <XCircle className="w-5 h-5" />
                 </button>
@@ -895,7 +895,7 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
                   }
                   addUserMutation.mutate({ ...addForm, email: cleanEmail });
                 }}
-                className="p-5 space-y-4 text-xs"
+                className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 text-xs overflow-y-auto flex-1"
               >
                 <div>
                   <label className="block font-semibold text-ink-muted mb-1" htmlFor="add_email">
@@ -1010,9 +1010,9 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
       {/* MODAL: EDIT PENGGUNA */}
       {isEditUserOpen && editingUser && (
         <ModalPortal onClose={() => setIsEditUserOpen(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="bg-surface-raised rounded-2xl shadow-2xl border border-border w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <div className="p-5 border-b border-border flex items-center justify-between bg-surface">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl shadow-2xl border border-border w-full max-w-lg overflow-hidden app-modal-in my-auto max-h-[90dvh] sm:max-h-[85vh] flex flex-col">
+              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
                 <div className="flex items-center gap-2">
                   <Edit3 className="w-4 h-4 text-accent" />
                   <h3 className="font-bold text-sm text-ink">Ubah Data Pengguna</h3>
@@ -1020,7 +1020,7 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
                 <button
                   type="button"
                   onClick={() => setIsEditUserOpen(false)}
-                  className="p-1 rounded-lg text-ink-subtle hover:text-ink transition-colors"
+                  className="p-1 rounded-lg text-ink-subtle hover:text-ink transition-colors cursor-pointer"
                 >
                   <XCircle className="w-5 h-5" />
                 </button>
@@ -1047,7 +1047,7 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
                     status_aktif: editingUser.status_aktif,
                   });
                 }}
-                className="p-5 space-y-4 text-xs"
+                className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 text-xs overflow-y-auto flex-1"
               >
                 <div>
                   <label className="block font-semibold text-ink-muted mb-1" htmlFor="edit_nama">
@@ -1144,9 +1144,9 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
       {/* MODAL: RESET PASSWORD */}
       {isResetPwdOpen && resetPwdUser && (
         <ModalPortal onClose={() => setIsResetPwdOpen(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="bg-surface-raised rounded-2xl shadow-2xl border border-border w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <div className="p-5 border-b border-border flex items-center justify-between bg-surface">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl shadow-2xl border border-border w-full max-w-md overflow-hidden app-modal-in my-auto max-h-[90dvh] sm:max-h-[85vh] flex flex-col">
+              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-4 h-4 text-status-amber" />
                   <h3 className="font-bold text-sm text-ink">Reset Kata Sandi Pengguna</h3>
@@ -1172,7 +1172,7 @@ export const AdminPanelView: React.FC<{ initialTab?: 'users' | 'settings' | 'ppn
                     password_baru: newPassword.trim(),
                   });
                 }}
-                className="p-5 space-y-4 text-xs"
+                className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 text-xs overflow-y-auto flex-1"
               >
                 <div className="p-3 bg-status-amber-bg rounded-xl border border-status-amber/30 text-status-amber">
                   Mereset kata sandi untuk akun <span className="font-bold">{resetPwdUser.email}</span> ({resetPwdUser.nama_lengkap}).

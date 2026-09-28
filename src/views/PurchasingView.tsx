@@ -502,6 +502,38 @@ export const PurchasingView: React.FC = () => {
                         <span>Menunggu SA menyetujui penawaran. Form input ETA terbuka setelah disetujui.</span>
                       </div>
                     </div>
+                  ) : selectedPr.status_pr === 'Barang Ready' ? (
+                    <div className="space-y-3.5">
+                      <div className="p-3.5 rounded-xl bg-status-green-bg border border-status-green/30 text-status-green text-xs font-bold flex items-center gap-2">
+                        <Check className="w-4 h-4 shrink-0" />
+                        <span>Pengadaan Selesai — Barang telah tiba &amp; ready di gudang bengkel.</span>
+                      </div>
+                      <div className="p-4 bg-surface rounded-xl border border-border space-y-2.5 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-ink-muted">Status Pengadaan:</span>
+                          <span className="font-bold text-status-green">Selesai (Barang Ready)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-ink-muted">Vendor Terpilih:</span>
+                          <span className="font-bold text-ink">{selectedPr.vendor_terpilih || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-ink-muted">Harga Kesepakatan:</span>
+                          <span className="font-mono font-bold text-ink">Rp {Number(selectedPr.harga_kesepakatan || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                        {selectedPr.estimasi_tanggal_ready_eta && (
+                          <div className="flex justify-between pt-1 border-t border-border">
+                            <span className="text-ink-muted">Estimasi Kedatangan (ETA):</span>
+                            <span className="font-mono font-bold text-ink">
+                              {selectedPr.estimasi_tanggal_ready_eta} {selectedPr.estimasi_jam_ready_eta || ''}
+                            </span>
+                          </div>
+                        )}
+                        <p className="text-[11px] text-ink-muted italic pt-1 border-t border-border">
+                          *Barang sudah dikonfirmasi tiba di gudang. Form input ETA sudah ditutup.
+                        </p>
+                      </div>
+                    </div>
                   ) : (
                     <div className="space-y-3.5">
                       <div className="p-3.5 rounded-xl bg-status-green-bg border border-status-green/30 text-status-green text-xs font-bold flex items-center gap-2">

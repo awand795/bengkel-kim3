@@ -3978,9 +3978,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* MODAL: Detail Riwayat Kunjungan */}
       {kunjunganDetail && (
         <ModalPortal onClose={() => setKunjunganDetail(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs overflow-y-auto">
-            <div className="bg-surface-raised rounded-xl border border-border shadow-2xl max-w-2xl w-full my-8 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in overflow-y-auto">
+            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-2xl w-full my-auto app-modal-in overflow-hidden max-h-[88vh] flex flex-col">
+              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
                     <Truck className="w-5 h-5" />
@@ -3999,7 +3999,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto text-xs">
+              <div className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 overflow-y-auto text-xs flex-1">
                 <div className="flex items-center justify-between">
                   <span className="text-ink-muted">Tujuan: <span className="font-bold text-ink">{kunjunganDetail.tujuan_kedatangan || '-'}</span></span>
                   <StatusBadge status={kunjunganDetail.status_kunjungan} size="md" />
@@ -4084,9 +4084,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* MODAL: Detail Riwayat Beli Part */}
       {beliPartDetail && (
         <ModalPortal onClose={() => setBeliPartDetail(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs overflow-y-auto">
-            <div className="bg-surface-raised rounded-xl border border-border shadow-2xl max-w-2xl w-full my-8 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in overflow-y-auto">
+            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-2xl w-full my-auto app-modal-in overflow-hidden max-h-[88vh] flex flex-col">
+              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
                     <Package className="w-5 h-5" />
@@ -4105,7 +4105,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto text-xs">
+              <div className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 overflow-y-auto text-xs flex-1">
                 <div className="flex items-center justify-between">
                   <span className="text-ink-muted">Total: <span className="font-mono font-black text-status-green">Rp {Number(beliPartDetail.total_biaya || 0).toLocaleString('id-ID')}</span></span>
                   <StatusBadge status={beliPartDetail.status_transaksi} size="md" />
@@ -4191,9 +4191,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* MODAL: Preview Faktur & Pembayaran */}
       {previewInvoice && (
         <ModalPortal onClose={() => setPreviewInvoice(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs overflow-y-auto">
-            <div className="bg-surface-raised rounded-xl border border-border shadow-2xl max-w-2xl w-full my-8 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in overflow-y-auto">
+            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-2xl w-full my-auto app-modal-in overflow-hidden max-h-[88vh] flex flex-col">
+              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
                     <FileText className="w-5 h-5" />
@@ -4213,7 +4213,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </button>
               </div>
 
-              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto">
+              <div className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 overflow-y-auto flex-1">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-base font-black font-mono text-ink">{formatPlat(previewInvoice.no_polisi)}</div>
@@ -4287,10 +4287,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {openTambahArmadaModal && (
         <ModalPortal onClose={() => setOpenTambahArmadaModal(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs">
-            <div className="bg-surface-raised rounded-xl border border-border shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-xl w-full max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in my-auto">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+            <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
                   <Truck className="w-5 h-5" />
@@ -4319,7 +4319,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }
                 tambahArmadaMutation.mutate(armadaForm);
               }}
-              className="p-6 overflow-y-auto space-y-4"
+              className="px-6 sm:px-8 py-6 sm:py-7 overflow-y-auto space-y-5 flex-1"
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -4484,10 +4484,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {openTambahDokumenModal && (
         <ModalPortal onClose={() => setOpenTambahDokumenModal(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs">
-            <div className="bg-surface-raised rounded-xl border border-border shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-lg w-full max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in my-auto">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+            <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
                   <FileText className="w-5 h-5" />
@@ -4516,7 +4516,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }
                 tambahDokumenMutation.mutate(dokumenForm);
               }}
-              className="p-6 overflow-y-auto space-y-4"
+              className="px-6 sm:px-8 py-6 sm:py-7 overflow-y-auto space-y-5 flex-1"
             >
               <div>
                 <label className="block text-xs font-bold text-ink-muted mb-1">
@@ -4620,10 +4620,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {editArmadaData && (
         <ModalPortal onClose={() => setEditArmadaData(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs">
-            <div className="bg-surface-raised rounded-xl border border-border shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-xl w-full max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in my-auto">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+            <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
                   <Truck className="w-5 h-5" />
@@ -4648,7 +4648,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 e.preventDefault();
                 editArmadaMutation.mutate(editArmadaForm);
               }}
-              className="p-6 overflow-y-auto space-y-4"
+              className="px-6 sm:px-8 py-6 sm:py-7 overflow-y-auto space-y-5 flex-1"
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

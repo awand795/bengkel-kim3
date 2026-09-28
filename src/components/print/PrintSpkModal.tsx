@@ -29,12 +29,12 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs printable-container">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-slate-900/60 backdrop-blur-xs printable-container app-backdrop-in">
       {/* Modal Card */}
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col max-h-[95vh]">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[85vh] my-auto app-modal-in">
         
         {/* Modal Header (Hidden on Print) */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between no-print shrink-0">
+        <div className="px-6 sm:px-8 py-5 bg-slate-900 text-white flex items-center justify-between no-print shrink-0">
           <div className="flex items-center gap-2">
             <Wrench className="w-4 h-4 text-blue-400" />
             <h3 className="font-black text-sm tracking-tight">Preview Surat Perintah Kerja (SPK) - Standar HVS A4</h3>

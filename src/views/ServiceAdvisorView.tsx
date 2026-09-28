@@ -41,6 +41,9 @@ import { usePpnRate } from '../hooks/usePpnRate';import {
   User,
   ArrowLeft,
   ArrowRight,
+  ChevronRight,
+  Pencil,
+  Calendar,
   Loader2
 } from 'lucide-react';
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
@@ -56,7 +59,7 @@ import { EmptyState } from '../components/common/EmptyState';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { FilterChips } from '../components/common/FilterChips';
 import { ConfirmModal } from '../components/common/ConfirmModal';
-import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar } from '../types';
+import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar, PurchaseRequestPart } from '../types';
 
 export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-list' | 'estimasi-pr' | 'fir-closed' | 'penjualan-part' | 'penjualan-part-pos' | 'permintaan-part' }> = ({ initialTab = 'spk-list' }) => {
   const queryClient = useQueryClient();
@@ -219,6 +222,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
   // faktur → keluar gerbang.
   // ════════════════════════════════════════════════════════════════════════
   const [showPosModal, setShowPosModal] = useState<boolean>(false);
+  const [posStep, setPosStep] = useState<1 | 2>(1);
   const [showPartDetailModal, setShowPartDetailModal] = useState<TransaksiBeliPart | null>(null);
   const [printThermalInvoice, setPrintThermalInvoice] = useState<InvoicePembayaran | null>(null);
 
@@ -253,6 +257,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     });
     setPosCart([]);
     setPosSearch('');
+    setPosStep(1);
   };
 
   // Transaksi terpilih di panel detail
@@ -392,17 +397,14 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
     }
   }, [saPendingAntrianId, antrianMenungguSA, fillAntrianToForm, setSaPendingAntrianId]);
 
-  // Part Indent (PR): data per halaman dari server (pagination API Builder)
-  const [prPage, setPrPage] = useState(1);
-  const [prLimit, setPrLimit] = useState(10);
+  // Part Indent (PR): data real-time dari purchasing dengan auto-refresh 8 detik
   const { data: purchasingList, isFetching: purchasingFetching } = useQuery({
-    queryKey: ['purchasing-page', prPage, prLimit],
-    queryFn: () => api.getPurchasingListPage({ page: prPage, limit: prLimit }),
-    placeholderData: (prev) => prev,
+    queryKey: ['purchasing-list'],
+    queryFn: api.getPurchasingList,
+    refetchInterval: 8000,
   });
-  const prPagination = purchasingList?.pagination ?? null;
-  const prRows = purchasingList?.rows ?? [];
-  const allPrCount = prPagination?.total_records ?? prRows.length;
+  const prRows: PurchaseRequestPart[] = purchasingList ?? [];
+  const allPrCount = prRows.length;
 
   // Daftar transaksi penjualan part langsung (modul modal-driven SA)
   const { data: beliPartList, isLoading: loadingBeliPart } = useQuery({
@@ -418,21 +420,58 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       (p) => p.id_spk === idSpk && p.status_pr !== 'Barang Ready' && (p.status_pr || '') !== 'Ditolak'
     );
 
-  // Tab Part Indent SA: default sembunyikan PR yang sudah selesai (Barang Ready).
-  // Toggle untuk melihat riwayat selesai (read-only). Pagination client-side
-  // di atas halaman data server (endpoint /kim3/purchasing memakai auto-pagination).
-  const [prShowSelesai, setPrShowSelesai] = useState<boolean>(false);
+  // Tab Part Indent SA: search, filter status chips, dan pagination
+  const [prSearch, setPrSearch] = useState<string>('');
+  const [prFilterStatus, setPrFilterStatus] = useState<'semua' | 'aktif' | 'perlu-keputusan' | 'menunggu-vendor' | 'selesai'>('aktif');
   const [prViewPage, setPrViewPage] = useState(1);
   const [prViewLimit, setPrViewLimit] = useState(10);
-  const prListSA = prRows.filter((p) =>
-    prShowSelesai ? p.status_pr === 'Barang Ready' : p.status_pr !== 'Barang Ready'
-  );
-  const prViewTotalPages = Math.max(1, Math.ceil(prListSA.length / prViewLimit));
+
+  // PR selesai = status PR-nya sendiri yang final. SPK yang selesai TIDAK
+  // menenggelamkan PR yang belum diproses (mis. masih Diajukan tanpa PO).
+  const isPrSelesai = (p: PurchaseRequestPart) => {
+    return p.status_pr === 'Barang Ready' || (p.status_pr || '') === 'Ditolak';
+  };
+
+  const countAktif = prRows.filter((p) => !isPrSelesai(p)).length;
+  const countPerluKeputusan = prRows.filter((p) => Boolean(p.no_po && p.status_konfirmasi_sa !== 'Disetujui SA' && !isPrSelesai(p))).length;
+  const countMenungguVendor = prRows.filter((p) => !p.no_po && !isPrSelesai(p)).length;
+  const countSelesai = prRows.filter((p) => isPrSelesai(p)).length;
+
+  const prFilteredList = prRows.filter((p) => {
+    // 1. Filter Status
+    if (prFilterStatus === 'aktif' && isPrSelesai(p)) return false;
+    if (prFilterStatus === 'selesai' && !isPrSelesai(p)) return false;
+    if (prFilterStatus === 'perlu-keputusan') {
+      const perlu = Boolean(p.no_po && p.status_konfirmasi_sa !== 'Disetujui SA' && !isPrSelesai(p));
+      if (!perlu) return false;
+    }
+    if (prFilterStatus === 'menunggu-vendor') {
+      const menunggu = !p.no_po && !isPrSelesai(p);
+      if (!menunggu) return false;
+    }
+
+    // 2. Filter Pencarian
+    if (prSearch.trim()) {
+      const q = prSearch.toLowerCase().trim();
+      const matchNopol = (p.no_polisi || '').toLowerCase().includes(q);
+      const matchCustomer = (p.nama_customer || '').toLowerCase().includes(q);
+      const matchPr = (p.no_pr || '').toLowerCase().includes(q);
+      const matchPo = (p.no_po || '').toLowerCase().includes(q);
+      const matchCatatan = (p.catatan_pr || '').toLowerCase().includes(q);
+      const matchVendor = (p.vendor_terpilih || p.vendor_1_nama || p.vendor_2_nama || '').toLowerCase().includes(q);
+      return matchNopol || matchCustomer || matchPr || matchPo || matchCatatan || matchVendor;
+    }
+
+    return true;
+  });
+
+  const prViewTotalPages = Math.max(1, Math.ceil(prFilteredList.length / prViewLimit));
   const prViewSafePage = Math.min(prViewPage, prViewTotalPages);
-  const prViewRows = prListSA.slice((prViewSafePage - 1) * prViewLimit, prViewSafePage * prViewLimit);
+  const prViewRows = prFilteredList.slice((prViewSafePage - 1) * prViewLimit, prViewSafePage * prViewLimit);
+
   React.useEffect(() => {
     setPrViewPage(1);
-  }, [prShowSelesai, prViewLimit]);
+  }, [prFilterStatus, prSearch, prViewLimit]);
 
   const selectedPr = prRows.find((p) => p.pr_id === selectedPrId) || null;
 
@@ -1047,7 +1086,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             : activeTab === 'penerimaan'
             ? 'Inspeksi awal kendaraan masuk, pencatatan odometer, dan penyerahan ke workshop'
             : activeTab === 'estimasi-pr'
-            ? 'SA mengajukan PR → Purchasing penawaran min. 2 vendor → SA setuju → Purchasing input ETA'
+            ? 'Daftar pengadaan part inden dan persetujuan PO purchasing'
             : activeTab === 'penjualan-part'
             ? 'Transaksi langsung sparepart loket kasir / customer tanpa SPK'
             : activeTab === 'permintaan-part'
@@ -1271,42 +1310,53 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             e.preventDefault();
             createSpkMutation.mutate(formPenerimaan);
           }}
-          className="card-modern bg-surface-raised rounded-2xl border border-border p-5 sm:p-7 shadow-xs space-y-7"
+          className="max-w-3xl mx-auto space-y-6"
         >
+          {/* Header Form */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-blue-600" />
+                Formulir Penerimaan &amp; Penerbitan SPK
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Inspeksi awal kendaraan masuk dan serahkan perintah kerja langsung ke Foreman
+              </p>
+            </div>
+            {formPenerimaan.id_antrian && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFormPenerimaan((prev) => ({
+                    ...prev,
+                    id_antrian: undefined,
+                    no_polisi: '',
+                    nama_customer: '',
+                    no_hp_customer: '',
+                    keluhan_customer: '',
+                    foto_kendaraan_masuk: '',
+                  }));
+                }}
+                className="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                Ganti Kendaraan
+              </button>
+            )}
+          </div>
+
           {/* BAGIAN 1: KENDARAAN & CUSTOMER */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-ink flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-accent" /> Kendaraan &amp; Customer
-                </h3>
-                <p className="text-xs text-ink-muted">Pilih kendaraan antrian yang telah check-in di Pos Security</p>
-              </div>
-              {formPenerimaan.id_antrian && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormPenerimaan((prev) => ({
-                      ...prev,
-                      id_antrian: undefined,
-                      no_polisi: '',
-                      nama_customer: '',
-                      no_hp_customer: '',
-                      keluhan_customer: '',
-                      foto_kendaraan_masuk: '',
-                    }));
-                  }}
-                  className="text-xs font-semibold text-status-red hover:underline cursor-pointer"
-                >
-                  Batalkan pilihan
-                </button>
-              )}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Truck className="w-4 h-4 text-blue-600" /> 1. Data Kendaraan &amp; Pelanggan
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">Pilih kendaraan antrian yang telah check-in di Pos Security</p>
             </div>
 
             {/* Kondisi Error Antrian */}
             {antrianError ? (
-              <div className="bg-status-red-bg rounded-xl border border-status-red/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3 text-status-red">
+              <div className="bg-red-50 rounded-xl border border-red-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 text-red-600">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
                   <div className="text-xs sm:text-sm">
                     <span className="font-semibold">Gagal memuat antrian dari server.</span>{' '}
@@ -1317,7 +1367,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   type="button"
                   onClick={() => refetchAntrian()}
                   disabled={antrianFetching}
-                  className="px-4 py-2 rounded-xl bg-status-red hover:bg-status-red/90 disabled:opacity-50 text-white text-xs font-bold transition-all shrink-0 cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-semibold transition-all shrink-0 cursor-pointer shadow-sm"
                 >
                   {antrianFetching ? 'Memuat...' : 'Coba Lagi'}
                 </button>
@@ -1330,8 +1380,8 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               />
             ) : (
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-ink-muted">
-                  Pilih Antrian Kendaraan Masuk <span className="text-status-red">*</span>
+                <label className="block text-xs font-semibold text-slate-700">
+                  Pilih Antrian Kendaraan Masuk <span className="text-red-500">*</span>
                 </label>
                 <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
                   {antrianMenungguSA.map((a) => (
@@ -1351,65 +1401,63 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
             {/* Ringkasan Baca-Saja setelah memilih antrian */}
             {formPenerimaan.id_antrian && (
-              <div className="p-4 bg-surface rounded-xl border border-border grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <span className="text-xs text-ink-subtle font-semibold block">No. Polisi Unit</span>
-                  <span className="text-base font-bold font-mono text-ink">{formatPlat(formPenerimaan.no_polisi)}</span>
+                  <span className="text-xs text-slate-400 font-medium block mb-0.5">No. Polisi Unit</span>
+                  <span className="text-base font-bold font-mono text-slate-900">{formatPlat(formPenerimaan.no_polisi)}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-ink-subtle font-semibold block">Nama Pelanggan / Kendaraan</span>
-                  <span className="text-sm font-semibold text-ink">{formPenerimaan.nama_customer || '-'}</span>
+                  <span className="text-xs text-slate-400 font-medium block mb-0.5">Nama Pelanggan / Armada</span>
+                  <span className="text-sm font-semibold text-slate-800">{formPenerimaan.nama_customer || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-ink-subtle font-semibold block">No. HP Pelanggan</span>
-                  <span className="text-sm font-mono text-ink-muted">{formPenerimaan.no_hp_customer || '-'}</span>
+                  <span className="text-xs text-slate-400 font-medium block mb-0.5">No. HP Pelanggan</span>
+                  <span className="text-sm font-mono font-medium text-slate-600">{formPenerimaan.no_hp_customer || '-'}</span>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="border-t border-border" />
-
           {/* BAGIAN 2: KONDISI KENDARAAN */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-base font-bold text-ink flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-accent" /> Kondisi Kendaraan
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-blue-600" /> 2. Kondisi &amp; Kelengkapan Awal Unit
               </h3>
-              <p className="text-xs text-ink-muted">Pencatatan odometer awal, estimasi lead time, checklist fisik, dan dokumen</p>
+              <p className="text-xs text-slate-400 mt-0.5">Pencatatan odometer awal, estimasi lead time, checklist fisik, dan dokumen</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-ink-muted mb-1.5">
-                  Odometer KM (Jarak Tempuh) <span className="text-status-red">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Odometer KM (Jarak Tempuh) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   required
-                  placeholder="Masukkan angka KM kendaraan saat masuk"
+                  placeholder="Contoh: 145000"
                   value={formPenerimaan.odometer_km || ''}
                   onChange={(e) => setFormPenerimaan({ ...formPenerimaan, odometer_km: Number(e.target.value) })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border font-mono text-sm font-bold bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none transition-all"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono text-sm font-bold bg-white text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-ink-muted mb-1.5">
-                  Estimasi Lead Time Pengerjaan (Jam)
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Estimasi Waktu Pengerjaan (Jam)
                 </label>
                 <input
                   type="number"
                   value={formPenerimaan.lead_time_jam}
                   onChange={(e) => setFormPenerimaan({ ...formPenerimaan, lead_time_jam: Number(e.target.value) })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border font-mono text-sm font-bold bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none transition-all"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono text-sm font-bold bg-white text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
                 />
               </div>
             </div>
 
             {/* Checklist Kondisi Fisik Kendaraan */}
-            <div className="p-4 bg-surface rounded-xl border border-border space-y-3">
-              <span className="block text-xs font-bold text-ink">Checklist Kondisi Awal Kendaraan:</span>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+              <span className="block text-xs font-bold text-slate-800">Checklist Kondisi Fisik Awal:</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                   { key: 'cek_body', label: 'Bodi Kendaraan' },
@@ -1417,24 +1465,24 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   { key: 'cek_kelistrikan', label: 'Kelistrikan' },
                   { key: 'cek_kaki_kaki', label: 'Kaki-kaki / Rem' },
                 ].map((item) => (
-                  <div key={item.key} className="bg-surface-raised p-3 rounded-xl border border-border space-y-2">
-                    <span className="text-xs font-semibold text-ink-muted block">{item.label}</span>
+                  <div key={item.key} className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-2">
+                    <span className="text-xs font-medium text-slate-600 block">{item.label}</span>
                     <div className="grid grid-cols-3 gap-1">
                       {(['OK', 'Perlu Dicek', 'Rusak'] as const).map((val) => {
                         const isSelected = (formPenerimaan as any)[item.key] === val;
                         const activeStyle =
                           val === 'OK'
-                            ? 'bg-status-green-bg text-status-green border-status-green/40'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold'
                             : val === 'Perlu Dicek'
-                            ? 'bg-status-amber-bg text-status-amber border-status-amber/40'
-                            : 'bg-status-red-bg text-status-red border-status-red/40';
+                            ? 'bg-amber-50 text-amber-700 border-amber-300 font-bold'
+                            : 'bg-red-50 text-red-700 border-red-300 font-bold';
                         return (
                           <button
                             key={val}
                             type="button"
                             onClick={() => setFormPenerimaan({ ...formPenerimaan, [item.key]: val })}
-                            className={`px-1.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer text-center truncate ${
-                              isSelected ? `${activeStyle} shadow-xs font-black` : 'border-border bg-surface text-ink-subtle hover:text-ink'
+                            className={`px-1.5 py-1 text-xs rounded border transition-all cursor-pointer text-center truncate ${
+                              isSelected ? `${activeStyle} shadow-2xs` : 'border-slate-200 bg-white text-slate-500 hover:text-slate-800'
                             }`}
                           >
                             {val === 'Perlu Dicek' ? 'Cek' : val}
@@ -1449,7 +1497,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
             {/* Foto Dokumen (Odometer, STNK, KIR) */}
             <div>
-              <span className="block text-xs font-bold text-ink-muted mb-2">Unggah Foto Dokumen &amp; Fisik Kendaraan:</span>
+              <span className="block text-xs font-semibold text-slate-700 mb-2">Unggah Foto Dokumen &amp; Fisik Kendaraan:</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <PhotoUploader
                   label="Foto Odometer (KM)"
@@ -1470,20 +1518,18 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             </div>
           </div>
 
-          <div className="border-t border-border" />
-
           {/* BAGIAN 3: KELUHAN CUSTOMER */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-base font-bold text-ink flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-accent" /> Keluhan Customer
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-blue-600" /> 3. Keluhan Customer &amp; Instruksi Khusus
               </h3>
-              <p className="text-xs text-ink-muted">Uraian masalah teknis dan instruksi pengerjaan dari pengemudi / pemilik</p>
+              <p className="text-xs text-slate-400 mt-0.5">Uraian masalah teknis dan instruksi pengerjaan dari pengemudi / pemilik</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-ink-muted mb-1.5">
-                Catatan Keluhan Customer &amp; Instruksi Khusus <span className="text-status-red">*</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Catatan Keluhan &amp; Masalah Kendaraan <span className="text-red-500">*</span>
               </label>
               <textarea
                 rows={3}
@@ -1491,129 +1537,413 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 placeholder="Contoh: Rem bunyi saat pengereman dan tarikan mesin agak berat. Minta diperiksa kampas dan minyak rem..."
                 value={formPenerimaan.keluhan_customer}
                 onChange={(e) => setFormPenerimaan({ ...formPenerimaan, keluhan_customer: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-border text-xs sm:text-sm bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none transition-all"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
               />
             </div>
           </div>
 
-          {/* ACTION BAR (normal, bukan floating/sticky) */}
-          <div className="bg-surface border-t border-border -mx-5 -mb-5 sm:-mx-7 sm:-mb-7 p-4 sm:p-5 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-xs sm:text-sm text-ink-muted font-medium truncate w-full sm:w-auto">
+          {/* ACTION BAR (BERSiH, TANPA NEGATIVE MARGINS) */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs sm:text-sm text-slate-600 font-medium truncate w-full sm:w-auto">
               {formPenerimaan.no_polisi ? (
-                <span className="flex items-center gap-2">
-                  <span className="font-bold font-mono text-ink">{formatPlat(formPenerimaan.no_polisi)}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{formatPlat(formPenerimaan.no_polisi)}</span>
                   <span>•</span>
                   <span>{formPenerimaan.odometer_km ? `${formPenerimaan.odometer_km.toLocaleString()} KM` : 'KM belum diisi'}</span>
                   <span>•</span>
-                  <span className="text-accent font-semibold">{formPenerimaan.lead_time_jam} Jam</span>
-                </span>
+                  <span className="text-blue-600 font-semibold">{formPenerimaan.lead_time_jam} Jam Estimasi</span>
+                </div>
               ) : (
-                <span className="text-ink-subtle">Belum memilih kendaraan antrian</span>
+                <span className="text-slate-400">Pilih kendaraan antrian terlebih dahulu</span>
               )}
             </div>
-            <button
-              type="submit"
-              disabled={createSpkMutation.isPending || !formPenerimaan.id_antrian || !formPenerimaan.keluhan_customer.trim()}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-status-green hover:bg-status-green/90 disabled:opacity-50 text-white font-bold text-xs sm:text-sm shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {createSpkMutation.isPending ? 'Menerbitkan SPK...' : 'Terbitkan SPK & Serahkan ke Foreman'}
-              {!createSpkMutation.isPending && <CheckCircle className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveTab('spk-list')}
+                className="px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={createSpkMutation.isPending || !formPenerimaan.id_antrian || !formPenerimaan.keluhan_customer.trim()}
+                className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+              >
+                {createSpkMutation.isPending ? 'Menerbitkan SPK...' : 'Terbitkan SPK & Serahkan ke Foreman'}
+                {!createSpkMutation.isPending && <CheckCircle className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </form>
       )}
 
-      {/* TAB 3: KOTAK MERAH PURCHASING INTEGRASI */}
+      {/* TAB 3: KOTAK MERAH PURCHASING INTEGRASI (PART INDENT) */}
       {activeTab === 'estimasi-pr' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-raised p-4 sm:p-5 rounded-2xl border border-border shadow-xs">
-            <div>
-              <h2 className="text-base font-bold text-ink flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-status-red" />
-                Part Indent (PR &amp; PO Purchasing)
-              </h2>
-              <p className="text-xs text-ink-muted">
-                SA mengajukan PR → Purchasing penawaran min. 2 vendor → SA setuju → Purchasing input ETA
-              </p>
+          {/* Filter Bar: Pencarian & Filter Status Chips */}
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Search Bar */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nopol, customer, no. PR, no. PO, nama part..."
+                  value={prSearch}
+                  onChange={(e) => setPrSearch(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 rounded-lg border border-slate-300 text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                />
+                {prSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setPrSearch('')}
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Info Total */}
+              <div className="text-xs text-slate-500 font-medium">
+                Menampilkan <strong className="text-slate-800">{prFilteredList.length}</strong> dari {prRows.length} part indent
+              </div>
             </div>
-            <FilterChips
-              options={[
-                { id: 'aktif', label: 'Aktif' },
-                { id: 'selesai', label: 'Selesai' },
-              ]}
-              selectedId={prShowSelesai ? 'selesai' : 'aktif'}
-              onChange={(id) => setPrShowSelesai(id === 'selesai')}
-            />
+
+            {/* Filter Status Chips */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setPrFilterStatus('aktif')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  prFilterStatus === 'aktif'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <span>Aktif</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  prFilterStatus === 'aktif' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {countAktif}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPrFilterStatus('perlu-keputusan')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  prFilterStatus === 'perlu-keputusan'
+                    ? 'bg-red-600 text-white shadow-2xs'
+                    : countPerluKeputusan > 0
+                    ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <span>Perlu Keputusan SA</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  prFilterStatus === 'perlu-keputusan'
+                    ? 'bg-white/20 text-white'
+                    : countPerluKeputusan > 0
+                    ? 'bg-red-600 text-white'
+                    : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {countPerluKeputusan}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPrFilterStatus('menunggu-vendor')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  prFilterStatus === 'menunggu-vendor'
+                    ? 'bg-amber-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <span>Menunggu Penawaran</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  prFilterStatus === 'menunggu-vendor' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {countMenungguVendor}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPrFilterStatus('selesai')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  prFilterStatus === 'selesai'
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <span>Barang Ready / Selesai</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  prFilterStatus === 'selesai' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {countSelesai}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPrFilterStatus('semua')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  prFilterStatus === 'semua'
+                    ? 'bg-slate-800 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <span>Semua</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  prFilterStatus === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {prRows.length}
+                </span>
+              </button>
+            </div>
           </div>
 
-          {/* Daftar PR (Satu Kolom ListItemCard + Pagination) */}
-          {prListSA.length === 0 ? (
-            <EmptyState
-              title={prShowSelesai ? 'Belum ada PR yang selesai' : 'Tidak ada PR aktif'}
-              description={
-                prShowSelesai
-                  ? 'Belum ada PR yang selesai.'
-                  : 'Tidak ada PR aktif. Semua kebutuhan part sudah beres — PR yang selesai ada di toggle "Sudah Selesai".'
-              }
-              icon={ShoppingBag}
-            />
+          {/* Daftar PR (Cards Baru yang Bersih & Enterprise) */}
+          {prFilteredList.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center space-y-2">
+              <ShoppingBag className="w-10 h-10 mx-auto text-slate-300" />
+              <h3 className="text-sm font-bold text-slate-800">
+                {prSearch ? 'Tidak ada part indent yang cocok' : 'Tidak ada data part indent'}
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                {prSearch
+                  ? `Tidak ditemukan hasil dengan kata kunci "${prSearch}". Coba kata kunci lain atau bersihkan pencarian.`
+                  : 'Semua kebutuhan part sudah terpenuhi. Part indent otomatis dibuat saat estimasi membutuhkan part yang kosong di gudang.'}
+              </p>
+              {prSearch && (
+                <button
+                  type="button"
+                  onClick={() => setPrSearch('')}
+                  className="mt-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium cursor-pointer"
+                >
+                  Bersihkan Pencarian
+                </button>
+              )}
+            </div>
           ) : (
             <>
-            <div className="space-y-2.5">
-              {prViewRows.map((pr) => {
-                const chips: string[] = [];
-                if (pr.no_po) chips.push(`PO: ${pr.no_po}`);
-                if (pr.estimasi_tanggal_ready_eta) {
-                  chips.push(`ETA: ${pr.estimasi_tanggal_ready_eta}${pr.estimasi_jam_ready_eta ? ` (${pr.estimasi_jam_ready_eta})` : ''}`);
-                }
+              <div className="space-y-3">
+                {prViewRows.map((pr) => {
+                  const spk = (spkList || []).find((s) => s.id === pr.id_spk);
+                  const isSpkDone = spk ? (spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed') : false;
+                  const isSpkWaitingPart = spk ? (spk.status_spk === 'Waiting Part' || spk.status_spk === 'Estimasi Dibuat') : false;
+                  const isDone = isSpkDone || pr.status_pr === 'Barang Ready';
+                  const perluRespon = Boolean(pr.no_po && pr.status_konfirmasi_sa !== 'Disetujui SA' && !isDone);
+                  const isReady = pr.status_pr === 'Barang Ready';
+                  const isWaitingVendor = !pr.no_po && !isReady && !isSpkDone;
+                  const isDisetujui = pr.status_konfirmasi_sa === 'Disetujui SA' && !isReady && !isSpkDone;
 
-                const actionBadge = !pr.no_po ? (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-status-amber-bg text-status-amber border border-status-amber/20">
-                    Menunggu penawaran
-                  </span>
-                ) : pr.status_konfirmasi_sa !== 'Disetujui SA' ? (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-status-red-bg text-status-red border border-status-red/20">
-                    Perlu keputusan Anda
-                  </span>
-                ) : pr.status_pr === 'Barang Ready' ? (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-status-green-bg text-status-green border border-status-green/20">
-                    Barang Ready
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-status-blue-bg text-status-blue border border-status-blue/20">
-                    Disetujui SA
-                  </span>
-                );
+                  return (
+                    <div
+                      key={pr.pr_id}
+                      className={`bg-white rounded-xl border transition-all p-4 sm:p-5 space-y-3.5 shadow-2xs hover:shadow-md ${
+                        perluRespon
+                          ? 'border-red-300 ring-2 ring-red-500/10'
+                          : isSpkDone
+                          ? 'border-slate-200 bg-slate-50/30'
+                          : isReady
+                          ? 'border-emerald-200 hover:border-emerald-300'
+                          : 'border-slate-200 hover:border-blue-300'
+                      }`}
+                    >
+                      {/* Top Header Row */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="px-2.5 py-1 bg-slate-900 text-white font-mono font-bold text-xs rounded-md shadow-2xs">
+                            {formatPlat(pr.no_polisi)}
+                          </span>
+                          <span className="text-xs sm:text-sm font-bold text-slate-900">
+                            {pr.nama_customer || 'Pelanggan'}
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                            {pr.no_pr}
+                          </span>
+                          {pr.tanggal_pr && (
+                            <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(pr.tanggal_pr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
 
-                return (
-                  <ListItemCard
-                    key={pr.pr_id}
-                    icon={ShoppingBag}
-                    title={`${formatPlat(pr.no_polisi)} — ${pr.nama_customer}`}
-                    subtitle={`${pr.no_pr} • ${pr.catatan_pr}`}
-                    badge={
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <StatusBadge status={pr.status_pr} size="sm" />
-                        {actionBadge}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Badge jujur = status PR asli; status SPK tampil terpisah */}
+                          <StatusBadge status={pr.status_pr} size="sm" />
+                          {isSpkDone ? (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                              SPK Selesai
+                            </span>
+                          ) : perluRespon ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-300 flex items-center gap-1.5 shadow-2xs animate-pulse">
+                              <AlertCircle className="w-3.5 h-3.5" /> Perlu Respon SA
+                            </span>
+                          ) : isWaitingVendor ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5" /> Menunggu Penawaran
+                            </span>
+                          ) : isReady ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Barang Ready di Gudang
+                            </span>
+                          ) : isDisetujui ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
+                              <Check className="w-3.5 h-3.5" /> Disetujui SA (Proses PO)
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-                    }
-                    chips={chips.slice(0, 2)}
-                    onClick={() => setSelectedPrId(pr.pr_id)}
-                  />
-                );
-              })}
-            </div>
 
-            <PaginationBar
-              page={prViewSafePage}
-              totalPages={prViewTotalPages}
-              totalRecords={prListSA.length}
-              limit={prViewLimit}
-              label="part indent"
-              isLoading={purchasingFetching}
-              onPageChange={setPrViewPage}
-              onLimitChange={(l) => setPrViewLimit(l)}
-            />
+                      {/* Catatan Part & Kebutuhan */}
+                      <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-lg text-xs space-y-1">
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <Package className="w-3.5 h-3.5 text-blue-600" /> Kebutuhan Sparepart
+                        </div>
+                        <div className="text-slate-800 font-medium whitespace-pre-line leading-relaxed">
+                          {pr.catatan_pr || 'Tidak ada catatan spesifik.'}
+                        </div>
+                      </div>
+
+                      {/* Informasi Penawaran Purchasing / PO (Jika Ada) */}
+                      {pr.no_po ? (
+                        <div className="p-3.5 rounded-xl border border-blue-100 bg-blue-50/40 text-xs space-y-2.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-600 border-b border-blue-100 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-700">Nomor PO:</span>
+                              <span className="font-mono font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200">
+                                {pr.no_po}
+                              </span>
+                            </div>
+                            <div>
+                              <span>Admin Purchasing: </span>
+                              <strong className="text-slate-800">{pr.nama_admin_purchasing || '-'}</strong>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                            <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                              <span className="text-[11px] text-slate-500 block">Vendor 1</span>
+                              <div className="font-bold text-slate-800 truncate">{pr.vendor_1_nama || '-'}</div>
+                              <div className="text-slate-600 text-[11px] font-mono mt-0.5">
+                                Rp {Number(pr.vendor_1_harga || 0).toLocaleString('id-ID')}
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                              <span className="text-[11px] text-slate-500 block">Vendor 2</span>
+                              <div className="font-bold text-slate-800 truncate">{pr.vendor_2_nama || '-'}</div>
+                              <div className="text-slate-600 text-[11px] font-mono mt-0.5">
+                                Rp {Number(pr.vendor_2_harga || 0).toLocaleString('id-ID')}
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 bg-blue-50/80 rounded-lg border border-blue-200">
+                              <span className="text-[11px] text-blue-700 font-semibold block">Vendor Terpilih &amp; ETA</span>
+                              <div className="font-bold text-blue-900 truncate">
+                                {pr.vendor_terpilih || '-'}
+                              </div>
+                              <div className="text-xs font-mono font-bold text-emerald-700 mt-0.5">
+                                Rp {Number(pr.harga_kesepakatan || 0).toLocaleString('id-ID')}
+                              </div>
+                            </div>
+                          </div>
+
+                          {pr.estimasi_tanggal_ready_eta && (
+                            <div className="flex items-center gap-2 text-xs text-slate-700 pt-1">
+                              <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                              <span>
+                                Estimasi Kedatangan (ETA):{' '}
+                                <strong className="font-mono text-slate-900">
+                                  {pr.estimasi_tanggal_ready_eta}
+                                  {pr.estimasi_jam_ready_eta ? ` pukul ${pr.estimasi_jam_ready_eta}` : ''}
+                                </strong>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-amber-50/60 border border-amber-200/70 rounded-lg text-xs text-amber-900 flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>
+                            Menunggu tim Purchasing memproses dan membandingkan minimal 2 penawaran vendor rekanan.
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Footer Row: Info SA & Tombol Aksi */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                        <div className="text-[11px] text-slate-400">
+                          Diajukan oleh: <strong className="text-slate-600">{pr.nama_sa_pemohon || 'Service Advisor'}</strong>
+                        </div>
+
+                        <div className="flex items-center gap-2 justify-end">
+                          {perluRespon && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPrId(pr.pr_id)}
+                              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Review &amp; Setujui PO
+                            </button>
+                          )}
+
+                          {isReady && !isSpkDone && isSpkWaitingPart && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const spk = (spkList || []).find((s) => s.id === pr.id_spk);
+                                if (spk) {
+                                  setShowEstimasiModal(spk);
+                                } else {
+                                  setSelectedPrId(pr.pr_id);
+                                }
+                              }}
+                              className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+                            >
+                              <Wrench className="w-3.5 h-3.5" />
+                              Lanjut ke Estimasi SPK
+                            </button>
+                          )}
+
+                          {isSpkDone && (
+                            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" /> SPK Selesai
+                            </span>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPrId(pr.pr_id)}
+                            className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                          >
+                            <span>Lihat Detail PR</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <PaginationBar
+                page={prViewSafePage}
+                totalPages={prViewTotalPages}
+                totalRecords={prFilteredList.length}
+                limit={prViewLimit}
+                label="part indent"
+                isLoading={purchasingFetching}
+                onPageChange={setPrViewPage}
+                onLimitChange={(l) => setPrViewLimit(l)}
+              />
             </>
           )}
         </div>
@@ -1818,20 +2148,129 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         <DetailModal
           open={showPosModal}
           onClose={() => { setShowPosModal(false); resetPosForm(); }}
-          size="xl"
+          size="lg"
           title="Estimasi Penjualan Part Langsung"
           subtitle="Tanpa service workshop — transaksi langsung masuk alur Warehouse Picking"
+          footer={
+            posStep === 1 ? (
+              <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-slate-500 font-medium">
+                  Langkah 1 dari 2: Data Pelanggan &amp; Unit
+                </div>
+                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => { setShowPosModal(false); resetPosForm(); }}
+                    className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!posCustomer.no_polisi.trim() || !posCustomer.nama_customer.trim()}
+                    onClick={() => setPosStep(2)}
+                    className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:cursor-not-allowed"
+                  >
+                    Lanjut ke Pilih Part
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  <span className="text-slate-500 font-medium">Total ({posCart.length} item):</span>
+                  <span className="font-mono font-bold text-emerald-600 text-base sm:text-lg">
+                    Rp {posGrandTotal !== null ? posGrandTotal.toLocaleString('id-ID') : '-'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setPosStep(1)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Kembali
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!posCanSubmit || posBuatMutation.isPending}
+                    onClick={() => posBuatMutation.mutate()}
+                    className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:cursor-not-allowed"
+                  >
+                    {posBuatMutation.isPending ? 'Menyimpan...' : 'KIRIM ESTIMASI'}
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )
+          }
         >
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Kolom Kiri: Customer + Cart */}
-            <div className="lg:col-span-3 space-y-4">
-              {/* Data Customer */}
-              <div className="bg-surface rounded-xl p-4 border border-border space-y-3">
-                <h4 className="text-xs font-bold text-ink flex items-center gap-1.5"><User className="w-4 h-4 text-ink-subtle" /> 1. Data Pelanggan &amp; Unit</h4>
-                <div className="p-3 bg-accent-subtle rounded-xl border border-accent/30">
-                  <label className="block text-xs font-bold text-accent mb-1.5 flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5" /> Ambil dari Antrian Gerbang ({antrianBeliPart.length} menunggu)
+          <div className="space-y-4">
+            {/* STEPPER HEADER */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-1">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setPosStep(1)}
+                  className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                    posStep === 1
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    posStep === 1 ? 'bg-white text-blue-600' : 'bg-slate-300 text-slate-700'
+                  }`}>
+                    {posStep === 2 && posCustomer.no_polisi ? <Check className="w-3 h-3 stroke-[3]" /> : '1'}
+                  </span>
+                  <span>1. Data Pelanggan</span>
+                </button>
+
+                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (posCustomer.no_polisi.trim() && posCustomer.nama_customer.trim()) {
+                      setPosStep(2);
+                    }
+                  }}
+                  disabled={!posCustomer.no_polisi.trim() || !posCustomer.nama_customer.trim()}
+                  className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+                    posStep === 2
+                      ? 'bg-blue-600 text-white shadow-2xs cursor-pointer'
+                      : posCustomer.no_polisi.trim() && posCustomer.nama_customer.trim()
+                      ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
+                    posStep === 2 ? 'bg-white text-blue-600' : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    2
+                  </span>
+                  <span>2. Pilih Part &amp; Keranjang ({posCart.length})</span>
+                </button>
+              </div>
+
+              <span className="text-[11px] font-medium text-slate-400 hidden sm:inline-block">
+                Langkah {posStep} dari 2
+              </span>
+            </div>
+
+            {/* STEP 1: DATA PELANGGAN & UNIT */}
+            {posStep === 1 && (
+              <div className="space-y-4">
+                {/* Pilihan Antrian Gerbang */}
+                <div className="p-3.5 bg-blue-50/80 rounded-xl border border-blue-200/80 space-y-1.5">
+                  <label className="block text-xs font-semibold text-blue-900 flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-blue-600" /> Ambil dari Antrian Gerbang ({antrianBeliPart.length} menunggu)
                   </label>
+                  <p className="text-[11px] text-blue-700">
+                    Pilih kendaraan yang sudah tercatat oleh security di gerbang, atau pilih &quot;Input Manual&quot; untuk pelanggan walk-in.
+                  </p>
                   <select
                     value={posCustomer.id_antrian || ''}
                     onChange={(e) => {
@@ -1849,7 +2288,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                         no_telepon: a.no_hp_customer || prev.no_telepon,
                       }));
                     }}
-                    className="w-full px-3 py-2 rounded-xl border border-accent/30 font-bold text-xs bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-xs bg-white text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-2xs mt-1"
                   >
                     <option value="">-- Input Manual / Walk-In --</option>
                     {antrianBeliPart.map((a) => (
@@ -1860,168 +2299,259 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-ink-muted mb-1">No. Polisi <span className="text-status-red">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="BK 5678 CD"
-                      value={posCustomer.no_polisi}
-                      onChange={(e) => setPosCustomer({ ...posCustomer, no_polisi: e.target.value.toUpperCase() })}
-                      className="w-full px-3 py-2 rounded-xl border border-border font-bold uppercase text-xs focus:ring-2 focus:ring-accent focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-ink-muted mb-1">Nama Customer <span className="text-status-red">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="PT. Sumber Makmur"
-                      value={posCustomer.nama_customer}
-                      onChange={(e) => setPosCustomer({ ...posCustomer, nama_customer: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-ink-muted mb-1">No. Telepon</label>
-                    <input
-                      type="text"
-                      placeholder="0812-xxxx-xxxx"
-                      value={posCustomer.no_telepon}
-                      onChange={(e) => setPosCustomer({ ...posCustomer, no_telepon: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-none"
-                    />
-                  </div>
-                </div>
+                {/* Form Input Pelanggan */}
+                <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3.5">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
+                    <User className="w-4 h-4 text-blue-600" /> Identitas Customer &amp; Kendaraan
+                  </h4>
 
-                {/* Pesan SA untuk Warehouse (dibaca di modal Picking) */}
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Catatan untuk Gudang (Opsional)</label>
-                  <input
-                    type="text"
-                    placeholder="Pesan untuk warehouse…"
-                    value={posCustomer.catatan}
-                    onChange={(e) => setPosCustomer({ ...posCustomer, catatan: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        No. Polisi <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: BK 5678 CD"
+                        value={posCustomer.no_polisi}
+                        onChange={(e) => setPosCustomer({ ...posCustomer, no_polisi: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold uppercase text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 font-mono shadow-2xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Nama Customer <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Nama pelanggan / PT..."
+                        value={posCustomer.nama_customer}
+                        onChange={(e) => setPosCustomer({ ...posCustomer, nama_customer: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">No. Telepon</label>
+                      <input
+                        type="text"
+                        placeholder="0812-xxxx-xxxx"
+                        value={posCustomer.no_telepon}
+                        onChange={(e) => setPosCustomer({ ...posCustomer, no_telepon: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan untuk Gudang (Opsional)</label>
+                    <input
+                      type="text"
+                      placeholder="Instruksi tambahan untuk petugas warehouse picking…"
+                      value={posCustomer.catatan}
+                      onChange={(e) => setPosCustomer({ ...posCustomer, catatan: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                    />
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Keranjang */}
-              <div className="bg-surface rounded-xl p-4 border border-border space-y-3">
-                <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
-                  <Package className="w-4 h-4 text-ink-subtle" /> 2. Keranjang Sparepart
-                  <span className="ml-auto text-xs font-bold text-ink-subtle">{posCart.length} item</span>
-                </h4>
-
-                {posCart.length > 0 ? (
-                  <div className="divide-y divide-border border border-border rounded-xl overflow-hidden">
-                    {posCart.map((item) => (
-                      <div key={item.kode_part} className="p-3 flex items-center justify-between gap-3 text-xs bg-surface-raised">
-                        <div className="min-w-0 flex-1">
-                          <div className="font-bold text-ink truncate">{item.nama_part}</div>
-                          <div className="text-xs text-ink-muted font-mono mt-0.5">
-                            {item.kode_part} • Rak: {item.lokasi_rak || 'Gudang'} • Stok: {item.stok} {item.satuan}
-                            {item.qty > item.stok && <span className="text-status-red font-bold"> (melebihi stok!)</span>}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center border border-border rounded-xl bg-surface overflow-hidden">
-                            <button type="button" onClick={() => posUpdateQty(item.kode_part, -1)} className="p-1.5 hover:bg-surface-raised text-ink-muted"><Minus className="w-3.5 h-3.5" /></button>
-                            <span className="px-2.5 font-bold font-mono text-xs">{item.qty}</span>
-                            <button type="button" onClick={() => posUpdateQty(item.kode_part, 1)} className="p-1.5 hover:bg-surface-raised text-ink-muted"><Plus className="w-3.5 h-3.5" /></button>
-                          </div>
-                          <div className="w-24 text-right font-mono font-black text-ink">Rp {(item.qty * item.harga).toLocaleString('id-ID')}</div>
-                          <button type="button" onClick={() => posRemoveItem(item.kode_part)} className="p-1.5 text-ink-subtle hover:text-status-red"><Trash2 className="w-4 h-4" /></button>
-                        </div>
+            {/* STEP 2: PILIH PART & KERANJANG */}
+            {posStep === 2 && (
+              <div className="space-y-4">
+                {/* Banner Customer Singkat */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="px-2.5 py-1 bg-slate-900 text-white font-mono font-bold text-xs rounded-md shrink-0 shadow-2xs">
+                      {formatPlat(posCustomer.no_polisi)}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate">
+                        {posCustomer.nama_customer}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-6 text-center text-ink-subtle text-xs border border-dashed border-border rounded-xl">
-                    Keranjang kosong. Cari &amp; pilih sparepart dari katalog di kanan.
-                  </div>
-                )}
-
-                {/* Ringkasan Biaya */}
-                <div className="p-3.5 bg-surface-raised rounded-xl border border-border space-y-1.5 text-xs">
-                  {posPpnRate === null && (
-                    <p className="text-xs text-status-red font-bold text-center">Tarif PPN belum diatur — hubungi Super Admin.</p>
-                  )}
-                  <div className="flex justify-between text-ink-muted"><span>Subtotal:</span><span className="font-mono font-bold">Rp {posSubtotal.toLocaleString('id-ID')}</span></div>
-                  <div className="flex justify-between text-ink-muted"><span>PPN{posPpnRate !== null ? ` ${posPpnRate}%` : ''}:</span><span className="font-mono font-bold">Rp {posPpn !== null ? posPpn.toLocaleString('id-ID') : '-'}</span></div>
-                  <div className="flex justify-between text-sm font-black pt-2 border-t border-border">
-                    <span>Total Estimasi:</span><span className="font-mono text-status-green text-base">Rp {posGrandTotal !== null ? posGrandTotal.toLocaleString('id-ID') : '-'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Kolom Kanan: Katalog Stok */}
-            <div className="lg:col-span-2 space-y-3">
-              <div className="bg-surface rounded-xl p-4 border border-border space-y-3">
-                <h4 className="text-xs font-bold text-ink flex items-center gap-1.5"><Building2 className="w-4 h-4 text-ink-subtle" /> Gudang KIM 3</h4>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-subtle" />
-                  <input
-                    type="text"
-                    placeholder="Ketik kode / nama barang..."
-                    value={posSearch}
-                    onChange={(e) => setPosSearch(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-none"
-                  />
-                </div>
-                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                  {posFilteredStock.length > 0 ? (
-                    posFilteredStock.map((part) => (
-                      <div key={part.id} className="p-2.5 rounded-xl border border-border hover:border-accent/30 hover:bg-accent-subtle transition-all flex items-center justify-between text-xs gap-2">
-                        <div className="min-w-0">
-                          <div className="font-bold text-ink truncate">{part.nama_part}</div>
-                          <div className="text-xs text-ink-muted font-mono mt-0.5">
-                            {part.kode_part} • Stok: <strong className={part.stok > 0 ? 'text-status-green' : 'text-status-red'}>{part.stok} {part.satuan}</strong>
-                          </div>
-                          <div className="text-xs font-mono font-bold text-ink mt-0.5">Rp {Number(part.harga_jual || 0).toLocaleString('id-ID')}</div>
+                      {posCustomer.no_telepon && (
+                        <div className="text-[11px] text-slate-500 font-mono">
+                          {posCustomer.no_telepon}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => posAddToCart(part)}
-                          disabled={part.stok <= 0}
-                          className="px-2.5 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs shrink-0 flex items-center gap-1 transition-colors cursor-pointer"
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPosStep(1)}
+                    className="px-2.5 py-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Ubah Data
+                  </button>
+                </div>
+
+                {/* KATALOG & PENCARIAN SPAREPART */}
+                <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-blue-600" /> Katalog Sparepart (Gudang KIM 3)
+                    </h4>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {posFilteredStock.length} sparepart tersedia
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Ketik kode atau nama sparepart..."
+                      value={posSearch}
+                      onChange={(e) => setPosSearch(e.target.value)}
+                      className="w-full pl-9 pr-3.5 py-2 rounded-lg border border-slate-300 text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                    />
+                  </div>
+
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {posFilteredStock.length > 0 ? (
+                      posFilteredStock.map((part) => (
+                        <div
+                          key={part.id}
+                          className="p-2.5 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition-all flex items-center justify-between text-xs gap-3 bg-white"
                         >
-                          <Plus className="w-3.5 h-3.5" /> Tambah
-                        </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-900 truncate">{part.nama_part}</div>
+                            <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                              <span>{part.kode_part}</span>
+                              <span>•</span>
+                              <span>Rak: {part.lokasi_rak || 'Gudang'}</span>
+                              <span>•</span>
+                              <span>
+                                Stok:{' '}
+                                <strong className={part.stok > 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>
+                                  {part.stok} {part.satuan}
+                                </strong>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-mono font-bold text-slate-900 mb-1">
+                              Rp {Number(part.harga_jual || 0).toLocaleString('id-ID')}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => posAddToCart(part)}
+                              disabled={part.stok <= 0}
+                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-md font-semibold text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Tambah
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-6 text-center text-slate-400 text-xs">
+                        Tidak ada sparepart yang cocok dengan pencarian.
                       </div>
-                    ))
+                    )}
+                  </div>
+                </div>
+
+                {/* KERANJANG & RINCIAN BIAYA */}
+                <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <Package className="w-4 h-4 text-blue-600" /> Keranjang Sparepart
+                    </h4>
+                    <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                      {posCart.length} item dipilih
+                    </span>
+                  </div>
+
+                  {posCart.length > 0 ? (
+                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                      {posCart.map((item) => (
+                        <div key={item.kode_part} className="p-3 flex items-center justify-between gap-3 text-xs bg-white hover:bg-slate-50/50 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-900 truncate">{item.nama_part}</div>
+                            <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                              <span>{item.kode_part}</span>
+                              <span>•</span>
+                              <span>Rp {item.harga.toLocaleString('id-ID')}/{item.satuan}</span>
+                              {item.qty > item.stok && (
+                                <span className="text-red-500 font-bold">(melebihi stok!)</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            {/* Qty +/- */}
+                            <div className="flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => posUpdateQty(item.kode_part, -1)}
+                                className="p-1.5 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="px-2.5 font-bold font-mono text-xs text-slate-900">{item.qty}</span>
+                              <button
+                                type="button"
+                                onClick={() => posUpdateQty(item.kode_part, 1)}
+                                className="p-1.5 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            {/* Subtotal Item */}
+                            <div className="w-24 text-right font-mono font-bold text-slate-900 text-xs">
+                              Rp {(item.qty * item.harga).toLocaleString('id-ID')}
+                            </div>
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              onClick={() => posRemoveItem(item.kode_part)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <div className="py-6 text-center text-ink-subtle text-xs">Tidak ada sparepart yang cocok.</div>
+                    <div className="py-6 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                      Keranjang masih kosong. Cari &amp; klik &quot;+ Tambah&quot; pada sparepart di atas.
+                    </div>
                   )}
+
+                  {/* Ringkasan Biaya */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+                    {posPpnRate === null && (
+                      <p className="text-xs text-red-600 font-bold text-center">
+                        Tarif PPN belum diatur — hubungi Super Admin.
+                      </p>
+                    )}
+                    <div className="flex justify-between text-slate-600 font-medium">
+                      <span>Subtotal Sparepart:</span>
+                      <span className="font-mono font-bold text-slate-900">Rp {posSubtotal.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-600 font-medium">
+                      <span>PPN{posPpnRate !== null ? ` ${posPpnRate}%` : ''}:</span>
+                      <span className="font-mono font-bold text-slate-900">
+                        Rp {posPpn !== null ? posPpn.toLocaleString('id-ID') : '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
+                      <span>Total Estimasi Biaya:</span>
+                      <span className="font-mono font-bold text-emerald-600 text-base">
+                        Rp {posGrandTotal !== null ? posGrandTotal.toLocaleString('id-ID') : '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 text-center">
+                    Estimasi diteruskan ke Warehouse untuk picking. Pembayaran dilakukan setelah barang siap.
+                  </p>
                 </div>
               </div>
-
-              {/* Submit */}
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => { setShowPosModal(false); resetPosForm(); }}
-                  className="flex-1 py-2.5 bg-surface hover:bg-surface-raised text-ink-muted font-bold text-xs rounded-xl border border-border cursor-pointer transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  disabled={!posCanSubmit || posBuatMutation.isPending}
-                  onClick={() => posBuatMutation.mutate()}
-                  className="flex-1 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-accent/20 flex items-center justify-center gap-2 cursor-pointer transition-colors"
-                >
-                  {posBuatMutation.isPending ? 'Menyimpan...' : 'KIRIM ESTIMASI'}
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-xs text-ink-subtle text-center -mt-1">
-                Estimasi diteruskan ke Warehouse untuk picking. Pembayaran dilakukan setelah barang siap.
-              </p>
-            </div>
+            )}
           </div>
         </DetailModal>
       )}
@@ -2140,7 +2670,13 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           size="lg"
           title={`${formatPlat(selectedPr.no_polisi)} — ${selectedPr.nama_customer}`}
           subtitle={`No. PR: ${selectedPr.no_pr}`}
-          badge={<StatusBadge status={selectedPr.status_pr} size="sm" />}
+          badge={
+            (() => {
+              const spk = (spkList || []).find((s) => s.id === selectedPr.id_spk);
+              const isSpkDone = spk ? (spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed') : false;
+              return <StatusBadge status={isSpkDone ? 'Selesai' : selectedPr.status_pr} size="sm" />;
+            })()
+          }
           tabs={[
             {
               id: 'kebutuhan',
@@ -2263,21 +2799,41 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     <Check className="w-3.5 h-3.5" /> Disetujui SA
                   </span>
                   {selectedPr.status_pr === 'Barang Ready' ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const spk = (spkList || []).find((s) => s.id === selectedPr.id_spk);
-                        if (spk) {
-                          setShowEstimasiModal(spk);
-                          setSelectedPrId(null);
-                        } else {
-                          toast.warning('Data SPK tidak ditemukan di daftar. Muat ulang halaman.');
-                        }
-                      }}
-                      className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <ClipboardList className="w-4 h-4" /> Buka Estimasi
-                    </button>
+                    (() => {
+                      const spk = (spkList || []).find((s) => s.id === selectedPr.id_spk);
+                      const isSpkDone = spk ? (spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed') : false;
+                      const isSpkWaitingPart = spk ? (spk.status_spk === 'Waiting Part' || spk.status_spk === 'Estimasi Dibuat') : false;
+                      if (isSpkDone) {
+                        return (
+                          <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg text-xs flex items-center gap-1.5 border border-emerald-200">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> SPK Selesai
+                          </span>
+                        );
+                      }
+                      if (!isSpkWaitingPart) {
+                        return (
+                          <span className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-lg text-xs flex items-center gap-1.5 border border-blue-200">
+                            <Check className="w-3.5 h-3.5" /> SPK Sedang Berjalan ({spk?.status_spk || 'Diproses'})
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (spk) {
+                              setShowEstimasiModal(spk);
+                              setSelectedPrId(null);
+                            } else {
+                              toast.warning('Data SPK tidak ditemukan di daftar. Muat ulang halaman.');
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <ClipboardList className="w-4 h-4" /> Buka Estimasi
+                        </button>
+                      );
+                    })()
                   ) : (
                     <span className="text-xs text-ink-muted italic">
                       Menunggu konfirmasi barang tiba oleh Admin Purchasing.

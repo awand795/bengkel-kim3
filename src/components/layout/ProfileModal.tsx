@@ -96,8 +96,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-        <div className="bg-surface-raised rounded-md max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-border my-8 max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 md:py-10 app-backdrop-in">
+        <div className="bg-surface-raised rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-border my-auto max-h-[88vh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in">
           <div className="flex items-center justify-between border-b border-border pb-3 shrink-0">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-accent-subtle rounded-md text-accent">

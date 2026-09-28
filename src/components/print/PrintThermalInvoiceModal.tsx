@@ -29,12 +29,12 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs printable-container">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs printable-container app-backdrop-in">
         {/* Modal Card */}
-        <div className="bg-surface-raised rounded-2xl shadow-2xl border border-border w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="bg-surface-raised rounded-2xl shadow-2xl border border-border w-full max-w-md overflow-hidden flex flex-col max-h-[90dvh] sm:max-h-[85vh] my-auto app-modal-in">
           
           {/* Modal Header (Hidden on Print) */}
-          <div className="p-4 bg-surface text-ink flex items-center justify-between border-b border-border no-print shrink-0">
+          <div className="px-6 sm:px-8 py-5 bg-surface text-ink flex items-center justify-between border-b border-border no-print shrink-0">
             <div className="flex items-center gap-2">
               <Printer className="w-4 h-4 text-accent" />
               <h3 className="font-bold text-sm tracking-tight">Preview Struk Kasir (Thermal 80mm)</h3>

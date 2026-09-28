@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Clock, Check, Calendar, Sun, Moon } from 'lucide-react';
 import { toast } from './Toast';
+import { ModalPortal } from './ModalPortal';
 
 interface TimePickerInputProps {
   value: string;
@@ -194,9 +195,9 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
     });
   }, [isToday, currentHour24, currentMinutes]);
 
-  // Clock Dial Geometry (Radius = 78px, Center = 105px)
-  const DIAL_RADIUS = 75;
-  const CENTER = 105;
+  // Clock Dial Geometry (Radius = 80px, Center = 115px)
+  const DIAL_RADIUS = 80;
+  const CENTER = 115;
 
   // Angles for clock hands
   const hourAngle = (selectedHour12 % 12) * 30; // 30 deg per hour
@@ -291,14 +292,15 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
 
       {/* Gmail / Google Calendar Interactive Analog Clock Center Modal */}
       {isOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 font-sans select-none"
-          onClick={() => setIsOpen(false)}
-        >
+        <ModalPortal onClose={() => setIsOpen(false)}>
           <div
-            className="w-[310px] max-w-full bg-surface-raised border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs font-sans select-none app-backdrop-in"
+            onClick={() => setIsOpen(false)}
           >
+            <div
+              className="w-[330px] max-w-[calc(100vw-32px)] bg-surface-raised border border-border rounded-2xl shadow-2xl overflow-hidden app-modal-in my-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Header Display: Big Digital Digits + AM/PM Toggle */}
             <div className="p-4 bg-accent text-white flex items-center justify-between">
               <div>
@@ -405,12 +407,12 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
             </div>
 
             {/* Circular Clock Face */}
-            <div className="relative w-[210px] h-[210px] rounded-full bg-surface-raised border border-border shadow-inner flex items-center justify-center">
+            <div className="relative w-[230px] h-[230px] rounded-full bg-surface-raised border border-border shadow-inner flex items-center justify-center">
               
               {/* SVG Hand and Center Pin */}
               <svg
-                className="absolute inset-0 pointer-events-none w-[210px] h-[210px]"
-                viewBox="0 0 210 210"
+                className="absolute inset-0 pointer-events-none w-[230px] h-[230px]"
+                viewBox="0 0 230 230"
               >
                 {/* Center Pin */}
                 <circle cx={CENTER} cy={CENTER} r="4" className="fill-accent" />
@@ -554,10 +556,11 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
                 <Check className="w-3.5 h-3.5" />
                 <span>Pilih Jam Ini</span>
               </button>
+              </div>
             </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

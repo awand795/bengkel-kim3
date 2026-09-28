@@ -3,28 +3,28 @@
 
 @layer utilities {
   .bg-accent {
-    background-color: var(--color-accent, #0D9488);
+    background-color: var(--color-accent, #2563EB);
   }
   .hover\:bg-accent-hover:hover {
-    background-color: var(--color-accent-hover, #0F766E);
+    background-color: var(--color-accent-hover, #1D4ED8);
   }
   .active\:bg-accent-active:active {
-    background-color: var(--color-accent-active, #115E59);
+    background-color: var(--color-accent-active, #1E40AF);
   }
   .text-accent {
-    color: var(--color-accent, #0D9488);
+    color: var(--color-accent, #2563EB);
   }
   .hover\:text-accent:hover {
-    color: var(--color-accent, #0F766E);
+    color: var(--color-accent, #1D4ED8);
   }
   .border-accent {
-    border-color: var(--color-accent, #0D9488);
+    border-color: var(--color-accent, #2563EB);
   }
   .focus\:border-accent:focus {
-    border-color: var(--color-accent, #0D9488);
+    border-color: var(--color-accent, #2563EB);
   }
   .focus\:ring-accent:focus {
-    --tw-ring-color: var(--color-accent, #0D9488);
+    --tw-ring-color: var(--color-accent, #2563EB);
   }
 }
 
@@ -41,14 +41,31 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Custom text selection styling - modern vibrant teal */
+  /* Form Elements Base Clean Polish (Excluding Login Legacy) */
+  body:not(.login-legacy-theme) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="range"]),
+  body:not(.login-legacy-theme) select,
+  body:not(.login-legacy-theme) textarea {
+    background-color: #FFFFFF;
+    border-color: #CBD5E1;
+    color: #0F172A;
+  }
+
+  body:not(.login-legacy-theme) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="range"]):focus,
+  body:not(.login-legacy-theme) select:focus,
+  body:not(.login-legacy-theme) textarea:focus {
+    border-color: #2563EB !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+  }
+
+  /* Custom text selection styling - modern blue */
   ::selection {
-    background-color: var(--color-accent, #0D9488);
+    background-color: var(--color-accent, #2563EB);
     color: #FFFFFF;
   }
 
   ::-moz-selection {
-    background-color: var(--color-accent, #0D9488);
+    background-color: var(--color-accent, #2563EB);
     color: #FFFFFF;
   }
 }

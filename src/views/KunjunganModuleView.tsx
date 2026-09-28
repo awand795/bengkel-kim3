@@ -73,10 +73,7 @@ export const KunjunganModuleView: React.FC = () => {
 
   const jumlahMenunggu = kunjunganMasuk.length;
   const jumlahDiterima = (antrianList || []).filter(
-    (a) =>
-      isKunjunganMurni(a) &&
-      a.status_konfirmasi_pic === 'Diterima' &&
-      !(a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar)
+    (a) => isKunjunganMurni(a) && a.status_konfirmasi_pic === 'Diterima'
   ).length;
 
   const jumlahDitolak = (antrianList || []).filter(
@@ -91,15 +88,14 @@ export const KunjunganModuleView: React.FC = () => {
   ).length;
 
   // Filtered Riwayat based on filter chips
-  // "Diterima" = tamu diterima PIC dan MASIH berada di dalam bengkel (belum
-  // check-out). Yang sudah check-out hanya masuk kategori "Selesai".
+  // "Diterima" = semua tamu yang disetujui / di-approve oleh PIC
   const isSudahKeluar = (a: AntrianKunjungan) =>
     a.status_kunjungan === 'Keluar' || a.status_kunjungan === 'Selesai' || !!a.waktu_keluar;
   const filteredRiwayat = useMemo(() => {
     return kunjunganRiwayat.filter((item) => {
       if (riwayatTanggal && tanggalKey(item.waktu_masuk) !== riwayatTanggal) return false;
       if (riwayatFilter === 'Diterima') {
-        return item.status_konfirmasi_pic === 'Diterima' && !isSudahKeluar(item);
+        return item.status_konfirmasi_pic === 'Diterima';
       }
       if (riwayatFilter === 'Ditolak') {
         return item.status_konfirmasi_pic === 'Ditolak';
@@ -126,9 +122,8 @@ export const KunjunganModuleView: React.FC = () => {
   );
 
   const countRiwayatSemua = kunjunganRiwayat.length;
-  // Konsisten dengan filter: "Diterima" hanya yang masih di dalam bengkel
   const countRiwayatDiterima = kunjunganRiwayat.filter(
-    (a) => a.status_konfirmasi_pic === 'Diterima' && !isSudahKeluar(a)
+    (a) => a.status_konfirmasi_pic === 'Diterima'
   ).length;
   const countRiwayatDitolak = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Ditolak').length;
   const countRiwayatSudahKeluar = kunjunganRiwayat.filter(isSudahKeluar).length;
@@ -234,7 +229,7 @@ export const KunjunganModuleView: React.FC = () => {
         <StatCard
           title="Tamu Diterima"
           value={jumlahDiterima}
-          subtitle="Aktif di dalam bengkel"
+          subtitle="Kunjungan disetujui"
           icon={CheckCircle2}
           tone="green"
           active={subTab === 'riwayat' && riwayatFilter === 'Diterima'}

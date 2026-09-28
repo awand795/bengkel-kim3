@@ -53,8 +53,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4">
-        <div className="bg-surface-raised rounded-t-2xl sm:rounded-md w-full max-w-sm p-5 sm:p-6 shadow-2xl border border-border space-y-4">
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 md:py-10 app-backdrop-in">
+        <div className="bg-surface-raised rounded-2xl w-full max-w-sm p-6 sm:p-7 shadow-2xl border border-border space-y-5 my-auto app-modal-in">
           <div className="flex items-start gap-3">
             <div className={`w-10 h-10 rounded-md ${t.iconBox} flex items-center justify-center shrink-0`}>
               <Icon className="w-5 h-5" />

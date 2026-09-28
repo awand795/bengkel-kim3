@@ -98,7 +98,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 app-backdrop-in">
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 app-backdrop-in">
         <div
           ref={dialogRef}
           role="dialog"
@@ -106,30 +106,25 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           aria-labelledby="detail-modal-title"
           tabIndex={-1}
           onKeyDown={handleKeyDown}
-          className={`app-modal-in bg-surface-raised w-full ${sizeClasses} rounded-t-2xl sm:rounded-2xl shadow-2xl border border-border flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden focus:outline-none`}
+          className={`app-modal-in bg-white w-full ${sizeClasses} rounded-2xl shadow-2xl border border-slate-200 flex flex-col h-[88dvh] sm:h-[650px] max-h-[90dvh] sm:max-h-[85vh] overflow-hidden focus:outline-none my-auto`}
         >
-          {/* Mobile Drag Handle */}
-          <div className="sm:hidden pt-2.5 pb-1 flex justify-center shrink-0">
-            <span className="w-10 h-1 rounded-full bg-border" />
-          </div>
-
           {/* Modal Header */}
-          <div className="px-5 py-4 border-b border-border flex items-start justify-between gap-3 shrink-0">
+          <div className="px-6 sm:px-8 py-5 border-b border-slate-200 flex items-start justify-between gap-3 shrink-0 bg-white">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 id="detail-modal-title" className="text-base sm:text-lg font-black text-ink leading-snug">
+                <h2 id="detail-modal-title" className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
                   {title}
                 </h2>
                 {badge && <div className="shrink-0">{badge}</div>}
               </div>
               {subtitle && (
-                <p className="text-xs text-ink-muted mt-1 leading-normal">{subtitle}</p>
+                <p className="text-xs text-slate-500 mt-1.5 leading-normal">{subtitle}</p>
               )}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface transition-colors cursor-pointer shrink-0"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               aria-label="Tutup detail modal"
             >
               <X className="w-5 h-5" />
@@ -138,8 +133,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
           {/* Optional Segmented Tab Bar */}
           {tabs && tabs.length > 0 && (
-            <div className="px-5 pt-2 pb-0 border-b border-border bg-surface shrink-0 overflow-x-auto">
-              <div className="flex items-center gap-1.5 min-w-max pb-2">
+            <div className="px-6 sm:px-8 pt-3 pb-0 border-b border-slate-200 bg-slate-50 shrink-0 overflow-x-auto">
+              <div className="flex items-center gap-1.5 min-w-max pb-2.5">
                 {tabs.map((tb) => {
                   const isActive = tb.id === (currentTab?.id || tabs[0].id);
                   return (
@@ -147,17 +142,17 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                       key={tb.id}
                       type="button"
                       onClick={() => handleTabClick(tb.id)}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                         isActive
-                          ? 'bg-surface-raised text-accent border border-border/80 shadow-xs'
-                          : 'text-ink-muted hover:text-ink hover:bg-surface-raised/50'
+                          ? 'bg-white text-blue-700 border border-slate-200 shadow-2xs'
+                          : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
                       }`}
                     >
                       <span>{tb.label}</span>
                       {tb.count !== undefined && (
                         <span
                           className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${
-                            isActive ? 'bg-accent/15 text-accent' : 'bg-surface border border-border text-ink-muted'
+                            isActive ? 'bg-blue-50 text-blue-700' : 'bg-slate-200 text-slate-600'
                           }`}
                         >
                           {tb.count}
@@ -171,7 +166,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           )}
 
           {/* Modal Body Internal Scroll */}
-          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 sm:py-7 space-y-5 bg-white">
             {tabs && tabs.length > 0 ? (
               <div key={currentTab?.id} className="app-page-transition">
                 {currentTab?.content}
@@ -183,7 +178,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
           {/* Optional Footer Sticky */}
           {footer && (
-            <div className="px-5 py-3.5 border-t border-border bg-surface-raised flex items-center justify-end gap-3 shrink-0 safe-bottom">
+            <div className="px-6 sm:px-8 py-5 sm:py-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 shrink-0">
               {footer}
             </div>
           )}

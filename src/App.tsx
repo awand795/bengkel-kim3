@@ -263,27 +263,29 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col font-sans text-ink pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-ink pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
       {/* Top App Header */}
       <Navbar />
 
-      <div className="flex flex-1 w-full max-w-[1600px] mx-auto overflow-hidden">
+      <div className="flex flex-1 w-full overflow-hidden">
         {/* Left Navigation Sidebar for Desktop */}
         <Sidebar />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-y-auto max-h-[calc(100vh-3.5rem)] md:max-h-[calc(100vh-4rem)]">
-          <div
-            key={
-              activeTab.startsWith('security-')
-                ? 'module-security'
-                : activeTab.startsWith('fleet-')
-                ? 'module-fleet'
-                : activeTab
-            }
-            className="app-page-transition w-full"
-          >
-            {renderActiveView()}
+        <main className="flex-1 overflow-y-auto max-h-[calc(100vh-60px)]">
+          <div className="max-w-[1400px] mx-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+            <div
+              key={
+                activeTab.startsWith('security-')
+                  ? 'module-security'
+                  : activeTab.startsWith('fleet-')
+                  ? 'module-fleet'
+                  : activeTab
+              }
+              className="app-page-transition w-full"
+            >
+              {renderActiveView()}
+            </div>
           </div>
         </main>
       </div>

@@ -973,8 +973,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
           {/* MODAL: Katalog Sparepart Picker */}
           {showKatalogModal && (
             <ModalPortal onClose={() => setShowKatalogModal(false)}>
-              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
-                <div className="bg-surface-raised rounded-t-2xl sm:rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-border my-0 sm:my-8 max-h-[92vh] sm:max-h-[90vh] flex flex-col">
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 md:py-10 overflow-y-auto app-backdrop-in">
+                <div className="bg-surface-raised rounded-2xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-border my-auto max-h-[88vh] sm:max-h-[85vh] flex flex-col app-modal-in">
                   <div className="flex items-center justify-between border-b border-border pb-3 mb-4 shrink-0">
                     <div>
                       <span className="text-xs uppercase font-bold text-accent">Katalog Gudang</span>
@@ -1265,8 +1265,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       {/* Picking Modal */}
       {pickingStep === 'picking' && activeTransaksi && (
         <ModalPortal onClose={() => setPickingStep(null)}>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
-            <div className="bg-surface-raised rounded-t-2xl sm:rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-border my-0 sm:my-8 flex flex-col">
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 md:py-10 overflow-y-auto app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-border my-auto flex flex-col app-modal-in">
               <div className="flex items-center justify-between border-b border-border pb-3 mb-4 shrink-0">
                 <div>
                   <span className="text-xs uppercase font-bold text-accent">Gudang KIM 3</span>
@@ -1316,8 +1316,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       {/* Serah Terima Modal */}
       {pickingStep === 'serah' && activeTransaksi && (
         <ModalPortal onClose={() => setPickingStep(null)}>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4 overflow-y-auto">
-            <div className="bg-surface-raised rounded-t-2xl sm:rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-border my-0 sm:my-8 flex flex-col">
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 md:py-10 overflow-y-auto app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-border my-auto flex flex-col app-modal-in">
               <div className="flex items-center justify-between border-b border-border pb-3 mb-4 shrink-0">
                 <div>
                   <span className="text-xs uppercase font-bold text-accent">Penyerahan Barang</span>

@@ -89,7 +89,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-surface-raised/95 backdrop-blur-md border-b border-border font-sans safe-top">
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 font-sans safe-top shadow-sm">
         {/* ======================================================== */}
         {/* 1. MOBILE NATIVE TOP APP BAR (< 768px)                   */}
         {/* ======================================================== */}
@@ -164,7 +164,7 @@ export const Navbar: React.FC = () => {
         {/* ======================================================== */}
         {/* 2. DESKTOP APP HEADER (>= 768px)                         */}
         {/* ======================================================== */}
-        <div className="hidden md:flex max-w-[1600px] mx-auto px-4 lg:px-6 h-16 items-center justify-between gap-4">
+        <div className="hidden md:flex max-w-[1600px] mx-auto px-4 lg:px-6 h-[60px] items-center justify-between gap-4">
           {/* Brand Logo */}
           <div className="flex items-center gap-3">
             <img
@@ -177,7 +177,7 @@ export const Navbar: React.FC = () => {
           {/* Right Controls: Role Badge, Theme Switcher, Notifications, User Details, Logout */}
           <div className="flex items-center gap-2.5">
             {/* Locked Role Badge */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-accent/30 bg-accent-subtle text-accent text-xs font-bold">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>{currentRole}</span>
             </div>
@@ -186,7 +186,7 @@ export const Navbar: React.FC = () => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-surface hover:bg-surface-raised text-ink transition-all cursor-pointer shadow-2xs hover:border-accent/40 group"
+              className="flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-all cursor-pointer hover:border-blue-300 group"
               aria-label="Ganti tema tampilan"
               title={theme === 'dark' ? 'Ganti ke Mode Terang (Light Mode)' : 'Ganti ke Mode Industri Gelap (Dark Mode)'}
             >

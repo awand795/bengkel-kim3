@@ -86,27 +86,27 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       ) : (
         <div
           onClick={() => !loading && fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+          className={`border-2 border-dashed rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
             loading
-              ? 'bg-surface border-border cursor-not-allowed'
-              : 'border-border hover:border-accent hover:bg-accent-subtle/30 bg-surface'
+              ? 'bg-slate-50 border-slate-200 cursor-not-allowed'
+              : 'border-slate-300 hover:border-blue-500 hover:bg-blue-50/40 bg-white shadow-2xs'
           }`}
         >
           {loading ? (
-            <div className="flex flex-col items-center py-2 text-accent">
+            <div className="flex flex-col items-center py-2 text-blue-600">
               <Loader2 className="w-7 h-7 animate-spin mb-1.5" />
-              <span className="text-xs font-medium text-ink-muted">Mengunggah foto ke database...</span>
+              <span className="text-xs font-medium text-slate-500">Mengunggah foto ke database...</span>
             </div>
           ) : (
             <>
-              <div className="w-10 h-10 rounded-full bg-accent-subtle text-accent flex items-center justify-center mb-2 shadow-xs">
+              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-2 shadow-2xs">
                 <Camera className="w-5 h-5" />
               </div>
-              <p className="text-xs font-semibold text-ink">
+              <p className="text-xs font-semibold text-slate-800">
                 Ambil Foto Kamera / Unggah File
               </p>
-              <p className="text-xs text-ink-subtle mt-0.5">
-                Maks. 15MB (JPG, PNG, WebP) - Kompresi Otomatis
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Maks. 15MB (JPG, PNG, WebP) • Kompresi Otomatis
               </p>
             </>
           )}

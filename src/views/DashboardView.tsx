@@ -33,7 +33,6 @@ import { SpkService, AntrianKunjungan, PurchaseRequestPart, InvoicePembayaran, P
 
 export const DashboardView: React.FC = () => {
   const { currentRole, currentUser, authUser, setActiveTab, setRole, setSaPendingAntrianId } = useAppStore();
-  const [viewMode, setViewMode] = useState<'role' | 'global'>('role');
 
   // Queries
   const { data: summary, isLoading: loadingSummary } = useQuery({
@@ -87,49 +86,22 @@ export const DashboardView: React.FC = () => {
 
     return (
       <div className="space-y-6">
-        {/* Banner */}
-        <div className="rounded-xl bg-accent text-white p-5 sm:p-6 shadow-md relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-2 backdrop-blur-sm">
-              <ClipboardList className="w-3.5 h-3.5" />
-              <span>Dashboard Operasional Service Advisor</span>
+        {/* === PAGE HEADER === */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+              <ClipboardList className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Service Advisor'}
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Dashboard Service Advisor
             </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-2xl leading-relaxed">
-              Pantau antrian unit yang baru check-in dari Pos Security, buat estimasi &amp; SPK, kelola sparepart indent, dan lakukan serah terima kendaraan selesai.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button
-                onClick={() => setActiveTab('sa-baru')}
-                className="px-3.5 py-2 rounded-xl bg-surface-raised text-ink font-bold text-xs shadow-xs hover:bg-surface transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <ClipboardList className="w-3.5 h-3.5 text-accent" /> + Penerimaan &amp; Buat SPK
-              </button>
-              <button
-                onClick={() => setActiveTab('sa-list')}
-                className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-xs border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <FileText className="w-3.5 h-3.5" /> Daftar SPK Aktif ({spkAktif.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('sa-kotak-merah')}
-                className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-xs border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <ShoppingBag className="w-3.5 h-3.5" /> Part Indent ({prKotakMerah.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('beli-part')}
-                className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-xs border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Package className="w-3.5 h-3.5" /> Jual Part Langsung
-              </button>
-            </div>
           </div>
+          <p className="text-sm text-slate-500 ml-9">
+            Halo, <span className="font-semibold text-slate-700">{currentUser || 'Service Advisor'}</span> — Pantau antrian, SPK aktif & part indent hari ini.
+          </p>
         </div>
 
-        {/* KPIs */}
+        {/* === KPI CARDS === */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
             value={antrianMenunggu.length}
@@ -168,18 +140,18 @@ export const DashboardView: React.FC = () => {
         {/* 2-Col Content Feed */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Antrian Unit Baru Masuk dari Pos Security */}
-          <div className="lg:col-span-2 bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
+          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <div>
-                <h2 className="text-sm sm:text-base font-bold text-ink flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-accent" />
+                <h2 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-blue-500" />
                   Antrian Unit Masuk dari Pos Security
                 </h2>
-                <p className="text-xs text-ink-muted">Unit telah melalui gate check-in dan siap dibuatkan formulir SPK</p>
+                <p className="text-xs text-slate-400 mt-0.5">Unit telah melalui gate check-in dan siap dibuatkan formulir SPK</p>
               </div>
               <button
                 onClick={() => setActiveTab('sa-penerimaan')}
-                className="text-xs font-bold text-accent hover:text-accent flex items-center gap-1 cursor-pointer"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
               >
                 Ke Menu SA <ArrowRight className="w-3 h-3" />
               </button>
@@ -187,36 +159,35 @@ export const DashboardView: React.FC = () => {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-surface text-ink-muted border-y border-border">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                   <tr>
-                    <th className="py-2.5 px-3 font-semibold">No. Tiket</th>
-                    <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
-                    <th className="py-2.5 px-3 font-semibold">Customer / Kendaraan</th>
-                    <th className="py-2.5 px-3 font-semibold">Waktu Masuk</th>
-                    <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
+                    <th className="py-2.5 px-4 font-semibold tracking-wide uppercase text-[11px]">No. Tiket</th>
+                    <th className="py-2.5 px-4 font-semibold tracking-wide uppercase text-[11px]">No. Polisi</th>
+                    <th className="py-2.5 px-4 font-semibold tracking-wide uppercase text-[11px]">Customer / Kendaraan</th>
+                    <th className="py-2.5 px-4 font-semibold tracking-wide uppercase text-[11px]">Waktu Masuk</th>
+                    <th className="py-2.5 px-4 font-semibold tracking-wide uppercase text-[11px] text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-slate-100">
                   {antrianMenunggu.length > 0 ? (
                     antrianMenunggu.map((item) => (
-                      <tr key={item.id} className="hover:bg-surface/80 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-accent">{item.no_tiket}</td>
-                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(item.no_polisi)}</td>
-                        <td className="py-3 px-3">
-                          <div className="font-medium text-ink">{item.nama_customer || '-'}</div>
-                          <div className="text-xs text-ink-subtle">{item.jenis_armada} • {item.keperluan || 'Service'}</div>
+                      <tr key={item.id} className="hover:bg-blue-50/40 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-blue-600">{item.no_tiket}</td>
+                        <td className="py-3 px-4 font-mono font-bold text-slate-800">{formatPlat(item.no_polisi)}</td>
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-slate-800">{item.nama_customer || '-'}</div>
+                          <div className="text-xs text-slate-400">{item.jenis_armada} • {item.keperluan || 'Service'}</div>
                         </td>
-                        <td className="py-3 px-3 text-ink-muted">
+                        <td className="py-3 px-4 text-slate-500">
                           {item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                         </td>
-                        <td className="py-3 px-3 text-right">
+                        <td className="py-3 px-4 text-right">
                           <button
                             onClick={() => {
-                              // Deep-link: buka form penerimaan SA langsung terisi antrian ini
                               setSaPendingAntrianId(item.id);
                               setActiveTab('sa-penerimaan');
                             }}
-                            className="px-2.5 py-1 rounded-xl bg-accent hover:bg-accent-hover text-white font-bold text-xs transition-colors inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1 shadow-sm cursor-pointer"
                           >
                             <ClipboardList className="w-3 h-3" /> Buat SPK
                           </button>
@@ -225,8 +196,11 @@ export const DashboardView: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-ink-subtle">
-                        Tidak ada antrian unit menunggu penerimaan saat ini.
+                      <td colSpan={5} className="py-10 text-center text-slate-400 text-xs">
+                        <div className="flex flex-col items-center gap-2">
+                          <Truck className="w-8 h-8 text-slate-200" />
+                          Tidak ada antrian unit menunggu penerimaan saat ini.
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -236,54 +210,55 @@ export const DashboardView: React.FC = () => {
           </div>
 
           {/* Kotak Merah & Sparepart Attention */}
-          <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-xl bg-status-red-bg text-status-red flex items-center justify-center">
-                  <ShoppingBag className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-ink">Perhatian Part Indent</h3>
-                  <p className="text-xs text-ink-muted">Sparepart PO &amp; Approval SA</p>
-                </div>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+              <div className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-4 h-4" />
               </div>
-
-              <div className="space-y-3 mt-4">
-                {prKotakMerah.length > 0 ? (
-                  prKotakMerah.slice(0, 3).map((item) => (
-                    <div key={item.pr_id} className="p-3 rounded-lg border border-status-red/30 bg-status-red-bg space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-status-red">{item.no_pr}</span>
-                        <StatusBadge status={item.status_pr} size="sm" />
-                      </div>
-                      <div className="text-xs font-bold text-ink">
-                        <span className="font-mono">{formatPlat(item.no_polisi)}</span> - {item.nama_customer}
-                      </div>
-                      <div className="text-xs text-ink-muted">
-                        {item.catatan_pr || 'Pengadaan part khusus untuk SPK unit.'}
-                      </div>
-                      {item.estimasi_tanggal_ready_eta && (
-                        <div className="pt-1.5 border-t border-status-red/30 flex items-center justify-between text-xs text-status-red font-semibold">
-                          <span>ETA Kedatangan:</span>
-                          <span>{item.estimasi_tanggal_ready_eta} {item.estimasi_jam_ready_eta ? `(${item.estimasi_jam_ready_eta})` : ''}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-6 text-center text-ink-subtle text-xs">
-                    Semua sparepart ready atau telah dikonfirmasi.
-                  </div>
-                )}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">Perhatian Part Indent</h3>
+                <p className="text-xs text-slate-400">Sparepart PO &amp; Approval SA</p>
               </div>
             </div>
 
-            <button
-              onClick={() => setActiveTab('sa-kotak-merah')}
-              className="w-full mt-4 py-2 px-3 rounded-xl bg-status-red text-white font-bold text-xs hover:bg-status-red/90 transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <ShoppingBag className="w-3.5 h-3.5" /> Buka Alur Part Indent
-            </button>
+            <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+              {prKotakMerah.length > 0 ? (
+                prKotakMerah.slice(0, 3).map((item) => (
+                  <div key={item.pr_id} className="p-3 rounded-lg border border-red-100 bg-red-50 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-bold text-red-600">{item.no_pr}</span>
+                      <StatusBadge status={item.status_pr} size="sm" />
+                    </div>
+                    <div className="text-xs font-semibold text-slate-800">
+                      <span className="font-mono">{formatPlat(item.no_polisi)}</span> — {item.nama_customer}
+                    </div>
+                    <div className="text-xs text-slate-500 leading-relaxed">
+                      {item.catatan_pr || 'Pengadaan part khusus untuk SPK unit.'}
+                    </div>
+                    {item.estimasi_tanggal_ready_eta && (
+                      <div className="pt-1.5 border-t border-red-200 flex items-center justify-between text-xs text-red-600 font-semibold">
+                        <span>ETA:</span>
+                        <span>{item.estimasi_tanggal_ready_eta} {item.estimasi_jam_ready_eta ? `(${item.estimasi_jam_ready_eta})` : ''}</span>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                  <ShoppingBag className="w-8 h-8 text-slate-200" />
+                  Semua sparepart ready atau telah dikonfirmasi.
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 pb-4">
+              <button
+                onClick={() => setActiveTab('sa-kotak-merah')}
+                className="w-full py-2 px-3 rounded-lg bg-red-500 text-white font-semibold text-xs hover:bg-red-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" /> Buka Alur Part Indent
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -301,37 +276,22 @@ export const DashboardView: React.FC = () => {
 
     return (
       <div className="space-y-6">
-        {/* Banner */}
-        <div className="rounded-xl bg-accent text-white p-5 sm:p-6 shadow-md relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-2 backdrop-blur-sm">
-              <Wrench className="w-3.5 h-3.5" />
-              <span>Dashboard Foreman &amp; Quality Control (QC)</span>
+        {/* === PAGE HEADER === */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
+              <Wrench className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Foreman'}
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Dashboard Foreman & QC
             </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-2xl leading-relaxed">
-              Atur alokasi pengerjaan mekanik di stall, monitor waktu pengerjaan live stopwatch, verifikasi pekerjaan tambahan, dan lakukan inspeksi Final Inspection Report (FIR).
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button
-                onClick={() => setActiveTab('foreman')}
-                className="px-3 py-1.5 rounded-xl bg-surface-raised text-ink font-bold text-xs shadow-sm hover:bg-surface transition-all flex items-center gap-1.5"
-              >
-                <Wrench className="w-3.5 h-3.5" /> Penugasan Mekanik &amp; QC
-              </button>
-              <button
-                onClick={() => setActiveTab('mekanik')}
-                className="px-3 py-1.5 rounded-xl bg-ink/40 hover:bg-ink/60 text-white font-semibold text-xs border border-white/20 transition-all flex items-center gap-1.5"
-              >
-                <Clock className="w-3.5 h-3.5" /> Live Monitoring Mekanik
-              </button>
-            </div>
           </div>
+          <p className="text-sm text-slate-500 ml-9">
+            Halo, <span className="font-semibold text-slate-700">{currentUser || 'Foreman'}</span> — Atur penugasan mekanik, monitor pengerjaan & inspeksi QC.
+          </p>
         </div>
 
-        {/* KPIs */}
+        {/* === KPI CARDS === */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
             value={spkMenungguAssign.length}
@@ -510,30 +470,6 @@ export const DashboardView: React.FC = () => {
 
     return (
       <div className="space-y-6">
-        {/* Banner */}
-        <div className="rounded-xl bg-accent text-white p-5 sm:p-6 shadow-md relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-2 backdrop-blur-sm">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Dashboard Mekanik Bengkel</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Mekanik'}
-            </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-2xl leading-relaxed">
-              Lihat perintah kerja SPK yang ditugaskan ke Anda, jalankan timer stopwatch pengerjaan, dan laporkan temuan kerusakan tambahan bila ditemukan saat servis.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button
-                onClick={() => setActiveTab('mekanik')}
-                className="px-3.5 py-2 rounded-xl bg-surface-raised text-ink font-bold text-xs shadow-sm hover:bg-surface transition-all flex items-center gap-1.5"
-              >
-                <PlayCircle className="w-4 h-4" /> Buka Stopwatch &amp; Lembar Kerja
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
@@ -699,30 +635,6 @@ export const DashboardView: React.FC = () => {
 
     return (
       <div className="space-y-6">
-        {/* Banner */}
-        <div className="rounded-xl bg-accent text-white p-5 sm:p-6 shadow-md relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-2 backdrop-blur-sm">
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Dashboard Admin Purchasing &amp; Pengadaan Sparepart</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Admin Purchasing'}
-            </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-2xl leading-relaxed">
-              Kelola permintaan pengadaan sparepart dari SA (Part Indent), bandingkan penawaran 2 vendor, terbitkan PO, dan pantau estimasi kedatangan (ETA) part.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button
-                onClick={() => setActiveTab('purchasing')}
-                className="px-3.5 py-2 rounded-xl bg-surface-raised text-ink font-bold text-xs shadow-xs hover:bg-surface transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <ShoppingBag className="w-4 h-4 text-accent" /> Kelola PR &amp; Part Indent
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
@@ -869,36 +781,6 @@ export const DashboardView: React.FC = () => {
 
     return (
       <div className="space-y-6">
-        {/* Banner */}
-        <div className="rounded-xl bg-accent text-white p-5 sm:p-6 shadow-md relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-2 backdrop-blur-sm">
-              <Receipt className="w-3.5 h-3.5" />
-              <span>Dashboard Kasir &amp; Faktur Tagihan</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'Kasir'}
-            </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-2xl leading-relaxed">
-              Terbitkan faktur tagihan untuk SPK yang telah FIR Closed, catat pelunasan kas masuk, kelola transaksi beli part langsung, dan terbitkan memo keluar resmi.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button
-                onClick={() => setActiveTab('kasir')}
-                className="px-3.5 py-2 rounded-xl bg-surface-raised text-ink font-bold text-xs shadow-xs hover:bg-surface transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Receipt className="w-4 h-4 text-accent" /> Kelola Kasir &amp; Faktur
-              </button>
-              <button
-                onClick={() => setActiveTab('beli-part')}
-                className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-xs border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Package className="w-4 h-4" /> Beli Part Langsung
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
@@ -1043,30 +925,6 @@ export const DashboardView: React.FC = () => {
 
     return (
       <div className="space-y-6">
-        {/* Banner */}
-        <div className="rounded-xl bg-accent text-white p-5 sm:p-6 shadow-md relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-2 backdrop-blur-sm">
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Dashboard PIC Konfirmasi Kunjungan Tamu</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-              Halo, {currentUser || 'PIC Bengkel KIM 3'}
-            </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-2xl leading-relaxed">
-              Konfirmasi kedatangan tamu/vendor yang melapor di Pos Gerbang Security secara realtime dan pantau status izin masuk ke area fasilitas KIM 3.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button
-                onClick={() => setActiveTab('pic-terkait')}
-                className="px-3.5 py-2 rounded-xl bg-surface-raised text-ink font-bold text-xs shadow-xs hover:bg-surface transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4 text-accent" /> Buka Konfirmasi Kunjungan
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <StatCard
@@ -1382,66 +1240,22 @@ export const DashboardView: React.FC = () => {
     );
   };
 
-  // Main Return: with Role Switch Header
+  // Main Return: Render role dashboard directly without switcher header
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* View Switcher Header */}
-      <div className="card-modern rounded-xl p-3 bg-surface-raised border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse"></span>
-          <span className="text-xs font-bold text-ink-muted">Tampilan Dashboard:</span>
-          <span className="px-2.5 py-1 rounded-full bg-accent-subtle text-accent font-bold text-xs border border-accent/20">
-            {viewMode === 'role' ? `Dashboard Khusus ${currentRole}` : 'Ringkasan Seluruh Bengkel'}
-          </span>
-        </div>
-
-        {/* Toggle Buttons */}
-        <div className="flex items-center gap-1 bg-surface p-1 rounded-xl border border-border">
-          <button
-            type="button"
-            onClick={() => setViewMode('role')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              viewMode === 'role'
-                ? 'bg-surface-raised text-accent shadow-xs border border-border'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            Dashboard {currentRole}
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('global')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              viewMode === 'global'
-                ? 'bg-surface-raised text-accent shadow-xs border border-border'
-                : 'text-ink-muted hover:text-ink'
-            }`}
-          >
-            Ringkasan Bengkel
-          </button>
-        </div>
-      </div>
-
-      {/* Render selected view */}
-      {viewMode === 'global' ? (
-        renderGlobalOverview()
-      ) : (
-        <>
-          {currentRole === 'SA' && renderSaDashboard()}
-          {currentRole === 'Foreman' && renderForemanDashboard()}
-          {currentRole === 'Mekanik' && renderMekanikDashboard()}
-          {currentRole === 'Admin Purchasing' && renderPurchasingDashboard()}
-          {currentRole === 'Admin Invoice' && renderKasirDashboard()}
-          {currentRole === 'PIC Terkait' && renderPicTerkaitDashboard()}
-          {currentRole !== 'SA' && 
-           currentRole !== 'Foreman' && 
-           currentRole !== 'Mekanik' && 
-           currentRole !== 'Admin Purchasing' && 
-           currentRole !== 'Admin Invoice' && 
-           currentRole !== 'PIC Terkait' && 
-           renderGlobalOverview()}
-        </>
-      )}
+      {currentRole === 'SA' && renderSaDashboard()}
+      {currentRole === 'Foreman' && renderForemanDashboard()}
+      {currentRole === 'Mekanik' && renderMekanikDashboard()}
+      {currentRole === 'Admin Purchasing' && renderPurchasingDashboard()}
+      {currentRole === 'Admin Invoice' && renderKasirDashboard()}
+      {currentRole === 'PIC Terkait' && renderPicTerkaitDashboard()}
+      {currentRole !== 'SA' && 
+       currentRole !== 'Foreman' && 
+       currentRole !== 'Mekanik' && 
+       currentRole !== 'Admin Purchasing' && 
+       currentRole !== 'Admin Invoice' && 
+       currentRole !== 'PIC Terkait' && 
+       renderGlobalOverview()}
     </div>
   );
 };
