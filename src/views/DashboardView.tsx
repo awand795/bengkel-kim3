@@ -6,6 +6,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { StatCard } from '../components/common/StatCard';
 import { isSpkAssignedToMechanic } from '../utils/spkAccess';
 import { isTanggalHariIni } from '../utils/tanggal';
+import { etaSpk } from '../utils/eta';
 import { 
   Truck, 
   Wrench, 
@@ -542,7 +543,7 @@ export const DashboardView: React.FC = () => {
                         Customer: {spk.nama_customer || '-'} • Keluhan: {spk.keluhan_customer || 'Perbaikan'}
                       </p>
                       <div className="text-xs text-ink-subtle">
-                        Lead time estimasi: <span className="font-bold text-ink-muted">{spk.estimasi_waktu_jam || spk.lead_time_jam ? `${spk.estimasi_waktu_jam || spk.lead_time_jam} Jam` : '-'}</span>
+                        Lead time estimasi: <span className="font-bold text-ink-muted">{etaSpk(spk).jam != null ? `${etaSpk(spk).jam} Jam` : '-'}</span>
                       </div>
                     </div>
                     {bisaDikerjakan ? (
@@ -1170,7 +1171,7 @@ export const DashboardView: React.FC = () => {
                           {spk.nama_mekanik || spk.nama_foreman || 'Menunggu Assign'}
                         </td>
                         <td className="py-3 px-3 text-right font-semibold text-ink-muted">
-                          {spk.estimasi_waktu_jam || spk.lead_time_jam ? `${spk.estimasi_waktu_jam || spk.lead_time_jam} Jam` : '-'}
+                          {etaSpk(spk).jam != null ? `${etaSpk(spk).jam} Jam` : '-'}
                         </td>
                       </tr>
                     ))

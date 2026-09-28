@@ -13,6 +13,7 @@ import { ConfirmModal } from '../components/common/ConfirmModal';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { toast } from '../components/common/Toast';
 import { TimePickerInput } from '../components/common/TimePickerInput';
+import { etaSpk, labelSumberEta } from '../utils/eta';
 import { StepModal } from '../components/common/StepModal';
 import { DetailModal } from '../components/common/DetailModal';
 import { ListItemCard } from '../components/common/ListItemCard';
@@ -192,7 +193,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   </div>
                   <div>
                     <span className="text-ink-subtle block text-xs">Estimasi Selesai (ETA):</span>
-                    <span className="text-accent font-bold font-mono">{spk.estimasi_waktu_jam ? `${spk.estimasi_waktu_jam} Jam` : `${spk.lead_time_jam || '-'} Jam`}</span>
+                    <span className="text-accent font-bold font-mono">{(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}</span>
+                    <span className="text-ink-subtle block text-[10px]">{labelSumberEta(etaSpk(spk).sumber)}</span>
                   </div>
                 </div>
               </div>
@@ -260,7 +262,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         <span className="px-2.5 py-0.5 rounded-full bg-status-amber-bg text-status-amber text-xs font-bold">Menunggu Approval</span>
                       </div>
                       <p className="text-xs text-ink-muted mt-1">
-                        Total Estimasi: <strong className="text-ink font-mono">{approvalTotal !== null ? `Rp ${approvalTotal.toLocaleString('id-ID')}` : 'Rp -'}</strong> • Waktu: <strong className="text-ink">{spk.estimasi_waktu_jam || spk.lead_time_jam || 0} Jam</strong>
+                        Total Estimasi: <strong className="text-ink font-mono">{approvalTotal !== null ? `Rp ${approvalTotal.toLocaleString('id-ID')}` : 'Rp -'}</strong> • Waktu: <strong className="text-ink">{etaSpk(spk).jam ?? 0} Jam</strong>
                       </p>
                     </div>
                   </div>
@@ -537,7 +539,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </p>
                       <div className="bg-surface-raised p-3 rounded-xl border border-accent/30 text-ink-muted space-y-1">
                         <div className="font-medium text-ink">Estimasi Selesai:</div>
-                        <div>{spk.estimasi_waktu_jam ? `${spk.estimasi_waktu_jam} Jam kerja` : 'Hari ini, estimasi 2-3 jam kerja'}</div>
+                        <div>{(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam kerja (${labelSumberEta(e.sumber)})` : 'Hari ini, estimasi 2-3 jam kerja'; })()}</div>
                       </div>
                       <div className="text-xs text-ink-muted pt-1">
                         Pembaruan status sistem berjalan realtime tanpa perlu konfirmasi manual via chat/telepon.
@@ -871,7 +873,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                 <div className="card-modern rounded-xl p-4 bg-surface-raised border border-border space-y-1">
                   <span className="text-xs font-semibold text-ink-muted">Estimasi Waktu Pengerjaan:</span>
                   <div className="text-base font-bold text-ink font-mono">
-                    {spk.estimasi_waktu_jam || spk.lead_time_jam || 0} Jam
+                    {etaSpk(spk).jam ?? 0} Jam
                   </div>
                   <p className="text-xs text-ink-subtle">Waktu dihitung sejak persetujuan diberikan hingga kendaraan siap dilakukan Quality Control.</p>
                 </div>
@@ -2178,7 +2180,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
                 <div className="p-3 bg-surface rounded-xl">
                   <span className="text-ink-subtle text-xs block">Estimasi Lead Time:</span>
-                  <span className="font-bold text-accent">{activeTrackSpk.estimasi_waktu_jam || activeTrackSpk.lead_time_jam || '-'} Jam Pengerjaan</span>
+                  <span className="font-bold text-accent">{etaSpk(activeTrackSpk).jam ?? '-'} Jam Pengerjaan</span>
                 </div>
                 <div className="p-3 bg-surface rounded-xl">
                   <span className="text-ink-subtle text-xs block">Estimasi Biaya:</span>

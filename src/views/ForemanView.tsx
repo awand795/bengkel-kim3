@@ -28,6 +28,7 @@ import {
 import { PrintSpkModal } from '../components/print/PrintSpkModal';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { isTanggalSamaHariIni } from '../utils/tanggal';
+import { etaSpk } from '../utils/eta';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { toast } from '../components/common/Toast';
 import { realtimeHub } from '../services/realtimeService';
@@ -578,7 +579,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                       subtitle={`${spk.nama_customer || 'Pelanggan Bengkel'} • SA: ${spk.nama_sa} • Mekanik: ${spk.nama_mekanik || 'Belum Ditugaskan'}`}
                       badge={<StatusBadge status={spk.status_spk} size="sm" />}
                       chips={[
-                        spk.estimasi_waktu_jam || spk.lead_time_jam ? `Lead Time: ${spk.estimasi_waktu_jam || spk.lead_time_jam} Jam` : null,
+                        etaSpk(spk).jam != null ? `Lead Time: ${etaSpk(spk).jam} Jam` : null,
                         spk.keluhan_customer ? `"${spk.keluhan_customer}"` : null,
                       ].filter(Boolean)}
                       actions={
@@ -703,7 +704,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                         <div className="p-3 bg-surface rounded-xl border border-border">
                           <span className="text-ink-muted text-xs block">Lead Time</span>
                           <span className="font-bold text-accent text-sm font-mono">
-                            {selectedSpk.estimasi_waktu_jam || selectedSpk.lead_time_jam ? `${selectedSpk.estimasi_waktu_jam || selectedSpk.lead_time_jam} Jam` : '-'}
+                            {etaSpk(selectedSpk).jam != null ? `${etaSpk(selectedSpk).jam} Jam` : '-'}
                           </span>
                         </div>
                       </div>
@@ -1130,7 +1131,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                     <div className="flex justify-between items-center">
                       <span className="text-ink-muted">Lead Time:</span>
                       <span className="font-mono font-bold text-accent">
-                        {assignSpk.estimasi_waktu_jam || assignSpk.lead_time_jam ? `${assignSpk.estimasi_waktu_jam || assignSpk.lead_time_jam} Jam` : '-'}
+                        {etaSpk(assignSpk).jam != null ? `${etaSpk(assignSpk).jam} Jam` : '-'}
                       </span>
                     </div>
                   </div>

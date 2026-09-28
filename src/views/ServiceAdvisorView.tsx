@@ -6,7 +6,8 @@ import { PhotoUploader } from '../components/common/PhotoUploader';
 import { SpkService } from '../types';
 import { realtimeHub, publishKeCustomer } from '../services/realtimeService';
 import { useAppStore } from '../store/useAppStore';
-import { usePpnRate } from '../hooks/usePpnRate';import {
+import { usePpnRate } from '../hooks/usePpnRate';
+import { etaSpk, labelSumberEta } from '../utils/eta';import {
   ClipboardList, 
   Wrench, 
   PlusCircle, 
@@ -3481,8 +3482,8 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="p-3 bg-surface rounded-xl border border-border">
-                      <span className="text-xs text-ink-muted block">Estimasi Waktu</span>
-                      <span className="text-sm font-bold text-ink">{selectedSpk.estimasi_waktu_jam ? `${selectedSpk.estimasi_waktu_jam} Jam` : '-'}</span>
+                      <span className="text-xs text-ink-muted block">Estimasi Waktu ({labelSumberEta(etaSpk(selectedSpk).sumber)})</span>
+                      <span className="text-sm font-bold text-ink">{etaSpk(selectedSpk).jam != null ? `${etaSpk(selectedSpk).jam} Jam` : '-'}</span>
                     </div>
                     <div className="p-3 bg-surface rounded-xl border border-border">
                       <span className="text-xs text-ink-muted block">Estimasi Biaya</span>

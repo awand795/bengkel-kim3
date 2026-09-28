@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, formatPlat } from '../api/client';
 import { useAppStore } from '../store/useAppStore';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { etaSpk } from '../utils/eta';
 import { SpkService } from '../types';
 import { realtimeHub } from '../services/realtimeService';
 import { 
@@ -364,7 +365,7 @@ export const MekanikView: React.FC = () => {
             <div className="pt-2 border-t border-border flex flex-wrap gap-4 text-ink-muted">
               <span>Odometer: <strong>{myJob.odometer_km?.toLocaleString()} KM</strong></span>
               <span>Foreman: <strong>{myJob.nama_foreman || 'Belum Ditugaskan'}</strong></span>
-              <span>Lead Time: <strong>{myJob.estimasi_waktu_jam || myJob.lead_time_jam ? `${myJob.estimasi_waktu_jam || myJob.lead_time_jam} Jam` : '-'}</strong></span>
+              <span>Lead Time: <strong>{etaSpk(myJob).jam != null ? `${etaSpk(myJob).jam} Jam` : '-'}</strong></span>
             </div>
           </div>
 
