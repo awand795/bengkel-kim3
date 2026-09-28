@@ -54,6 +54,7 @@ export const NotificationDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
   const [deleteTarget, setDeleteTarget] = useState<Notifikasi | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 1. Fetch Real Database Notifications via API
@@ -96,6 +97,20 @@ export const NotificationDropdown: React.FC = () => {
       } else {
         toast.success('Notifikasi dihapus.');
       }
+    },
+    onError: (err: any) => {
+      toast.error('Gagal menghapus notifikasi', err?.message);
+    },
+  });
+
+  // 3c. Hapus SEMUA notifikasi milik saya (personal + role; broadcast ALL tidak ikut)
+  const deleteAllMutation = useMutation({
+    mutationFn: () => api.hapusSemuaNotifikasi(),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
+      const n = Number(res?.rows_affected ?? 0);
+      toast.success(`${n} notifikasi dihapus`, 'Kotak notifikasi Anda kini bersih.');
+      setConfirmDeleteAll(false);
     },
     onError: (err: any) => {
       toast.error('Gagal menghapus notifikasi', err?.message);
@@ -273,6 +288,17 @@ export const NotificationDropdown: React.FC = () => {
                 Semua terbaca
               </span>
             )}
+            {/* Hapus Semua (bersihkan daftar notifikasi milik saya) */}
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteAll(true)}
+              disabled={deleteAllMutation.isPending}
+              className="text-xs text-ink-subtle hover:text-status-red hover:underline font-bold flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-status-red-bg/60 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+              title="Hapus semua notifikasi milik saya"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Hapus semua</span>
+            </button>
           </div>
 
           {/* Facebook Filter Pills: "Semua" & "Belum Dibaca" */}
@@ -484,6 +510,19 @@ export const NotificationDropdown: React.FC = () => {
               onSuccess: () => setDeleteTarget(null),
             });
           }}
+        />
+      )}
+
+      {/* Konfirmasi hapus SEMUA notifikasi milik saya */}
+      {confirmDeleteAll && (
+        <ConfirmModal
+          title="Hapus Semua Notifikasi?"
+          message="Seluruh notifikasi milik Anda (pribadi & peran) akan dihapus permanen. Notifikasi broadcast umum ('ALL') tidak ikut terhapus dan tetap tampil untuk semua orang."
+          confirmLabel="Ya, Hapus Semua"
+          tone="red"
+          isPending={deleteAllMutation.isPending}
+          onClose={() => setConfirmDeleteAll(false)}
+          onConfirm={() => deleteAllMutation.mutate()}
         />
       )}
     </div>

@@ -64,7 +64,7 @@ export const MobileBottomNav: React.FC = () => {
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'sa-list', label: 'Daftar SPK', icon: ClipboardList },
             { id: 'sa-baru', label: 'Buat SPK', icon: PlusCircle },
-            { id: 'sa-kotak-merah', label: 'Kotak Merah', icon: ShoppingBag },
+            { id: 'sa-kotak-merah', label: 'Part Indent', icon: ShoppingBag },
           ],
           more: [
             { id: 'beli-part', label: 'Penjualan Part', icon: Package },
@@ -134,8 +134,8 @@ export const MobileBottomNav: React.FC = () => {
             { id: 'fleet-history', label: 'Histori & Inv', icon: Receipt },
           ],
           more: [
-            { id: 'fleet-kendaraan', label: 'Daftar Armada Truk', icon: Car },
-            { id: 'fleet-dokumen', label: 'Dokumen STNK & KIR', icon: FileText },
+            { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Car },
+            { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
             { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2 },
           ],
         };
@@ -153,7 +153,7 @@ export const MobileBottomNav: React.FC = () => {
             { id: 'foreman', label: 'Foreman QC', icon: Wrench },
             { id: 'purchasing', label: 'Purchasing & Part', icon: ShoppingBag },
             { id: 'kasir', label: 'Kasir & Faktur', icon: Receipt },
-            { id: 'fleet-dashboard', label: 'Portal Armada Fleet', icon: Truck },
+            { id: 'fleet-dashboard', label: 'Portal Kendaraan Fleet', icon: Truck },
           ],
         };
 

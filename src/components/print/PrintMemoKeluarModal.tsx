@@ -1,8 +1,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client';
-import { MemoKeluar } from '../../types';
-import { Printer, X, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { MemoKeluar, InvoicePembayaran } from '../../types';
+import { Printer, X, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { ModalPortal } from '../common/ModalPortal';
 
 interface PrintMemoKeluarModalProps {
@@ -16,6 +16,21 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
     queryFn: api.getPengaturan,
     staleTime: 60000,
   });
+
+  // Status pembayaran faktur terkait memo (dinamis, bukan klaim statis):
+  // service → cocokkan id_spk; beli part → id_transaksi_beli_part.
+  const { data: invoiceList = [] } = useQuery({
+    queryKey: ['invoice-list'],
+    queryFn: api.getInvoiceList,
+    staleTime: 15000,
+  });
+  const relatedInvoice = invoiceList.find(
+    (inv: InvoicePembayaran) =>
+      (memo.id_spk != null && inv.id_spk === memo.id_spk) ||
+      (memo.id_transaksi_beli_part != null && inv.id_transaksi_beli_part === memo.id_transaksi_beli_part)
+  ) || null;
+  const isLunas = !!relatedInvoice && (relatedInvoice.status_pembayaran === 'Paid' || relatedInvoice.status_pembayaran === 'Lunas');
+  const sudahFirClosed = memo.status === 'FIR Closed' || !!memo.waktu_keluar;
 
   const handlePrint = () => {
     window.print();
@@ -133,11 +148,11 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
                   <span className="font-black text-ink text-sm">: {memo.no_polisi}</span>
                 </div>
                 <div className="flex">
-                  <span className="w-32 text-ink-muted">Customer / Armada</span>
+                  <span className="w-32 text-ink-muted">Customer / Kendaraan</span>
                   <span className="font-semibold text-ink">: {memo.nama_customer || 'Pelanggan'}</span>
                 </div>
                 <div className="flex">
-                  <span className="w-32 text-ink-muted">Jenis Armada</span>
+                  <span className="w-32 text-ink-muted">Jenis Kendaraan</span>
                   <span className="font-semibold text-ink">: {memo.jenis_armada || 'Truk'}</span>
                 </div>
                 <div className="flex">
@@ -147,23 +162,48 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
               </div>
             </div>
 
-            {/* STATUS VERIFIKASI ADMINISTRASI */}
-            <div className="border border-status-green/30 bg-status-green-bg/50 rounded-md p-3.5 mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-5 h-5 text-status-green shrink-0" />
-                <div>
-                  <div className="font-bold text-status-green text-[11px]">
-                    STATUS ADMINISTRASI: LUNAS &amp; DISETUJUI CHECK OUT
-                  </div>
-                  <div className="text-[10px] text-status-green/80">
-                    Faktur tagihan telah diselesaikan di Kasir dan lulus pemeriksaan akhir (FIR Closed).
+            {/* STATUS VERIFIKASI ADMINISTRASI — dinamis dari faktur & status memo */}
+            {isLunas && sudahFirClosed ? (
+              <div className="border border-status-green/30 bg-status-green-bg/50 rounded-md p-3.5 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-5 h-5 text-status-green shrink-0" />
+                  <div>
+                    <div className="font-bold text-status-green text-[11px]">
+                      STATUS ADMINISTRASI: LUNAS &amp; DISETUJUI CHECK OUT
+                    </div>
+                    <div className="text-[10px] text-status-green/80">
+                      Faktur {relatedInvoice?.no_invoice || ''} telah diselesaikan di Kasir dan lulus pemeriksaan akhir (FIR Closed).
+                    </div>
                   </div>
                 </div>
+                <span className="px-2.5 py-1 bg-status-green text-white rounded-md font-mono font-bold text-[10px]">
+                  GATE CLEAR
+                </span>
               </div>
-              <span className="px-2.5 py-1 bg-status-green text-white rounded-md font-mono font-bold text-[10px]">
-                GATE CLEAR
-              </span>
-            </div>
+            ) : (
+              <div className="border border-status-amber/40 bg-status-amber-bg/50 rounded-md p-3.5 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <AlertTriangle className="w-5 h-5 text-status-amber shrink-0" />
+                  <div>
+                    <div className="font-bold text-status-amber text-[11px]">
+                      {isLunas
+                        ? 'PEMBAYARAN LUNAS — MENUNGGU FINAL CHECK SA (FIR)'
+                        : relatedInvoice
+                        ? `TAGIHAN BELUM LUNAS — Status: ${relatedInvoice.status_pembayaran}`
+                        : 'TAGIHAN TIDAK DITEMUKAN — PERLU VERIFIKASI KASIR'}
+                    </div>
+                    <div className="text-[10px] text-status-amber/80">
+                      {isLunas
+                        ? 'Pemeriksaan akhir oleh SA belum tercatat. Memo diterbitkan sebagai barang bawaan keluar sementara.'
+                        : 'Pastikan status pembayaran diverifikasi di Kasir sebelum kendaraan meninggalkan gerbang.'}
+                    </div>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 bg-status-amber text-white rounded-md font-mono font-bold text-[10px]">
+                  PERLU CEK
+                </span>
+              </div>
+            )}
 
             {/* RINCIAN BARANG BAWAAN */}
             <div className="border border-border rounded-md p-4 mb-4">
@@ -196,7 +236,7 @@ export const PrintMemoKeluarModal: React.FC<PrintMemoKeluarModalProps> = ({ memo
               </div>
 
               <div>
-                <div className="text-ink-muted font-semibold mb-14">Pengemudi / Sopir Armada</div>
+                <div className="text-ink-muted font-semibold mb-14">Pengemudi / Sopir Kendaraan</div>
                 <div className="font-bold text-ink underline">( ........................................ )</div>
                 <div className="text-[10px] text-ink-subtle">Tanda Tangan &amp; Nama Terang</div>
               </div>

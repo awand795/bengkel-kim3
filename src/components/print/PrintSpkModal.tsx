@@ -113,7 +113,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                 </div>
                 <div className="flex">
                   <span className="w-28 text-slate-500">Estimasi Selesai</span>
-                  <span className="font-semibold text-slate-800">: {spk.lead_time_jam ? `${spk.lead_time_jam} Jam Kerja` : '4 Jam Kerja'}</span>
+                  <span className="font-semibold text-slate-800">: {spk.lead_time_jam || spk.estimasi_waktu_jam ? `${spk.lead_time_jam || spk.estimasi_waktu_jam} Jam Kerja` : '-'}</span>
                 </div>
                 <div className="flex">
                   <span className="w-28 text-slate-500">Service Advisor</span>
@@ -127,7 +127,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                   <span className="font-black text-slate-900 text-sm">: {spk.no_polisi}</span>
                 </div>
                 <div className="flex">
-                  <span className="w-28 text-slate-500">Customer / Armada</span>
+                  <span className="w-28 text-slate-500">Customer / Kendaraan</span>
                   <span className="font-semibold text-slate-800">: {spk.nama_customer || 'Pelanggan'}</span>
                 </div>
                 <div className="flex">
@@ -147,7 +147,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                 Keluhan Customer &amp; Analisis Awal SA:
               </div>
               <p className="text-slate-700 italic bg-white p-2 rounded-lg border border-slate-200">
-                "{spk.keluhan_customer || 'Perawatan berkala dan pemeriksaan sistem rem serta kelistrikan.'}"
+                {spk.keluhan_customer ? `"${spk.keluhan_customer}"` : '( Tidak ada catatan keluhan )'}
               </p>
             </div>
 
@@ -173,7 +173,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                       <tr key={job.id || idx}>
                         <td className="py-2 px-2.5 text-center font-mono">{idx + 1}</td>
                         <td className="py-2 px-3 font-medium">{job.nama_pekerjaan}</td>
-                        <td className="py-2 px-3 text-center">{job.estimasi_durasi_jam || 2} Jam</td>
+                        <td className="py-2 px-3 text-center">{job.estimasi_durasi_jam || '-'} Jam</td>
                         <td className="py-2 px-3 text-center">
                           <div className="w-4 h-4 border border-slate-400 mx-auto rounded-xs"></div>
                         </td>
@@ -181,22 +181,11 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                       </tr>
                     ))
                   ) : (
-                    <>
-                      <tr>
-                        <td className="py-2 px-2.5 text-center font-mono">1</td>
-                        <td className="py-2 px-3 font-medium">Service Berkala &amp; Pengecekan Sistem Pelumasan</td>
-                        <td className="py-2 px-3 text-center">1.5 Jam</td>
-                        <td className="py-2 px-3 text-center"><div className="w-4 h-4 border border-slate-400 mx-auto rounded-xs"></div></td>
-                        <td className="py-2 px-3 text-center text-slate-300">______</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 px-2.5 text-center font-mono">2</td>
-                        <td className="py-2 px-3 font-medium">Overhaul / Pembongkaran &amp; Pembersihan Kampas Rem</td>
-                        <td className="py-2 px-3 text-center">2.0 Jam</td>
-                        <td className="py-2 px-3 text-center"><div className="w-4 h-4 border border-slate-400 mx-auto rounded-xs"></div></td>
-                        <td className="py-2 px-3 text-center text-slate-300">______</td>
-                      </tr>
-                    </>
+                    <tr>
+                      <td colSpan={5} className="py-4 px-3 text-center italic text-slate-400">
+                        ( Belum ada rincian pekerjaan diinput Foreman )
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
@@ -227,7 +216,7 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                         <td className="py-2 px-3 text-center">{part.satuan || 'Pcs'}</td>
                         <td className="py-2 px-3 text-center text-[10px] font-semibold">
                           {part.status_ketersediaan === 'Tidak Ready di Stock' ? (
-                            <span className="text-purple-700 font-bold">PO Kotak Merah</span>
+                            <span className="text-purple-700 font-bold">PO Part Indent</span>
                           ) : (
                             <span className="text-emerald-700 font-bold">Ready di Gudang</span>
                           )}
@@ -235,22 +224,11 @@ export const PrintSpkModal: React.FC<PrintSpkModalProps> = ({ spk, pekerjaanList
                       </tr>
                     ))
                   ) : (
-                    <>
-                      <tr>
-                        <td className="py-2 px-2.5 text-center font-mono">1</td>
-                        <td className="py-2 px-3 font-medium">Brake Pad Set Depan Truk Heavy Duty</td>
-                        <td className="py-2 px-3 text-center font-bold">1</td>
-                        <td className="py-2 px-3 text-center">Set</td>
-                        <td className="py-2 px-3 text-center text-emerald-700 font-bold text-[10px]">Ready di Gudang</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 px-2.5 text-center font-mono">2</td>
-                        <td className="py-2 px-3 font-medium">Oli Mesin Diesel 15W-40 (Drum)</td>
-                        <td className="py-2 px-3 text-center font-bold">12</td>
-                        <td className="py-2 px-3 text-center">Liter</td>
-                        <td className="py-2 px-3 text-center text-emerald-700 font-bold text-[10px]">Ready di Gudang</td>
-                      </tr>
-                    </>
+                    <tr>
+                      <td colSpan={5} className="py-4 px-3 text-center italic text-slate-400">
+                        ( Belum ada kebutuhan sparepart diinput Foreman )
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>

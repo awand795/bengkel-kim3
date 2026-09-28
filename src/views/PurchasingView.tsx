@@ -166,7 +166,7 @@ export const PurchasingView: React.FC = () => {
           targetRoles: ['Mekanik'],
           targetUserId: mechanicId,
           title: 'Barang Ready di Bengkel KIM3',
-          message: `Sparepart untuk armada ${pr.no_polisi} telah ready di bengkel. SA finalisasi estimasi untuk approval customer sebelum WO dimulai.`,
+          message: `Sparepart untuk kendaraan ${pr.no_polisi} telah ready di bengkel. SA finalisasi estimasi untuk approval customer sebelum WO dimulai.`,
           linkTab: 'mekanik',
           urgency: 'info',
         });
@@ -176,15 +176,15 @@ export const PurchasingView: React.FC = () => {
         type: 'SPK_STATUS_CHANGED',
         targetRoles: ['Foreman', 'SA'],
         title: 'Barang Ready di Bengkel KIM3',
-        message: `Sparepart untuk armada ${pr.no_polisi} telah ready di bengkel. SA finalisasi estimasi untuk approval customer.`,
+        message: `Sparepart untuk kendaraan ${pr.no_polisi} telah ready di bengkel. SA finalisasi estimasi untuk approval customer.`,
         linkTab: 'foreman',
         urgency: 'success',
       });
 
       await publishKeCustomer({
         type: 'SPK_STATUS_CHANGED',
-        title: 'Sparepart Armada Tersedia',
-        message: `Sparepart untuk armada ${pr.no_polisi} telah tiba di bengkel. SA sedang finalisasi estimasi untuk persetujuan Anda.`,
+        title: 'Sparepart Kendaraan Tersedia',
+        message: `Sparepart untuk kendaraan ${pr.no_polisi} telah tiba di bengkel. SA sedang finalisasi estimasi untuk persetujuan Anda.`,
         linkTab: 'fleet-status',
         urgency: 'info',
         noPolisi: pr.no_polisi,
@@ -233,7 +233,7 @@ export const PurchasingView: React.FC = () => {
       
       {/* Top Header */}
       <SectionHeader
-        title="Admin Purchasing - Pengadaan Part (Kotak Merah)"
+        title="Admin Purchasing - Pengadaan Part (Part Indent)"
         description="Proses Penawaran Min. 2 Vendor, Kesepakatan PO, dan Input Estimasi Ketersediaan (ETA)"
         badge={
           <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-status-red-bg text-status-red text-xs font-bold border border-status-red/30">
@@ -386,7 +386,7 @@ export const PurchasingView: React.FC = () => {
                 <div className="space-y-4 text-xs">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="p-3 bg-surface rounded-xl border border-border">
-                      <span className="text-ink-muted text-xs block">Armada</span>
+                      <span className="text-ink-muted text-xs block">Kendaraan</span>
                       <span className="font-bold text-ink text-sm">{selectedPr.no_polisi}</span>
                     </div>
                     <div className="p-3 bg-surface rounded-xl border border-border">
@@ -580,7 +580,7 @@ export const PurchasingView: React.FC = () => {
           open={true}
           onClose={() => setIsProcessingPo(false)}
           title={`Proses PO untuk ${selectedPr.no_pr}`}
-          subtitle={`Armada: ${selectedPr.no_polisi} • ${selectedPr.nama_customer || 'Customer'}`}
+          subtitle={`Kendaraan: ${selectedPr.no_polisi} • ${selectedPr.nama_customer || 'Customer'}`}
           currentStep={poStep}
           onNext={() => setPoStep((prev) => prev + 1)}
           onBack={() => setPoStep((prev) => prev - 1)}
@@ -721,7 +721,7 @@ export const PurchasingView: React.FC = () => {
                         <span className="font-bold text-ink">{selectedPr.no_pr}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-ink-muted">Armada:</span>
+                        <span className="text-ink-muted">Kendaraan:</span>
                         <span className="font-bold text-ink">{selectedPr.no_polisi}</span>
                       </div>
                       <div className="flex justify-between">

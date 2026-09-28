@@ -159,7 +159,7 @@ export interface ListQuery {
 
 // Standar batas pengambilan data di aplikasi KIM 3:
 // - DEFAULT_PAGE_LIMIT: Batas default baris per halaman untuk tampilan tabel operasional
-// - LOOKUP_LIST_LIMIT: Batas aman untuk daftar dropdown referensi (nopol armada, sparepart, dll.)
+// - LOOKUP_LIST_LIMIT: Batas aman untuk daftar dropdown referensi (nopol kendaraan, sparepart, dll.)
 //   sehingga tidak membebani browser dengan ribuan DOM sekaligus.
 export const DEFAULT_PAGE_LIMIT = 10;
 export const LOOKUP_LIST_LIMIT = 150;
@@ -296,6 +296,16 @@ export const api = {
     fetchList<Kendaraan>('/kim3/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
     const res = await apiClient.post('/kim3/kendaraan-tambah', data);
+    return res.data;
+  },
+  // Edit unit kendaraan (customer hanya boleh unit miliknya — guard tenant di server)
+  updateKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
+    const res = await apiClient.post('/kim3/kendaraan-update', data);
+    return res.data;
+  },
+  // Hapus unit kendaraan (customer hanya boleh unit miliknya — guard tenant di server)
+  hapusKendaraan: async (no_polisi: string): Promise<any> => {
+    const res = await apiClient.post('/kim3/hapus-kendaraan', { no_polisi });
     return res.data;
   },
 
@@ -545,14 +555,16 @@ export const api = {
       role: data.role || data.peran,
       status_aktif: data.status_aktif !== false,
       id_pelanggan: data.id_pelanggan,
-      nama_perusahaan: data.nama_perusahaan,
+      nama_perusahaan: data.nama_perusahaan ?? null,
+      alamat: (data as any).alamat ?? null,
+      npwp: (data as any).npwp ?? null,
       no_telepon: (data as any).no_telepon ?? null,
       foto_profil: (data as any).foto_profil ?? null,
     };
   },
 
-  // Profil Sendiri: simpan nama/telepon/foto (terkunci ke id JWT)
-  updateProfil: async (data: { nama_lengkap: string; no_telepon?: string; foto_profil?: string }): Promise<any> => {
+  // Profil Sendiri: simpan profil (terkunci ke id JWT) — data tersimpan di tabel pengguna
+  updateProfil: async (data: { nama_lengkap: string; nama_perusahaan?: string; alamat?: string; npwp?: string; no_telepon?: string; foto_profil?: string }): Promise<any> => {
     const res = await apiClient.post('/kim3/profil-simpan', data);
     return res.data;
   },
@@ -631,6 +643,12 @@ export const api = {
 
   tandaiSemuaNotifikasiBaca: async (): Promise<any> => {
     const res = await apiClient.post('/kim3/notifikasi-baca-semua', {});
+    return res.data;
+  },
+
+  // Hapus SEMUA notifikasi milik user ini (personal + role; broadcast ALL tidak ikut)
+  hapusSemuaNotifikasi: async (): Promise<any> => {
+    const res = await apiClient.post('/kim3/notifikasi-hapus-semua', {});
     return res.data;
   },
 

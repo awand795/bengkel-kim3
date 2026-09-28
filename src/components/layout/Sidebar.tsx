@@ -72,7 +72,7 @@ export const Sidebar: React.FC = () => {
       roles: ['Super Admin'],
       defaultTab: 'security-dashboard',
       children: [
-        { id: 'security-dashboard', label: 'Dashboard Pos', icon: LayoutDashboard },
+        { id: 'security-dashboard', label: 'Dashboard Security', icon: LayoutDashboard },
         { id: 'security-checkin', label: 'Check In Masuk', icon: PlusCircle },
         { id: 'security-booking', label: 'List Nopol Booking', icon: Calendar },
         { id: 'security-onprogress', label: 'Nopol di Bengkel', icon: Clock },
@@ -89,7 +89,7 @@ export const Sidebar: React.FC = () => {
       children: [
         { id: 'sa-list', label: 'Daftar SPK Aktif', icon: ClipboardList },
         { id: 'sa-baru', label: 'Buat SPK Baru', icon: PlusCircle },
-        { id: 'sa-kotak-merah', label: 'Kotak Merah (PR)', icon: ShoppingBag },
+        { id: 'sa-kotak-merah', label: 'Part Indent (PR)', icon: ShoppingBag },
       ],
     },
     {
@@ -120,17 +120,17 @@ export const Sidebar: React.FC = () => {
     },
     {
       id: 'fleet-group',
-      label: 'Portal Armada Fleet',
+      label: 'Portal Kendaraan Fleet',
       icon: Truck,
       roles: ['Super Admin'],
       defaultTab: 'fleet-dashboard',
       children: [
-        { id: 'fleet-dashboard', label: 'Dashboard Armada', icon: LayoutDashboard },
+        { id: 'fleet-dashboard', label: 'Dashboard Kendaraan', icon: LayoutDashboard },
         { id: 'fleet-booking', label: 'Booking Servis Baru', icon: Calendar },
         { id: 'fleet-status', label: 'Status & Pelacakan Unit', icon: Clock },
         { id: 'fleet-history', label: 'Histori Servis & Faktur', icon: Receipt },
-        { id: 'fleet-kendaraan', label: 'Daftar Armada Truk', icon: Car },
-        { id: 'fleet-dokumen', label: 'Dokumen STNK & KIR', icon: FileText },
+        { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Car },
+        { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
         { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2 },
       ],
     },
@@ -160,7 +160,7 @@ export const Sidebar: React.FC = () => {
       roles: ['Security'],
       defaultTab: 'security-dashboard',
       children: [
-        { id: 'security-dashboard', label: 'Dashboard Pos', icon: LayoutDashboard },
+        { id: 'security-dashboard', label: 'Dashboard Security', icon: LayoutDashboard },
         { id: 'security-checkin', label: 'Check In Masuk', icon: PlusCircle },
         { id: 'security-booking', label: 'List Nopol Booking', icon: Calendar },
         { id: 'security-onprogress', label: 'Nopol di Bengkel', icon: Clock },
@@ -181,7 +181,7 @@ export const Sidebar: React.FC = () => {
       children: [
         { id: 'sa-list', label: 'Daftar SPK Aktif', icon: ClipboardList },
         { id: 'sa-baru', label: 'Buat SPK Baru', icon: PlusCircle },
-        { id: 'sa-kotak-merah', label: 'Kotak Merah (PR)', icon: ShoppingBag },
+        { id: 'sa-kotak-merah', label: 'Part Indent (PR)', icon: ShoppingBag },
       ],
     },
     {
@@ -222,7 +222,7 @@ export const Sidebar: React.FC = () => {
     // =========================================================================
     // 7. ADMIN PURCHASING
     // =========================================================================
-    { id: 'purchasing', label: 'PR, PO & Kotak Merah', icon: ShoppingBag, roles: ['Admin Purchasing'] },
+    { id: 'purchasing', label: 'PR, PO & Part Indent', icon: ShoppingBag, roles: ['Admin Purchasing'] },
     {
       id: 'beli-part-group',
       label: 'Penjualan Part Langsung',
@@ -272,17 +272,17 @@ export const Sidebar: React.FC = () => {
     // =========================================================================
     {
       id: 'fleet-group',
-      label: 'Portal Armada Fleet',
+      label: 'Portal Kendaraan Fleet',
       icon: Truck,
       roles: ['Customer Fleet'],
       defaultTab: 'fleet-dashboard',
       children: [
-        { id: 'fleet-dashboard', label: 'Dashboard Armada', icon: LayoutDashboard },
+        { id: 'fleet-dashboard', label: 'Dashboard Kendaraan', icon: LayoutDashboard },
         { id: 'fleet-booking', label: 'Booking Servis Baru', icon: Calendar },
         { id: 'fleet-status', label: 'Status & Pelacakan Unit', icon: Clock },
         { id: 'fleet-history', label: 'Histori Servis & Faktur', icon: Receipt },
-        { id: 'fleet-kendaraan', label: 'Daftar Armada Truk', icon: Car },
-        { id: 'fleet-dokumen', label: 'Dokumen STNK & KIR', icon: FileText },
+        { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Car },
+        { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
         { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2 },
       ],
     },

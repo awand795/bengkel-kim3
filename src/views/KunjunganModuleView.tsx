@@ -20,16 +20,22 @@ import {
   XCircle,
   PackageCheck,
   History,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
+import { tanggalKey } from '../utils/tanggal';
+import { PaginationBar } from '../components/common/PaginationBar';
 
-type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Sudah Keluar';
+type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Selesai';
 
 export const KunjunganModuleView: React.FC = () => {
   const queryClient = useQueryClient();
   const { currentUser, kunjunganPendingId, setKunjunganPendingId, setApprovalModalOpen } = useAppStore();
   const [subTab, setSubTab] = useState<'masuk' | 'riwayat'>('masuk');
   const [riwayatFilter, setRiwayatFilter] = useState<RiwayatFilterType>('Semua');
+  const [riwayatPage, setRiwayatPage] = useState(1);
+  const [riwayatLimit, setRiwayatLimit] = useState(10);
+  const [riwayatTanggal, setRiwayatTanggal] = useState('');
   const [rejecting, setRejecting] = useState<AntrianKunjungan | null>(null);
   const [rejectStep, setRejectStep] = useState(0);
   const [catatanTolak, setCatatanTolak] = useState('');
@@ -87,18 +93,33 @@ export const KunjunganModuleView: React.FC = () => {
   // Filtered Riwayat based on filter chips
   const filteredRiwayat = useMemo(() => {
     return kunjunganRiwayat.filter((item) => {
+      if (riwayatTanggal && tanggalKey(item.waktu_masuk) !== riwayatTanggal) return false;
       if (riwayatFilter === 'Diterima') {
         return item.status_konfirmasi_pic === 'Diterima';
       }
       if (riwayatFilter === 'Ditolak') {
         return item.status_konfirmasi_pic === 'Ditolak';
       }
-      if (riwayatFilter === 'Sudah Keluar') {
+      if (riwayatFilter === 'Selesai') {
         return item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar;
       }
       return true;
     });
-  }, [kunjunganRiwayat, riwayatFilter]);
+  }, [kunjunganRiwayat, riwayatFilter, riwayatTanggal]);
+
+  // Pagination riwayat di sisi client — endpoint /kim3/antrian mengirim seluruh baris
+  // (parameters []), jadi halaman diatur di sini tanpa perubahan server.
+  const riwayatTotal = filteredRiwayat.length;
+  const riwayatTotalPages = Math.ceil(riwayatTotal / riwayatLimit) || 1;
+  const riwayatSafePage = Math.min(riwayatPage, riwayatTotalPages);
+  const paginatedRiwayat = useMemo(
+    () =>
+      filteredRiwayat.slice(
+        (riwayatSafePage - 1) * riwayatLimit,
+        riwayatSafePage * riwayatLimit
+      ),
+    [filteredRiwayat, riwayatSafePage, riwayatLimit]
+  );
 
   const countRiwayatSemua = kunjunganRiwayat.length;
   const countRiwayatDiterima = kunjunganRiwayat.filter((a) => a.status_konfirmasi_pic === 'Diterima').length;
@@ -177,7 +198,7 @@ export const KunjunganModuleView: React.FC = () => {
     { id: 'Semua', label: 'Semua', count: countRiwayatSemua },
     { id: 'Diterima', label: 'Diterima', count: countRiwayatDiterima },
     { id: 'Ditolak', label: 'Ditolak', count: countRiwayatDitolak },
-    { id: 'Sudah Keluar', label: 'Sudah Keluar', count: countRiwayatSudahKeluar },
+    { id: 'Selesai', label: 'Selesai', count: countRiwayatSudahKeluar },
   ];
 
   return (
@@ -235,10 +256,10 @@ export const KunjunganModuleView: React.FC = () => {
           subtitle="Sudah check-out gerbang"
           icon={PackageCheck}
           tone="blue"
-          active={subTab === 'riwayat' && riwayatFilter === 'Sudah Keluar'}
+          active={subTab === 'riwayat' && riwayatFilter === 'Selesai'}
           onClick={() => {
             setSubTab('riwayat');
-            setRiwayatFilter('Sudah Keluar');
+            setRiwayatFilter('Selesai');
           }}
         />
       </div>
@@ -253,11 +274,46 @@ export const KunjunganModuleView: React.FC = () => {
       {/* Content Section */}
       <div className="card-modern p-5 space-y-4">
         {subTab === 'riwayat' && (
-          <FilterChips
-            options={filterChipsData}
-            selectedId={riwayatFilter}
-            onChange={(id: string) => setRiwayatFilter(id as RiwayatFilterType)}
-          />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <FilterChips
+              options={filterChipsData}
+              selectedId={riwayatFilter}
+              onChange={(id: string) => {
+                setRiwayatFilter(id as RiwayatFilterType);
+                setRiwayatPage(1);
+              }}
+            />
+            <div className="flex items-center gap-2 shrink-0">
+              <label
+                className="flex items-center gap-1.5 bg-surface border border-border rounded-xl px-2.5 py-1.5 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors"
+                title="Filter tanggal kunjungan"
+              >
+                <Calendar className="w-3.5 h-3.5 text-ink-subtle" />
+                <input
+                  type="date"
+                  value={riwayatTanggal}
+                  onChange={(e) => {
+                    setRiwayatTanggal(e.target.value);
+                    setRiwayatPage(1);
+                  }}
+                  className="bg-transparent text-xs font-bold text-ink focus:outline-none cursor-pointer"
+                  aria-label="Filter tanggal riwayat kunjungan"
+                />
+              </label>
+              {riwayatTanggal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRiwayatTanggal('');
+                    setRiwayatPage(1);
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                >
+                  Reset tanggal
+                </button>
+              )}
+            </div>
+          </div>
         )}
 
         {subTab === 'masuk' ? (
@@ -283,38 +339,56 @@ export const KunjunganModuleView: React.FC = () => {
           )
         ) : (
           filteredRiwayat.length > 0 ? (
-            <div className="space-y-3">
-              {filteredRiwayat.map((item) => (
-                <ListItemCard
-                  key={item.id}
-                  title={`${item.no_polisi} — ${item.nama_customer || 'Pelanggan Tamu'}`}
-                  subtitle={`Tiket: ${item.no_tiket} • Masuk: ${formatWaktu(item.waktu_masuk)}${item.waktu_keluar ? ` • Keluar: ${formatWaktu(item.waktu_keluar)}` : ''}`}
-                  badge={
-                    <div className="flex items-center gap-1.5">
-                      <StatusBadge status={item.status_kunjungan} size="sm" />
-                      {item.status_konfirmasi_pic && (
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                            item.status_konfirmasi_pic === 'Diterima'
-                              ? 'bg-status-green-bg text-status-green'
-                              : 'bg-status-red-bg text-status-red'
-                          }`}
-                        >
-                          {item.status_konfirmasi_pic}
-                        </span>
-                      )}
-                    </div>
-                  }
-                  chips={item.keperluan ? [item.keperluan] : undefined}
-                  onClick={() => setSelected(item)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="space-y-3">
+                {paginatedRiwayat.map((item) => (
+                  <ListItemCard
+                    key={item.id}
+                    title={`${item.no_polisi} — ${item.nama_customer || 'Pelanggan Tamu'}`}
+                    subtitle={`Tiket: ${item.no_tiket} • Masuk: ${formatWaktu(item.waktu_masuk)}${item.waktu_keluar ? ` • Keluar: ${formatWaktu(item.waktu_keluar)}` : ''}`}
+                    badge={
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge
+                          status={item.status_kunjungan === 'Keluar' ? 'Selesai' : item.status_kunjungan}
+                          size="sm"
+                        />
+                        {item.status_konfirmasi_pic && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                              item.status_konfirmasi_pic === 'Diterima'
+                                ? 'bg-status-green-bg text-status-green'
+                                : 'bg-status-red-bg text-status-red'
+                            }`}
+                          >
+                            {item.status_konfirmasi_pic}
+                          </span>
+                        )}
+                      </div>
+                    }
+                    chips={item.keperluan ? [item.keperluan] : undefined}
+                    onClick={() => setSelected(item)}
+                  />
+                ))}
+              </div>
+
+              <PaginationBar
+                page={riwayatSafePage}
+                totalPages={riwayatTotalPages}
+                totalRecords={riwayatTotal}
+                limit={riwayatLimit}
+                onPageChange={setRiwayatPage}
+                onLimitChange={(l) => {
+                  setRiwayatLimit(l);
+                  setRiwayatPage(1);
+                }}
+                label="riwayat kunjungan"
+              />
+            </>
           ) : (
             <EmptyState
               icon={History}
               title="Belum Ada Riwayat Kunjungan"
-              description="Riwayat tamu yang telah diproses akan tercatat di sini."
+              description="Riwayat tamu yang telah diproses akan tercatat di sini. Reset filter/tanggal bila data tidak muncul."
             />
           )
         )}
@@ -327,7 +401,10 @@ export const KunjunganModuleView: React.FC = () => {
           onClose={() => setSelected(null)}
           title={selected.no_polisi}
           subtitle={`${selected.nama_customer || 'Pelanggan'} • Tiket ${selected.no_tiket || `#${selected.id}`}`}
-          badge={<StatusBadge status={selected.status_kunjungan} size="sm" />}
+          badge={<StatusBadge
+            status={selected.status_kunjungan === 'Keluar' ? 'Selesai' : selected.status_kunjungan}
+            size="sm"
+          />}
           size="md"
           footer={
             <div className="flex items-center justify-between w-full gap-2">

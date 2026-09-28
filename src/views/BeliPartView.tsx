@@ -18,7 +18,9 @@ import { ModalPortal } from '../components/common/ModalPortal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { toast } from '../components/common/Toast';
 import { usePpnRate } from '../hooks/usePpnRate';
+import { tanggalKey } from '../utils/tanggal';
 import { 
+  Calendar,
   Package,
   PackageCheck, 
   Check, 
@@ -72,6 +74,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
   const [selectedTransaksi, setSelectedTransaksi] = useState<TransaksiBeliPart | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
   const [transaksiPage, setTransaksiPage] = useState(1);
+  const [transaksiTanggal, setTransaksiTanggal] = useState('');
   const [transaksiLimit, setTransaksiLimit] = useState(10);
   const [partSearchQuery, setPartSearchQuery] = useState('');
   const [showKatalogModal, setShowKatalogModal] = useState(false);
@@ -267,7 +270,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
         type: 'INVOICE_PAID',
         targetRoles: ['Admin Invoice', 'SA'],
         title: 'Pembayaran Part Lunas',
-        message: `Faktur ${invNo} untuk pembelian part armada ${item.no_polisi} (${item.nama_customer}) telah lunas dan masuk rekap kasir.`,
+        message: `Faktur ${invNo} untuk pembelian part kendaraan ${item.no_polisi} (${item.nama_customer}) telah lunas dan masuk rekap kasir.`,
         linkTab: 'kasir',
         urgency: 'success',
       });
@@ -275,7 +278,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       await publishKeCustomer({
         type: 'INVOICE_PAID',
         title: 'Pembayaran Pembelian Part Berhasil',
-        message: `Faktur ${invNo} untuk pembelian sparepart telah tercatat lunas. Silakan lakukan pengambilan barang di gudang/pos.`,
+        message: `Faktur ${invNo} untuk pembelian sparepart telah tercatat lunas. Bila kendaraan masih di area, lakukan checkout di Pos Security untuk keluar gerbang.`,
         linkTab: 'fleet-status',
         urgency: 'success',
         noPolisi: item.no_polisi,
@@ -292,76 +295,69 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
     onError: (err: any) => toast.error('Gagal memproses invoice kasir: ' + (err?.message || 'Coba lagi.')),
   });
 
-  // Mutation: Serahkan Barang ke Customer & Terbitkan Memo Keluar Security
+  // Mutation: Serahkan Barang ke Customer (checkout gerbang & Memo Keluar resmi diterbitkan oleh SECURITY — alur standar seperti Service)
   const serahkanBarangMutation = useMutation({
     mutationFn: async (trx: TransaksiBeliPart) => {
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const seq = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0');
-      const memoNo = `MK-${yy}${mm}${dd}-${seq}`;
-
-      await api.buatMemoKeluar({
-        no_memo: memoNo,
-        id_antrian: trx.id_antrian,
-        id_transaksi_beli_part: trx.id,
-        no_polisi: trx.no_polisi,
-        jenis_armada: 'Truk / Mobil',
-        nama_customer: trx.nama_customer,
-        tujuan_kedatangan: 'Beli Part',
-        waktu_keluar: now.toISOString(),
-        status: 'Selesai',
-        foto_keluar: fotoPenyerahan,
-        catatan: `Barang suku cadang telah diserahkan dan lunas. ${catatanPenyerahan || ''}`,
-        petugas_security: 'Pos Gerbang KIM 3',
-      });
-
-      if (trx.id_antrian) {
-        await api.checkOutSecurity({
-          id: trx.id_antrian,
-          barang_dibawa_keluar: true,
-          detail_barang_keluar: `Sparepart pembelian langsung (${trx.no_transaksi}): ${catatanPenyerahan || 'Suku Cadang'}`,
-          foto_kendaraan_keluar: fotoPenyerahan,
-          foto_barang: fotoPenyerahan,
-          no_memo_keluar: memoNo,
-        });
-      }
-
+      // Jangan turunkan status 'Selesai' (sudah lunas via kasir) — cukup lampirkan bukti penyerahan.
       await api.updateBeliPartStatus({
         id: trx.id,
-        status_transaksi: 'Barang Diserahkan',
+        status_transaksi: trx.status_transaksi === 'Selesai' ? 'Selesai' : 'Barang Diserahkan',
         foto_penyerahan: fotoPenyerahan,
         catatan: catatanPenyerahan,
       });
 
+      // Kunjungan dengan antrian: JANGAN auto-checkout — security yang memproses keluar gerbang.
+      // Walk-in tanpa kunjungan gerbang (tanpa antrian): terbitkan memo keluar barang saja.
+      let memoNo: string | null = null;
+      if (!trx.id_antrian) {
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const seq = String(Math.floor(1 + Math.random() * 9999)).padStart(4, '0');
+        memoNo = `MK-${yy}${mm}${dd}-${seq}`;
+        await api.buatMemoKeluar({
+          no_memo: memoNo,
+          id_transaksi_beli_part: trx.id,
+          no_polisi: trx.no_polisi,
+          jenis_armada: 'Truk / Mobil',
+          nama_customer: trx.nama_customer,
+          tujuan_kedatangan: 'Beli Part',
+          waktu_keluar: now.toISOString(),
+          status: 'Selesai',
+          foto_keluar: fotoPenyerahan,
+          catatan: `Barang suku cadang telah diserahkan (walk-in tanpa kunjungan gerbang). ${catatanPenyerahan || ''}`,
+          petugas_security: currentUser || 'Gudang KIM 3',
+        });
+      }
+
       return { memoNo, trx };
     },
-    onSuccess: async ({ memoNo, trx }) => {
+    onSuccess: async ({ trx }) => {
       queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
       queryClient.invalidateQueries({ queryKey: ['antrian-list'] });
       queryClient.invalidateQueries({ queryKey: ['memo-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
 
       realtimeHub.publish({
-        type: 'VEHICLE_CHECKED_OUT',
-        targetRoles: ['Security', 'SA'],
-        title: 'Memo Keluar Part Terbit',
-        message: `Barang untuk ${trx.no_polisi} telah diserahkan. Memo Keluar ${memoNo} otomatis dikirim ke Pos Security.`,
-        linkTab: 'security-memo',
-        urgency: 'success',
+        type: 'PART_READY',
+        targetRoles: ['Security'],
+        title: 'Barang Part Diserahkan — Siap Checkout Gerbang',
+        message: `Barang untuk ${trx.no_polisi} (${trx.nama_customer}) telah diserahkan oleh gudang. Lakukan checkout gerbang & terbitkan Memo Keluar seperti alur Service.`,
+        linkTab: 'security-onprogress',
+        urgency: 'urgent',
       });
 
       await publishKeCustomer({
-        type: 'VEHICLE_CHECKED_OUT',
+        type: 'PART_READY',
         title: 'Pengambilan Part Selesai',
-        message: `Barang untuk ${trx.no_polisi} telah diserahkan dan Memo Keluar resmi telah diterbitkan di Pos Security.`,
+        message: `Barang untuk ${trx.no_polisi} telah diserahkan oleh gudang. Selesaikan pembayaran di Kasir bila belum lunas, lalu lakukan checkout di Pos Security untuk keluar gerbang.`,
         linkTab: 'fleet-status',
         urgency: 'success',
         noPolisi: trx.no_polisi,
       });
 
-      toast.success(`Barang resmi diserahkan ke Customer! Memo Keluar ${memoNo} telah dikirim ke Pos Security.`);
+      toast.success('Barang resmi diserahkan ke Customer! Checkout gerbang & Memo Keluar diproses oleh Pos Security.');
       setPickingStep(null);
       setActiveTab('transaksi');
     },
@@ -402,11 +398,14 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
   const totalCount = allTransaksi.length;
   const waitingApprovalCount = allTransaksi.filter(t => t.status_transaksi === 'Menunggu Approval' || t.status_transaksi === 'Estimasi Disetujui').length;
   const readyCount = allTransaksi.filter(t => t.status_transaksi === 'Barang Siap Diambil' || t.status_transaksi === 'Picking Warehouse').length;
-  const selesaiCount = allTransaksi.filter(t => t.status_transaksi === 'Selesai' || t.status_transaksi === 'Barang Diserahkan').length;
+  const belumBayarCount = allTransaksi.filter(t => t.status_transaksi === 'Barang Diserahkan').length;
+  const selesaiCount = allTransaksi.filter(t => t.status_transaksi === 'Selesai').length;
 
   const filteredTransaksi = allTransaksi.filter((item) => {
     const q = searchFilter.toLowerCase();
-    return (
+    const cocokTanggal = !transaksiTanggal ||
+      tanggalKey(item.created_at || (item as any).tanggal_transaksi) === transaksiTanggal;
+    return cocokTanggal && (
       item.no_transaksi.toLowerCase().includes(q) ||
       item.no_polisi.toLowerCase().includes(q) ||
       item.nama_customer.toLowerCase().includes(q)
@@ -415,9 +414,10 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
 
   const totalTransaksi = filteredTransaksi.length;
   const totalTransaksiPages = Math.ceil(totalTransaksi / transaksiLimit) || 1;
+  const transaksiSafePage = Math.min(transaksiPage, totalTransaksiPages);
   const paginatedTransaksi = filteredTransaksi.slice(
-    (transaksiPage - 1) * transaksiLimit,
-    transaksiPage * transaksiLimit
+    (transaksiSafePage - 1) * transaksiLimit,
+    transaksiSafePage * transaksiLimit
   );
 
   const filteredStock = (stokList || []).filter((s) => {
@@ -549,7 +549,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       {activeTab === 'transaksi' && (
         <div className="space-y-6">
           {/* KPI Stat Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
             <StatCard
               title="Total Transaksi"
               value={totalCount}
@@ -572,6 +572,14 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
               tone="blue"
             />
             <StatCard
+              title="Belum Dibayar"
+              value={belumBayarCount}
+              subtitle="Diserahkan, tagihan menggantung"
+              icon={AlertCircle}
+              tone="red"
+              active={belumBayarCount > 0}
+            />
+            <StatCard
               title="Selesai / Lunas"
               value={selesaiCount}
               subtitle="Faktur & memo terbit"
@@ -584,21 +592,51 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-bold text-ink tracking-tight">Histori Transaksi Pembelian</h2>
-                <p className="text-xs text-ink-muted">Daftar order sparepart langsung pelanggan &amp; armada</p>
+                <p className="text-xs text-ink-muted">Daftar order sparepart langsung pelanggan &amp; kendaraan</p>
               </div>
               
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Cari nopol / transaksi..."
-                  value={searchFilter}
-                  onChange={(e) => {
-                    setSearchFilter(e.target.value);
-                    setTransaksiPage(1);
-                  }}
-                  className="pl-9 pr-3.5 py-2 rounded-xl border border-border text-xs bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none w-64 text-ink"
-                />
+              <div className="flex flex-wrap items-center gap-2">
+                <label
+                  className="flex items-center gap-1.5 bg-surface border border-border rounded-xl px-2.5 py-2 text-xs text-ink-muted cursor-pointer hover:border-accent/40 transition-colors"
+                  title="Filter tanggal transaksi"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-ink-subtle" />
+                  <input
+                    type="date"
+                    value={transaksiTanggal}
+                    onChange={(e) => {
+                      setTransaksiTanggal(e.target.value);
+                      setTransaksiPage(1);
+                    }}
+                    className="bg-transparent text-xs font-bold text-ink focus:outline-none cursor-pointer"
+                    aria-label="Filter tanggal transaksi"
+                  />
+                </label>
+                {transaksiTanggal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTransaksiTanggal('');
+                      setTransaksiPage(1);
+                    }}
+                    className="px-2.5 py-2 rounded-xl text-xs font-bold text-status-red hover:bg-status-red-bg transition-colors"
+                  >
+                    Reset
+                  </button>
+                )}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Cari nopol / transaksi..."
+                    value={searchFilter}
+                    onChange={(e) => {
+                      setSearchFilter(e.target.value);
+                      setTransaksiPage(1);
+                    }}
+                    className="pl-9 pr-3.5 py-2 rounded-xl border border-border text-xs bg-surface focus:bg-surface-raised focus:ring-2 focus:ring-accent focus:outline-none w-64 text-ink"
+                  />
+                </div>
               </div>
             </div>
 
@@ -715,7 +753,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
                 <h3 className="text-base font-bold text-ink">1. Data Pelanggan &amp; Unit Kendaraan</h3>
-                <p className="text-xs text-ink-muted">Pilih armada dari gerbang atau input nama pembeli sparepart</p>
+                <p className="text-xs text-ink-muted">Pilih kendaraan dari gerbang atau input nama pembeli sparepart</p>
               </div>
               <span className="px-2.5 py-1 rounded-xl bg-accent-subtle text-accent font-bold text-xs border border-accent/20">
                 Service Advisor POS
@@ -760,7 +798,7 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                 }}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-border font-semibold text-xs bg-surface-raised text-ink focus:ring-2 focus:ring-accent focus:outline-none cursor-pointer"
               >
-                <option value="">-- Pilih Armada Antrean Gerbang atau Ketik Manual di Bawah --</option>
+                <option value="">-- Pilih Kendaraan Antrean Gerbang atau Ketik Manual di Bawah --</option>
                 {antrianBeliPart.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.no_polisi} - {a.nama_customer || 'Pelanggan'} ({new Date(a.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
@@ -1063,8 +1101,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                     onClick={() => setPickingStep('serah')}
                     className="py-3 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>2. Serahkan Barang &amp; Memo Keluar</span>
+                  <Check className="w-4 h-4" />
+                  <span>2. Serahkan Barang ke Customer</span>
                   </button>
                 </div>
 
@@ -1317,9 +1355,9 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
                   type="button"
                   disabled={serahkanBarangMutation.isPending}
                   onClick={() => {
-                    const belumLunas = activeTransaksi.status_transaksi !== 'Selesai';
-                    const tanpaFoto = !fotoPenyerahan;
-                    if (belumLunas || tanpaFoto) {
+                    // Alur resmi: gudang menyerahkan barang DULU, pembayaran dilakukan customer
+                    // di Kasir setelahnya; checkout gerbang tetap oleh Security.
+                    if (!fotoPenyerahan) {
                       setShowSerahWarning(true);
                       return;
                     }
@@ -1360,10 +1398,8 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
         <ConfirmModal
           title={`Perhatian sebelum serah-terima ${activeTransaksi.no_transaksi}`}
           message={[
-            ...(activeTransaksi.status_transaksi !== 'Selesai'
-              ? [`Status "${activeTransaksi.status_transaksi}" (belum lunas di Kasir)`]
-              : []),
             ...(!fotoPenyerahan ? ['Foto penyerahan belum diunggah'] : []),
+            'Pembayaran dapat diselesaikan customer di Kasir SETELAH penyerahan ini.',
             'Lanjutkan serah-terima?',
           ]}
           confirmLabel="Tetap Serahkan"

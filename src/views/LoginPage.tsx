@@ -176,10 +176,10 @@ export const LoginPage: React.FC = () => {
 
           <div className="mt-8 max-w-lg">
             <h1 className="text-2xl xl:text-3xl font-bold tracking-tight text-white leading-snug">
-              Sistem Operasional Bengkel &amp; Portal Armada Fleet
+              Sistem Operasional Bengkel &amp; Portal Kendaraan Fleet
             </h1>
             <p className="mt-3 text-xs sm:text-sm text-teal-100/80 leading-relaxed">
-              Platform terintegrasi untuk pemantauan alur perawatan armada komersial, tata kelola suku cadang, dan koordinasi antar unit kerja bengkel secara transparan.
+              Platform terintegrasi untuk pemantauan alur perawatan kendaraan komersial, tata kelola suku cadang, dan koordinasi antar unit kerja bengkel secara transparan.
             </p>
           </div>
 
@@ -265,7 +265,7 @@ export const LoginPage: React.FC = () => {
               <img src="/logo.png" alt="KIM3 Bengkel Logo" className="h-7 w-auto object-contain" />
               <span className="text-xs font-bold text-ink">BENGKEL KIM 3</span>
             </div>
-            <p className="text-xs text-ink-muted">Sistem Operasional &amp; Portal Armada Fleet</p>
+            <p className="text-xs text-ink-muted">Sistem Operasional &amp; Portal Kendaraan Fleet</p>
           </div>
 
           {/* Card Form */}

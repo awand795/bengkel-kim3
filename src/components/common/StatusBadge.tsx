@@ -20,13 +20,19 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'estimasi disetujui':
         return 'bg-accent-subtle text-accent border-accent/30';
 
-      // Blue (Proses / Pengerjaan Mekanik)
+      // Blue (Proses / Pengerjaan Mekanik / Gudang)
       case 'dalam pengerjaan':
       case 'sedang dikerjakan':
       case 'dikerjakan':
       case 'pengecekan mekanik':
       case 'menunggu pengecekan mekanik':
+      case 'picking warehouse':
+      case 'barang siap diambil':
         return 'bg-status-blue-bg text-status-blue border-status-blue/20';
+
+      // Amber khusus penyerahan — barang sudah di customer, MENUNGGU PEMBAYARAN
+      case 'barang diserahkan':
+        return 'bg-status-amber-bg text-status-amber border-status-amber/20';
 
       // Amber (Waiting / Pending / Approval / Part)
       case 'booked':

@@ -258,7 +258,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
   const countMenungguQC = onProgressList.filter(a => a.status_kunjungan === 'Menunggu QC').length;
 
   // Filtered queries (search + tanggal + status/tujuan per tab)
+  // Booking yang sudah di-check-in tidak ditampilkan lagi di daftar booking —
+  // kendaraannya kini berada di tab "Nopol di Bengkel" / "Telah Keluar".
+  const checkedInBookingIds = new Set(
+    antrianData.map((a) => a.id_booking).filter((v): v is number => v != null)
+  );
   const filteredBookingList = bookingList.filter(b =>
+    !checkedInBookingIds.has(b.id) &&
     (b.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (b.nama_customer || b.nama_perusahaan || '').toLowerCase().includes(searchQuery.toLowerCase())) &&
     (!bookingTanggal || (b.tanggal_booking || '').slice(0, 10) === bookingTanggal) &&
@@ -380,7 +386,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           linkTab: 'pic-terkait',
           urgency: 'urgent',
         });
-        // Notif personal ke pemilik armada bila plat terdaftar.
+        // Notif personal ke pemilik kendaraan bila plat terdaftar.
         if (pemilik?.user_id) {
           realtimeHub.publish({
             type: 'KUNJUNGAN_ARRIVED',
@@ -404,7 +410,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           linkTab: 'beli-part',
           urgency: 'urgent',
         });
-        // Notif personal ke pemilik armada bila plat terdaftar.
+        // Notif personal ke pemilik kendaraan bila plat terdaftar.
         if (pemilik?.user_id) {
           realtimeHub.publish({
             type: 'VEHICLE_CHECKED_IN',
@@ -428,7 +434,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           urgency: 'urgent',
         });
 
-        // 2. Notifikasi untuk Customer Fleet (Pemilik Armada).
+        // 2. Notifikasi untuk Customer Fleet (Pemilik Kendaraan).
         // HANYA bila pemilik plat terdaftar (personal by user + tenant).
         // Tanpa pemilik: tidak broadcast (hentikan bocor ke semua customer).
         if (pemilik?.user_id) {
@@ -437,7 +443,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             targetRoles: ['Customer Fleet'],
             targetUserId: pemilik.user_id,
             targetPelangganId: pemilik.id_pelanggan,
-            title: 'Armada Tiba di Pos Gerbang',
+            title: 'Kendaraan Tiba di Pos Gerbang',
             message: `Unit ${formCheckin.no_polisi} telah berhasil di-check in di Pos Security KIM 3 dan sedang menunggu antrian inspeksi awal.`,
             linkTab: 'fleet-status',
             urgency: 'info',
@@ -554,7 +560,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
     });
     setSelectedBooking(b);
     changeTab('checkin');
-    toast.success(`Data booking armada ${b.no_polisi} (${b.nama_perusahaan || b.nama_customer || 'Pelanggan'}) berhasil diisi otomatis ke formulir check-in!`);
+    toast.success(`Data booking kendaraan ${b.no_polisi} (${b.nama_perusahaan || b.nama_customer || 'Pelanggan'}) berhasil diisi otomatis ke formulir check-in!`);
   };
 
   return (
@@ -574,7 +580,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </span>
             </div>
             <p className="text-xs text-ink-muted mt-0.5">
-              Gate Control &amp; Validasi Nopol Booking, Monitoring Armada Realtime, dan Penerbitan Memo Keluar
+              Gate Control &amp; Validasi Nopol Booking, Monitoring Kendaraan Realtime, dan Penerbitan Memo Keluar
             </p>
           </div>
         </div>
@@ -622,7 +628,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               onClick={() => changeTab('booking')}
             />
             <StatCard
-              title="Armada di Dalam Bengkel"
+              title="Kendaraan di Dalam Bengkel"
               value={`${onProgressList.length} Unit`}
               subtitle="Aktif di KIM 3"
               icon={Truck}
@@ -652,7 +658,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
               <div>
                 <h2 className="text-sm font-bold text-ink">Live Aktivitas Gerbang Masuk &amp; Keluar Pos Security</h2>
-                <p className="text-xs text-ink-muted">Pencatatan realtime seluruh armada yang melintas di pos gerbang</p>
+                <p className="text-xs text-ink-muted">Pencatatan realtime seluruh kendaraan yang melintas di pos gerbang</p>
               </div>
               <button
                 type="button"
@@ -663,6 +669,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               </button>
             </div>
 
+            {checkinHariIni.length === 0 ? (
+              <EmptyState
+                icon={Truck}
+                title="Belum ada aktivitas gerbang hari ini"
+                description="Check-in & check-out kendaraan yang tercatat hari ini akan muncul di sini secara realtime."
+              />
+            ) : (
             <div className="divide-y divide-border">
               {checkinHariIni.slice(0, 6).map((item) => (
                 <div key={`feed-${item.id}`} className="py-3 flex items-center justify-between gap-4">
@@ -706,6 +719,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 </div>
               ))}
             </div>
+            )}
           </div>
         </div>
       )}
@@ -715,6 +729,75 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
       {/* ========================================================= */}
       {currentTab === 'checkin' && (
         <div className="space-y-6">
+          {/* Gate Control Live Stream — feed realtime aktivitas gerbang */}
+          <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+              <div>
+                <h2 className="text-sm font-bold text-ink">Live Aktivitas Gerbang Masuk &amp; Keluar Pos Security</h2>
+                <p className="text-xs text-ink-muted">Pencatatan realtime seluruh kendaraan yang melintas di pos gerbang</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCheckinModal(true)}
+                className="px-3 py-1.5 rounded-xl bg-accent-subtle text-accent hover:bg-accent hover:text-white font-bold text-xs transition-colors"
+              >
+                + Check In Langsung
+              </button>
+            </div>
+
+            {checkinHariIni.length === 0 ? (
+              <EmptyState
+                icon={Truck}
+                title="Belum ada aktivitas gerbang hari ini"
+                description="Check-in & check-out kendaraan yang tercatat hari ini akan muncul di sini secara realtime."
+              />
+            ) : (
+              <div className="divide-y divide-border">
+                {checkinHariIni.slice(0, 6).map((item) => (
+                  <div key={`feed-checkin-${item.id}`} className="py-3 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                        item.status_kunjungan === 'Selesai' || item.status_kunjungan === 'Keluar'
+                          ? 'bg-status-green-bg text-status-green'
+                          : 'bg-accent-subtle text-accent'
+                      }`}>
+                        {item.status_kunjungan === 'Selesai' || item.status_kunjungan === 'Keluar' ? (
+                          <LogOut className="w-4 h-4" />
+                        ) : (
+                          <Truck className="w-4 h-4" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-ink">{item.no_polisi}</span>
+                          <span className="text-xs font-semibold text-ink-muted">({item.nama_customer})</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-surface font-bold text-ink-muted border border-border">
+                            {item.tujuan_kedatangan}
+                          </span>
+                        </div>
+                        <div className="text-xs text-ink-subtle mt-0.5 font-mono">
+                          Masuk: {new Date(item.waktu_masuk).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB
+                          {item.waktu_keluar && ` • Keluar: ${new Date(item.waktu_keluar).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} WIB`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={labelStatusAntrian(item)} size="sm" />
+                      <button
+                        type="button"
+                        onClick={() => setShowDetailModal(item)}
+                        className="px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent-subtle rounded-xl transition-colors"
+                      >
+                        Detail →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Stack Layout: Form Check-In di atas, Riwayat Check-In Hari Ini di bawah */}
           <div className="space-y-6">
             {/* Form Check-In (full width) */}
@@ -726,7 +809,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-ink">Formulir Validasi Gerbang</h3>
-                    <p className="text-xs text-ink-muted">Lengkapi data armada sebelum diarahkan ke area bengkel</p>
+                    <p className="text-xs text-ink-muted">Lengkapi data kendaraan sebelum diarahkan ke area bengkel</p>
                   </div>
                 </div>
                 {formCheckin.id_booking && (
@@ -764,7 +847,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <Calendar className="w-4 h-4 text-accent shrink-0" />
                     <div>
                       <div className="text-xs font-bold text-ink">Ada {bookingList.length} Booking Terdaftar</div>
-                      <div className="text-xs text-ink-muted">Tarik data booking armada agar tidak perlu mengetik manual</div>
+                      <div className="text-xs text-ink-muted">Tarik data booking kendaraan agar tidak perlu mengetik manual</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -823,7 +906,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     </div>
 
                     <div>
-                      <label className="block font-bold text-ink-muted mb-1.5">Jenis Armada</label>
+                      <label className="block font-bold text-ink-muted mb-1.5">Jenis Kendaraan</label>
                       <select
                         value={formCheckin.jenis_armada}
                         onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
@@ -1023,7 +1106,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                       <label className="block font-bold text-ink-muted mb-1.5">Catatan Security</label>
                       <textarea
                         rows={2}
-                        placeholder="Catatan kondisi awal fisik atau kelengkapan armada..."
+                        placeholder="Catatan kondisi awal fisik atau kelengkapan kendaraan..."
                         value={formCheckin.catatan_security}
                         onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
                         className="w-full px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none bg-surface-raised shadow-2xs"
@@ -1239,7 +1322,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               {filteredBookingList.length === 0 ? (
                 <EmptyState
                   title="Tidak ada data booking kendaraan"
-                  description="Tidak ada booking kendaraan yang cocok dengan kriteria filter."
+                  description="Booking yang sudah di-check-in tidak muncul lagi di sini — cek tab Nopol di Bengkel atau Telah Keluar."
                   icon={Calendar}
                 />
               ) : (
@@ -1326,7 +1409,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <div>
                     <div className="text-ink-subtle text-xs">No. Polisi</div>
                     <div className="text-base font-bold text-ink mt-0.5 font-mono">{bookingPreview.no_polisi}</div>
-                    <div className="text-ink-subtle text-xs mt-2">Jenis Armada</div>
+                    <div className="text-ink-subtle text-xs mt-2">Jenis Kendaraan</div>
                     <div className="font-semibold text-ink">{bookingPreview.jenis_armada || 'Truk'}</div>
                     <div className="text-ink-subtle text-xs mt-2">Tujuan Kunjungan</div>
                     <div className="font-semibold text-ink">{bookingPreview.tujuan_kunjungan || 'Service'}</div>
@@ -1732,7 +1815,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <th className="py-2.5 px-3 font-bold w-12">No.</th>
                     <th className="py-2.5 px-3 font-bold">No. Polisi</th>
                     <th className="py-2.5 px-3 font-bold">Nama Customer</th>
-                    <th className="py-2.5 px-3 font-bold">Jenis Armada</th>
+                    <th className="py-2.5 px-3 font-bold">Jenis Kendaraan</th>
                     <th className="py-2.5 px-3 font-bold">Tujuan</th>
                     <th className="py-2.5 px-3 font-bold">Masuk</th>
                     <th className="py-2.5 px-3 font-bold">Keluar</th>
@@ -2117,7 +2200,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   <span className="font-black text-ink">: {selectedMemo.no_polisi}</span>
                 </div>
                 <div className="flex">
-                  <span className="w-28 text-ink-muted">Jenis Armada</span>
+                  <span className="w-28 text-ink-muted">Jenis Kendaraan</span>
                   <span className="font-semibold text-ink">: {selectedMemo.jenis_armada || 'Truk'}</span>
                 </div>
                 <div className="flex">
@@ -2211,8 +2294,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
           size="lg"
           steps={[
             {
-              id: 'armada',
-              label: 'Data Armada',
+              id: 'kendaraan',
+              label: 'Data Kendaraan',
               isValid: !!formCheckin.no_polisi.trim(),
               content: (
                 <div className="space-y-4 text-xs">
@@ -2222,7 +2305,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         <Calendar className="w-4 h-4 text-accent shrink-0" />
                         <div>
                           <div className="text-xs font-bold text-ink">Ada {bookingList.length} Booking Terdaftar</div>
-                          <div className="text-xs text-ink-muted">Pilih armada untuk mengisi formulir otomatis</div>
+                          <div className="text-xs text-ink-muted">Pilih kendaraan untuk mengisi formulir otomatis</div>
                         </div>
                       </div>
                       <select
@@ -2259,7 +2342,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     </div>
 
                     <div>
-                      <label className="block font-bold text-ink mb-1">Jenis Armada</label>
+                      <label className="block font-bold text-ink mb-1">Jenis Kendaraan</label>
                       <select
                         value={formCheckin.jenis_armada}
                         onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
@@ -2411,7 +2494,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     <label className="block font-bold text-ink mb-1">Catatan Security</label>
                     <textarea
                       rows={2}
-                      placeholder="Catatan kondisi awal fisik atau kelengkapan armada..."
+                      placeholder="Catatan kondisi awal fisik atau kelengkapan kendaraan..."
                       value={formCheckin.catatan_security}
                       onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:ring-1 focus:ring-accent focus:outline-none bg-surface-raised text-ink text-xs"
@@ -2521,7 +2604,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                   <div className="p-3 bg-status-amber-bg rounded-xl border border-status-amber/30 text-status-amber text-xs flex items-start gap-2">
                     <Info className="w-4 h-4 shrink-0 text-status-amber mt-0.5" />
-                    <span>Setelah konfirmasi, sistem akan secara otomatis menerbitkan <strong>Memo Keluar (Surat Jalan)</strong> resmi untuk armada ini.</span>
+                    <span>Setelah konfirmasi, sistem akan secara otomatis menerbitkan <strong>Memo Keluar (Surat Jalan)</strong> resmi untuk kendaraan ini.</span>
                   </div>
                 </div>
               ),
@@ -2560,7 +2643,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <span className="font-mono font-bold text-accent">{showDetailModal.no_tiket}</span>
               </div>
               <div>
-                <span className="text-ink-subtle text-xs block">Jenis Armada</span>
+                <span className="text-ink-subtle text-xs block">Jenis Kendaraan</span>
                 <span className="font-bold text-ink">{showDetailModal.jenis_armada || 'Truk'}</span>
               </div>
               <div>
@@ -2640,7 +2723,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
             <div>
               <span className="text-ink-subtle text-xs block mb-1">Keperluan / Penugasan PIC</span>
               <div className="p-3 bg-surface rounded-xl border border-border text-ink font-medium">
-                {showDetailModal.keperluan || 'Service berkala dan pemeliharaan armada.'}
+                {showDetailModal.keperluan || 'Service berkala dan pemeliharaan kendaraan.'}
               </div>
             </div>
 

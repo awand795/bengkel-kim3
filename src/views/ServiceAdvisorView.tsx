@@ -591,7 +591,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         type: 'SPK_CREATED',
         targetRoles: ['Foreman'],
         title: 'SPK Penerimaan Dibuat',
-        message: `SPK untuk unit ${formPenerimaan.no_polisi} (${formPenerimaan.nama_customer || 'Armada'}) siap untuk dicek dan didistribusikan ke Mekanik.`,
+        message: `SPK untuk unit ${formPenerimaan.no_polisi} (${formPenerimaan.nama_customer || 'Kendaraan'}) siap untuk dicek dan didistribusikan ke Mekanik.`,
         linkTab: 'foreman',
         urgency: 'info',
       });
@@ -599,7 +599,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       // 2. Notifikasi untuk Customer PEMILIK plat saja (anti-bocor antar akun)
       await publishKeCustomer({
         type: 'SPK_CREATED',
-        title: 'SPK Penerimaan Armada Diterbitkan',
+        title: 'SPK Penerimaan Kendaraan Diterbitkan',
         message: `Unit ${formPenerimaan.no_polisi} telah diinspeksi awal oleh Service Advisor dan SPK resmi telah diterbitkan.`,
         linkTab: 'fleet-status',
         urgency: 'info',
@@ -727,12 +727,12 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         realtimeHub.publish({
           type: 'PURCHASE_REQUEST_CREATED',
           targetRoles: ['Admin Purchasing', 'SA'],
-          title: 'PR Part Masuk (Kotak Merah)',
+          title: 'PR Part Masuk (Part Indent)',
           message: `Estimasi SPK ${spk.no_spk} memerlukan [${result.emptyNames}] yang kosong di gudang. Status kendaraan: Waiting Part.`,
           linkTab: 'purchasing',
           urgency: 'warning',
         });
-        toast.warning(`Estimasi Berhasil! Sparepart [${result.emptyNames}] stoknya KOSONG di gudang, PR diajukan dan status armada diset ke "Waiting Part".`);
+        toast.warning(`Estimasi Berhasil! Sparepart [${result.emptyNames}] stoknya KOSONG di gudang, PR diajukan dan status kendaraan diset ke "Waiting Part".`);
       } else {
         toast.success('Estimasi Biaya berhasil disubmit ke Customer untuk Approval.');
       }
@@ -1018,7 +1018,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             : activeTab === 'penerimaan'
             ? 'Buat SPK Baru'
             : activeTab === 'estimasi-pr'
-            ? 'Kotak Merah (PR)'
+            ? 'Part Indent (PR)'
             : activeTab === 'penjualan-part'
             ? 'Penjualan Part Langsung'
             : activeTab === 'permintaan-part'
@@ -1192,7 +1192,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                             type="button"
                             onClick={() => setActiveTab('estimasi-pr')}
                             className="px-2.5 py-1.5 bg-surface text-ink-muted hover:text-ink rounded-xl font-bold text-xs border border-border flex items-center gap-1 cursor-pointer transition-colors"
-                            title={`PR ${prAktif.no_pr} berstatus ${prAktif.status_pr} — lihat di Kotak Merah`}
+                            title={`PR ${prAktif.no_pr} berstatus ${prAktif.status_pr} — lihat di Part Indent`}
                           >
                             <ShoppingBag className="w-3.5 h-3.5" /> PR {prAktif.status_pr}
                           </button>
@@ -1257,12 +1257,12 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           }}
           className="card-modern bg-surface-raised rounded-2xl border border-border p-5 sm:p-7 shadow-xs space-y-7"
         >
-          {/* BAGIAN 1: ARMADA & CUSTOMER */}
+          {/* BAGIAN 1: KENDARAAN & CUSTOMER */}
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-ink flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-accent" /> Armada &amp; Customer
+                  <Truck className="w-5 h-5 text-accent" /> Kendaraan &amp; Customer
                 </h3>
                 <p className="text-xs text-ink-muted">Pilih kendaraan antrian yang telah check-in di Pos Security</p>
               </div>
@@ -1341,7 +1341,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   <span className="text-base font-bold font-mono text-ink">{formPenerimaan.no_polisi}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-ink-subtle font-semibold block">Nama Pelanggan / Armada</span>
+                  <span className="text-xs text-ink-subtle font-semibold block">Nama Pelanggan / Kendaraan</span>
                   <span className="text-sm font-semibold text-ink">{formPenerimaan.nama_customer || '-'}</span>
                 </div>
                 <div>
@@ -1391,9 +1391,9 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               </div>
             </div>
 
-            {/* Checklist Kondisi Fisik Armada */}
+            {/* Checklist Kondisi Fisik Kendaraan */}
             <div className="p-4 bg-surface rounded-xl border border-border space-y-3">
-              <span className="block text-xs font-bold text-ink">Checklist Kondisi Awal Armada:</span>
+              <span className="block text-xs font-bold text-ink">Checklist Kondisi Awal Kendaraan:</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                   { key: 'cek_body', label: 'Bodi Kendaraan' },
@@ -1514,7 +1514,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             <div>
               <h2 className="text-base font-bold text-ink flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-status-red" />
-                Kotak Merah (PR &amp; PO Purchasing)
+                Part Indent (PR &amp; PO Purchasing)
               </h2>
               <p className="text-xs text-ink-muted">
                 SA mengajukan PR → Purchasing penawaran min. 2 vendor → SA setuju → Purchasing input ETA
@@ -2488,7 +2488,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               {hasEmptyStock && (
                 <div className="p-3 bg-status-red-bg rounded-xl border border-status-red/30 text-status-red text-xs flex gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <p><strong>Part Indent Terdeteksi!</strong> Menyetujui estimasi ini akan otomatis membuat PR Kotak Merah dan menahan status menjadi Waiting Part.</p>
+                  <p><strong>Part Indent Terdeteksi!</strong> Menyetujui estimasi ini akan otomatis membuat PR Part Indent dan menahan status menjadi Waiting Part.</p>
                 </div>
               )}
             </div>
@@ -2783,7 +2783,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 />
                 <div>
                   <div className="font-bold text-ink flex items-center gap-1.5">
-                    <span>3. Kelengkapan Dokumen &amp; Barang Armada</span>
+                    <span>3. Kelengkapan Dokumen &amp; Barang Kendaraan</span>
                     {finalCheckForm.kelengkapan_surat && <Check className="w-3.5 h-3.5 text-status-green" />}
                   </div>
                   <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">
@@ -2834,7 +2834,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           open={Boolean(selectedSpk)}
           onClose={() => setSelectedSpk(null)}
           title={`SPK ${selectedSpk.no_spk}`}
-          subtitle={`${selectedSpk.no_polisi} • ${selectedSpk.nama_customer || 'Armada'}`}
+          subtitle={`${selectedSpk.no_polisi} • ${selectedSpk.nama_customer || 'Kendaraan'}`}
           badge={<StatusBadge status={selectedSpk.status_spk} size="sm" />}
           size="lg"
           tabs={[

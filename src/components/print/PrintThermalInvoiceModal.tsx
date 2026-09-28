@@ -98,16 +98,12 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
 
               <div className="border-b border-dashed border-slate-400 my-2"></div>
 
-              {/* Rincian Tagihan */}
+              {/* Rincian Tagihan — hanya nilai faktur riil, tanpa pembagian jasa/part fiktif */}
               <div className="space-y-1 text-[10px]">
                 <div className="font-bold text-[10px] mb-1">RINCIAN PEMBAYARAN:</div>
                 <div className="flex justify-between">
-                  <span>Jasa Servis &amp; Perbaikan</span>
-                  <span>Rp {(invoice.subtotal ? invoice.subtotal * 0.4 : 0).toLocaleString('id-ID')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Sparepart &amp; Material</span>
-                  <span>Rp {(invoice.subtotal ? invoice.subtotal * 0.6 : 0).toLocaleString('id-ID')}</span>
+                  <span>Subtotal Tagihan</span>
+                  <span>Rp {invoice.subtotal != null ? Number(invoice.subtotal).toLocaleString('id-ID') : '-'}</span>
                 </div>
 
                 {invoice.diskon ? (
@@ -140,7 +136,17 @@ export const PrintThermalInvoiceModal: React.FC<PrintThermalInvoiceModalProps> =
                 </div>
                 <div className="flex justify-between">
                   <span>Status Bayar:</span>
-                  <span className="font-bold text-emerald-700 uppercase">LUNAS (PAID)</span>
+                  <span
+                    className={`font-bold uppercase ${
+                      invoice.status_pembayaran === 'Paid' || invoice.status_pembayaran === 'Lunas'
+                        ? 'text-emerald-700'
+                        : 'text-rose-700'
+                    }`}
+                  >
+                    {invoice.status_pembayaran === 'Paid' || invoice.status_pembayaran === 'Lunas'
+                      ? 'LUNAS (PAID)'
+                      : invoice.status_pembayaran || 'UNPAID'}
+                  </span>
                 </div>
               </div>
 

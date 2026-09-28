@@ -12,7 +12,7 @@ interface PaginationBarProps {
   onLimitChange: (limit: number) => void;
   /** Pilihan jumlah baris per halaman. */
   limitOptions?: number[];
-  /** Nama entitas untuk teks ringkasan, mis. "armada" atau "riwayat service". */
+  /** Nama entitas untuk teks ringkasan, mis. "kendaraan" atau "riwayat service". */
   label?: string;
   isLoading?: boolean;
 }

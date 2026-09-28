@@ -427,11 +427,11 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-bold text-ink">Jadwal Booking Hari Ini</h2>
                     <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-accent-subtle text-accent border border-accent/30">
-                      {todayBookings.length} Armada Terjadwal
+                      {todayBookings.length} Kendaraan Terjadwal
                     </span>
                   </div>
                   <p className="text-xs text-ink-muted">
-                    Beban kerja service yang akan datang (estimasi kedatangan armada di bengkel hari ini)
+                    Beban kerja service yang akan datang (estimasi kedatangan kendaraan di bengkel hari ini)
                   </p>
                 </div>
               </div>
@@ -478,7 +478,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 ) : (
                   <EmptyState
                     title="Belum Ada Jadwal Booking Hari Ini"
-                    description="Belum ada armada booking yang dijadwalkan untuk hari ini."
+                    description="Belum ada kendaraan booking yang dijadwalkan untuk hari ini."
                     icon={Calendar}
                   />
                 )}
@@ -486,14 +486,14 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 <div className="text-xs text-ink-muted bg-accent-subtle p-2.5 rounded-xl border border-accent/30 flex items-center gap-2">
                   <Info className="w-4 h-4 text-accent shrink-0" />
                   <span>
-                    Armada yang tiba di pos security gerbang dan telah dibuatkan SPK oleh SA akan otomatis muncul pada daftar <strong>SPK Menunggu &amp; On Progress</strong> di bawah untuk didistribusikan ke mekanik.
+                    Kendaraan yang tiba di pos security gerbang dan telah dibuatkan SPK oleh SA akan otomatis muncul pada daftar <strong>SPK Menunggu &amp; On Progress</strong> di bawah untuk didistribusikan ke mekanik.
                   </span>
                 </div>
               </div>
             ) : (
               <div className="text-xs text-ink-muted bg-surface p-3 rounded-xl border border-border flex items-center justify-between">
                 <span>
-                  <strong>{todayBookings.length} Armada Terjadwal:</strong>{' '}
+                  <strong>{todayBookings.length} Kendaraan Terjadwal:</strong>{' '}
                   {todayBookings.map((b) => `${b.no_polisi} (${b.jam_booking || '08:00'})`).join(', ')}
                 </span>
                 <button
@@ -842,7 +842,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-ink-muted mb-1.5">Pilih SPK Armada:</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1.5">Pilih SPK Kendaraan:</label>
               <select
                 value={selectedSpk?.id || ''}
                 onChange={(e) => {
@@ -851,7 +851,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 }}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs font-bold bg-surface-raised focus:outline-none focus:ring-2 focus:ring-accent"
               >
-                <option value="">-- Pilih SPK Armada --</option>
+                <option value="">-- Pilih SPK Kendaraan --</option>
                 {spkList?.map(s => (
                   <option key={s.id} value={s.id}>
                     {s.no_spk} - {s.no_polisi} ({s.nama_customer})
@@ -997,7 +997,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-ink-muted mb-1.5">Pilih SPK Armada untuk QC:</label>
+              <label className="block text-xs font-bold text-ink-muted mb-1.5">Pilih SPK Kendaraan untuk QC:</label>
               <select
                 value={selectedSpk?.id || ''}
                 onChange={(e) => {
@@ -1024,7 +1024,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 { key: 'fungsi_normal', label: '2. Fungsi Normal', desc: 'Sistem rem, kelistrikan, dan mesin bekerja optimal' },
                 { key: 'bebas_kebocoran', label: '3. Bebas Kebocoran', desc: 'Tidak ada kebocoran oli, minyak rem, atau cairan pendingin' },
                 { key: 'test_jalan', label: '4. Test Jalan', desc: 'Uji jalan singkat tidak ada getaran dan bunyi abnormal' },
-                { key: 'kebersihan', label: '5. Kebersihan', desc: 'Kabin, ruang mesin, dan bodi armada bersih dari oli mekanik' },
+                { key: 'kebersihan', label: '5. Kebersihan', desc: 'Kabin, ruang mesin, dan bodi kendaraan bersih dari oli mekanik' },
               ].map((param) => {
                 const isChecked = Boolean((firForm as any)[param.key]);
                 return (
@@ -1181,7 +1181,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                       Ringkasan Penugasan
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-ink-muted">Unit Armada:</span>
+                      <span className="text-ink-muted">Unit Kendaraan:</span>
                       <span className="font-bold text-ink">{assignSpk.no_polisi} ({assignSpk.no_spk})</span>
                     </div>
                     <div className="flex justify-between">
@@ -1227,7 +1227,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                 <div className="space-y-3.5 text-xs">
                   <div className="p-3.5 bg-surface rounded-xl border border-border space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-ink-muted">SPK Armada:</span>
+                      <span className="text-ink-muted">SPK Kendaraan:</span>
                       <span className="font-bold text-ink">{selectedSpk.no_spk} — {selectedSpk.no_polisi}</span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -1451,7 +1451,7 @@ export const ForemanView: React.FC<{ initialTab?: 'dashboard' | 'hasil-pengeceka
                     { key: 'fungsi_normal', label: '2. Fungsi Normal', desc: 'Sistem rem, kelistrikan, dan mesin bekerja optimal' },
                     { key: 'bebas_kebocoran', label: '3. Bebas Kebocoran', desc: 'Tidak ada kebocoran oli, minyak rem, atau cairan pendingin' },
                     { key: 'test_jalan', label: '4. Test Jalan', desc: 'Uji jalan singkat tidak ada getaran dan bunyi abnormal' },
-                    { key: 'kebersihan', label: '5. Kebersihan', desc: 'Kabin, ruang mesin, dan bodi armada bersih dari oli mekanik' },
+                    { key: 'kebersihan', label: '5. Kebersihan', desc: 'Kabin, ruang mesin, dan bodi kendaraan bersih dari oli mekanik' },
                   ].map((param) => {
                     const isChecked = Boolean((firForm as any)[param.key]);
                     return (

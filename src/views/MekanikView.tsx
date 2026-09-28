@@ -67,14 +67,25 @@ export const MekanikView: React.FC = () => {
 
   // Filter SPK spesifik untuk Mekanik yang bertugas (kecuali Super Admin atau Foreman yang dapat melihat seluruh antrian bengkel).
   // Strict: hanya WO yang ditugaskan ke mekanik login (by ID, fallback nama persis).
-  const mySpkList = (spkList || []).filter((s) => {
+  const allMySpkList = (spkList || []).filter((s) => {
     if (currentRole === 'Super Admin' || currentRole === 'Foreman') return true;
     return isSpkAssignedToMechanic(s, authUser, currentUser);
   });
 
+  // Pool WO AKTIF saja untuk stopwatch & lembar kerja (alur Excel):
+  // WO yang sudah Waiting QC ke atas KELUAR dari daftar kerja — lanjut ke Foreman (QC),
+  // SA (FIR) dan Kasir (invoice/checkout). WO kembali otomatis ke sini bila
+  // Foreman MENOLAK QC (status dikembalikan ke Dalam Pengerjaan) atau ada
+  // pekerjaan tambahan yang mengaktifkan kembali WO.
+  const mySpkList = allMySpkList.filter((s) => !FINISHED_STATUSES.includes(s.status_spk as string));
+
+  // Riwayat transisi saya: WO yang saya selesaikan dan SEDANG menunggu QC Foreman.
+  // Setelah Foreman memproses QC (lulus → lanjut FIR/Kasir, atau ditolak → WO kembali
+  // ke daftar kerja di atas), WO hilang total dari tampilan mekanik.
+  const myRiwayatList = allMySpkList.filter((s) => s.status_spk === 'Waiting QC');
+
   // Auto select active job dynamically from mySpkList.
-  // Prioritas: WO terbit siap dikerjakan, lalu yang sedang berjalan,
-  // lalu WO aktif lainnya; terakhir yang sudah selesai.
+  // Prioritas: WO terbit siap dikerjakan, lalu yang sedang berjalan, lalu WO aktif lainnya.
   const myJob = (activeJobId ? mySpkList.find(s => s.id === activeJobId) : null)
     || (activeJob ? mySpkList.find(s => s.id === activeJob.id) || activeJob : null)
     || mySpkList.find(s => s.status_spk === 'Estimasi Disetujui')
@@ -531,6 +542,35 @@ export const MekanikView: React.FC = () => {
           title="Tidak Ada SPK Ditugaskan"
           description="Belum ada SPK yang ditugaskan ke Anda hari ini. Tunggu distribusi pekerjaan dari Foreman."
         />
+      )}
+
+      {/* RIWAYAT PENGERJAAN SAYA — WO yang sudah lewat tahap mekanik (QC ke atas).
+          Alur Excel: setelah Finish Job, WO lanjut ke Foreman/SA/Kasir dan KELUAR
+          dari daftar kerja; kembali otomatis ke atas bila QC ditolak / ada tambahan. */}
+      {myRiwayatList.length > 0 && (
+        <div className="card-modern bg-surface-raised rounded-2xl border border-border p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-status-green" />
+              <h2 className="text-sm font-bold text-ink">Riwayat Pengerjaan Saya</h2>
+            </div>
+            <span className="text-xs text-ink-subtle">{myRiwayatList.length} WO • menunggu QC Foreman</span>
+          </div>
+          <div className="space-y-2">
+            {myRiwayatList.map((job) => (
+              <div key={job.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface border border-border text-xs">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-bold text-accent">{job.no_spk}</span>
+                    <span className="font-black text-ink">{job.no_polisi}</span>
+                  </div>
+                  <div className="text-ink-muted truncate mt-0.5">Customer: {job.nama_customer || '-'}</div>
+                </div>
+                <StatusBadge status={job.status_spk} size="sm" />
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* STEP MODAL TAMBAHAN PEKERJAAN */}

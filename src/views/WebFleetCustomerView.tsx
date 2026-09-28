@@ -46,6 +46,7 @@ import {
   Check,
   Info,
   Edit3,
+  Trash2,
   Eye,
   Printer,
   ArrowLeft
@@ -110,7 +111,18 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   const activeInvoice = myInvoiceList?.find((inv) => inv.id_spk === spk?.id) || null;
   const activeInvoiceLunas = !!activeInvoice && (activeInvoice.status_pembayaran === 'Paid' || activeInvoice.status_pembayaran === 'Lunas');
 
-  // Filter detail pekerjaan, part, dan dokumen armada aktif
+  // Format jam & waktu konsisten untuk stepper + timeline riwayat service
+  const fmtJam = (iso?: string | null): string =>
+    iso && !isNaN(new Date(iso).getTime())
+      ? new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+      : '';
+  const fmtWaktuFull = (iso?: string | null): string => {
+    if (!iso || isNaN(new Date(iso).getTime())) return '';
+    const d = new Date(iso);
+    return `Pukul ${d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB • ${d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+  };
+
+  // Filter detail pekerjaan, part, dan dokumen kendaraan aktif
   const activePekerjaan = (pekerjaanList || []).filter(p => p.id_spk === spk?.id);
   const activeParts = (partSpkList || []).filter(p => p.id_spk === spk?.id);
   const activeArmadaDocs = (myDokumenList || []).filter(d => d.no_polisi === spk?.no_polisi);
@@ -191,7 +203,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-sm font-bold text-ink">
-                          Armada Menunggu Suku Cadang (Sparepart)
+                          Kendaraan Menunggu Suku Cadang (Sparepart)
                         </h3>
                         <span className="px-2.5 py-0.5 rounded-full bg-status-amber-bg text-status-amber text-xs font-bold">
                           Estimasi Menyusul
@@ -302,25 +314,26 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
 
               {/* Stepper Progress Bar (image5.png Mockup 2 Stepper) */}
               <div className="py-6 px-2 overflow-x-auto">
-                <div className="flex items-center justify-between min-w-[650px]">
+                <div className="flex items-start justify-between min-w-[650px]">
                   {[
-                    { step: 1, title: 'Check In', desc: 'Diterima Security', done: true },
+                    { step: 1, title: 'Check In', desc: 'Diterima Security', done: true, waktu: spk.waktu_check_in || spk.created_at },
                     { 
                       step: 2, 
                       title: spk.status_spk === 'Waiting Part' ? 'Waiting Part' : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval') ? 'Menunggu Approval' : spk.status_spk === 'Waiting QC' ? 'Menunggu QC' : 'Proses Pekerjaan', 
                       desc: spk.status_spk === 'Waiting Part' ? 'Menunggu Part (Pending)' : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval') ? 'Estimasi Diajukan' : spk.status_spk === 'Estimasi Disetujui' ? 'WO Terbit' : spk.status_spk === 'Waiting QC' ? 'Inspeksi Foreman' : spk.status_spk === 'Dalam Pengerjaan' ? 'Mekanik Aktif' : 'Selesai Dikerjakan', 
                       done: ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(spk.status_spk as string), 
                       current: ['Waiting Part', 'Menunggu Approval Customer', 'Waiting Approval', 'Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC'].includes(spk.status_spk as string),
-                      isWaitingPart: spk.status_spk === 'Waiting Part'
+                      isWaitingPart: spk.status_spk === 'Waiting Part',
+                      waktu: spk.waktu_mulai_pekerjaan
                     },
-                    { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai', current: spk.status_spk === 'Waiting QC' },
-                    { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' },
-                    { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: spk.status_spk === 'Selesai' },
-                    { step: 6, title: 'Check Out', desc: 'Armada Keluar', done: !!spk.waktu_check_out },
+                    { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai', current: spk.status_spk === 'Waiting QC', waktu: spk.waktu_qc || spk.tanggal_qc },
+                    { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai', waktu: spk.waktu_fir_closed },
+                    { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: spk.status_spk === 'Selesai' || activeInvoiceLunas, waktu: activeInvoice?.tanggal_invoice || (spk.status_spk === 'Selesai' ? spk.waktu_fir_closed : null) },
+                    { step: 6, title: 'Check Out', desc: 'Kendaraan Keluar', done: !!spk.waktu_check_out, waktu: spk.waktu_check_out },
                   ].map((s, idx) => (
-                    <div key={s.step} className="flex-1 flex items-center">
-                      <div className="flex flex-col items-center flex-1 text-center">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
+                    <div key={s.step} className="flex-1 flex items-start">
+                      <div className="flex flex-col items-center flex-1 text-center min-w-0">
+                        <div className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
                           s.isWaitingPart
                             ? 'bg-status-red text-white ring-4 ring-status-red/20 shadow-md scale-110'
                             : s.current 
@@ -331,13 +344,16 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         }`}>
                           {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
                         </div>
-                        <div className={`text-xs font-bold ${s.isWaitingPart ? 'text-status-red' : s.current ? 'text-accent' : 'text-ink'}`}>
+                        <div className={`text-xs font-bold leading-tight ${s.isWaitingPart ? 'text-status-red' : s.current ? 'text-accent' : s.done ? 'text-status-green' : 'text-ink'}`}>
                           {s.title}
                         </div>
                         <div className="text-xs text-ink-subtle mt-0.5">{s.desc}</div>
+                        <div className={`text-[11px] font-mono mt-0.5 leading-tight ${s.done ? 'text-status-green' : s.current ? 'text-accent' : 'text-ink-subtle/60'}`}>
+                          {s.waktu ? fmtJam(s.waktu as string) : '—'}
+                        </div>
                       </div>
                       {idx < 5 && (
-                        <div className={`h-1 flex-1 mx-2 rounded-full ${s.done ? 'bg-status-green' : 'bg-surface'}`}></div>
+                        <div className={`h-1 flex-1 mx-2 mt-4 rounded-full ${s.done ? 'bg-status-green' : 'bg-surface'}`}></div>
                       )}
                     </div>
                   ))}
@@ -420,12 +436,12 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         <div className="relative">
                           <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
                           <div className="font-semibold text-ink">Kendaraan Masuk di Pos Security</div>
-                          <div className="text-xs text-ink-muted">Pukul {spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | Pos Security KIM 3</div>
+                          <div className="text-xs text-ink-muted">{fmtWaktuFull(spk.waktu_check_in || spk.created_at) || '-'} | Pos Security KIM 3</div>
                         </div>
                         <div className="relative">
                           <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-accent ring-4 ring-white"></div>
                           <div className="font-semibold text-ink">Penerimaan & Cek Awal oleh SA</div>
-                          <div className="text-xs text-ink-muted">Pukul {spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'} | SA: {spk.nama_sa || '-'} | Odometer: {spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</div>
+                          <div className="text-xs text-ink-muted">{fmtWaktuFull(spk.created_at) || '-'} | SA: {spk.nama_sa || '-'} | Odometer: {spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</div>
                         </div>
                         <div className="relative">
                           <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${spk.status_spk === 'Waiting Part' ? 'bg-status-red animate-pulse' : spk.status_spk === 'Waiting QC' ? 'bg-status-green' : 'bg-status-amber animate-pulse'}`}></div>
@@ -443,7 +459,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           </div>
                           {spk.waktu_selesai_pekerjaan && (
                             <div className="text-xs text-ink-muted">
-                              Selesai pukul {new Date(spk.waktu_selesai_pekerjaan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                              Selesai pukul {new Date(spk.waktu_selesai_pekerjaan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB • {new Date(spk.waktu_selesai_pekerjaan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                               {(() => {
                                 if (!spk.waktu_mulai_pekerjaan) return null;
                                 const ms = new Date(spk.waktu_selesai_pekerjaan as string).getTime() - new Date(spk.waktu_mulai_pekerjaan as string).getTime();
@@ -461,7 +477,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             <div className="font-semibold text-ink">Quality Control (QC) Lulus</div>
                             <div className="text-xs text-ink-muted">
                               Inspeksi kualitas pengerjaan disetujui Foreman
-                              {spk.tanggal_qc ? ` • ${new Date(spk.tanggal_qc).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(spk.tanggal_qc).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                              {spk.tanggal_qc ? ` • ${fmtWaktuFull(spk.tanggal_qc)}` : ''}
                             </div>
                           </div>
                         )}
@@ -471,27 +487,27 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             <div className="font-semibold text-ink">FIR Closed — Final Check SA</div>
                             <div className="text-xs text-ink-muted">
                               Pemeriksaan akhir lolos, invoice diterbitkan
-                              {spk.waktu_fir_closed ? ` • ${new Date(spk.waktu_fir_closed).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(spk.waktu_fir_closed).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                              {spk.waktu_fir_closed ? ` • ${fmtWaktuFull(spk.waktu_fir_closed)}` : ''}
                             </div>
                           </div>
                         )}
-                        {activeInvoiceLunas && activeInvoice && (
+                        {activeInvoiceLunas && activeInvoice && !!spk.waktu_check_out && (
                           <div className="relative">
                             <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
                             <div className="font-semibold text-ink">Pembayaran Lunas</div>
                             <div className="text-xs text-ink-muted">
                               {activeInvoice.no_invoice} • Rp {Number(activeInvoice.grand_total || 0).toLocaleString('id-ID')}
-                              {activeInvoice.tanggal_bayar ? ` • ${new Date(activeInvoice.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} ${new Date(activeInvoice.tanggal_bayar).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB` : ''}
+                              {activeInvoice.tanggal_bayar ? ` • ${fmtWaktuFull(activeInvoice.tanggal_bayar)}` : ''}
                               {activeInvoice.metode_pembayaran ? ` • ${activeInvoice.metode_pembayaran}` : ''}
                             </div>
                           </div>
                         )}
-                        {spk.waktu_check_out && (
+                        {spk.waktu_check_out && (!!spk.waktu_fir_closed || spk.status_spk === 'Selesai') && (
                           <div className="relative">
                             <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                            <div className="font-semibold text-ink">Armada Keluar Bengkel</div>
+                            <div className="font-semibold text-ink">Kendaraan Keluar Bengkel</div>
                             <div className="text-xs text-ink-muted">
-                              Check-out pos Security • {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                              Check-out pos Security • {fmtWaktuFull(spk.waktu_check_out)}
                             </div>
                           </div>
                         )}
@@ -597,7 +613,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     <div className="bg-status-amber-bg p-4 rounded-xl border border-status-amber/30 space-y-1.5">
                       <div className="font-bold text-status-amber flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 text-status-amber" />
-                        Keluhan Awal Customer (Driver / PIC Armada):
+                        Keluhan Awal Customer (Driver / PIC Kendaraan):
                       </div>
                       <p className="text-ink font-medium italic pl-6">
                         "{spk.keluhan_customer || '-'}"
@@ -689,9 +705,9 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                     </div>
 
-                    {/* Dokumen Terkait Armada */}
+                    {/* Dokumen Terkait Kendaraan */}
                     <div className="space-y-2 pt-2 border-t border-border">
-                      <span className="font-bold text-ink block">Berkas & Dokumen Armada Ini:</span>
+                      <span className="font-bold text-ink block">Berkas & Dokumen Kendaraan Ini:</span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface-raised hover:border-accent/30 transition-colors">
                           <div className="flex items-center gap-2.5">
@@ -742,7 +758,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             </div>
                             <button
                               type="button"
-                              onClick={() => toast.info('Mengunduh Riwayat', `Riwayat service armada ${spk.no_polisi} sedang disiapkan.`)}
+                              onClick={() => toast.info('Mengunduh Riwayat', `Riwayat service kendaraan ${spk.no_polisi} sedang disiapkan.`)}
                               className="p-1.5 text-accent hover:bg-accent-subtle rounded-xl"
                               title="Unduh Riwayat"
                             >
@@ -841,7 +857,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   <div className="text-base font-bold text-ink font-mono">
                     {spk.estimasi_waktu_jam || spk.lead_time_jam || 0} Jam
                   </div>
-                  <p className="text-xs text-ink-subtle">Waktu dihitung sejak persetujuan diberikan hingga armada siap dilakukan Quality Control.</p>
+                  <p className="text-xs text-ink-subtle">Waktu dihitung sejak persetujuan diberikan hingga kendaraan siap dilakukan Quality Control.</p>
                 </div>
               </div>
             ),
@@ -992,7 +1008,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   <div>
                     <h3 className="text-base font-bold text-ink">Beri Keputusan Pekerjaan Tambahan</h3>
                     <p className="text-xs text-ink-muted mt-1 max-w-sm mx-auto">
-                      Jika disetujui, item pekerjaan tambahan ini akan dimasukkan ke dalam SPK aktif armada Anda.
+                      Jika disetujui, item pekerjaan tambahan ini akan dimasukkan ke dalam SPK aktif kendaraan Anda.
                     </p>
                   </div>
 
@@ -1074,12 +1090,26 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // ── Pagination & pencarian server-side (API Builder) ────────────────────────
   // Endpoint /kim3/kendaraan & /kim3/spk sudah memakai "Automatic SQL Pagination",
-  // jadi daftar armada & riwayat service diambil per halaman (page + limit) dan
+  // jadi daftar kendaraan & riwayat service diambil per halaman (page + limit) dan
   // pencariannya dikirim ke server lewat parameter `q` (ILIKE di SQL).
   const [armadaPage, setArmadaPage] = useState(1);
   const [armadaLimit, setArmadaLimit] = useState(10);
   const [armadaSearch, setArmadaSearch] = useState('');
   const [armadaQuery, setArmadaQuery] = useState('');
+  // Edit & hapus unit kendaraan dari menu Daftar Kendaraan
+  const [editArmadaData, setEditArmadaData] = useState<Kendaraan | null>(null);
+  const [editArmadaForm, setEditArmadaForm] = useState({
+    jenis_armada: 'Truk',
+    merk: '',
+    model: '',
+    tahun: new Date().getFullYear(),
+    no_rangka: '',
+    no_mesin: '',
+    asuransi: '',
+    masa_berlaku_asuransi: '',
+    foto_kendaraan: '',
+  });
+  const [hapusArmadaTarget, setHapusArmadaTarget] = useState<Kendaraan | null>(null);
 
   const [historyPage, setHistoryPage] = useState(1);
   const [historyLimit, setHistoryLimit] = useState(10);
@@ -1161,7 +1191,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 15000,
   });
 
-  // Daftar armada per halaman (server-side pagination + search)
+  // Daftar kendaraan per halaman (server-side pagination + search)
   const { data: armadaPageData, isFetching: armadaFetching } = useQuery({
     queryKey: ['kendaraan-page', armadaPage, armadaLimit, armadaQuery],
     queryFn: () => api.getKendaraanPage({ page: armadaPage, limit: armadaLimit, q: armadaQuery }),
@@ -1192,12 +1222,45 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [kunjunganDetail, setKunjunganDetail] = useState<AntrianKunjungan | null>(null);
   const [beliPartDetail, setBeliPartDetail] = useState<TransaksiBeliPart | null>(null);
 
+  // Profil Customer & Kontak: form editable (tersimpan di tabel pengguna via /kim3/profil-simpan)
+  const [profilEditing, setProfilEditing] = useState(false);
+  const [profilForm, setProfilForm] = useState({
+    nama_perusahaan: authUser?.nama_perusahaan || '',
+    alamat: authUser?.alamat || '',
+    npwp: authUser?.npwp || '',
+    no_telepon: authUser?.no_telepon || '',
+    nama_pic: authUser?.nama_lengkap || '',
+  });
+  const simpanProfilMutation = useMutation({
+    mutationFn: () =>
+      api.updateProfil({
+        nama_lengkap: profilForm.nama_pic.trim() || authUser?.nama_lengkap || '',
+        nama_perusahaan: profilForm.nama_perusahaan.trim(),
+        alamat: profilForm.alamat.trim(),
+        npwp: profilForm.npwp.trim(),
+        no_telepon: profilForm.no_telepon.trim(),
+        foto_profil: authUser?.foto_profil || '',
+      }),
+    onSuccess: async () => {
+      const me = await api.getMe();
+      useAppStore.setState({ authUser: me, currentUser: me.nama_lengkap || '' });
+      try {
+        localStorage.setItem('bengkel_auth_user', JSON.stringify(me));
+      } catch {
+        /* abaikan */
+      }
+      setProfilEditing(false);
+      toast.success('Profil Disimpan', 'Data perusahaan & kontak Anda telah diperbarui.');
+    },
+    onError: (err) => toast.error('Gagal Menyimpan', getApiErrorMessage(err)),
+  });
+
   // Multi-tenant Customer Scoping:
   // Pelanggan ID & Nama Perusahaan dari sesi login akun mitra aktif
   const myPelangganId = authUser?.id_pelanggan || null;
   const myCompanyName = (authUser?.nama_perusahaan || authUser?.nama_lengkap || '').toLowerCase().trim();
 
-  // Predikat kepemilikan armada (guard tambahan di atas filter tenant SQL)
+  // Predikat kepemilikan kendaraan (guard tambahan di atas filter tenant SQL)
   const isMyKendaraan = (k: Kendaraan) => {
     if (myPelangganId && k.id_pelanggan === myPelangganId) return true;
     if (myCompanyName && (
@@ -1207,13 +1270,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return false;
   };
 
-  // Filter Kendaraan milik armada customer yang sedang login
+  // Filter Kendaraan milik kendaraan customer yang sedang login
   const myKendaraanList = (kendaraanList || []).filter((k) => isMyKendaraan(k));
 
-  // Himpunan plat nomor kendaraan armada customer
+  // Himpunan plat nomor kendaraan kendaraan customer
   const myPlateSet = new Set(myKendaraanList.map((k) => k.no_polisi.toUpperCase().replace(/\s+/g, '')));
 
-  // Filter SPK khusus armada customer yang sedang login
+  // Filter SPK khusus kendaraan customer yang sedang login
   const isMySpk = (s: SpkService) => {
     if (myPelangganId && s.id_pelanggan === myPelangganId) return true;
     if (myCompanyName && s.nama_customer && s.nama_customer.toLowerCase().trim() === myCompanyName) return true;
@@ -1226,7 +1289,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     .filter((s) => isMySpk(s))
     .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 
-  // Filter faktur milik armada customer yang sedang login
+  // Filter faktur milik kendaraan customer yang sedang login
   const myInvoiceList = (invoiceList || []).filter((inv) => {
     if (inv.id_spk && mySpkList.some((s) => s.id === inv.id_spk)) return true;
     if (myPelangganId && inv.id_pelanggan === myPelangganId) return true;
@@ -1234,14 +1297,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return false;
   });
 
-  // Baris yang sedang ditampilkan pada daftar armada & riwayat service.
+  // Baris yang sedang ditampilkan pada daftar kendaraan & riwayat service.
   // Server sudah memfilter per tenant di SQL, guard di sini hanya jaring pengaman
   // agar data mitra lain tidak pernah ikut tampil.
   const armadaRows = (armadaPageData?.rows || []).filter((k) => isMyKendaraan(k));
   const historyRows = (historyPageData?.rows || []).filter((s) => isMySpk(s));
 
   // Riwayat kunjungan & beli part berbasis plat (primary key):
-  // walk-in tampil otomatis setelah plat didaftarkan sebagai armada.
+  // walk-in tampil otomatis setelah plat didaftarkan sebagai kendaraan.
   const normPlat = (s?: string) => (s || '').toUpperCase().replace(/\s+/g, '');
   const isMyKunjungan = (a: AntrianKunjungan) => {
     if (a.no_polisi && myPlateSet.has(normPlat(a.no_polisi))) return true;
@@ -1427,7 +1490,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     );
   };
 
-  // Filter Dokumen khusus armada milik customer yang sedang login
+  // Filter Dokumen khusus kendaraan milik customer yang sedang login
   const myDokumenList = (dokumenList || []).filter((d) => {
     if (myPelangganId && d.id_pelanggan === myPelangganId) return true;
     if (myCompanyName && d.nama_perusahaan && d.nama_perusahaan.toLowerCase().trim() === myCompanyName) return true;
@@ -1437,6 +1500,35 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Active SPK being monitored: ambil SPK aktif milik customer yang sedang berjalan
   const activeTrackSpk = mySpkList.find(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed') || mySpkList[0];
+
+  // ── DOKUMEN SAYA: faktur otomatis dari transaksi milik customer ─────────────
+  // Semua invoice (service SPK & beli part) yang tercatat untuk user/pelanggan ini
+  // otomatis muncul sebagai dokumen — ambil dari invoice_pembayaran via id_transaksi_beli_part / id_spk.
+  const myInvoiceFakturList = myInvoiceList.filter((inv) => {
+    if (inv.id_spk && mySpkList.some((s) => s.id === inv.id_spk)) return true;
+    if (inv.id_transaksi_beli_part && myBeliPartList.some((t) => t.id === inv.id_transaksi_beli_part)) return true;
+    return false;
+  });
+  const [dokumenFilterPlat, setDokumenFilterPlat] = useState('');
+  const [dokumenPage, setDokumenPage] = useState(1);
+  const [dokumenLimit, setDokumenLimit] = useState(10);
+
+  const dokumenSemuaList = [...myDokumenList, ...myInvoiceFakturList].sort((a, b) => {
+    const dateOf = (x: DokumenKendaraan | InvoicePembayaran): string =>
+      'tanggal_upload' in x ? String(x.tanggal_upload || '') : String(x.tanggal_invoice || '');
+    return dateOf(b).localeCompare(dateOf(a));
+  });
+  const dokumenTerfilterList = dokumenSemuaList.filter((item) => {
+    if (!dokumenFilterPlat) return true;
+    return (item.no_polisi || '').toUpperCase().replace(/\s+/g, '') === dokumenFilterPlat.toUpperCase().replace(/\s+/g, '');
+  });
+  const dokumenTotalPages = Math.max(1, Math.ceil(dokumenTerfilterList.length / dokumenLimit));
+  const dokumenSafePage = Math.min(dokumenPage, dokumenTotalPages);
+  const dokumenRows = dokumenTerfilterList.slice((dokumenSafePage - 1) * dokumenLimit, dokumenSafePage * dokumenLimit);
+
+  React.useEffect(() => {
+    setDokumenPage(1);
+  }, [dokumenFilterPlat, dokumenLimit]);
 
   // Tarif PPN dari DB (dipakai komponen tracking + seksi approval)
   const { rate: ppnRateCustomer } = usePpnRate();
@@ -1594,7 +1686,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       });
       toast.success(
         'Booking Service Berhasil Dibuat!',
-        `Armada ${bookingForm.no_polisi} dijadwalkan pada ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking} WIB.`
+        `Kendaraan ${bookingForm.no_polisi} dijadwalkan pada ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking} WIB.`
       );
       setOpenBookingModal(false);
       setBookingStep(1);
@@ -1607,7 +1699,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       toast.error('Gagal Membuat Booking', err?.message || 'Periksa kembali koneksi atau data formulir Anda.'),
   });
 
-  // Tambah Armada State & Mutation
+  // Tambah Kendaraan State & Mutation
   const [openTambahArmadaModal, setOpenTambahArmadaModal] = useState(false);
   const [armadaForm, setArmadaForm] = useState({
     no_polisi: '',
@@ -1652,7 +1744,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
       queryClient.invalidateQueries({ queryKey: ['booking-list'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
-      toast.success('Unit Armada Ditambahkan', `Kendaraan ${plat} berhasil didaftarkan ke sistem.`);
+      toast.success('Unit Kendaraan Ditambahkan', `Kendaraan ${plat} berhasil didaftarkan ke sistem.`);
 
       // Klaim plat walk-in: bila ada riwayat (SPK/booking/invoice) untuk plat ini,
       // kirim 1 notif ringkasan personal ke diri sendiri.
@@ -1671,7 +1763,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           targetRoles: ['Customer Fleet'],
           targetUserId: authUser.id,
           targetPelangganId: myPelangganId,
-          title: 'Riwayat Armada Ditemukan',
+          title: 'Riwayat Kendaraan Ditemukan',
           message: `Plat ${plat} memiliki riwayat (${parts.join(', ')}) yang kini masuk ke akun Anda.`,
           linkTab: 'fleet-status',
           urgency: 'success',
@@ -1693,7 +1785,43 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       });
     },
     onError: (err: any) =>
-      toast.error('Gagal Menambahkan Unit', getApiErrorMessage(err, 'Periksa kembali kelengkapan data armada Anda.')),
+      toast.error('Gagal Menambahkan Unit', getApiErrorMessage(err, 'Periksa kembali kelengkapan data kendaraan Anda.')),
+  });
+
+  // Edit Kendaraan Mutation (server guard: customer hanya unit miliknya)
+  const editArmadaMutation = useMutation({
+    mutationFn: (data: typeof editArmadaForm) =>
+      api.updateKendaraan({
+        no_polisi: editArmadaData?.no_polisi || '',
+        jenis_armada: data.jenis_armada as any,
+        merk: data.merk,
+        model: data.model,
+        tahun: Number(data.tahun) || undefined,
+        no_rangka: data.no_rangka,
+        no_mesin: data.no_mesin,
+        asuransi: data.asuransi,
+        masa_berlaku_asuransi: data.masa_berlaku_asuransi || undefined,
+        foto_kendaraan: data.foto_kendaraan || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
+      queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
+      toast.success('Unit Kendaraan Diperbarui', `Data ${editArmadaData?.no_polisi || ''} berhasil disimpan.`);
+      setEditArmadaData(null);
+    },
+    onError: (err) => toast.error('Gagal Memperbarui Unit', getApiErrorMessage(err, 'Periksa kembali data kendaraan Anda.')),
+  });
+
+  // Hapus Kendaraan Mutation (server guard: customer hanya unit miliknya)
+  const hapusArmadaMutation = useMutation({
+    mutationFn: (noPolisi: string) => api.hapusKendaraan(noPolisi),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
+      queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
+      toast.success('Unit Kendaraan Dihapus', `${hapusArmadaTarget?.no_polisi || 'Unit'} telah dihapus dari daftar kendaraan Anda.`);
+      setHapusArmadaTarget(null);
+    },
+    onError: (err) => toast.error('Gagal Menghapus Unit', getApiErrorMessage(err, 'Unit mungkin sedang dipakai transaksi aktif.')),
   });
 
   // Tambah Dokumen State & Mutation
@@ -1721,7 +1849,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dokumen-list'] });
-      toast.success('Dokumen Berhasil Disimpan', `Berkas ${dokumenForm.nama_dokumen} untuk armada ${dokumenForm.no_polisi} aman tersimpan.`);
+      toast.success('Dokumen Berhasil Disimpan', `Berkas ${dokumenForm.nama_dokumen} untuk kendaraan ${dokumenForm.no_polisi} aman tersimpan.`);
       setOpenTambahDokumenModal(false);
       setDokumenForm({
         no_polisi: '',
@@ -1739,7 +1867,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   return (
     <div className="space-y-6">
       
-      {/* MENU 0: DASHBOARD RINGKASAN ARMADA */}
+      {/* MENU 0: DASHBOARD RINGKASAN KENDARAAN */}
       {fleetMenu === 'dashboard' && (
         <div className="space-y-6">
           {/* Welcome Banner */}
@@ -1751,7 +1879,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
               <h1 className="text-xl md:text-2xl font-black tracking-tight">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
               <p className="text-xs text-white/70 mt-1 max-w-xl leading-relaxed">
-                Pantau status perbaikan armada, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK & KIR secara realtime.
+                Pantau status perbaikan kendaraan, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK & KIR secara realtime.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
@@ -1771,7 +1899,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <StatCard
-              title="Total Armada Truk"
+              title="Total Kendaraan Truk"
               value={myKendaraanList.length}
               subtitle="Unit Terdaftar"
               icon={Truck}
@@ -1887,9 +2015,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div className="w-12 h-12 rounded-full bg-status-green-bg text-status-green flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-ink">Semua Unit Armada Beroperasi Prima</h3>
+              <h3 className="text-sm font-bold text-ink">Semua Unit Kendaraan Beroperasi Prima</h3>
               <p className="text-xs text-ink-muted mt-1 max-w-md mx-auto">
-                Saat ini tidak ada unit armada Anda yang sedang menginap atau diservis di bengkel KIM 3.
+                Saat ini tidak ada unit kendaraan Anda yang sedang menginap atau diservis di bengkel KIM 3.
               </p>
             </div>
           )}
@@ -1945,7 +2073,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
               <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
                 <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-accent" /> Armada Truk Anda
+                  <Truck className="w-4 h-4 text-accent" /> Kendaraan Truk Anda
                 </h3>
                 <button
                   type="button"
@@ -1983,7 +2111,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-ink-subtle py-4 text-center">Belum ada armada terdaftar.</p>
+                <p className="text-xs text-ink-subtle py-4 text-center">Belum ada kendaraan terdaftar.</p>
               )}
             </div>
           </div>
@@ -1999,7 +2127,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           <div>
             <h2 className="text-base font-bold text-ink">Tidak Ada Servis Berjalan</h2>
             <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-              Saat ini tidak ada unit armada Anda yang sedang dalam proses pengerjaan di Bengkel KIM 3 Medan.
+              Saat ini tidak ada unit kendaraan Anda yang sedang dalam proses pengerjaan di Bengkel KIM 3 Medan.
             </p>
           </div>
           <button
@@ -2040,8 +2168,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-ink">Booking Service Armada Perusahaan</h2>
-              <p className="text-xs text-ink-muted">Jadwalkan service armada Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3</p>
+              <h2 className="text-base font-bold text-ink">Booking Service Kendaraan Perusahaan</h2>
+              <p className="text-xs text-ink-muted">Jadwalkan service kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3</p>
             </div>
             <button
               type="button"
@@ -2093,7 +2221,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <EmptyState
                 icon={Calendar}
                 title="Belum Ada Booking Service"
-                description="Jadwalkan kedatangan armada Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3."
+                description="Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3."
                 action={{
                   label: '+ Buat Booking Baru',
                   onClick: () => {
@@ -2117,13 +2245,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 setBookingStep(1);
               }}
               title="Buat Jadwal Booking Service"
-              subtitle="Langkah mudah reservasi jadwal perbaikan atau perawatan armada"
+              subtitle="Langkah mudah reservasi jadwal perbaikan atau perawatan kendaraan"
               size="lg"
               currentStep={bookingStep - 1}
               onNext={() => {
                 if (bookingStep === 1) {
                   if (!bookingForm.no_polisi || myKendaraanList.length === 0) {
-                    toast.warning('Pilih Armada', 'Silakan pilih armada yang akan diservis.');
+                    toast.warning('Pilih Kendaraan', 'Silakan pilih kendaraan yang akan diservis.');
                     return;
                   }
                   setBookingStep(2);
@@ -2171,7 +2299,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   content: (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-ink">Pilih armada yang akan diservice:</span>
+                        <span className="text-xs font-bold text-ink">Pilih kendaraan yang akan diservice:</span>
                         <button
                           type="button"
                           onClick={() => setOpenTambahArmadaModal(true)}
@@ -2213,13 +2341,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 </div>
                               </div>
                               <span className="px-2 py-0.5 rounded-xl bg-status-green-bg text-status-green font-bold text-xs border border-status-green/30">
-                                Armada Aktif
+                                Kendaraan Aktif
                               </span>
                             </label>
                           ))
                         ) : (
                           <div className="p-6 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-2">
-                            <p className="text-xs text-ink-muted">Belum ada armada terdaftar untuk akun fleet Anda.</p>
+                            <p className="text-xs text-ink-muted">Belum ada kendaraan terdaftar untuk akun fleet Anda.</p>
                             <button
                               type="button"
                               onClick={() => setOpenTambahArmadaModal(true)}
@@ -2304,7 +2432,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             className="w-full px-3.5 py-2.5 rounded-xl border border-accent/50 text-xs focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
                           />
                           <p className="text-xs text-ink-subtle mt-1.5">
-                            Tulis jenis pekerjaan atau modifikasi khusus yang dibutuhkan armada Anda.
+                            Tulis jenis pekerjaan atau modifikasi khusus yang dibutuhkan kendaraan Anda.
                           </p>
                         </div>
                       )}
@@ -2375,7 +2503,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <div className="bg-surface p-4 rounded-xl border border-border text-xs space-y-2.5">
                         <div className="font-bold text-sm text-ink border-b border-border pb-2">Ringkasan Pemesanan Booking Service</div>
                         <div className="flex justify-between py-1 border-b border-border/50">
-                          <span className="text-ink-muted">Armada:</span>
+                          <span className="text-ink-muted">Kendaraan:</span>
                           <span className="font-bold text-ink">{bookingForm.no_polisi}</span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-border/50">
@@ -2405,8 +2533,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-ink">Armada Kendaraan Perusahaan</h2>
-              <p className="text-xs text-ink-muted">Daftar unit truk dan kendaraan operasional armada Anda</p>
+              <h2 className="text-base font-bold text-ink">Daftar Kendaraan</h2>
+              <p className="text-xs text-ink-muted">Kendaraan truk dan kendaraan operasional perusahaan Anda — dapat diedit & dihapus</p>
             </div>
             <button
               type="button"
@@ -2414,26 +2542,26 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Tambah Unit Armada</span>
+              <span>Tambah Unit Kendaraan</span>
             </button>
           </div>
 
-          {/* Pencarian armada (server-side lewat parameter `q`) */}
+          {/* Pencarian kendaraan (server-side lewat parameter `q`) */}
           <div className="relative">
             <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={armadaSearch}
               onChange={(e) => setArmadaSearch(e.target.value)}
-              placeholder="Cari no. polisi, merk, model, atau jenis armada..."
-              aria-label="Cari armada"
+              placeholder="Cari no. polisi, merk, model, atau jenis kendaraan..."
+              aria-label="Cari kendaraan"
               className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-border bg-surface-raised text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
             />
             {armadaSearch && (
               <button
                 type="button"
                 onClick={() => setArmadaSearch('')}
-                aria-label="Bersihkan pencarian armada"
+                aria-label="Bersihkan pencarian kendaraan"
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-ink-subtle hover:text-ink transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
@@ -2496,6 +2624,37 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     >
                       <Calendar className="w-3.5 h-3.5" /> Jadwalkan Service
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditArmadaForm({
+                          jenis_armada: k.jenis_armada || 'Truk',
+                          merk: k.merk || '',
+                          model: k.model || '',
+                          tahun: k.tahun || new Date().getFullYear(),
+                          no_rangka: k.no_rangka || '',
+                          no_mesin: k.no_mesin || '',
+                          asuransi: k.asuransi || '',
+                          masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '',
+                          foto_kendaraan: k.foto_kendaraan || '',
+                        });
+                        setEditArmadaData(k);
+                      }}
+                      className="shrink-0 px-3 py-2 bg-surface border border-border text-ink-muted hover:text-accent hover:border-accent font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      aria-label={`Edit unit ${k.no_polisi}`}
+                      title="Edit unit kendaraan"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHapusArmadaTarget(k)}
+                      className="shrink-0 px-3 py-2 bg-surface border border-border text-ink-muted hover:text-status-red hover:border-status-red font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      aria-label={`Hapus unit ${k.no_polisi}`}
+                      title="Hapus unit kendaraan"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                   </div>
                 </div>
               ))}
@@ -2505,7 +2664,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               totalPages={armadaPageData?.pagination?.total_pages ?? 1}
               totalRecords={armadaPageData?.pagination?.total_records ?? armadaRows.length}
               limit={armadaLimit}
-              label="armada"
+              label="kendaraan"
               isLoading={armadaFetching}
               onPageChange={setArmadaPage}
               onLimitChange={(l) => {
@@ -2520,7 +2679,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <Search className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-ink">Armada Tidak Ditemukan</h3>
+                <h3 className="text-base font-bold text-ink">Kendaraan Tidak Ditemukan</h3>
                 <p className="text-xs text-ink-muted mt-1">
                   Tidak ada unit yang cocok dengan pencarian{' '}
                   <span className="font-semibold text-ink">"{armadaQuery}"</span>. Coba kata kunci lain.
@@ -2540,9 +2699,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <Truck className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-ink">Belum Ada Armada Terdaftar</h3>
+                <h3 className="text-base font-bold text-ink">Belum Ada Kendaraan Terdaftar</h3>
                 <p className="text-xs text-ink-muted mt-1">
-                  Daftarkan kendaraan operasional atau armada truk perusahaan Anda untuk mulai memanfaatkan fitur pemantauan & booking service.
+                  Daftarkan kendaraan operasional atau kendaraan truk perusahaan Anda untuk mulai memanfaatkan fitur pemantauan & booking service.
                 </p>
               </div>
               <button
@@ -2557,13 +2716,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </div>
       )}
 
-      {/* MENU 4: DOKUMEN SAYA (image5.png Mockup 5) */}
+      {/* MENU 4: DOKUMEN SAYA — berkas kendaraan + faktur otomatis (service & beli part) */}
       {fleetMenu === 'dokumen' && (
         <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
             <div>
-              <h2 className="text-base font-bold text-ink">Dokumen Digital Armada (STNK, BPKB, KIR, Asuransi)</h2>
-              <p className="text-xs text-ink-muted">Kelola dan unduh berkas perizinan kendaraan secara terpusat</p>
+              <h2 className="text-base font-bold text-ink">Dokumen Saya</h2>
+              <p className="text-xs text-ink-muted">Berkas kendaraan (STNK, BPKB, KIR, Asuransi) & faktur otomatis dari service maupun pembelian part</p>
             </div>
             <button
               type="button"
@@ -2580,7 +2739,36 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </button>
           </div>
 
-          {myDokumenList.length > 0 ? (
+          {/* Filter kendaraan (plat nomor) */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+            <div className="relative sm:max-w-xs w-full">
+              <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={dokumenFilterPlat}
+                onChange={(e) => setDokumenFilterPlat(e.target.value)}
+                aria-label="Filter dokumen per kendaraan"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-surface-raised text-xs text-ink focus:ring-2 focus:ring-accent focus:outline-hidden appearance-none cursor-pointer"
+              >
+                <option value="">Semua Kendaraan</option>
+                {myKendaraanList.map((k) => (
+                  <option key={k.id} value={k.no_polisi}>
+                    {k.no_polisi} — {k.merk} {k.model}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {dokumenFilterPlat && (
+              <button
+                type="button"
+                onClick={() => setDokumenFilterPlat('')}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border text-ink-muted hover:text-ink rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" /> Reset
+              </button>
+            )}
+          </div>
+
+          {dokumenRows.length > 0 ? (
             <>
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
@@ -2589,81 +2777,136 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <th className="py-2.5 px-3 font-semibold">Nama Dokumen</th>
                       <th className="py-2.5 px-3 font-semibold">Jenis</th>
                       <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
-                      <th className="py-2.5 px-3 font-semibold">Masa Berlaku</th>
+                      <th className="py-2.5 px-3 font-semibold">Tanggal</th>
+                      <th className="py-2.5 px-3 font-semibold">Nilai</th>
+                      <th className="py-2.5 px-3 font-semibold">Status</th>
                       <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {myDokumenList.map((doc) => (
-                      <tr key={doc.id} className="hover:bg-surface transition-colors">
-                        <td className="py-3 px-3 font-semibold text-ink">{doc.nama_dokumen}</td>
-                        <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 bg-surface text-ink-muted rounded text-xs font-bold">
-                            {doc.jenis_dokumen}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 font-mono font-bold text-ink">{doc.no_polisi}</td>
-                        <td className="py-3 px-3 text-ink-muted font-mono">
-                          {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
-                        </td>
-                        <td className="py-3 px-3 text-right">
-                          <a
-                            href={doc.file_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors"
-                          >
-                            <Download className="w-3.5 h-3.5" /> Unduh
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
+                    {dokumenRows.map((item) => {
+                      const inv = 'status_pembayaran' in item ? (item as InvoicePembayaran) : null;
+                      return (
+                        <tr key={inv ? `inv-${item.id}` : `doc-${item.id}`} className="hover:bg-surface transition-colors">
+                          <td className="py-3 px-3 font-semibold text-ink">{inv ? inv.no_invoice : (item as DokumenKendaraan).nama_dokumen}</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${inv ? 'bg-accent-subtle text-accent' : 'bg-surface text-ink-muted'}`}>
+                              {inv ? 'Faktur' : (item as DokumenKendaraan).jenis_dokumen}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-ink">{item.no_polisi}</td>
+                          <td className="py-3 px-3 text-ink-muted font-mono">
+                            {inv
+                              ? (inv.tanggal_invoice ? new Date(inv.tanggal_invoice).toLocaleDateString('id-ID') : '-')
+                              : ((item as DokumenKendaraan).masa_berlaku ? new Date((item as DokumenKendaraan).masa_berlaku!).toLocaleDateString('id-ID') : '-')}
+                          </td>
+                          <td className="py-3 px-3 font-mono font-semibold text-ink">
+                            {inv ? `Rp ${Number(inv.grand_total || 0).toLocaleString('id-ID')}` : '-'}
+                          </td>
+                          <td className="py-3 px-3">
+                            {inv ? <StatusBadge status={inv.status_pembayaran} /> : <span className="text-ink-subtle">-</span>}
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            {inv ? (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewInvoice(inv)}
+                                className="inline-flex items-center gap-1 px-3 py-1 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5" /> Lihat
+                              </button>
+                            ) : (
+                              <a
+                                href={(item as DokumenKendaraan).file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-3 py-1 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors"
+                              >
+                                <Download className="w-3.5 h-3.5" /> Unduh
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
               <div className="block md:hidden space-y-2.5">
-                {myDokumenList.map((doc) => (
-                  <div key={doc.id} className="rounded-xl border border-border p-3.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold text-ink leading-snug">{doc.nama_dokumen}</div>
-                        <div className="font-mono text-xs font-bold text-ink-muted mt-0.5">{doc.no_polisi}</div>
+                {dokumenRows.map((item) => {
+                  const inv = 'status_pembayaran' in item ? (item as InvoicePembayaran) : null;
+                  return (
+                    <div key={inv ? `inv-${item.id}` : `doc-${item.id}`} className="rounded-xl border border-border p-3.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-sm font-bold text-ink leading-snug">{inv ? inv.no_invoice : (item as DokumenKendaraan).nama_dokumen}</div>
+                          <div className="font-mono text-xs font-bold text-ink-muted mt-0.5">{item.no_polisi}</div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold shrink-0 ${inv ? 'bg-accent-subtle text-accent' : 'bg-surface text-ink-muted'}`}>
+                          {inv ? 'Faktur' : (item as DokumenKendaraan).jenis_dokumen}
+                        </span>
                       </div>
-                      <span className="px-2 py-0.5 bg-surface text-ink-muted rounded text-xs font-bold shrink-0">
-                        {doc.jenis_dokumen}
-                      </span>
-                    </div>
 
-                    <div className="mt-2.5 pt-2.5 border-t border-border flex items-center justify-between text-xs text-ink-subtle">
-                      <span>Masa Berlaku</span>
-                      <span className="font-mono font-semibold text-ink-muted">
-                        {doc.masa_berlaku ? new Date(doc.masa_berlaku).toLocaleDateString('id-ID') : '-'}
-                      </span>
-                    </div>
+                      <div className="mt-2.5 pt-2.5 border-t border-border flex items-center justify-between text-xs text-ink-subtle">
+                        <span>{inv ? 'Tanggal Invoice' : 'Masa Berlaku'}</span>
+                        <span className="font-mono font-semibold text-ink-muted">
+                          {inv
+                            ? (inv.tanggal_invoice ? new Date(inv.tanggal_invoice).toLocaleDateString('id-ID') : '-')
+                            : ((item as DokumenKendaraan).masa_berlaku ? new Date((item as DokumenKendaraan).masa_berlaku!).toLocaleDateString('id-ID') : '-')}
+                        </span>
+                      </div>
 
-                    <a
-                      href={doc.file_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent-subtle text-accent active:bg-accent-subtle rounded-xl text-xs font-bold transition-colors"
-                    >
-                      <Download className="w-3.5 h-3.5" /> Unduh Dokumen
-                    </a>
-                  </div>
-                ))}
+                      {inv && (
+                        <div className="mt-1.5 flex items-center justify-between text-xs">
+                          <span className="text-ink-subtle">Total</span>
+                          <span className="font-mono font-black text-ink">Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}</span>
+                        </div>
+                      )}
+
+                      {inv ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewInvoice(inv)}
+                          className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent-subtle text-accent active:bg-accent rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Lihat Faktur
+                        </button>
+                      ) : (
+                        <a
+                          href={(item as DokumenKendaraan).file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent-subtle text-accent active:bg-accent rounded-xl text-xs font-bold transition-colors"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Unduh Dokumen
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+
+              <PaginationBar
+                page={dokumenSafePage}
+                totalPages={dokumenTotalPages}
+                totalRecords={dokumenTerfilterList.length}
+                limit={dokumenLimit}
+                label="dokumen"
+                onPageChange={setDokumenPage}
+                onLimitChange={(l) => setDokumenLimit(l)}
+              />
             </>
           ) : (
             <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-status-red-bg text-status-red flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-xl bg-accent-subtle text-accent flex items-center justify-center mx-auto">
                 <FileText className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-ink">Belum Ada Dokumen Digital</h3>
+                <h3 className="text-sm font-bold text-ink">Belum Ada Dokumen</h3>
                 <p className="text-xs text-ink-muted mt-1">
-                  Unggah berkas STNK, KIR, atau polis asuransi armada Anda agar tersimpan rapi dan mudah diakses.
+                  Unggah berkas STNK, KIR, atau polis asuransi kendaraan Anda — faktur service & pembelian part akan muncul otomatis di sini.
                 </p>
               </div>
               <button
@@ -2683,47 +2926,117 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </div>
       )}
 
-      {/* MENU 5: PROFIL PERUSAHAAN (image5.png Mockup 6) */}
+      {/* MENU 5: PROFIL CUSTOMER & KONTAK — editable, tersimpan di tabel pengguna */}
       {fleetMenu === 'profil' && (
         <div className="bg-surface-raised rounded-xl border border-border p-6 shadow-xs max-w-2xl mx-auto space-y-6">
-          <div className="border-b border-border pb-3">
-            <h2 className="text-base font-bold text-ink">Profil Pelanggan Fleet</h2>
-            <p className="text-xs text-ink-muted">Informasi entitas perusahaan dan kontak PIC penanggung jawab</p>
+          <div className="border-b border-border pb-3 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-ink">Profil Customer & Kontak</h2>
+              <p className="text-xs text-ink-muted">Informasi perusahaan dan kontak PIC penanggung jawab — dapat diperbarui langsung di sini</p>
+            </div>
+            {!profilEditing && (
+              <button
+                type="button"
+                onClick={() => {
+                  setProfilForm({
+                    nama_perusahaan: authUser?.nama_perusahaan || '',
+                    alamat: authUser?.alamat || '',
+                    npwp: authUser?.npwp || '',
+                    no_telepon: authUser?.no_telepon || '',
+                    nama_pic: authUser?.nama_lengkap || '',
+                  });
+                  setProfilEditing(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors shrink-0 cursor-pointer"
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Edit Profil
+              </button>
+            )}
           </div>
 
           <div className="space-y-4 text-xs">
             <div className="p-4 rounded-xl bg-surface border border-border space-y-3">
               <span className="font-bold text-ink block text-sm">Informasi Perusahaan:</span>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <span className="text-ink-subtle block text-xs">Nama Perusahaan / Entitas:</span>
-                  <span className="font-bold text-ink">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || 'Customer Fleet'}</span>
+                  <span className="text-ink-subtle block text-xs mb-1">Nama Perusahaan / Entitas:</span>
+                  {profilEditing ? (
+                    <input
+                      value={profilForm.nama_perusahaan}
+                      onChange={(e) => setProfilForm((p) => ({ ...p, nama_perusahaan: e.target.value }))}
+                      placeholder="cth: PT. Andi Jaya"
+                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
+                    />
+                  ) : (
+                    <span className="font-bold text-ink">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '-'}</span>
+                  )}
                 </div>
                 <div>
                   <span className="text-ink-subtle block text-xs">ID Pelanggan / Kemitraan:</span>
-                  <span className="font-mono font-bold text-accent">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || 1).padStart(4, '0')}</span>
+                  <span className="font-mono font-bold text-accent">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || authUser?.id || 1).padStart(4, '0')}</span>
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="text-ink-subtle block text-xs mb-1">Alamat Perusahaan:</span>
+                  {profilEditing ? (
+                    <textarea
+                      value={profilForm.alamat}
+                      onChange={(e) => setProfilForm((p) => ({ ...p, alamat: e.target.value }))}
+                      rows={2}
+                      placeholder="cth: Jl. Industri Raya No. 88, Medan, Sumatera Utara"
+                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition resize-none"
+                    />
+                  ) : (
+                    <span className="font-semibold text-ink">{authUser?.alamat || '-'}</span>
+                  )}
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs">Tipe Kemitraan:</span>
-                  <span className="font-semibold text-ink">Prioritas Bengkel Mitra KIM 3</span>
+                  <span className="text-ink-subtle block text-xs mb-1">NPWP:</span>
+                  {profilEditing ? (
+                    <input
+                      value={profilForm.npwp}
+                      onChange={(e) => setProfilForm((p) => ({ ...p, npwp: e.target.value }))}
+                      placeholder="cth: 01.234.567.8-901.000"
+                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
+                    />
+                  ) : (
+                    <span className="font-mono font-semibold text-ink">{authUser?.npwp || '-'}</span>
+                  )}
                 </div>
                 <div>
                   <span className="text-ink-subtle block text-xs">Status Akun:</span>
-                  <span className="font-semibold text-status-green">Aktif Terverifikasi</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-ink-subtle block text-xs">Area Operasional:</span>
-                  <span className="font-semibold text-ink">Kawasan Industri Medan (KIM 1, 2, 3) & Sekitarnya</span>
+                  <span className="font-semibold text-status-green">{authUser?.status_aktif === false ? 'Tidak Aktif' : 'Aktif Terverifikasi'}</span>
                 </div>
               </div>
             </div>
 
             <div className="p-4 rounded-xl bg-surface border border-border space-y-3">
               <span className="font-bold text-ink block text-sm">Kontak PIC / Penanggung Jawab:</span>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <span className="text-ink-subtle block text-xs">Nama PIC:</span>
-                  <span className="font-bold text-ink">{authUser?.nama_lengkap || currentUser || '-'}</span>
+                  <span className="text-ink-subtle block text-xs mb-1">Nama PIC:</span>
+                  {profilEditing ? (
+                    <input
+                      value={profilForm.nama_pic}
+                      onChange={(e) => setProfilForm((p) => ({ ...p, nama_pic: e.target.value }))}
+                      placeholder="cth: Budi Santoso"
+                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
+                    />
+                  ) : (
+                    <span className="font-bold text-ink">{authUser?.nama_lengkap || currentUser || '-'}</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-ink-subtle block text-xs mb-1">No. Telepon / WhatsApp:</span>
+                  {profilEditing ? (
+                    <input
+                      value={profilForm.no_telepon}
+                      onChange={(e) => setProfilForm((p) => ({ ...p, no_telepon: e.target.value }))}
+                      placeholder="cth: 0812-3456-7890"
+                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
+                    />
+                  ) : (
+                    <span className="font-semibold text-ink">{authUser?.no_telepon || '-'}</span>
+                  )}
                 </div>
                 <div>
                   <span className="text-ink-subtle block text-xs">Email Login:</span>
@@ -2731,15 +3044,37 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
                 <div>
                   <span className="text-ink-subtle block text-xs">Peran Pengguna:</span>
-                  <span className="font-semibold text-ink">Customer Fleet</span>
-                </div>
-                <div>
-                  <span className="text-ink-subtle block text-xs">Notifikasi Terhubung:</span>
-                  <span className="font-semibold text-ink">Web Portal & Realtime Push</span>
+                  <span className="font-semibold text-ink">{authUser?.peran || 'Customer Fleet'}</span>
                 </div>
               </div>
             </div>
           </div>
+
+          {profilEditing && (
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end border-t border-border pt-4">
+              <button
+                type="button"
+                disabled={simpanProfilMutation.isPending}
+                onClick={() => setProfilEditing(false)}
+                className="min-h-[40px] px-4 py-2 bg-surface border border-border text-ink-muted hover:text-ink rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={simpanProfilMutation.isPending || !profilForm.nama_pic.trim()}
+                onClick={() => simpanProfilMutation.mutate()}
+                className="min-h-[40px] px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+              >
+                {simpanProfilMutation.isPending ? (
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Check className="w-3.5 h-3.5" />
+                )}
+                {simpanProfilMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -2747,7 +3082,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {fleetMenu === 'history' && (
         <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
           <div className="border-b border-border pb-3 mb-4">
-            <h2 className="text-base font-bold text-ink">Riwayat Armada (History)</h2>
+            <h2 className="text-base font-bold text-ink">Riwayat Kendaraan (History)</h2>
             <p className="text-xs text-ink-muted">Service, kunjungan gerbang, dan pembelian part — terhubung otomatis per plat nomor</p>
           </div>
 
@@ -2980,7 +3315,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div>
                 <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Service</h3>
                 <p className="text-xs text-ink-muted mt-1">
-                  Seluruh riwayat pengerjaan service armada Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.
+                  Seluruh riwayat pengerjaan service kendaraan Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.
                 </p>
               </div>
             </div>
@@ -3072,7 +3407,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
                   <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Kunjungan</h3>
                   <p className="text-xs text-ink-muted mt-1">
-                    Kunjungan gerbang (termasuk walk-in) tampil di sini otomatis setelah plat didaftarkan sebagai armada.
+                    Kunjungan gerbang (termasuk walk-in) tampil di sini otomatis setelah plat didaftarkan sebagai kendaraan.
                   </p>
                 </div>
               )}
@@ -3169,7 +3504,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
                   <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Beli Part</h3>
                   <p className="text-xs text-ink-muted mt-1">
-                    Pembelian part langsung tampil di sini otomatis setelah plat didaftarkan sebagai armada.
+                    Pembelian part langsung tampil di sini otomatis setelah plat didaftarkan sebagai kendaraan.
                   </p>
                 </div>
               )}
@@ -3465,7 +3800,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 1: TAMBAH ARMADA KENDARAAN BARU                                     */}
+      {/* MODAL 1: TAMBAH KENDARAAN KENDARAAN BARU                                     */}
       {/* ========================================================================= */}
       {openTambahArmadaModal && (
         <ModalPortal onClose={() => setOpenTambahArmadaModal(false)}>
@@ -3478,7 +3813,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Tambah Unit Armada Baru</h3>
+                  <h3 className="text-sm font-bold text-ink">Tambah Unit Kendaraan Baru</h3>
                   <p className="text-xs text-ink-muted">Daftarkan kendaraan operasional ke database Bengkel KIM 3</p>
                 </div>
               </div>
@@ -3520,7 +3855,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                 <div>
                   <label className="block text-xs font-bold text-ink-muted mb-1">
-                    Jenis Armada <span className="text-status-red">*</span>
+                    Jenis Kendaraan <span className="text-status-red">*</span>
                   </label>
                   <select
                     value={armadaForm.jenis_armada}
@@ -3628,12 +3963,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
               <div>
                 <PhotoUploader
-                  label="Foto Unit Armada (Opsional)"
+                  label="Foto Unit Kendaraan (Opsional)"
                   value={armadaForm.foto_kendaraan}
                   onChange={(url) => setArmadaForm({ ...armadaForm, foto_kendaraan: url })}
                 />
                 <p className="text-xs text-ink-subtle mt-1">
-                  Foto tersimpan otomatis ke database (kompresi otomatis, maks. 15MB). Tampil di daftar armada setelah unit disimpan.
+                  Foto tersimpan otomatis ke database (kompresi otomatis, maks. 15MB). Tampil di daftar kendaraan setelah unit disimpan.
                 </p>
               </div>
 
@@ -3652,7 +3987,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Armada'}</span>
+                  <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Kendaraan'}</span>
                 </button>
               </div>
             </form>
@@ -3662,7 +3997,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: UNGGAH DOKUMEN DIGITAL ARMADA                                   */}
+      {/* MODAL 2: UNGGAH DOKUMEN DIGITAL KENDARAAN                                   */}
       {/* ========================================================================= */}
       {openTambahDokumenModal && (
         <ModalPortal onClose={() => setOpenTambahDokumenModal(false)}>
@@ -3675,7 +4010,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Unggah Dokumen Digital Armada</h3>
+                  <h3 className="text-sm font-bold text-ink">Unggah Dokumen Digital Kendaraan</h3>
                   <p className="text-xs text-ink-muted">Simpan arsip STNK, KIR, BPKB, atau polis asuransi unit</p>
                 </div>
               </div>
@@ -3693,7 +4028,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!dokumenForm.no_polisi || !dokumenForm.nama_dokumen.trim()) {
-                  toast.warning('Pilih armada dan isi nama dokumen.');
+                  toast.warning('Pilih kendaraan dan isi nama dokumen.');
                   return;
                 }
                 tambahDokumenMutation.mutate(dokumenForm);
@@ -3702,7 +4037,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             >
               <div>
                 <label className="block text-xs font-bold text-ink-muted mb-1">
-                  Pilih Unit Armada <span className="text-status-red">*</span>
+                  Pilih Unit Kendaraan <span className="text-status-red">*</span>
                 </label>
                 <select
                   required
@@ -3795,6 +4130,194 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
         </div>
         </ModalPortal>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: EDIT UNIT KENDARAAN                                                 */}
+      {/* ========================================================================= */}
+      {editArmadaData && (
+        <ModalPortal onClose={() => setEditArmadaData(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-xs">
+            <div className="bg-surface-raised rounded-xl border border-border shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-surface">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-ink">Edit Unit Kendaraan</h3>
+                  <p className="text-xs text-ink-muted font-mono">{editArmadaData.no_polisi} — No. polisi tidak dapat diubah</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditArmadaData(null)}
+                className="p-1.5 rounded-xl text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                editArmadaMutation.mutate(editArmadaForm);
+              }}
+              className="p-6 overflow-y-auto space-y-4"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Jenis Kendaraan</label>
+                  <select
+                    value={editArmadaForm.jenis_armada}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, jenis_armada: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
+                  >
+                    <option value="Truk">Truk Engkel / Box</option>
+                    <option value="Tronton">Tronton / Wingbox</option>
+                    <option value="Trailer">Trailer / Kontainer</option>
+                    <option value="Pick Up">Pick Up Operasional</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Tahun Pembuatan</label>
+                  <input
+                    type="number"
+                    min="1995"
+                    max={new Date().getFullYear() + 1}
+                    value={editArmadaForm.tahun}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, tahun: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Merk</label>
+                  <select
+                    value={editArmadaForm.merk}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, merk: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
+                  >
+                    <option value="">-- Pilih Merk --</option>
+                    <option value="Hino">Hino</option>
+                    <option value="Mitsubishi Fuso">Mitsubishi Fuso</option>
+                    <option value="Isuzu">Isuzu</option>
+                    <option value="Toyota Dyna">Toyota Dyna</option>
+                    <option value="Mercedes-Benz">Mercedes-Benz</option>
+                    <option value="Volvo">Volvo</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Model / Seri</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Dutro 130HD"
+                    value={editArmadaForm.model}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, model: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Nomor Rangka (VIN)</label>
+                  <input
+                    type="text"
+                    placeholder="MHKHINO..."
+                    value={editArmadaForm.no_rangka}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, no_rangka: e.target.value.toUpperCase() })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Nomor Mesin</label>
+                  <input
+                    type="text"
+                    placeholder="J08E-..."
+                    value={editArmadaForm.no_mesin}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, no_mesin: e.target.value.toUpperCase() })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden uppercase"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Nama Asuransi</label>
+                  <input
+                    type="text"
+                    placeholder="Asuransi Astra / Sinarmas"
+                    value={editArmadaForm.asuransi}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, asuransi: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku Asuransi</label>
+                  <input
+                    type="date"
+                    value={editArmadaForm.masa_berlaku_asuransi}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, masa_berlaku_asuransi: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <PhotoUploader
+                  label="Foto Unit Kendaraan"
+                  value={editArmadaForm.foto_kendaraan}
+                  onChange={(url) => setEditArmadaForm({ ...editArmadaForm, foto_kendaraan: url })}
+                />
+                <p className="text-xs text-ink-subtle mt-1">
+                  Biarkan kosong bila tidak ingin mengganti foto. Foto baru otomatis tersimpan ke database.
+                </p>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditArmadaData(null)}
+                  className="px-4 py-2.5 rounded-xl border border-border text-xs font-bold text-ink-muted hover:bg-surface transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={editArmadaMutation.isPending}
+                  className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{editArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        </ModalPortal>
+      )}
+
+      {/* Konfirmasi hapus unit kendaraan */}
+      {hapusArmadaTarget && (
+        <ConfirmModal
+          title="Hapus Unit Kendaraan?"
+          message={`Unit ${hapusArmadaTarget.no_polisi} (${hapusArmadaTarget.merk || '-'} ${hapusArmadaTarget.model || '-'}) akan dihapus permanen dari daftar kendaraan Anda. Riwayat service & faktur tetap tersimpan.`}
+          confirmLabel="Ya, Hapus"
+          tone="red"
+          isPending={hapusArmadaMutation.isPending}
+          onClose={() => setHapusArmadaTarget(null)}
+          onConfirm={() => {
+            hapusArmadaMutation.mutate(hapusArmadaTarget.no_polisi);
+          }}
+        />
       )}
 
       {/* Konfirmasi batalkan booking (pengganti window.confirm) */}

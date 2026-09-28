@@ -98,7 +98,7 @@ export const DashboardView: React.FC = () => {
               Halo, {currentUser || 'Service Advisor'}
             </h1>
             <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-2xl leading-relaxed">
-              Pantau antrian unit yang baru check-in dari Pos Security, buat estimasi &amp; SPK, kelola kotak merah sparepart, dan lakukan serah terima kendaraan selesai.
+              Pantau antrian unit yang baru check-in dari Pos Security, buat estimasi &amp; SPK, kelola sparepart indent, dan lakukan serah terima kendaraan selesai.
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
               <button
@@ -117,7 +117,7 @@ export const DashboardView: React.FC = () => {
                 onClick={() => setActiveTab('sa-kotak-merah')}
                 className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold text-xs border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <ShoppingBag className="w-3.5 h-3.5" /> Kotak Merah ({prKotakMerah.length})
+                <ShoppingBag className="w-3.5 h-3.5" /> Part Indent ({prKotakMerah.length})
               </button>
               <button
                 onClick={() => setActiveTab('beli-part')}
@@ -149,7 +149,7 @@ export const DashboardView: React.FC = () => {
           />
           <StatCard
             value={prKotakMerah.length}
-            title="Part PO / Kotak Merah"
+            title="Part PO / Part Indent"
             subtitle="Menunggu SA & PO"
             icon={ShoppingBag}
             tone="red"
@@ -191,7 +191,7 @@ export const DashboardView: React.FC = () => {
                   <tr>
                     <th className="py-2.5 px-3 font-semibold">No. Tiket</th>
                     <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
-                    <th className="py-2.5 px-3 font-semibold">Customer / Armada</th>
+                    <th className="py-2.5 px-3 font-semibold">Customer / Kendaraan</th>
                     <th className="py-2.5 px-3 font-semibold">Waktu Masuk</th>
                     <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
                   </tr>
@@ -243,7 +243,7 @@ export const DashboardView: React.FC = () => {
                   <ShoppingBag className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Perhatian Kotak Merah</h3>
+                  <h3 className="text-sm font-bold text-ink">Perhatian Part Indent</h3>
                   <p className="text-xs text-ink-muted">Sparepart PO &amp; Approval SA</p>
                 </div>
               </div>
@@ -282,7 +282,7 @@ export const DashboardView: React.FC = () => {
               onClick={() => setActiveTab('sa-kotak-merah')}
               className="w-full mt-4 py-2 px-3 rounded-xl bg-status-red text-white font-bold text-xs hover:bg-status-red/90 transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
             >
-              <ShoppingBag className="w-3.5 h-3.5" /> Buka Alur Kotak Merah
+              <ShoppingBag className="w-3.5 h-3.5" /> Buka Alur Part Indent
             </button>
           </div>
         </div>
@@ -494,9 +494,18 @@ export const DashboardView: React.FC = () => {
   const renderMekanikDashboard = () => {
     // Strict: hanya WO yang ditugaskan ke mekanik login (by ID, fallback nama persis).
     // WO milik mekanik lain atau yang belum ditugaskan TIDAK tampil di sini.
-    const mySpks = spkList.filter((s) => isSpkAssignedToMechanic(s, authUser, currentUser));
-    const mySpkIds = new Set(mySpks.map((s) => s.id));
-    const spkDone = mySpks.filter((s) => s.status_spk === 'Waiting QC' || s.status_spk === 'QC Passed' || s.status_spk === 'FIR Closed');
+    const allMySpks = spkList.filter((s) => isSpkAssignedToMechanic(s, authUser, currentUser));
+    // Pool AKTIF saja (alur Excel): WO yang masih berada di tangan mekanik.
+    // WO yang sudah Finish Job (Waiting QC ke atas) KELUAR dari daftar kerja —
+    // lanjut ke Foreman (QC), SA (FIR) dan Kasir (invoice/check-out), dan KEMBALI
+    // otomatis ke daftar bila Foreman menolak QC (status kembali Dalam Pengerjaan)
+    // atau ada pekerjaan tambahan yang perlu dikerjakan.
+    const FINISHED_MEKANIK = ['Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'];
+    const mySpks = allMySpks.filter((s) => !FINISHED_MEKANIK.includes(s.status_spk as string));
+    // Riwayat transisi: hanya yang SEDANG menunggu QC Foreman.
+    // Setelah QC diproses (lulus/ditolak), WO hilang dari tampilan mekanik.
+    const spkDone = allMySpks.filter((s) => s.status_spk === 'Waiting QC');
+    const mySpkIds = new Set(allMySpks.map((s) => s.id));
     const tambahanSaya = tambahanList.filter((t) => mySpkIds.has(t.id_spk));
 
     return (
@@ -538,7 +547,7 @@ export const DashboardView: React.FC = () => {
           <StatCard
             value={spkDone.length}
             title="Selesai Dikerjakan"
-            subtitle="Menunggu QC / Closed"
+            subtitle="Menunggu QC Foreman"
             icon={CheckCircle2}
             tone="blue"
             onClick={() => setActiveTab('mekanik')}
@@ -617,10 +626,37 @@ export const DashboardView: React.FC = () => {
                 })
               ) : (
                 <div className="p-8 text-center text-ink-subtle text-xs">
-                  Tidak ada tugas SPK yang ditugaskan kepada Anda saat ini.
+                  Tidak ada tugas SPK aktif untuk Anda saat ini. WO yang sudah Finish keluar dari daftar dan kembali otomatis bila QC ditolak Foreman.
                 </div>
               )}
             </div>
+
+            {/* Riwayat: WO saya yang sudah lewat tahap mekanik (QC ke atas) */}
+            {spkDone.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between mb-2.5">
+                  <h3 className="text-xs font-bold text-ink flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-status-green" />
+                    Menunggu QC Foreman
+                  </h3>
+                  <span className="text-xs text-ink-subtle">{spkDone.length} WO</span>
+                </div>
+                <div className="space-y-2">
+                  {spkDone.slice(0, 5).map((spk) => (
+                    <div key={spk.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface border border-border text-xs">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-accent">{spk.no_spk}</span>
+                          <span className="font-black text-ink text-sm">{spk.no_polisi}</span>
+                        </div>
+                        <p className="text-xs text-ink-muted truncate mt-0.5">Customer: {spk.nama_customer || '-'}</p>
+                      </div>
+                      <StatusBadge status={spk.status_spk} size="sm" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* SOP & Panduan Kerja Mekanik */}
@@ -674,14 +710,14 @@ export const DashboardView: React.FC = () => {
               Halo, {currentUser || 'Admin Purchasing'}
             </h1>
             <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-2xl leading-relaxed">
-              Kelola permintaan pengadaan sparepart dari SA (Kotak Merah), bandingkan penawaran 2 vendor, terbitkan PO, dan pantau estimasi kedatangan (ETA) part.
+              Kelola permintaan pengadaan sparepart dari SA (Part Indent), bandingkan penawaran 2 vendor, terbitkan PO, dan pantau estimasi kedatangan (ETA) part.
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
               <button
                 onClick={() => setActiveTab('purchasing')}
                 className="px-3.5 py-2 rounded-xl bg-surface-raised text-ink font-bold text-xs shadow-xs hover:bg-surface transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <ShoppingBag className="w-4 h-4 text-accent" /> Kelola PR &amp; Kotak Merah
+                <ShoppingBag className="w-4 h-4 text-accent" /> Kelola PR &amp; Part Indent
               </button>
             </div>
           </div>
@@ -730,7 +766,7 @@ export const DashboardView: React.FC = () => {
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-ink flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-status-red" />
-                  Antrian Purchase Request (PR) Kotak Merah
+                  Antrian Purchase Request (PR) Part Indent
                 </h2>
                 <p className="text-xs text-ink-muted">Part yang tidak ready di stok gudang dan membutuhkan PO</p>
               </div>
@@ -1188,7 +1224,7 @@ export const DashboardView: React.FC = () => {
               Ringkasan Operasional Bengkel KIM 3
             </h1>
             <p className="text-xs sm:text-sm text-ink-muted mt-1.5 leading-relaxed">
-              Pantau pergerakan armada secara realtime dari Check In Pos Security, Penerimaan SA, Work Order Foreman, Pengadaan Sparepart Purchasing, hingga QC &amp; Check Out.
+              Pantau pergerakan kendaraan secara realtime dari Check In Pos Security, Penerimaan SA, Work Order Foreman, Pengadaan Sparepart Purchasing, hingga QC &amp; Check Out.
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
               <button
@@ -1203,7 +1239,7 @@ export const DashboardView: React.FC = () => {
                 onClick={() => { setRole('Admin Purchasing'); setActiveTab('purchasing'); }}
                 className="px-3.5 py-1.5 rounded-xl bg-surface hover:bg-surface-raised text-ink font-semibold text-xs border border-border transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <ShoppingBag className="w-3.5 h-3.5 text-accent" /> Kotak Merah Purchasing
+                <ShoppingBag className="w-3.5 h-3.5 text-accent" /> Part Indent Purchasing
               </button>
               <button
                 type="button"
@@ -1253,7 +1289,7 @@ export const DashboardView: React.FC = () => {
                   <tr>
                     <th className="py-2.5 px-3 font-semibold">No. SPK</th>
                     <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
-                    <th className="py-2.5 px-3 font-semibold">Customer / Armada</th>
+                    <th className="py-2.5 px-3 font-semibold">Customer / Kendaraan</th>
                     <th className="py-2.5 px-3 font-semibold">Status Pekerjaan</th>
                     <th className="py-2.5 px-3 font-semibold">PIC / Mekanik</th>
                     <th className="py-2.5 px-3 font-semibold text-right">Lead Time</th>
@@ -1299,7 +1335,7 @@ export const DashboardView: React.FC = () => {
                   <ShieldAlert className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Perhatian Purchasing (Kotak Merah)</h3>
+                  <h3 className="text-sm font-bold text-ink">Perhatian Purchasing (Part Indent)</h3>
                   <p className="text-xs text-ink-muted">Part Tidak Ready &amp; Memerlukan Penawaran PO</p>
                 </div>
               </div>

@@ -25,7 +25,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Sudah Keluar';
+type RiwayatFilterType = 'Semua' | 'Diterima' | 'Ditolak' | 'Selesai';
 
 export const PicTerkaitView: React.FC = () => {
   const queryClient = useQueryClient();
@@ -131,7 +131,7 @@ export const PicTerkaitView: React.FC = () => {
         if (item.status_konfirmasi_pic !== 'Diterima') return false;
       } else if (riwayatFilter === 'Ditolak') {
         if (item.status_konfirmasi_pic !== 'Ditolak') return false;
-      } else if (riwayatFilter === 'Sudah Keluar') {
+      } else if (riwayatFilter === 'Selesai') {
         const isKeluar = item.status_kunjungan === 'Keluar' || item.status_kunjungan === 'Selesai' || !!item.waktu_keluar;
         if (!isKeluar) return false;
       }
@@ -209,7 +209,7 @@ export const PicTerkaitView: React.FC = () => {
     { id: 'Semua', label: 'Semua', count: countRiwayatSemua },
     { id: 'Diterima', label: 'Diterima', count: countRiwayatDiterima },
     { id: 'Ditolak', label: 'Ditolak', count: countRiwayatDitolak },
-    { id: 'Sudah Keluar', label: 'Sudah Keluar', count: countRiwayatSudahKeluar },
+    { id: 'Selesai', label: 'Selesai', count: countRiwayatSudahKeluar },
   ];
 
   return (
@@ -262,10 +262,10 @@ export const PicTerkaitView: React.FC = () => {
           subtitle="Sudah check-out gerbang"
           icon={CheckCircle2}
           tone="green"
-          active={subTab === 'riwayat' && riwayatFilter === 'Sudah Keluar'}
+          active={subTab === 'riwayat' && riwayatFilter === 'Selesai'}
           onClick={() => {
             setSubTab('riwayat');
-            setRiwayatFilter('Sudah Keluar');
+            setRiwayatFilter('Selesai');
           }}
         />
       </div>
@@ -287,7 +287,10 @@ export const PicTerkaitView: React.FC = () => {
                   key={item.id}
                   title={`${item.no_polisi} — ${item.nama_customer || 'Pelanggan Tamu'}`}
                   subtitle={`Tiket: ${item.no_tiket} • Jam: ${formatJam(item.waktu_masuk)}${item.jenis_armada ? ` • ${item.jenis_armada}` : ''}`}
-                  badge={<StatusBadge status={item.status_kunjungan} size="sm" />}
+                  badge={<StatusBadge
+                    status={item.status_kunjungan === 'Keluar' ? 'Selesai' : item.status_kunjungan}
+                    size="sm"
+                  />}
                   chips={item.keperluan ? [item.keperluan] : undefined}
                   onClick={() => setSelected(item)}
                 />
@@ -334,7 +337,10 @@ export const PicTerkaitView: React.FC = () => {
                   subtitle={`Tiket: ${item.no_tiket} • Masuk: ${formatJam(item.waktu_masuk)}${item.waktu_keluar ? ` • Keluar: ${formatJam(item.waktu_keluar)}` : ''}`}
                   badge={
                     <div className="flex items-center gap-1.5">
-                      <StatusBadge status={item.status_kunjungan} size="sm" />
+                      <StatusBadge
+                        status={item.status_kunjungan === 'Keluar' ? 'Selesai' : item.status_kunjungan}
+                        size="sm"
+                      />
                       {item.status_konfirmasi_pic && (
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-bold ${
@@ -370,7 +376,10 @@ export const PicTerkaitView: React.FC = () => {
           onClose={() => setSelected(null)}
           title={selected.no_polisi}
           subtitle={`${selected.nama_customer || 'Tamu tanpa nama'} • Tiket ${selected.no_tiket}`}
-          badge={<StatusBadge status={selected.status_kunjungan} size="sm" />}
+          badge={<StatusBadge
+            status={selected.status_kunjungan === 'Keluar' ? 'Selesai' : selected.status_kunjungan}
+            size="sm"
+          />}
           size="md"
           footer={
             <div className="flex items-center justify-between w-full gap-2">
@@ -417,7 +426,7 @@ export const PicTerkaitView: React.FC = () => {
                 <span className="font-semibold text-ink">{selected.nama_customer || '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink-subtle">Jenis Armada:</span>
+                <span className="text-ink-subtle">Jenis Kendaraan:</span>
                 <span className="text-ink">{selected.jenis_armada || '-'}</span>
               </div>
               <div className="flex justify-between">

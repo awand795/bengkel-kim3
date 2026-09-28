@@ -52,6 +52,8 @@ export interface AuthUser {
   email: string;
   id_pelanggan?: number | null;
   nama_perusahaan?: string | null;
+  alamat?: string | null;
+  npwp?: string | null;
   status_aktif?: boolean;
   no_telepon?: string | null;
   foto_profil?: string | null;
@@ -105,7 +107,7 @@ export interface DokumenKendaraan {
   id_pelanggan?: number;
   nama_perusahaan?: string;
   nama_dokumen: string;
-  jenis_dokumen: 'STNK' | 'BPKB' | 'Asuransi' | 'KIR' | 'Invoice' | 'Faktur' | 'Lainnya';
+  jenis_dokumen: 'STNK' | 'BPKB' | 'Asuransi' | 'KIR' | 'Pajak' | 'KIR Berkala' | 'Surat Jalan' | 'Invoice' | 'Faktur' | 'Lainnya';
   file_url: string;
   tanggal_upload: string;
   masa_berlaku?: string;
@@ -323,6 +325,7 @@ export interface LaporanInspeksiQC {
 export interface TransaksiBeliPart {
   id: number;
   no_transaksi: string;
+  no_invoice?: string | null;
   id_antrian?: number;
   nama_customer: string;
   no_polisi: string;
