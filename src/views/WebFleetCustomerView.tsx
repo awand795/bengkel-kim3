@@ -49,7 +49,10 @@ import {
   Trash2,
   Eye,
   Printer,
-  ArrowLeft
+  ArrowLeft,
+  Maximize2,
+  ExternalLink,
+  Layers
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
@@ -157,6 +160,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   const [estimasiWizardStep, setEstimasiWizardStep] = useState(0);
   const [targetTambahanWizard, setTargetTambahanWizard] = useState<PekerjaanTambahan | null>(null);
   const [tambahanWizardStep, setTambahanWizardStep] = useState(0);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
   return (
     <div className="space-y-6">
@@ -665,7 +669,19 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           <div className="text-xs font-semibold text-ink-muted">Foto Masuk Pos Security</div>
                           <div className="h-32 bg-surface rounded-xl flex flex-col items-center justify-center text-ink-subtle gap-1 overflow-hidden">
                             {(spk as any).foto_kendaraan_masuk ? (
-                              <img src={(spk as any).foto_kendaraan_masuk} alt="Kendaraan Masuk" className="h-full w-full object-cover" />
+                              <img
+                                src={(spk as any).foto_kendaraan_masuk}
+                                alt="Kendaraan Masuk"
+                                onClick={() =>
+                                  setPreviewImage({
+                                    url: (spk as any).foto_kendaraan_masuk,
+                                    title: spk.no_polisi,
+                                    subtitle: `Foto Masuk Pos Security • SPK: ${spk.no_spk}`,
+                                  })
+                                }
+                                className="h-full w-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                                title="Klik untuk memperbesar foto"
+                              />
                             ) : (
                               <>
                                 <Camera className="w-6 h-6" />
@@ -1044,6 +1060,72 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
           ]}
         />
       )}
+
+      {/* Modal Lightbox Preview Foto Membesar */}
+      {previewImage && (
+        <ModalPortal onClose={() => setPreviewImage(null)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+            onClick={() => setPreviewImage(null)}
+          >
+            {/* Top Controls */}
+            <div
+              className="w-full max-w-4xl flex items-center justify-between pb-3 text-white shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 min-w-0 pr-4">
+                <span className="px-3.5 py-1 rounded-lg bg-white/15 border border-white/25 font-mono font-black text-sm tracking-wider text-white shadow-xs">
+                  {previewImage.title}
+                </span>
+                {previewImage.subtitle && (
+                  <span className="text-xs text-white/80 font-medium truncate hidden sm:inline">
+                    {previewImage.subtitle}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={previewImage.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  title="Buka gambar di tab baru"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(null)}
+                  className="p-2 rounded-xl bg-white/15 hover:bg-status-red text-white transition-colors cursor-pointer"
+                  title="Tutup (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Large Image Frame */}
+            <div
+              className="relative max-w-4xl max-h-[80vh] flex items-center justify-center overflow-hidden rounded-2xl border border-white/15 shadow-2xl bg-black/50 p-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-h-[76vh] max-w-full w-auto object-contain rounded-xl select-none"
+              />
+            </div>
+
+            {/* Hint */}
+            <div
+              className="mt-3 text-center text-xs text-white/70"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Tekan <kbd className="px-2 py-0.5 rounded bg-white/20 text-white font-mono text-xs">Esc</kbd> atau klik di luar gambar untuk menutup
+            </div>
+          </div>
+        </ModalPortal>
+      )}
     </div>
   );
 };
@@ -1120,6 +1202,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [showPrintInvoice, setShowPrintInvoice] = useState(false);
   // Halaman khusus detail riwayat SPK (tersembunyi dari sidebar)
   const [historyDetail, setHistoryDetail] = useState<SpkService | null>(null);
+  // Modal lightbox preview foto armada / dokumen yang membesar
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
   // Debounce input pencarian supaya tidak membanjiri server setiap ketikan
   React.useEffect(() => {
@@ -1440,6 +1524,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (b.status === 'Check In' || isBookingCheckedIn(b)) return 'Check In';
     return 'Booked';
   }, [isBookingCheckedIn]);
+
+  // Helper: Cek apakah kendaraan saat ini aktif berada di dalam bengkel (belum check-out)
+  const isKendaraanInBengkel = useCallback((nopol?: string): boolean => {
+    if (!nopol) return false;
+    const cleanP = normalizePlat(nopol);
+    if (!cleanP) return false;
+    return (kunjunganList || []).some((a) => {
+      if (normalizePlat(a.no_polisi) !== cleanP) return false;
+      return a.status_kunjungan !== 'Selesai' && a.status_kunjungan !== 'Keluar';
+    });
+  }, [kunjunganList]);
 
   // Aturan cancel booking: status masih Booked dan minimal 10 menit sebelum
   // jadwal (tanggal_booking + jam_booking). Server juga menolak bila status
@@ -2174,7 +2269,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div key={k.id} className="p-3 rounded-xl border border-border bg-surface flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         {k.foto_kendaraan ? (
-                          <img src={k.foto_kendaraan} alt={k.no_polisi} className="w-12 h-12 rounded-xl object-cover border border-border shrink-0" />
+                          <img
+                            src={k.foto_kendaraan}
+                            alt={k.no_polisi}
+                            onClick={() =>
+                              setPreviewImage({
+                                url: k.foto_kendaraan!,
+                                title: k.no_polisi,
+                                subtitle: `${k.merk} ${k.model} • ${k.jenis_armada || 'Truk'} (${k.tahun || '-'})`,
+                              })
+                            }
+                            className="w-12 h-12 rounded-xl object-cover border border-border shrink-0 cursor-pointer hover:opacity-85 transition-opacity"
+                            title="Klik untuk memperbesar foto"
+                          />
                         ) : (
                           <div className="w-12 h-12 rounded-xl bg-accent-subtle text-accent flex items-center justify-center shrink-0">
                             <Truck className="w-5 h-5" />
@@ -2438,7 +2545,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                   className="text-accent shrink-0"
                                 />
                                 {k.foto_kendaraan ? (
-                                  <img src={k.foto_kendaraan} alt={k.no_polisi} className="w-11 h-11 rounded-lg object-cover border border-border shrink-0" />
+                                  <img
+                                    src={k.foto_kendaraan}
+                                    alt={k.no_polisi}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPreviewImage({
+                                        url: k.foto_kendaraan!,
+                                        title: k.no_polisi,
+                                        subtitle: `${k.merk} ${k.model} (${k.tahun})`,
+                                      });
+                                    }}
+                                    className="w-11 h-11 rounded-lg object-cover border border-border shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                                    title="Klik untuk memperbesar foto"
+                                  />
                                 ) : (
                                   <div className="w-11 h-11 rounded-lg bg-accent-subtle text-accent flex items-center justify-center shrink-0">
                                     <Truck className="w-5 h-5" />
@@ -2639,39 +2759,84 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 3: KENDARAAN SAYA (image5.png Mockup 4) */}
       {fleetMenu === 'kendaraan' && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-5">
+          {/* Header Section dengan Aksi Tambah */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold text-ink">Daftar Kendaraan</h2>
-              <p className="text-xs text-ink-muted">Kendaraan truk dan kendaraan operasional perusahaan Anda — dapat diedit & dihapus</p>
+              <h2 className="text-lg font-black text-ink tracking-tight flex items-center gap-2">
+                <Truck className="w-5 h-5 text-accent" />
+                <span>Kendaraan &amp; Armada Saya</span>
+              </h2>
+              <p className="text-xs text-ink-muted mt-0.5">
+                Kelola spesifikasi truk, dokumen legalitas, dan jadwalkan service berkala langsung dari dashboard fleet
+              </p>
             </div>
             <button
               type="button"
               onClick={() => setOpenTambahArmadaModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-md shadow-accent/20 transition-all cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Unit Kendaraan</span>
             </button>
           </div>
 
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="p-3.5 rounded-xl border border-border bg-surface-raised flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-accent-subtle text-accent flex items-center justify-center shrink-0">
+                <Truck className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs text-ink-muted block">Total Armada</span>
+                <span className="text-base font-black text-ink tabular-nums">
+                  {armadaPageData?.pagination?.total_records ?? armadaRows.length} Unit
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-border bg-surface-raised flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-status-green-bg text-status-green flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs text-ink-muted block">Siap Operasi</span>
+                <span className="text-base font-black text-status-green tabular-nums">
+                  {armadaRows.filter((k) => !isKendaraanInBengkel(k.no_polisi)).length} Unit
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-border bg-surface-raised col-span-2 sm:col-span-1 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
+                <Wrench className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs text-ink-muted block">Di Bengkel / Servis</span>
+                <span className="text-base font-black text-status-amber tabular-nums">
+                  {armadaRows.filter((k) => isKendaraanInBengkel(k.no_polisi)).length} Unit
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Pencarian kendaraan (server-side lewat parameter `q`) */}
           <div className="relative">
-            <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={armadaSearch}
               onChange={(e) => setArmadaSearch(e.target.value)}
-              placeholder="Cari no. polisi, merk, model, atau jenis kendaraan..."
+              placeholder="Cari no. polisi, merk, model, atau nomor rangka..."
               aria-label="Cari kendaraan"
-              className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-border bg-surface-raised text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-surface-raised text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
             />
             {armadaSearch && (
               <button
                 type="button"
                 onClick={() => setArmadaSearch('')}
                 aria-label="Bersihkan pencarian kendaraan"
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-ink-subtle hover:text-ink transition cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -2680,93 +2845,225 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
           {armadaRows.length > 0 ? (
             <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {armadaRows.map((k) => (
-                <div key={k.id} className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs flex flex-col justify-between overflow-hidden">
-                  {k.foto_kendaraan ? (
-                    <div className="-m-5 mb-0 h-40 bg-surface overflow-hidden">
-                      <img src={k.foto_kendaraan} alt={k.no_polisi} className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  ) : (
-                    <div className="-m-5 mb-0 h-28 bg-accent-subtle text-accent flex flex-col items-center justify-center gap-1">
-                      <Truck className="w-8 h-8" />
-                      <span className="text-xs font-semibold text-ink-muted">Belum ada foto unit</span>
-                    </div>
-                  )}
-                  <div className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-base font-black text-ink">{k.no_polisi}</span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-status-green-bg text-status-green text-xs font-bold">
-                        Aktif
-                      </span>
-                    </div>
-                    <div className="text-xs text-ink-muted font-bold mt-0.5">{k.merk} {k.model} ({k.jenis_armada})</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {armadaRows.map((k) => {
+                const sedangDiBengkel = isKendaraanInBengkel(k.no_polisi);
+                return (
+                  <div
+                    key={k.id}
+                    className="group bg-surface-raised rounded-2xl border border-border hover:border-accent/50 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col"
+                  >
+                    {/* Visual Header / Cover Image */}
+                    {k.foto_kendaraan ? (
+                      <div
+                        className="relative h-48 w-full bg-surface overflow-hidden cursor-pointer group/photo"
+                        onClick={() =>
+                          setPreviewImage({
+                            url: k.foto_kendaraan!,
+                            title: k.no_polisi,
+                            subtitle: `${k.merk} ${k.model} • ${k.jenis_armada || 'Truk'} (${k.tahun || '-'})`,
+                          })
+                        }
+                        title="Klik untuk memperbesar foto unit"
+                      >
+                        <img
+                          src={k.foto_kendaraan}
+                          alt={k.no_polisi}
+                          className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500 ease-out"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/30 pointer-events-none" />
 
-                    <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-ink-subtle block text-xs">Tahun Pembuatan:</span>
-                        <span className="font-semibold text-ink">{k.tahun || '-'}</span>
+                        {/* Badge Jenis Armada (Kiri Atas) */}
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-xs">
+                          <Truck className="w-3.5 h-3.5 text-accent" />
+                          <span>{k.jenis_armada || 'Truk'}</span>
+                        </div>
+
+                        {/* Status Operasional (Kanan Atas) */}
+                        <div className="absolute top-3 right-3">
+                          {sedangDiBengkel ? (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-status-amber text-white text-xs font-black shadow-xs animate-pulse">
+                              <Wrench className="w-3.5 h-3.5" />
+                              <span>Sedang di Bengkel</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-status-green/90 backdrop-blur-xs text-white text-xs font-bold shadow-xs">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Siap Operasi</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Tombol Perbesar Foto (Kanan Bawah) */}
+                        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/25 text-white text-xs font-bold shadow-md transition-all group-hover/photo:scale-105">
+                          <Maximize2 className="w-3.5 h-3.5 text-accent" />
+                          <span>Perbesar Foto</span>
+                        </div>
+
+                        {/* Label Tahun (Kiri Bawah) */}
+                        <div className="absolute bottom-3 left-3 text-white pointer-events-none">
+                          <span className="text-xs text-white/90 font-semibold drop-shadow-xs">
+                            Tahun Perakitan {k.tahun || '-'}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-ink-subtle block text-xs">Asuransi:</span>
-                        <span className="font-semibold text-ink">{k.asuransi || '-'}</span>
+                    ) : (
+                      <div className="relative h-40 w-full bg-surface border-b border-border flex flex-col items-center justify-center gap-2 p-4 text-ink-subtle">
+                        <div className="w-12 h-12 rounded-2xl bg-accent-subtle text-accent flex items-center justify-center shadow-xs">
+                          <Truck className="w-6 h-6" />
+                        </div>
+                        <span className="text-xs font-semibold text-ink-muted">Belum ada foto unit</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditArmadaForm({
+                              jenis_armada: k.jenis_armada || 'Truk',
+                              merk: k.merk || '',
+                              model: k.model || '',
+                              tahun: k.tahun || new Date().getFullYear(),
+                              no_rangka: k.no_rangka || '',
+                              no_mesin: k.no_mesin || '',
+                              asuransi: k.asuransi || '',
+                              masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '',
+                              foto_kendaraan: '',
+                            });
+                            setEditArmadaData(k);
+                          }}
+                          className="text-xs font-bold text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Camera className="w-3.5 h-3.5" /> Pasang Foto Sekarang
+                        </button>
+
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-raised border border-border text-ink-muted text-xs font-bold">
+                          <Truck className="w-3.5 h-3.5 text-accent" />
+                          <span>{k.jenis_armada || 'Truk'}</span>
+                        </div>
+
+                        <div className="absolute top-3 right-3">
+                          {sedangDiBengkel ? (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-status-amber text-white text-xs font-black shadow-xs animate-pulse">
+                              <Wrench className="w-3.5 h-3.5" />
+                              <span>Sedang di Bengkel</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-status-green-bg text-status-green border border-status-green/30 text-xs font-bold">
+                              Siap Operasi
+                            </span>
+                          )}
+                        </div>
                       </div>
+                    )}
+
+                    {/* Card Content Body */}
+                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                       <div>
-                        <span className="text-ink-subtle block text-xs">No. Rangka:</span>
-                        <span className="font-mono text-xs text-ink-muted">{k.no_rangka || '-'}</span>
+                        {/* License Plate & Unit Model */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="inline-flex items-center px-3 py-1 rounded-lg border-2 border-border bg-surface font-mono font-black text-sm tracking-wider text-ink shadow-2xs">
+                              <span className="w-2 h-2 rounded-full bg-accent mr-2 inline-block"></span>
+                              {k.no_polisi}
+                            </div>
+                            <h3 className="text-base font-black text-ink tracking-tight mt-1.5">
+                              {k.merk} {k.model}
+                            </h3>
+                            <p className="text-xs text-ink-muted font-medium">
+                              {k.jenis_armada || 'Truk'} • Pemilik: {k.nama_pemilik || currentUser || 'Perusahaan'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Technical Specifications Grid */}
+                        <div className="mt-4 pt-3.5 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                          <div className="p-3 rounded-xl bg-surface border border-border space-y-1.5">
+                            <span className="text-ink-subtle font-bold flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-accent" /> Nomor Identifikasi
+                            </span>
+                            <div>
+                              <span className="text-ink-subtle block text-xs">No. Rangka (VIN):</span>
+                              <span className="font-mono font-bold text-ink truncate block" title={k.no_rangka || '-'}>
+                                {k.no_rangka || '-'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-ink-subtle block text-xs">No. Mesin:</span>
+                              <span className="font-mono font-bold text-ink truncate block" title={k.no_mesin || '-'}>
+                                {k.no_mesin || '-'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-surface border border-border space-y-1.5">
+                            <span className="text-ink-subtle font-bold flex items-center gap-1.5">
+                              <ShieldCheck className="w-3.5 h-3.5 text-status-green" /> Asuransi &amp; Proteksi
+                            </span>
+                            <div>
+                              <span className="text-ink-subtle block text-xs">Polis / Vendor:</span>
+                              <span className="font-bold text-ink truncate block">
+                                {k.asuransi || 'Belum Terdaftar'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-ink-subtle block text-xs">Masa Berlaku:</span>
+                              <span className="font-mono font-bold text-ink-muted block">
+                                {k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '-'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-ink-subtle block text-xs">No. Mesin:</span>
-                        <span className="font-mono text-xs text-ink-muted">{k.no_mesin || '-'}</span>
+
+                      {/* Action Buttons Footer */}
+                      <div className="pt-3 border-t border-border flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
+                            setFleetMenu('booking');
+                            setActiveTab('fleet-booking');
+                          }}
+                          className="flex-1 py-2.5 px-3 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>Jadwalkan Service</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditArmadaForm({
+                              jenis_armada: k.jenis_armada || 'Truk',
+                              merk: k.merk || '',
+                              model: k.model || '',
+                              tahun: k.tahun || new Date().getFullYear(),
+                              no_rangka: k.no_rangka || '',
+                              no_mesin: k.no_mesin || '',
+                              asuransi: k.asuransi || '',
+                              masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '',
+                              foto_kendaraan: k.foto_kendaraan || '',
+                            });
+                            setEditArmadaData(k);
+                          }}
+                          className="p-2.5 rounded-xl border border-border bg-surface hover:bg-surface-raised hover:border-accent hover:text-accent text-ink-muted transition-colors cursor-pointer"
+                          aria-label={`Edit unit ${k.no_polisi}`}
+                          title="Edit spesifikasi unit"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHapusArmadaTarget(k)}
+                          className="p-2.5 rounded-xl border border-border bg-surface hover:bg-status-red-bg hover:border-status-red/40 hover:text-status-red text-ink-muted transition-colors cursor-pointer"
+                          aria-label={`Hapus unit ${k.no_polisi}`}
+                          title="Hapus unit kendaraan"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  <div className="mt-4 pt-3 border-t border-border flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
-                        setFleetMenu('booking');
-                      }}
-                      className="w-full py-2 bg-accent-subtle text-accent hover:bg-accent-subtle font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Calendar className="w-3.5 h-3.5" /> Jadwalkan Service
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditArmadaForm({
-                          jenis_armada: k.jenis_armada || 'Truk',
-                          merk: k.merk || '',
-                          model: k.model || '',
-                          tahun: k.tahun || new Date().getFullYear(),
-                          no_rangka: k.no_rangka || '',
-                          no_mesin: k.no_mesin || '',
-                          asuransi: k.asuransi || '',
-                          masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '',
-                          foto_kendaraan: k.foto_kendaraan || '',
-                        });
-                        setEditArmadaData(k);
-                      }}
-                      className="shrink-0 px-3 py-2 bg-surface border border-border text-ink-muted hover:text-accent hover:border-accent font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                      aria-label={`Edit unit ${k.no_polisi}`}
-                      title="Edit unit kendaraan"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setHapusArmadaTarget(k)}
-                      className="shrink-0 px-3 py-2 bg-surface border border-border text-ink-muted hover:text-status-red hover:border-status-red font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                      aria-label={`Hapus unit ${k.no_polisi}`}
-                      title="Hapus unit kendaraan"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <PaginationBar
               page={armadaPage}
@@ -3694,14 +3991,48 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <span className="font-bold text-ink block">Dokumentasi Foto</span>
                     {kunjunganDetail.foto_kendaraan_masuk && (
                       <div>
-                        <p className="text-xs text-ink-subtle mb-1">Masuk</p>
-                        <img src={kunjunganDetail.foto_kendaraan_masuk} alt="Foto masuk" className="w-full max-h-40 object-cover rounded-xl border border-border" />
+                        <div className="flex items-center justify-between text-xs text-ink-subtle mb-1">
+                          <span>Masuk</span>
+                          <span className="text-[10px] text-accent flex items-center gap-1 font-semibold cursor-pointer">
+                            <Maximize2 className="w-3 h-3" /> Perbesar
+                          </span>
+                        </div>
+                        <img
+                          src={kunjunganDetail.foto_kendaraan_masuk}
+                          alt="Foto masuk"
+                          onClick={() =>
+                            setPreviewImage({
+                              url: kunjunganDetail.foto_kendaraan_masuk!,
+                              title: kunjunganDetail.no_polisi,
+                              subtitle: `Dokumentasi Masuk • No. Tiket: ${kunjunganDetail.no_tiket}`,
+                            })
+                          }
+                          className="w-full max-h-40 object-cover rounded-xl border border-border cursor-pointer hover:opacity-85 transition-opacity"
+                          title="Klik untuk memperbesar foto"
+                        />
                       </div>
                     )}
                     {kunjunganDetail.foto_kendaraan_keluar && (
                       <div>
-                        <p className="text-xs text-ink-subtle mb-1">Keluar</p>
-                        <img src={kunjunganDetail.foto_kendaraan_keluar} alt="Foto keluar" className="w-full max-h-40 object-cover rounded-xl border border-border" />
+                        <div className="flex items-center justify-between text-xs text-ink-subtle mb-1">
+                          <span>Keluar</span>
+                          <span className="text-[10px] text-accent flex items-center gap-1 font-semibold cursor-pointer">
+                            <Maximize2 className="w-3 h-3" /> Perbesar
+                          </span>
+                        </div>
+                        <img
+                          src={kunjunganDetail.foto_kendaraan_keluar}
+                          alt="Foto keluar"
+                          onClick={() =>
+                            setPreviewImage({
+                              url: kunjunganDetail.foto_kendaraan_keluar!,
+                              title: kunjunganDetail.no_polisi,
+                              subtitle: `Dokumentasi Keluar • No. Tiket: ${kunjunganDetail.no_tiket}`,
+                            })
+                          }
+                          className="w-full max-h-40 object-cover rounded-xl border border-border cursor-pointer hover:opacity-85 transition-opacity"
+                          title="Klik untuk memperbesar foto"
+                        />
                       </div>
                     )}
                     {!kunjunganDetail.foto_kendaraan_masuk && !kunjunganDetail.foto_kendaraan_keluar && (
@@ -3763,8 +4094,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
                 {beliPartDetail.foto_penyerahan ? (
                   <div>
-                    <p className="text-xs font-bold text-ink-muted mb-1.5">Foto Penyerahan</p>
-                    <img src={beliPartDetail.foto_penyerahan} alt="Foto penyerahan" className="w-full max-h-56 object-cover rounded-xl border border-border" />
+                    <div className="flex items-center justify-between text-xs font-bold text-ink-muted mb-1.5">
+                      <span>Foto Penyerahan</span>
+                      <span className="text-[10px] text-accent flex items-center gap-1 font-semibold cursor-pointer">
+                        <Maximize2 className="w-3 h-3" /> Perbesar
+                      </span>
+                    </div>
+                    <img
+                      src={beliPartDetail.foto_penyerahan}
+                      alt="Foto penyerahan"
+                      onClick={() =>
+                        setPreviewImage({
+                          url: beliPartDetail.foto_penyerahan!,
+                          title: beliPartDetail.no_polisi,
+                          subtitle: `Foto Penyerahan Part • No. Transaksi: ${beliPartDetail.no_transaksi}`,
+                        })
+                      }
+                      className="w-full max-h-56 object-cover rounded-xl border border-border cursor-pointer hover:opacity-85 transition-opacity"
+                      title="Klik untuk memperbesar foto"
+                    />
                   </div>
                 ) : (
                   <p className="text-xs text-ink-subtle">Tidak ada foto penyerahan.</p>
@@ -4444,6 +4792,72 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             });
           }}
         />
+      )}
+
+      {/* Modal Lightbox Preview Foto Membesar */}
+      {previewImage && (
+        <ModalPortal onClose={() => setPreviewImage(null)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+            onClick={() => setPreviewImage(null)}
+          >
+            {/* Top Controls */}
+            <div
+              className="w-full max-w-4xl flex items-center justify-between pb-3 text-white shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 min-w-0 pr-4">
+                <span className="px-3.5 py-1 rounded-lg bg-white/15 border border-white/25 font-mono font-black text-sm tracking-wider text-white shadow-xs">
+                  {previewImage.title}
+                </span>
+                {previewImage.subtitle && (
+                  <span className="text-xs text-white/80 font-medium truncate hidden sm:inline">
+                    {previewImage.subtitle}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={previewImage.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  title="Buka gambar di tab baru"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(null)}
+                  className="p-2 rounded-xl bg-white/15 hover:bg-status-red text-white transition-colors cursor-pointer"
+                  title="Tutup (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Large Image Frame */}
+            <div
+              className="relative max-w-4xl max-h-[80vh] flex items-center justify-center overflow-hidden rounded-2xl border border-white/15 shadow-2xl bg-black/50 p-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-h-[76vh] max-w-full w-auto object-contain rounded-xl select-none"
+              />
+            </div>
+
+            {/* Hint */}
+            <div
+              className="mt-3 text-center text-xs text-white/70"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Tekan <kbd className="px-2 py-0.5 rounded bg-white/20 text-white font-mono text-xs">Esc</kbd> atau klik di luar gambar untuk menutup
+            </div>
+          </div>
+        </ModalPortal>
       )}
 
     </div>
