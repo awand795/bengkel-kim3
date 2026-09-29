@@ -2775,7 +2775,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             onChange={(time) => setBookingForm({ ...bookingForm, jam_booking: time })}
                           />
                           <div className="text-xs text-ink-muted mt-1.5 font-medium">
-                            Jam operasional bengkel: 07:30 - 17:00 WIB
+                            Jam operasional bengkel: 08:00 - 17:00 WIB
                           </div>
                         </div>
                       </div>
