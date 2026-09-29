@@ -77,6 +77,18 @@ export const LoginPage: React.FC = () => {
             res.access_token, 
             res.refresh_token
           );
+          // Profil penuh (termasuk foto) diambil terpisah agar JWT login
+          // tetap kecil — JWT raksasa memicu 431 di semua request.
+          api.getMe().then((me) => {
+            useAppStore.setState({ authUser: me, currentUser: me.nama_lengkap || '' });
+            try {
+              localStorage.setItem('bengkel_auth_user', JSON.stringify(me));
+            } catch {
+              /* abaikan */
+            }
+          }).catch(() => {
+            /* sesi tetap valid dari login; refresh berikutnya melengkapi */
+          });
         }, 650);
       } else {
         setErrorMsg('Email atau password salah');
