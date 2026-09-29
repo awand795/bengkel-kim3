@@ -16,12 +16,12 @@ export interface StatCardProps {
 }
 
 const TONE_STYLES: Record<StatCardTone, string> = {
-  accent: 'bg-blue-50 text-blue-600 border border-blue-200',
-  amber: 'bg-amber-50 text-amber-600 border border-amber-200',
-  blue: 'bg-blue-50 text-blue-600 border border-blue-200',
-  green: 'bg-emerald-50 text-emerald-600 border border-emerald-200',
-  red: 'bg-red-50 text-red-600 border border-red-200',
-  neutral: 'bg-slate-50 text-slate-500 border border-slate-200',
+  accent: 'bg-accent-subtle text-accent border border-accent/20',
+  amber: 'bg-status-amber-bg text-status-amber border border-status-amber/20',
+  blue: 'bg-status-blue-bg text-status-blue border border-status-blue/20',
+  green: 'bg-status-green-bg text-status-green border border-status-green/20',
+  red: 'bg-status-red-bg text-status-red border border-status-red/20',
+  neutral: 'bg-surface text-ink-muted border border-border',
 };
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -51,11 +51,11 @@ export const StatCard: React.FC<StatCardProps> = ({
       }}
       className={`card-modern bg-surface-raised rounded-xl p-4 sm:p-5 transition-all relative flex flex-col justify-between ${
         active
-          ? 'border-blue-400 bg-blue-50/60 ring-1 ring-blue-200'
-          : 'hover:border-blue-200 hover:shadow-md'
+          ? 'border-accent bg-accent-subtle/60 ring-1 ring-accent/20'
+          : 'hover:border-accent/30 hover:shadow-md'
       } ${
         onClick
-          ? 'cursor-pointer group active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500'
+          ? 'cursor-pointer group active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-accent'
           : ''
       } ${className}`}
     >

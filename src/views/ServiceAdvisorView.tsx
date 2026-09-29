@@ -1314,13 +1314,13 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           className="max-w-3xl mx-auto space-y-6"
         >
           {/* Header Form */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+          <div className="flex items-center justify-between pb-3 border-b border-border">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-bold text-ink tracking-tight flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-accent" />
                 Formulir Penerimaan &amp; Penerbitan SPK
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-ink-muted mt-0.5">
                 Inspeksi awal kendaraan masuk dan serahkan perintah kerja langsung ke Foreman
               </p>
             </div>
@@ -1338,7 +1338,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     foto_kendaraan_masuk: '',
                   }));
                 }}
-                className="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                className="text-xs font-semibold text-status-red hover:text-status-red bg-status-red-bg hover:bg-red-100 border border-status-red/20 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
               >
                 Ganti Kendaraan
               </button>
@@ -1346,18 +1346,18 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           </div>
 
           {/* BAGIAN 1: KENDARAAN & CUSTOMER */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Truck className="w-4 h-4 text-blue-600" /> 1. Data Kendaraan &amp; Pelanggan
+          <div className="bg-surface-raised rounded-xl border border-border shadow-sm p-6 space-y-4">
+            <div className="border-b border-border pb-3">
+              <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                <Truck className="w-4 h-4 text-accent" /> 1. Data Kendaraan &amp; Pelanggan
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Pilih kendaraan antrian yang telah check-in di Pos Security</p>
+              <p className="text-xs text-ink-subtle mt-0.5">Pilih kendaraan antrian yang telah check-in di Pos Security</p>
             </div>
 
             {/* Kondisi Error Antrian */}
             {antrianError ? (
-              <div className="bg-red-50 rounded-xl border border-red-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3 text-red-600">
+              <div className="bg-status-red-bg rounded-xl border border-status-red/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 text-status-red">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
                   <div className="text-xs sm:text-sm">
                     <span className="font-semibold">Gagal memuat antrian dari server.</span>{' '}
@@ -1381,8 +1381,8 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               />
             ) : (
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Pilih Antrian Kendaraan Masuk <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-ink">
+                  Pilih Antrian Kendaraan Masuk <span className="text-status-red">*</span>
                 </label>
                 <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
                   {antrianMenungguSA.map((a) => (
@@ -1402,36 +1402,36 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
             {/* Ringkasan Baca-Saja setelah memilih antrian */}
             {formPenerimaan.id_antrian && (
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-surface rounded-xl border border-border grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-0.5">No. Polisi Unit</span>
-                  <span className="text-base font-bold font-mono text-slate-900">{formatPlat(formPenerimaan.no_polisi)}</span>
+                  <span className="text-xs text-ink-subtle font-medium block mb-0.5">No. Polisi Unit</span>
+                  <span className="text-base font-bold font-mono text-ink">{formatPlat(formPenerimaan.no_polisi)}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-0.5">Nama Pelanggan / Armada</span>
-                  <span className="text-sm font-semibold text-slate-800">{formPenerimaan.nama_customer || '-'}</span>
+                  <span className="text-xs text-ink-subtle font-medium block mb-0.5">Nama Pelanggan / Armada</span>
+                  <span className="text-sm font-semibold text-ink">{formPenerimaan.nama_customer || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-0.5">No. HP Pelanggan</span>
-                  <span className="text-sm font-mono font-medium text-slate-600">{formPenerimaan.no_hp_customer || '-'}</span>
+                  <span className="text-xs text-ink-subtle font-medium block mb-0.5">No. HP Pelanggan</span>
+                  <span className="text-sm font-mono font-medium text-ink-muted">{formPenerimaan.no_hp_customer || '-'}</span>
                 </div>
               </div>
             )}
           </div>
 
           {/* BAGIAN 2: KONDISI KENDARAAN */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5">
-            <div className="border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-blue-600" /> 2. Kondisi &amp; Kelengkapan Awal Unit
+          <div className="bg-surface-raised rounded-xl border border-border shadow-sm p-6 space-y-5">
+            <div className="border-b border-border pb-3">
+              <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-accent" /> 2. Kondisi &amp; Kelengkapan Awal Unit
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Pencatatan odometer awal, estimasi lead time, checklist fisik, dan dokumen</p>
+              <p className="text-xs text-ink-subtle mt-0.5">Pencatatan odometer awal, estimasi lead time, checklist fisik, dan dokumen</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Odometer KM (Jarak Tempuh) <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-ink mb-1.5">
+                  Odometer KM (Jarak Tempuh) <span className="text-status-red">*</span>
                 </label>
                 <input
                   type="number"
@@ -1439,26 +1439,26 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   placeholder="Contoh: 145000"
                   value={formPenerimaan.odometer_km || ''}
                   onChange={(e) => setFormPenerimaan({ ...formPenerimaan, odometer_km: Number(e.target.value) })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono text-sm font-bold bg-white text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border font-mono text-sm font-bold bg-surface-raised text-ink focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-all shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-ink mb-1.5">
                   Estimasi Waktu Pengerjaan (Jam)
                 </label>
                 <input
                   type="number"
                   value={formPenerimaan.lead_time_jam}
                   onChange={(e) => setFormPenerimaan({ ...formPenerimaan, lead_time_jam: Number(e.target.value) })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono text-sm font-bold bg-white text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border font-mono text-sm font-bold bg-surface-raised text-ink focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-all shadow-2xs"
                 />
               </div>
             </div>
 
             {/* Checklist Kondisi Fisik Kendaraan */}
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-              <span className="block text-xs font-bold text-slate-800">Checklist Kondisi Fisik Awal:</span>
+            <div className="p-4 bg-surface rounded-xl border border-border space-y-3">
+              <span className="block text-xs font-bold text-ink">Checklist Kondisi Fisik Awal:</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                   { key: 'cek_body', label: 'Bodi Kendaraan' },
@@ -1466,24 +1466,24 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   { key: 'cek_kelistrikan', label: 'Kelistrikan' },
                   { key: 'cek_kaki_kaki', label: 'Kaki-kaki / Rem' },
                 ].map((item) => (
-                  <div key={item.key} className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-2">
-                    <span className="text-xs font-medium text-slate-600 block">{item.label}</span>
+                  <div key={item.key} className="bg-surface-raised p-3 rounded-lg border border-border shadow-2xs space-y-2">
+                    <span className="text-xs font-medium text-ink-muted block">{item.label}</span>
                     <div className="grid grid-cols-3 gap-1">
                       {(['OK', 'Perlu Dicek', 'Rusak'] as const).map((val) => {
                         const isSelected = (formPenerimaan as any)[item.key] === val;
                         const activeStyle =
                           val === 'OK'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold'
+                            ? 'bg-status-green-bg text-status-green border-emerald-300 font-bold'
                             : val === 'Perlu Dicek'
-                            ? 'bg-amber-50 text-amber-700 border-amber-300 font-bold'
-                            : 'bg-red-50 text-red-700 border-red-300 font-bold';
+                            ? 'bg-status-amber-bg text-status-amber border-amber-300 font-bold'
+                            : 'bg-status-red-bg text-status-red border-red-300 font-bold';
                         return (
                           <button
                             key={val}
                             type="button"
                             onClick={() => setFormPenerimaan({ ...formPenerimaan, [item.key]: val })}
                             className={`px-1.5 py-1 text-xs rounded border transition-all cursor-pointer text-center truncate ${
-                              isSelected ? `${activeStyle} shadow-2xs` : 'border-slate-200 bg-white text-slate-500 hover:text-slate-800'
+                              isSelected ? `${activeStyle} shadow-2xs` : 'border-border bg-surface-raised text-ink-muted hover:text-ink'
                             }`}
                           >
                             {val === 'Perlu Dicek' ? 'Cek' : val}
@@ -1498,7 +1498,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
             {/* Foto Dokumen (Odometer, STNK, KIR) */}
             <div>
-              <span className="block text-xs font-semibold text-slate-700 mb-2">Unggah Foto Dokumen &amp; Fisik Kendaraan:</span>
+              <span className="block text-xs font-semibold text-ink mb-2">Unggah Foto Dokumen &amp; Fisik Kendaraan:</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <PhotoUploader
                   label="Foto Odometer (KM)"
@@ -1520,17 +1520,17 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           </div>
 
           {/* BAGIAN 3: KELUHAN CUSTOMER */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-blue-600" /> 3. Keluhan Customer &amp; Instruksi Khusus
+          <div className="bg-surface-raised rounded-xl border border-border shadow-sm p-6 space-y-4">
+            <div className="border-b border-border pb-3">
+              <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-accent" /> 3. Keluhan Customer &amp; Instruksi Khusus
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Uraian masalah teknis dan instruksi pengerjaan dari pengemudi / pemilik</p>
+              <p className="text-xs text-ink-subtle mt-0.5">Uraian masalah teknis dan instruksi pengerjaan dari pengemudi / pemilik</p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Catatan Keluhan &amp; Masalah Kendaraan <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-ink mb-1.5">
+                Catatan Keluhan &amp; Masalah Kendaraan <span className="text-status-red">*</span>
               </label>
               <textarea
                 rows={3}
@@ -1538,38 +1538,38 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 placeholder="Contoh: Rem bunyi saat pengereman dan tarikan mesin agak berat. Minta diperiksa kampas dan minyak rem..."
                 value={formPenerimaan.keluhan_customer}
                 onChange={(e) => setFormPenerimaan({ ...formPenerimaan, keluhan_customer: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm bg-surface-raised text-ink focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none transition-all shadow-2xs"
               />
             </div>
           </div>
 
           {/* ACTION BAR (BERSiH, TANPA NEGATIVE MARGINS) */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs sm:text-sm text-slate-600 font-medium truncate w-full sm:w-auto">
+          <div className="bg-surface-raised rounded-xl border border-border shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs sm:text-sm text-ink-muted font-medium truncate w-full sm:w-auto">
               {formPenerimaan.no_polisi ? (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{formatPlat(formPenerimaan.no_polisi)}</span>
+                  <span className="font-mono font-bold text-ink bg-surface px-2 py-0.5 rounded border border-border">{formatPlat(formPenerimaan.no_polisi)}</span>
                   <span>•</span>
                   <span>{formPenerimaan.odometer_km ? `${formPenerimaan.odometer_km.toLocaleString()} KM` : 'KM belum diisi'}</span>
                   <span>•</span>
-                  <span className="text-blue-600 font-semibold">{formPenerimaan.lead_time_jam} Jam Estimasi</span>
+                  <span className="text-accent font-semibold">{formPenerimaan.lead_time_jam} Jam Estimasi</span>
                 </div>
               ) : (
-                <span className="text-slate-400">Pilih kendaraan antrian terlebih dahulu</span>
+                <span className="text-ink-subtle">Pilih kendaraan antrian terlebih dahulu</span>
               )}
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
               <button
                 type="button"
                 onClick={() => setActiveTab('spk-list')}
-                className="px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
+                className="px-4 py-2.5 rounded-lg border border-border bg-surface-raised hover:bg-surface text-ink font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={createSpkMutation.isPending || !formPenerimaan.id_antrian || !formPenerimaan.keluhan_customer.trim()}
-                className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                className="px-6 py-2.5 rounded-lg bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
               >
                 {createSpkMutation.isPending ? 'Menerbitkan SPK...' : 'Terbitkan SPK & Serahkan ke Foreman'}
                 {!createSpkMutation.isPending && <CheckCircle className="w-4 h-4" />}
@@ -1583,23 +1583,23 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
       {activeTab === 'estimasi-pr' && (
         <div className="space-y-4">
           {/* Filter Bar: Pencarian & Filter Status Chips */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs space-y-3">
+          <div className="bg-surface-raised rounded-xl border border-border p-4 shadow-2xs space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               {/* Search Bar */}
               <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-subtle" />
                 <input
                   type="text"
                   placeholder="Cari nopol, customer, no. PR, no. PO, nama part..."
                   value={prSearch}
                   onChange={(e) => setPrSearch(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 rounded-lg border border-slate-300 text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                  className="w-full pl-9 pr-8 py-2 rounded-lg border border-border text-xs focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink shadow-2xs"
                 />
                 {prSearch && (
                   <button
                     type="button"
                     onClick={() => setPrSearch('')}
-                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute right-2.5 top-2.5 text-ink-subtle hover:text-ink cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1607,25 +1607,25 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
               </div>
 
               {/* Quick Info Total */}
-              <div className="text-xs text-slate-500 font-medium">
-                Menampilkan <strong className="text-slate-800">{prFilteredList.length}</strong> dari {prRows.length} part indent
+              <div className="text-xs text-ink-muted font-medium">
+                Menampilkan <strong className="text-ink">{prFilteredList.length}</strong> dari {prRows.length} part indent
               </div>
             </div>
 
             {/* Filter Status Chips */}
-            <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-border">
               <button
                 type="button"
                 onClick={() => setPrFilterStatus('aktif')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   prFilterStatus === 'aktif'
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-accent text-white shadow-2xs'
+                    : 'bg-surface text-ink hover:bg-border'
                 }`}
               >
                 <span>Aktif</span>
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  prFilterStatus === 'aktif' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  prFilterStatus === 'aktif' ? 'bg-white/20 text-white' : 'bg-border text-ink'
                 }`}>
                   {countAktif}
                 </span>
@@ -1638,8 +1638,8 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   prFilterStatus === 'perlu-keputusan'
                     ? 'bg-red-600 text-white shadow-2xs'
                     : countPerluKeputusan > 0
-                    ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-status-red-bg text-status-red border border-status-red/20 hover:bg-red-100'
+                    : 'bg-surface text-ink hover:bg-border'
                 }`}
               >
                 <span>Perlu Keputusan SA</span>
@@ -1648,7 +1648,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     ? 'bg-white/20 text-white'
                     : countPerluKeputusan > 0
                     ? 'bg-red-600 text-white'
-                    : 'bg-slate-200 text-slate-700'
+                    : 'bg-border text-ink'
                 }`}>
                   {countPerluKeputusan}
                 </span>
@@ -1660,12 +1660,12 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   prFilterStatus === 'menunggu-vendor'
                     ? 'bg-amber-600 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'bg-surface text-ink hover:bg-border'
                 }`}
               >
                 <span>Menunggu Penawaran</span>
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  prFilterStatus === 'menunggu-vendor' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  prFilterStatus === 'menunggu-vendor' ? 'bg-white/20 text-white' : 'bg-border text-ink'
                 }`}>
                   {countMenungguVendor}
                 </span>
@@ -1676,13 +1676,13 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 onClick={() => setPrFilterStatus('selesai')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   prFilterStatus === 'selesai'
-                    ? 'bg-emerald-600 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-status-green text-white shadow-2xs'
+                    : 'bg-surface text-ink hover:bg-border'
                 }`}
               >
                 <span>Barang Ready / Selesai</span>
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  prFilterStatus === 'selesai' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  prFilterStatus === 'selesai' ? 'bg-white/20 text-white' : 'bg-border text-ink'
                 }`}>
                   {countSelesai}
                 </span>
@@ -1693,13 +1693,13 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 onClick={() => setPrFilterStatus('semua')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                   prFilterStatus === 'semua'
-                    ? 'bg-slate-800 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-ink text-surface shadow-2xs'
+                    : 'bg-surface text-ink hover:bg-border'
                 }`}
               >
                 <span>Semua</span>
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  prFilterStatus === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  prFilterStatus === 'semua' ? 'bg-white/20 text-white' : 'bg-border text-ink'
                 }`}>
                   {prRows.length}
                 </span>
@@ -1709,12 +1709,12 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
 
           {/* Daftar PR (Cards Baru yang Bersih & Enterprise) */}
           {prFilteredList.length === 0 ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center space-y-2">
-              <ShoppingBag className="w-10 h-10 mx-auto text-slate-300" />
-              <h3 className="text-sm font-bold text-slate-800">
+            <div className="bg-surface-raised rounded-xl border border-border p-8 text-center space-y-2">
+              <ShoppingBag className="w-10 h-10 mx-auto text-ink-subtle" />
+              <h3 className="text-sm font-bold text-ink">
                 {prSearch ? 'Tidak ada part indent yang cocok' : 'Tidak ada data part indent'}
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              <p className="text-xs text-ink-muted max-w-sm mx-auto">
                 {prSearch
                   ? `Tidak ditemukan hasil dengan kata kunci "${prSearch}". Coba kata kunci lain atau bersihkan pencarian.`
                   : 'Semua kebutuhan part sudah terpenuhi. Part indent otomatis dibuat saat estimasi membutuhkan part yang kosong di gudang.'}
@@ -1723,7 +1723,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 <button
                   type="button"
                   onClick={() => setPrSearch('')}
-                  className="mt-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium cursor-pointer"
+                  className="mt-2 px-3 py-1.5 bg-surface hover:bg-border text-ink rounded-lg text-xs font-medium cursor-pointer"
                 >
                   Bersihkan Pencarian
                 </button>
@@ -1745,30 +1745,30 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   return (
                     <div
                       key={pr.pr_id}
-                      className={`bg-white rounded-xl border transition-all p-4 sm:p-5 space-y-3.5 shadow-2xs hover:shadow-md ${
+                      className={`bg-surface-raised rounded-xl border transition-all p-4 sm:p-5 space-y-3.5 shadow-2xs hover:shadow-md ${
                         perluRespon
                           ? 'border-red-300 ring-2 ring-red-500/10'
                           : isSpkDone
-                          ? 'border-slate-200 bg-slate-50/30'
+                          ? 'border-border bg-surface/30'
                           : isReady
-                          ? 'border-emerald-200 hover:border-emerald-300'
-                          : 'border-slate-200 hover:border-blue-300'
+                          ? 'border-status-green/20 hover:border-emerald-300'
+                          : 'border-border hover:border-accent/40'
                       }`}
                     >
                       {/* Top Header Row */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-border pb-3">
                         <div className="flex items-center gap-2.5 flex-wrap">
-                          <span className="px-2.5 py-1 bg-slate-900 text-white font-mono font-bold text-xs rounded-md shadow-2xs">
+                          <span className="px-2.5 py-1 bg-ink text-surface font-mono font-bold text-xs rounded-md shadow-2xs">
                             {formatPlat(pr.no_polisi)}
                           </span>
-                          <span className="text-xs sm:text-sm font-bold text-slate-900">
+                          <span className="text-xs sm:text-sm font-bold text-ink">
                             {pr.nama_customer || 'Pelanggan'}
                           </span>
-                          <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                          <span className="font-mono text-xs font-semibold text-accent bg-accent-subtle border border-accent/20 px-2 py-0.5 rounded">
                             {pr.no_pr}
                           </span>
                           {pr.tanggal_pr && (
-                            <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <span className="text-[11px] text-ink-subtle flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               {new Date(pr.tanggal_pr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
@@ -1779,23 +1779,23 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                           {/* Badge jujur = status PR asli; status SPK tampil terpisah */}
                           <StatusBadge status={pr.status_pr} size="sm" />
                           {isSpkDone ? (
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface text-ink-muted border border-border">
                               SPK Selesai
                             </span>
                           ) : perluRespon ? (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-300 flex items-center gap-1.5 shadow-2xs animate-pulse">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-status-red border border-red-300 flex items-center gap-1.5 shadow-2xs animate-pulse">
                               <AlertCircle className="w-3.5 h-3.5" /> Perlu Respon SA
                             </span>
                           ) : isWaitingVendor ? (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-status-amber-bg text-status-amber border border-status-amber/20 flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5" /> Menunggu Penawaran
                             </span>
                           ) : isReady ? (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-status-green-bg text-status-green border border-status-green/20 flex items-center gap-1.5">
                               <CheckCircle2 className="w-3.5 h-3.5" /> Barang Ready di Gudang
                             </span>
                           ) : isDisetujui ? (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-accent-subtle text-accent border border-accent/20 flex items-center gap-1.5">
                               <Check className="w-3.5 h-3.5" /> Disetujui SA (Proses PO)
                             </span>
                           ) : null}
@@ -1803,65 +1803,65 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                       </div>
 
                       {/* Catatan Part & Kebutuhan */}
-                      <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-lg text-xs space-y-1">
-                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                          <Package className="w-3.5 h-3.5 text-blue-600" /> Kebutuhan Sparepart
+                      <div className="p-3 bg-surface border border-border/80 rounded-lg text-xs space-y-1">
+                        <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider flex items-center gap-1.5">
+                          <Package className="w-3.5 h-3.5 text-accent" /> Kebutuhan Sparepart
                         </div>
-                        <div className="text-slate-800 font-medium whitespace-pre-line leading-relaxed">
+                        <div className="text-ink font-medium whitespace-pre-line leading-relaxed">
                           {pr.catatan_pr || 'Tidak ada catatan spesifik.'}
                         </div>
                       </div>
 
                       {/* Informasi Penawaran Purchasing / PO (Jika Ada) */}
                       {pr.no_po ? (
-                        <div className="p-3.5 rounded-xl border border-blue-100 bg-blue-50/40 text-xs space-y-2.5">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-600 border-b border-blue-100 pb-2">
+                        <div className="p-3.5 rounded-xl border border-blue-100 bg-accent-subtle/40 text-xs space-y-2.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-ink-muted border-b border-blue-100 pb-2">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-slate-700">Nomor PO:</span>
-                              <span className="font-mono font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200">
+                              <span className="font-semibold text-ink">Nomor PO:</span>
+                              <span className="font-mono font-bold text-accent bg-surface-raised px-2 py-0.5 rounded border border-accent/20">
                                 {pr.no_po}
                               </span>
                             </div>
                             <div>
                               <span>Admin Purchasing: </span>
-                              <strong className="text-slate-800">{pr.nama_admin_purchasing || '-'}</strong>
+                              <strong className="text-ink">{pr.nama_admin_purchasing || '-'}</strong>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-                            <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                              <span className="text-[11px] text-slate-500 block">Vendor 1</span>
-                              <div className="font-bold text-slate-800 truncate">{pr.vendor_1_nama || '-'}</div>
-                              <div className="text-slate-600 text-[11px] font-mono mt-0.5">
+                            <div className="p-2.5 bg-surface-raised rounded-lg border border-border">
+                              <span className="text-[11px] text-ink-muted block">Vendor 1</span>
+                              <div className="font-bold text-ink truncate">{pr.vendor_1_nama || '-'}</div>
+                              <div className="text-ink-muted text-[11px] font-mono mt-0.5">
                                 Rp {Number(pr.vendor_1_harga || 0).toLocaleString('id-ID')}
                               </div>
                             </div>
 
-                            <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                              <span className="text-[11px] text-slate-500 block">Vendor 2</span>
-                              <div className="font-bold text-slate-800 truncate">{pr.vendor_2_nama || '-'}</div>
-                              <div className="text-slate-600 text-[11px] font-mono mt-0.5">
+                            <div className="p-2.5 bg-surface-raised rounded-lg border border-border">
+                              <span className="text-[11px] text-ink-muted block">Vendor 2</span>
+                              <div className="font-bold text-ink truncate">{pr.vendor_2_nama || '-'}</div>
+                              <div className="text-ink-muted text-[11px] font-mono mt-0.5">
                                 Rp {Number(pr.vendor_2_harga || 0).toLocaleString('id-ID')}
                               </div>
                             </div>
 
-                            <div className="p-2.5 bg-blue-50/80 rounded-lg border border-blue-200">
-                              <span className="text-[11px] text-blue-700 font-semibold block">Vendor Terpilih &amp; ETA</span>
+                            <div className="p-2.5 bg-accent-subtle/80 rounded-lg border border-accent/20">
+                              <span className="text-[11px] text-accent font-semibold block">Vendor Terpilih &amp; ETA</span>
                               <div className="font-bold text-blue-900 truncate">
                                 {pr.vendor_terpilih || '-'}
                               </div>
-                              <div className="text-xs font-mono font-bold text-emerald-700 mt-0.5">
+                              <div className="text-xs font-mono font-bold text-status-green mt-0.5">
                                 Rp {Number(pr.harga_kesepakatan || 0).toLocaleString('id-ID')}
                               </div>
                             </div>
                           </div>
 
                           {pr.estimasi_tanggal_ready_eta && (
-                            <div className="flex items-center gap-2 text-xs text-slate-700 pt-1">
-                              <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <div className="flex items-center gap-2 text-xs text-ink pt-1">
+                              <Clock className="w-3.5 h-3.5 text-accent shrink-0" />
                               <span>
                                 Estimasi Kedatangan (ETA):{' '}
-                                <strong className="font-mono text-slate-900">
+                                <strong className="font-mono text-ink">
                                   {pr.estimasi_tanggal_ready_eta}
                                   {pr.estimasi_jam_ready_eta ? ` pukul ${pr.estimasi_jam_ready_eta}` : ''}
                                 </strong>
@@ -1870,8 +1870,8 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                           )}
                         </div>
                       ) : (
-                        <div className="p-3 bg-amber-50/60 border border-amber-200/70 rounded-lg text-xs text-amber-900 flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                        <div className="p-3 bg-status-amber-bg/60 border border-status-amber/20/70 rounded-lg text-xs text-amber-900 flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-status-amber shrink-0" />
                           <span>
                             Menunggu tim Purchasing memproses dan membandingkan minimal 2 penawaran vendor rekanan.
                           </span>
@@ -1879,9 +1879,9 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                       )}
 
                       {/* Footer Row: Info SA & Tombol Aksi */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
-                        <div className="text-[11px] text-slate-400">
-                          Diajukan oleh: <strong className="text-slate-600">{pr.nama_sa_pemohon || 'Service Advisor'}</strong>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border">
+                        <div className="text-[11px] text-ink-subtle">
+                          Diajukan oleh: <strong className="text-ink-muted">{pr.nama_sa_pemohon || 'Service Advisor'}</strong>
                         </div>
 
                         <div className="flex items-center gap-2 justify-end">
@@ -1889,7 +1889,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                             <button
                               type="button"
                               onClick={() => setSelectedPrId(pr.pr_id)}
-                              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+                              className="px-3.5 py-1.5 rounded-lg bg-status-green hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
                             >
                               <Check className="w-3.5 h-3.5" />
                               Review &amp; Setujui PO
@@ -1907,7 +1907,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                                   setSelectedPrId(pr.pr_id);
                                 }
                               }}
-                              className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+                              className="px-3.5 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
                             >
                               <Wrench className="w-3.5 h-3.5" />
                               Lanjut ke Estimasi SPK
@@ -1915,7 +1915,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                           )}
 
                           {isSpkDone && (
-                            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 flex items-center gap-1">
+                            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold text-status-green bg-status-green-bg border border-status-green/20 flex items-center gap-1">
                               <Check className="w-3.5 h-3.5" /> SPK Selesai
                             </span>
                           )}
@@ -1923,7 +1923,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                           <button
                             type="button"
                             onClick={() => setSelectedPrId(pr.pr_id)}
-                            className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-lg border border-border hover:bg-surface text-ink font-semibold text-xs transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
                           >
                             <span>Lihat Detail PR</span>
                             <ArrowRight className="w-3.5 h-3.5" />
@@ -2155,14 +2155,14 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
           footer={
             posStep === 1 ? (
               <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="text-xs text-slate-500 font-medium">
+                <div className="text-xs text-ink-muted font-medium">
                   Langkah 1 dari 2: Data Pelanggan &amp; Unit
                 </div>
                 <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
                   <button
                     type="button"
                     onClick={() => { setShowPosModal(false); resetPosForm(); }}
-                    className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
+                    className="px-4 py-2 rounded-lg border border-border bg-surface-raised hover:bg-surface text-ink font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs"
                   >
                     Batal
                   </button>
@@ -2170,7 +2170,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     type="button"
                     disabled={!posCustomer.no_polisi.trim() || !posCustomer.nama_customer.trim()}
                     onClick={() => setPosStep(2)}
-                    className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:cursor-not-allowed"
+                    className="px-5 py-2 rounded-lg bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:cursor-not-allowed"
                   >
                     Lanjut ke Pilih Part
                     <ArrowRight className="w-4 h-4" />
@@ -2180,8 +2180,8 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             ) : (
               <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs sm:text-sm">
-                  <span className="text-slate-500 font-medium">Total ({posCart.length} item):</span>
-                  <span className="font-mono font-bold text-emerald-600 text-base sm:text-lg">
+                  <span className="text-ink-muted font-medium">Total ({posCart.length} item):</span>
+                  <span className="font-mono font-bold text-status-green text-base sm:text-lg">
                     Rp {posGrandTotal !== null ? posGrandTotal.toLocaleString('id-ID') : '-'}
                   </span>
                 </div>
@@ -2189,7 +2189,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   <button
                     type="button"
                     onClick={() => setPosStep(1)}
-                    className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-lg border border-border bg-surface-raised hover:bg-surface text-ink font-medium text-xs sm:text-sm transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Kembali
@@ -2198,7 +2198,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                     type="button"
                     disabled={!posCanSubmit || posBuatMutation.isPending}
                     onClick={() => posBuatMutation.mutate()}
-                    className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:cursor-not-allowed"
+                    className="px-5 py-2 rounded-lg bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:cursor-not-allowed"
                   >
                     {posBuatMutation.isPending ? 'Menyimpan...' : 'KIRIM ESTIMASI'}
                     <Send className="w-4 h-4" />
@@ -2210,26 +2210,26 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
         >
           <div className="space-y-4">
             {/* STEPPER HEADER */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-1">
+            <div className="flex items-center justify-between border-b border-border pb-3 mb-1">
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setPosStep(1)}
                   className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                     posStep === 1
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-accent text-white shadow-2xs'
+                      : 'bg-surface text-ink hover:bg-border'
                   }`}
                 >
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                    posStep === 1 ? 'bg-white text-blue-600' : 'bg-slate-300 text-slate-700'
+                    posStep === 1 ? 'bg-surface-raised text-accent' : 'bg-border text-ink-muted'
                   }`}>
                     {posStep === 2 && posCustomer.no_polisi ? <Check className="w-3 h-3 stroke-[3]" /> : '1'}
                   </span>
                   <span>1. Data Pelanggan</span>
                 </button>
 
-                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-ink-subtle shrink-0" />
 
                 <button
                   type="button"
@@ -2241,14 +2241,14 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   disabled={!posCustomer.no_polisi.trim() || !posCustomer.nama_customer.trim()}
                   className={`flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
                     posStep === 2
-                      ? 'bg-blue-600 text-white shadow-2xs cursor-pointer'
+                      ? 'bg-accent text-white shadow-2xs cursor-pointer'
                       : posCustomer.no_polisi.trim() && posCustomer.nama_customer.trim()
-                      ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer'
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      ? 'bg-surface text-ink hover:bg-border cursor-pointer'
+                      : 'bg-surface text-ink-subtle cursor-not-allowed'
                   }`}
                 >
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                    posStep === 2 ? 'bg-white text-blue-600' : 'bg-slate-200 text-slate-500'
+                    posStep === 2 ? 'bg-surface-raised text-accent' : 'bg-border text-ink-muted'
                   }`}>
                     2
                   </span>
@@ -2256,7 +2256,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 </button>
               </div>
 
-              <span className="text-[11px] font-medium text-slate-400 hidden sm:inline-block">
+              <span className="text-[11px] font-medium text-ink-subtle hidden sm:inline-block">
                 Langkah {posStep} dari 2
               </span>
             </div>
@@ -2265,11 +2265,11 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             {posStep === 1 && (
               <div className="space-y-4">
                 {/* Pilihan Antrian Gerbang */}
-                <div className="p-3.5 bg-blue-50/80 rounded-xl border border-blue-200/80 space-y-1.5">
+                <div className="p-3.5 bg-accent-subtle/80 rounded-xl border border-accent/20/80 space-y-1.5">
                   <label className="block text-xs font-semibold text-blue-900 flex items-center gap-1.5">
-                    <Truck className="w-4 h-4 text-blue-600" /> Ambil dari Antrian Gerbang ({antrianBeliPart.length} menunggu)
+                    <Truck className="w-4 h-4 text-accent" /> Ambil dari Antrian Gerbang ({antrianBeliPart.length} menunggu)
                   </label>
-                  <p className="text-[11px] text-blue-700">
+                  <p className="text-[11px] text-accent">
                     Pilih kendaraan yang sudah tercatat oleh security di gerbang, atau pilih &quot;Input Manual&quot; untuk pelanggan walk-in.
                   </p>
                   <select
@@ -2289,7 +2289,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                         no_telepon: a.no_hp_customer || prev.no_telepon,
                       }));
                     }}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-semibold text-xs bg-white text-slate-900 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-2xs mt-1"
+                    className="w-full px-3 py-2 rounded-lg border border-border font-semibold text-xs bg-surface-raised text-ink focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none shadow-2xs mt-1"
                   >
                     <option value="">-- Input Manual / Walk-In --</option>
                     {antrianBeliPart.map((a) => (
@@ -2301,15 +2301,15 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 </div>
 
                 {/* Form Input Pelanggan */}
-                <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3.5">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
-                    <User className="w-4 h-4 text-blue-600" /> Identitas Customer &amp; Kendaraan
+                <div className="bg-surface-raised rounded-xl p-4 sm:p-5 border border-border shadow-2xs space-y-3.5">
+                  <h4 className="text-xs sm:text-sm font-bold text-ink flex items-center gap-2 border-b border-border pb-2">
+                    <User className="w-4 h-4 text-accent" /> Identitas Customer &amp; Kendaraan
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        No. Polisi <span className="text-red-500">*</span>
+                      <label className="block text-xs font-semibold text-ink mb-1">
+                        No. Polisi <span className="text-status-red">*</span>
                       </label>
                       <input
                         type="text"
@@ -2317,12 +2317,12 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                         placeholder="Contoh: BK 5678 CD"
                         value={posCustomer.no_polisi}
                         onChange={(e) => setPosCustomer({ ...posCustomer, no_polisi: e.target.value.toUpperCase() })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold uppercase text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 font-mono shadow-2xs"
+                        className="w-full px-3 py-2 rounded-lg border border-border font-bold uppercase text-xs focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink font-mono shadow-2xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Nama Customer <span className="text-red-500">*</span>
+                      <label className="block text-xs font-semibold text-ink mb-1">
+                        Nama Customer <span className="text-status-red">*</span>
                       </label>
                       <input
                         type="text"
@@ -2330,29 +2330,29 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                         placeholder="Nama pelanggan / PT..."
                         value={posCustomer.nama_customer}
                         onChange={(e) => setPosCustomer({ ...posCustomer, nama_customer: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                        className="w-full px-3 py-2 rounded-lg border border-border text-xs font-semibold focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink shadow-2xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">No. Telepon</label>
+                      <label className="block text-xs font-semibold text-ink mb-1">No. Telepon</label>
                       <input
                         type="text"
                         placeholder="0812-xxxx-xxxx"
                         value={posCustomer.no_telepon}
                         onChange={(e) => setPosCustomer({ ...posCustomer, no_telepon: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                        className="w-full px-3 py-2 rounded-lg border border-border text-xs font-mono focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink shadow-2xs"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Catatan untuk Gudang (Opsional)</label>
+                    <label className="block text-xs font-semibold text-ink mb-1">Catatan untuk Gudang (Opsional)</label>
                     <input
                       type="text"
                       placeholder="Instruksi tambahan untuk petugas warehouse picking…"
                       value={posCustomer.catatan}
                       onChange={(e) => setPosCustomer({ ...posCustomer, catatan: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                      className="w-full px-3 py-2 rounded-lg border border-border text-xs focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink shadow-2xs"
                     />
                   </div>
                 </div>
@@ -2363,17 +2363,17 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
             {posStep === 2 && (
               <div className="space-y-4">
                 {/* Banner Customer Singkat */}
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                <div className="p-3 bg-surface border border-border rounded-xl flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="px-2.5 py-1 bg-slate-900 text-white font-mono font-bold text-xs rounded-md shrink-0 shadow-2xs">
+                    <span className="px-2.5 py-1 bg-ink text-surface font-mono font-bold text-xs rounded-md shrink-0 shadow-2xs">
                       {formatPlat(posCustomer.no_polisi)}
                     </span>
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 truncate">
+                      <div className="text-xs font-bold text-ink truncate">
                         {posCustomer.nama_customer}
                       </div>
                       {posCustomer.no_telepon && (
-                        <div className="text-[11px] text-slate-500 font-mono">
+                        <div className="text-[11px] text-ink-muted font-mono">
                           {posCustomer.no_telepon}
                         </div>
                       )}
@@ -2382,31 +2382,31 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                   <button
                     type="button"
                     onClick={() => setPosStep(1)}
-                    className="px-2.5 py-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                    className="px-2.5 py-1 text-xs font-semibold text-accent hover:text-blue-800 hover:bg-accent-subtle rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     <Pencil className="w-3.5 h-3.5" /> Ubah Data
                   </button>
                 </div>
 
                 {/* KATALOG & PENCARIAN SPAREPART */}
-                <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-blue-600" /> Katalog Sparepart (Gudang KIM 3)
+                <div className="bg-surface-raised rounded-xl p-4 sm:p-5 border border-border shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <h4 className="text-xs sm:text-sm font-bold text-ink flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-accent" /> Katalog Sparepart (Gudang KIM 3)
                     </h4>
-                    <span className="text-[11px] text-slate-500 font-medium">
+                    <span className="text-[11px] text-ink-muted font-medium">
                       {posFilteredStock.length} sparepart tersedia
                     </span>
                   </div>
 
                   <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-ink-subtle" />
                     <input
                       type="text"
                       placeholder="Ketik kode atau nama sparepart..."
                       value={posSearch}
                       onChange={(e) => setPosSearch(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2 rounded-lg border border-slate-300 text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-lg border border-border text-xs focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink shadow-2xs"
                     />
                   </div>
 
@@ -2415,32 +2415,32 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                       posFilteredStock.map((part) => (
                         <div
                           key={part.id}
-                          className="p-2.5 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 transition-all flex items-center justify-between text-xs gap-3 bg-white"
+                          className="p-2.5 rounded-lg border border-border hover:border-accent/40 hover:bg-accent-subtle/30 transition-all flex items-center justify-between text-xs gap-3 bg-surface-raised"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-slate-900 truncate">{part.nama_part}</div>
-                            <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                            <div className="font-bold text-ink truncate">{part.nama_part}</div>
+                            <div className="text-[11px] text-ink-muted font-mono mt-0.5 flex items-center gap-2 flex-wrap">
                               <span>{part.kode_part}</span>
                               <span>•</span>
                               <span>Rak: {part.lokasi_rak || 'Gudang'}</span>
                               <span>•</span>
                               <span>
                                 Stok:{' '}
-                                <strong className={part.stok > 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>
+                                <strong className={part.stok > 0 ? 'text-status-green font-bold' : 'text-status-red font-bold'}>
                                   {part.stok} {part.satuan}
                                 </strong>
                               </span>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <div className="font-mono font-bold text-slate-900 mb-1">
+                            <div className="font-mono font-bold text-ink mb-1">
                               Rp {Number(part.harga_jual || 0).toLocaleString('id-ID')}
                             </div>
                             <button
                               type="button"
                               onClick={() => posAddToCart(part)}
                               disabled={part.stok <= 0}
-                              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-md font-semibold text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                              className="px-2.5 py-1 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-md font-semibold text-xs flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
                             >
                               <Plus className="w-3.5 h-3.5" /> Tambah
                             </button>
@@ -2448,7 +2448,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                         </div>
                       ))
                     ) : (
-                      <div className="py-6 text-center text-slate-400 text-xs">
+                      <div className="py-6 text-center text-ink-subtle text-xs">
                         Tidak ada sparepart yang cocok dengan pencarian.
                       </div>
                     )}
@@ -2456,59 +2456,59 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                 </div>
 
                 {/* KERANJANG & RINCIAN BIAYA */}
-                <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3.5">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
-                      <Package className="w-4 h-4 text-blue-600" /> Keranjang Sparepart
+                <div className="bg-surface-raised rounded-xl p-4 sm:p-5 border border-border shadow-2xs space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <h4 className="text-xs sm:text-sm font-bold text-ink flex items-center gap-2">
+                      <Package className="w-4 h-4 text-accent" /> Keranjang Sparepart
                     </h4>
-                    <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                    <span className="text-xs font-bold text-accent bg-accent-subtle px-2 py-0.5 rounded-full border border-accent/20">
                       {posCart.length} item dipilih
                     </span>
                   </div>
 
                   {posCart.length > 0 ? (
-                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="divide-y divide-border border border-border rounded-xl overflow-hidden">
                       {posCart.map((item) => (
-                        <div key={item.kode_part} className="p-3 flex items-center justify-between gap-3 text-xs bg-white hover:bg-slate-50/50 transition-colors">
+                        <div key={item.kode_part} className="p-3 flex items-center justify-between gap-3 text-xs bg-surface-raised hover:bg-surface/50 transition-colors">
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-slate-900 truncate">{item.nama_part}</div>
-                            <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-2 flex-wrap">
+                            <div className="font-bold text-ink truncate">{item.nama_part}</div>
+                            <div className="text-[11px] text-ink-muted font-mono mt-0.5 flex items-center gap-2 flex-wrap">
                               <span>{item.kode_part}</span>
                               <span>•</span>
                               <span>Rp {item.harga.toLocaleString('id-ID')}/{item.satuan}</span>
                               {item.qty > item.stok && (
-                                <span className="text-red-500 font-bold">(melebihi stok!)</span>
+                                <span className="text-status-red font-bold">(melebihi stok!)</span>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
                             {/* Qty +/- */}
-                            <div className="flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-2xs">
+                            <div className="flex items-center border border-border rounded-lg bg-surface-raised overflow-hidden shadow-2xs">
                               <button
                                 type="button"
                                 onClick={() => posUpdateQty(item.kode_part, -1)}
-                                className="p-1.5 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                                className="p-1.5 hover:bg-surface text-ink-muted transition-colors cursor-pointer"
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
-                              <span className="px-2.5 font-bold font-mono text-xs text-slate-900">{item.qty}</span>
+                              <span className="px-2.5 font-bold font-mono text-xs text-ink">{item.qty}</span>
                               <button
                                 type="button"
                                 onClick={() => posUpdateQty(item.kode_part, 1)}
-                                className="p-1.5 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                                className="p-1.5 hover:bg-surface text-ink-muted transition-colors cursor-pointer"
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
                             </div>
                             {/* Subtotal Item */}
-                            <div className="w-24 text-right font-mono font-bold text-slate-900 text-xs">
+                            <div className="w-24 text-right font-mono font-bold text-ink text-xs">
                               Rp {(item.qty * item.harga).toLocaleString('id-ID')}
                             </div>
                             {/* Delete */}
                             <button
                               type="button"
                               onClick={() => posRemoveItem(item.kode_part)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                              className="p-1.5 text-ink-subtle hover:text-status-red transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -2517,37 +2517,37 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                       ))}
                     </div>
                   ) : (
-                    <div className="py-6 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                    <div className="py-6 text-center text-ink-subtle text-xs border border-dashed border-border rounded-xl bg-surface/50">
                       Keranjang masih kosong. Cari &amp; klik &quot;+ Tambah&quot; pada sparepart di atas.
                     </div>
                   )}
 
                   {/* Ringkasan Biaya */}
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+                  <div className="p-4 bg-surface rounded-xl border border-border space-y-2 text-xs">
                     {posPpnRate === null && (
-                      <p className="text-xs text-red-600 font-bold text-center">
+                      <p className="text-xs text-status-red font-bold text-center">
                         Tarif PPN belum diatur — hubungi Super Admin.
                       </p>
                     )}
-                    <div className="flex justify-between text-slate-600 font-medium">
+                    <div className="flex justify-between text-ink-muted font-medium">
                       <span>Subtotal Sparepart:</span>
-                      <span className="font-mono font-bold text-slate-900">Rp {posSubtotal.toLocaleString('id-ID')}</span>
+                      <span className="font-mono font-bold text-ink">Rp {posSubtotal.toLocaleString('id-ID')}</span>
                     </div>
-                    <div className="flex justify-between text-slate-600 font-medium">
+                    <div className="flex justify-between text-ink-muted font-medium">
                       <span>PPN{posPpnRate !== null ? ` ${posPpnRate}%` : ''}:</span>
-                      <span className="font-mono font-bold text-slate-900">
+                      <span className="font-mono font-bold text-ink">
                         Rp {posPpn !== null ? posPpn.toLocaleString('id-ID') : '-'}
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
+                    <div className="flex justify-between text-sm font-bold text-ink pt-2 border-t border-border">
                       <span>Total Estimasi Biaya:</span>
-                      <span className="font-mono font-bold text-emerald-600 text-base">
+                      <span className="font-mono font-bold text-status-green text-base">
                         Rp {posGrandTotal !== null ? posGrandTotal.toLocaleString('id-ID') : '-'}
                       </span>
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-slate-400 text-center">
+                  <p className="text-[11px] text-ink-subtle text-center">
                     Estimasi diteruskan ke Warehouse untuk picking. Pembayaran dilakukan setelah barang siap.
                   </p>
                 </div>
@@ -2806,14 +2806,14 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                       const isSpkWaitingPart = spk ? (spk.status_spk === 'Waiting Part' || spk.status_spk === 'Estimasi Dibuat') : false;
                       if (isSpkDone) {
                         return (
-                          <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg text-xs flex items-center gap-1.5 border border-emerald-200">
+                          <span className="px-3 py-1.5 bg-status-green-bg text-status-green font-bold rounded-lg text-xs flex items-center gap-1.5 border border-status-green/20">
                             <CheckCircle2 className="w-3.5 h-3.5" /> SPK Selesai
                           </span>
                         );
                       }
                       if (!isSpkWaitingPart) {
                         return (
-                          <span className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-lg text-xs flex items-center gap-1.5 border border-blue-200">
+                          <span className="px-3 py-1.5 bg-accent-subtle text-accent font-bold rounded-lg text-xs flex items-center gap-1.5 border border-accent/20">
                             <Check className="w-3.5 h-3.5" /> SPK Sedang Berjalan ({spk?.status_spk || 'Diproses'})
                           </span>
                         );
@@ -2829,7 +2829,7 @@ export const ServiceAdvisorView: React.FC<{ initialTab?: 'penerimaan' | 'spk-lis
                               toast.warning('Data SPK tidak ditemukan di daftar. Muat ulang halaman.');
                             }
                           }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                          className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
                         >
                           <ClipboardList className="w-4 h-4" /> Buka Estimasi
                         </button>

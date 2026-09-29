@@ -50,6 +50,21 @@
     color: #0F172A;
   }
 
+  /* Dark cockpit: form mengikuti token (jangan putih). */
+  html.dark body:not(.login-legacy-theme) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="range"]),
+  html.dark body:not(.login-legacy-theme) select,
+  html.dark body:not(.login-legacy-theme) textarea {
+    background-color: var(--color-surface-raised);
+    border-color: var(--color-border);
+    color: var(--color-ink);
+  }
+
+  html.dark body:not(.login-legacy-theme) input::placeholder,
+  html.dark body:not(.login-legacy-theme) select::placeholder,
+  html.dark body:not(.login-legacy-theme) textarea::placeholder {
+    color: var(--color-ink-subtle);
+  }
+
   body:not(.login-legacy-theme) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="range"]):focus,
   body:not(.login-legacy-theme) select:focus,
   body:not(.login-legacy-theme) textarea:focus {
@@ -97,6 +112,12 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Mobile responsive app container */

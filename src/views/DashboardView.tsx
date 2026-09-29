@@ -90,15 +90,15 @@ export const DashboardView: React.FC = () => {
         {/* === PAGE HEADER === */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
               <ClipboardList className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold text-ink tracking-tight">
               Dashboard Service Advisor
             </h1>
           </div>
-          <p className="text-sm text-slate-500 ml-9">
-            Halo, <span className="font-semibold text-slate-700">{currentUser || 'Service Advisor'}</span> — Pantau antrian, SPK aktif & part indent hari ini.
+          <p className="text-sm text-ink-muted ml-9">
+            Halo, <span className="font-semibold text-ink">{currentUser || 'Service Advisor'}</span> — Pantau antrian, SPK aktif & part indent hari ini.
           </p>
         </div>
 
@@ -141,18 +141,18 @@ export const DashboardView: React.FC = () => {
         {/* 2-Col Content Feed */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Antrian Unit Baru Masuk dari Pos Security */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div className="lg:col-span-2 bg-surface-raised rounded-xl shadow-sm border border-border overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div>
-                <h2 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-blue-500" />
+                <h2 className="text-sm font-semibold text-ink flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-accent" />
                   Antrian Unit Masuk dari Pos Security
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">Unit telah melalui gate check-in dan siap dibuatkan formulir SPK</p>
+                <p className="text-xs text-ink-subtle mt-0.5">Unit telah melalui gate check-in dan siap dibuatkan formulir SPK</p>
               </div>
               <button
                 onClick={() => setActiveTab('sa-penerimaan')}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
+                className="text-xs font-semibold text-accent hover:text-accent flex items-center gap-1 cursor-pointer"
               >
                 Ke Menu SA <ArrowRight className="w-3 h-3" />
               </button>
@@ -160,7 +160,7 @@ export const DashboardView: React.FC = () => {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                <thead className="bg-surface text-ink-muted border-b border-border">
                   <tr>
                     <th className="py-2.5 px-4 font-semibold tracking-wide uppercase text-[11px]">No. Tiket</th>
                     <th className="py-2.5 px-4 font-semibold tracking-wide uppercase text-[11px]">No. Polisi</th>
@@ -169,17 +169,17 @@ export const DashboardView: React.FC = () => {
                     <th className="py-2.5 px-4 font-semibold tracking-wide uppercase text-[11px] text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {antrianMenunggu.length > 0 ? (
                     antrianMenunggu.map((item) => (
-                      <tr key={item.id} className="hover:bg-blue-50/40 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-blue-600">{item.no_tiket}</td>
-                        <td className="py-3 px-4 font-mono font-bold text-slate-800">{formatPlat(item.no_polisi)}</td>
+                      <tr key={item.id} className="hover:bg-accent-subtle/40 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-accent">{item.no_tiket}</td>
+                        <td className="py-3 px-4 font-mono font-bold text-ink">{formatPlat(item.no_polisi)}</td>
                         <td className="py-3 px-4">
-                          <div className="font-medium text-slate-800">{item.nama_customer || '-'}</div>
-                          <div className="text-xs text-slate-400">{item.jenis_armada} • {item.keperluan || 'Service'}</div>
+                          <div className="font-medium text-ink">{item.nama_customer || '-'}</div>
+                          <div className="text-xs text-ink-subtle">{item.jenis_armada} • {item.keperluan || 'Service'}</div>
                         </td>
-                        <td className="py-3 px-4 text-slate-500">
+                        <td className="py-3 px-4 text-ink-muted">
                           {item.waktu_masuk ? new Date(item.waktu_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                         </td>
                         <td className="py-3 px-4 text-right">
@@ -188,7 +188,7 @@ export const DashboardView: React.FC = () => {
                               setSaPendingAntrianId(item.id);
                               setActiveTab('sa-penerimaan');
                             }}
-                            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1 shadow-sm cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-semibold text-xs transition-colors inline-flex items-center gap-1 shadow-sm cursor-pointer"
                           >
                             <ClipboardList className="w-3 h-3" /> Buat SPK
                           </button>
@@ -197,9 +197,9 @@ export const DashboardView: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-10 text-center text-slate-400 text-xs">
+                      <td colSpan={5} className="py-10 text-center text-ink-subtle text-xs">
                         <div className="flex flex-col items-center gap-2">
-                          <Truck className="w-8 h-8 text-slate-200" />
+                          <Truck className="w-8 h-8 text-ink-subtle" />
                           Tidak ada antrian unit menunggu penerimaan saat ini.
                         </div>
                       </td>
@@ -211,33 +211,33 @@ export const DashboardView: React.FC = () => {
           </div>
 
           {/* Kotak Merah & Sparepart Attention */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
-              <div className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+          <div className="bg-surface-raised rounded-xl shadow-sm border border-border overflow-hidden flex flex-col">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+              <div className="w-8 h-8 rounded-lg bg-status-red-bg text-status-red flex items-center justify-center shrink-0">
                 <ShoppingBag className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-800">Perhatian Part Indent</h3>
-                <p className="text-xs text-slate-400">Sparepart PO &amp; Approval SA</p>
+                <h3 className="text-sm font-semibold text-ink">Perhatian Part Indent</h3>
+                <p className="text-xs text-ink-subtle">Sparepart PO &amp; Approval SA</p>
               </div>
             </div>
 
             <div className="flex-1 p-4 space-y-3 overflow-y-auto">
               {prKotakMerah.length > 0 ? (
                 prKotakMerah.slice(0, 3).map((item) => (
-                  <div key={item.pr_id} className="p-3 rounded-lg border border-red-100 bg-red-50 space-y-1.5">
+                  <div key={item.pr_id} className="p-3 rounded-lg border border-red-100 bg-status-red-bg space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-red-600">{item.no_pr}</span>
+                      <span className="font-mono text-xs font-bold text-status-red">{item.no_pr}</span>
                       <StatusBadge status={item.status_pr} size="sm" />
                     </div>
-                    <div className="text-xs font-semibold text-slate-800">
+                    <div className="text-xs font-semibold text-ink">
                       <span className="font-mono">{formatPlat(item.no_polisi)}</span> — {item.nama_customer}
                     </div>
-                    <div className="text-xs text-slate-500 leading-relaxed">
+                    <div className="text-xs text-ink-muted leading-relaxed">
                       {item.catatan_pr || 'Pengadaan part khusus untuk SPK unit.'}
                     </div>
                     {item.estimasi_tanggal_ready_eta && (
-                      <div className="pt-1.5 border-t border-red-200 flex items-center justify-between text-xs text-red-600 font-semibold">
+                      <div className="pt-1.5 border-t border-status-red/20 flex items-center justify-between text-xs text-status-red font-semibold">
                         <span>ETA:</span>
                         <span>{item.estimasi_tanggal_ready_eta} {item.estimasi_jam_ready_eta ? `(${item.estimasi_jam_ready_eta})` : ''}</span>
                       </div>
@@ -245,8 +245,8 @@ export const DashboardView: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
-                  <ShoppingBag className="w-8 h-8 text-slate-200" />
+                <div className="py-8 text-center text-ink-subtle text-xs flex flex-col items-center gap-2">
+                  <ShoppingBag className="w-8 h-8 text-ink-subtle" />
                   Semua sparepart ready atau telah dikonfirmasi.
                 </div>
               )}
@@ -283,12 +283,12 @@ export const DashboardView: React.FC = () => {
             <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
               <Wrench className="w-4 h-4 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold text-ink tracking-tight">
               Dashboard Foreman & QC
             </h1>
           </div>
-          <p className="text-sm text-slate-500 ml-9">
-            Halo, <span className="font-semibold text-slate-700">{currentUser || 'Foreman'}</span> — Atur penugasan mekanik, monitor pengerjaan & inspeksi QC.
+          <p className="text-sm text-ink-muted ml-9">
+            Halo, <span className="font-semibold text-ink">{currentUser || 'Foreman'}</span> — Atur penugasan mekanik, monitor pengerjaan & inspeksi QC.
           </p>
         </div>
 

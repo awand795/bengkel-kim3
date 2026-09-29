@@ -106,25 +106,25 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           aria-labelledby="detail-modal-title"
           tabIndex={-1}
           onKeyDown={handleKeyDown}
-          className={`app-modal-in bg-white w-full ${sizeClasses} rounded-2xl shadow-2xl border border-slate-200 flex flex-col h-[88dvh] sm:h-[650px] max-h-[90dvh] sm:max-h-[85vh] overflow-hidden focus:outline-none my-auto`}
+          className={`app-modal-in bg-surface-raised w-full ${sizeClasses} rounded-2xl shadow-2xl border border-border flex flex-col h-[88dvh] sm:h-[650px] max-h-[90dvh] sm:max-h-[85vh] overflow-hidden focus:outline-none my-auto`}
         >
           {/* Modal Header */}
-          <div className="px-6 sm:px-8 py-5 border-b border-slate-200 flex items-start justify-between gap-3 shrink-0 bg-white">
+          <div className="px-6 sm:px-8 py-5 border-b border-border flex items-start justify-between gap-3 shrink-0 bg-surface-raised">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 id="detail-modal-title" className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                <h2 id="detail-modal-title" className="text-base sm:text-lg font-bold text-ink leading-snug">
                   {title}
                 </h2>
                 {badge && <div className="shrink-0">{badge}</div>}
               </div>
               {subtitle && (
-                <p className="text-xs text-slate-500 mt-1.5 leading-normal">{subtitle}</p>
+                <p className="text-xs text-ink-muted mt-1.5 leading-normal">{subtitle}</p>
               )}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+              className="p-1.5 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface transition-colors cursor-pointer shrink-0"
               aria-label="Tutup detail modal"
             >
               <X className="w-5 h-5" />
@@ -133,7 +133,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
           {/* Optional Segmented Tab Bar */}
           {tabs && tabs.length > 0 && (
-            <div className="px-6 sm:px-8 pt-3 pb-0 border-b border-slate-200 bg-slate-50 shrink-0 overflow-x-auto">
+            <div className="px-6 sm:px-8 pt-3 pb-0 border-b border-border bg-surface shrink-0 overflow-x-auto">
               <div className="flex items-center gap-1.5 min-w-max pb-2.5">
                 {tabs.map((tb) => {
                   const isActive = tb.id === (currentTab?.id || tabs[0].id);
@@ -144,15 +144,15 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                       onClick={() => handleTabClick(tb.id)}
                       className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                         isActive
-                          ? 'bg-white text-blue-700 border border-slate-200 shadow-2xs'
-                          : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
+                          ? 'bg-surface-raised text-accent border border-border shadow-2xs'
+                          : 'text-ink-muted hover:text-ink hover:bg-surface/60'
                       }`}
                     >
                       <span>{tb.label}</span>
                       {tb.count !== undefined && (
                         <span
                           className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${
-                            isActive ? 'bg-blue-50 text-blue-700' : 'bg-slate-200 text-slate-600'
+                            isActive ? 'bg-accent-subtle text-accent' : 'bg-border text-ink-muted'
                           }`}
                         >
                           {tb.count}
@@ -166,7 +166,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           )}
 
           {/* Modal Body Internal Scroll */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 sm:py-7 space-y-5 bg-white">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 sm:py-7 space-y-5 bg-surface-raised">
             {tabs && tabs.length > 0 ? (
               <div key={currentTab?.id} className="app-page-transition">
                 {currentTab?.content}
@@ -178,7 +178,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
 
           {/* Optional Footer Sticky */}
           {footer && (
-            <div className="px-6 sm:px-8 py-5 sm:py-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 shrink-0">
+            <div className="px-6 sm:px-8 py-5 sm:py-6 border-t border-border bg-surface flex items-center justify-end gap-3 shrink-0">
               {footer}
             </div>
           )}

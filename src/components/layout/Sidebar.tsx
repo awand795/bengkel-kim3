@@ -341,14 +341,14 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-60 bg-white border-r border-slate-200 hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] py-4 px-3 font-sans overflow-y-auto">
+    <aside className="w-60 bg-surface-raised border-r border-border hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)] py-4 px-3 font-sans overflow-y-auto">
       <div>
         <div className="px-2 mb-4">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-ink-subtle">
               Menu
             </p>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent-subtle text-accent border border-accent/20">
               {currentRole}
             </span>
           </div>
@@ -369,24 +369,24 @@ export const Sidebar: React.FC = () => {
                     onClick={() => handleToggleGroup(item)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all cursor-pointer ${
                       hasActiveChild
-                        ? 'bg-blue-50 text-blue-700 font-semibold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                        ? 'bg-accent-subtle text-accent font-semibold'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 ${hasActiveChild ? 'text-blue-600' : 'text-slate-400'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 ${hasActiveChild ? 'text-accent' : 'text-ink-subtle'}`} />
                       <span className="truncate">{item.label}</span>
                     </div>
                     <ChevronDown
                       className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
-                        isOpen ? 'rotate-180 text-blue-500' : 'text-slate-300'
+                        isOpen ? 'rotate-180 text-accent' : 'text-ink-subtle'
                       }`}
                     />
                   </button>
 
                   {/* Sub-menu accordion items */}
                   {isOpen && (
-                    <div className="ml-3 pl-3 border-l-2 border-slate-100 space-y-0.5 pt-0.5">
+                    <div className="ml-3 pl-3 border-l-2 border-border space-y-0.5 pt-0.5">
                       {item.children.map((sub) => {
                         const SubIcon = sub.icon;
                         const isSubActive = isTabActive(sub.id);
@@ -401,11 +401,11 @@ export const Sidebar: React.FC = () => {
                             }}
                             className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
                               isSubActive
-                                ? 'bg-blue-600 text-white font-semibold shadow-sm'
-                                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                                ? 'bg-accent text-white font-semibold shadow-sm'
+                                : 'text-ink-muted hover:text-ink hover:bg-surface font-medium'
                             }`}
                           >
-                            <SubIcon className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? 'text-white' : 'text-slate-400'}`} />
+                            <SubIcon className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? 'text-white' : 'text-ink-subtle'}`} />
                             <span className="truncate">{sub.label}</span>
                           </button>
                         );
@@ -429,12 +429,12 @@ export const Sidebar: React.FC = () => {
                 }}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-blue-600 text-white font-semibold shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                    ? 'bg-accent text-white font-semibold shadow-sm'
+                    : 'text-ink-muted hover:text-ink hover:bg-surface font-medium'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-ink-subtle'}`} />
                   <span className="truncate">{item.label}</span>
                 </div>
               </button>
@@ -444,9 +444,9 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Workshop System Indicator Footer */}
-      <div className="border-t border-slate-100 pt-3 px-2 mt-4">
-        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
-          <Activity className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+      <div className="border-t border-border pt-3 px-2 mt-4">
+        <div className="flex items-center gap-2 text-[10px] text-ink-subtle font-mono">
+          <Activity className="w-3.5 h-3.5 text-accent shrink-0" />
           <span className="truncate">KIM3 Workshop Shell</span>
         </div>
       </div>

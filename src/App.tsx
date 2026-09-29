@@ -263,7 +263,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-ink pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+    <div className="min-h-screen bg-surface flex flex-col font-sans text-ink pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
       {/* Top App Header */}
       <Navbar />
 

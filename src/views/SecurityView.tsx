@@ -2300,12 +2300,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
               content: (
                 <div className="space-y-4 text-xs">
                   {bookingList.length > 0 && (
-                    <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="p-3 bg-accent-subtle rounded-xl border border-accent/20 flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
+                        <Calendar className="w-4 h-4 text-accent shrink-0" />
                         <div>
-                          <div className="text-xs font-bold text-slate-900">Ada {bookingList.length} Booking Terdaftar</div>
-                          <div className="text-xs text-slate-500">Pilih kendaraan untuk mengisi formulir otomatis</div>
+                          <div className="text-xs font-bold text-ink">Ada {bookingList.length} Booking Terdaftar</div>
+                          <div className="text-xs text-ink-muted">Pilih kendaraan untuk mengisi formulir otomatis</div>
                         </div>
                       </div>
                       <select
@@ -2314,7 +2314,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           if (b) handleFillFromBooking(b);
                         }}
                         value={formCheckin.id_booking || ''}
-                        className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 focus:outline-none shadow-2xs"
+                        className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-border bg-surface-raised text-xs font-bold text-ink focus:ring-2 focus:ring-accent/20 focus:border-accent focus:outline-none shadow-2xs"
                       >
                         <option value="">-- Pilih Booking untuk Isi Otomatis --</option>
                         {bookingList.map((b) => (
@@ -2328,8 +2328,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Nomor Polisi (Plat Nomor) <span className="text-red-500">*</span>
+                      <label className="block text-xs font-semibold text-ink mb-1.5">
+                        Nomor Polisi (Plat Nomor) <span className="text-status-red">*</span>
                       </label>
                       <input
                         type="text"
@@ -2337,16 +2337,16 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                         placeholder="Contoh: BK 1234 AB"
                         value={formCheckin.no_polisi}
                         onChange={(e) => setFormCheckin({ ...formCheckin, no_polisi: e.target.value.toUpperCase() })}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-black uppercase tracking-wider focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 font-mono shadow-2xs"
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border text-sm font-black uppercase tracking-wider focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink font-mono shadow-2xs"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Jenis Kendaraan</label>
+                      <label className="block text-xs font-semibold text-ink mb-1.5">Jenis Kendaraan</label>
                       <select
                         value={formCheckin.jenis_armada}
                         onChange={(e) => setFormCheckin({ ...formCheckin, jenis_armada: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-semibold focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 shadow-2xs"
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border font-semibold focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink shadow-2xs"
                       >
                         <option value="Truk">Truk (Canter / Dutro / Tronton)</option>
                         <option value="Mobil">Mobil Pribadi / Operasional</option>
@@ -2357,8 +2357,8 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Tujuan Kedatangan <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-ink mb-1.5">
+                      Tujuan Kedatangan <span className="text-status-red">*</span>
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
@@ -2387,12 +2387,12 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                           }}
                           className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                             formCheckin.tujuan_kedatangan === t.id
-                              ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold shadow-2xs'
-                              : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                              ? 'border-accent bg-accent-subtle text-accent font-bold shadow-2xs'
+                              : 'border-border hover:border-border text-ink bg-surface-raised'
                           }`}
                         >
                           <div className="text-xs font-bold">{t.label}</div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">{t.desc}</div>
+                          <div className="text-[11px] text-ink-muted mt-0.5">{t.desc}</div>
                         </button>
                       ))}
                     </div>
@@ -2407,31 +2407,31 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                 <div className="space-y-4 text-xs">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Nama Customer / Perusahaan</label>
+                      <label className="block text-xs font-semibold text-ink mb-1.5">Nama Customer / Perusahaan</label>
                       <input
                         type="text"
                         placeholder="Contoh: PT. Andi Jaya"
                         value={formCheckin.nama_customer}
                         onChange={(e) => setFormCheckin({ ...formCheckin, nama_customer: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 text-xs shadow-2xs"
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink text-xs shadow-2xs"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">No. HP Driver / PIC</label>
+                      <label className="block text-xs font-semibold text-ink mb-1.5">No. HP Driver / PIC</label>
                       <input
                         type="text"
                         placeholder="0812-xxxx-xxxx"
                         value={formCheckin.no_hp_customer}
                         onChange={(e) => setFormCheckin({ ...formCheckin, no_hp_customer: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 text-xs shadow-2xs"
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink text-xs shadow-2xs"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">PIC / Petugas Tujuan</label>
+                      <label className="block text-xs font-semibold text-ink mb-1.5">PIC / Petugas Tujuan</label>
                       <select
                         value={formCheckin.id_pic ? String(formCheckin.id_pic) : formCheckin.pic_tujuan}
                         onChange={(e) => {
@@ -2451,7 +2451,7 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                             });
                           }
                         }}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-semibold focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 text-xs shadow-2xs"
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border font-semibold focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink text-xs shadow-2xs"
                       >
                         <option value="">-- Pilih PIC / Petugas Tujuan --</option>
                         {picPetugasList.map((p) => (
@@ -2466,13 +2466,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Keperluan Singkat / Keluhan</label>
+                      <label className="block text-xs font-semibold text-ink mb-1.5">Keperluan Singkat / Keluhan</label>
                       <input
                         type="text"
                         placeholder="Contoh: Service berkala, ganti kampas rem"
                         value={formCheckin.keperluan}
                         onChange={(e) => setFormCheckin({ ...formCheckin, keperluan: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 text-xs shadow-2xs"
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink text-xs shadow-2xs"
                       />
                     </div>
                   </div>
@@ -2491,13 +2491,13 @@ export const SecurityView: React.FC<SecurityViewProps> = ({ initialTab = 'onprog
                   />
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Catatan Security</label>
+                    <label className="block text-xs font-semibold text-ink mb-1.5">Catatan Security</label>
                     <textarea
                       rows={2}
                       placeholder="Catatan kondisi awal fisik atau kelengkapan kendaraan..."
                       value={formCheckin.catatan_security}
                       onChange={(e) => setFormCheckin({ ...formCheckin, catatan_security: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus:outline-none bg-white text-slate-900 text-xs shadow-2xs"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none bg-surface-raised text-ink text-xs shadow-2xs"
                     />
                   </div>
                 </div>
