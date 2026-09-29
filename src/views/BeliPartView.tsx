@@ -10,7 +10,7 @@ import { ListItemCard } from '../components/common/ListItemCard';
 import { DetailModal } from '../components/common/DetailModal';
 import { EmptyState } from '../components/common/EmptyState';
 import { PhotoUploader } from '../components/common/PhotoUploader';
-import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar, AntrianKunjungan } from '../types';
+import { TransaksiBeliPart, StokSparepart, InvoicePembayaran, MemoKeluar, AntrianKunjungan, SpkService, SpkItemPart } from '../types';
 import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { PrintMemoKeluarModal } from '../components/print/PrintMemoKeluarModal';
 import { PaginationBar } from '../components/common/PaginationBar';
@@ -129,6 +129,20 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
   const { data: stokList } = useQuery({
     queryKey: ['stok-part'],
     queryFn: api.getStokPart,
+  });
+
+  // Part SPK service + SPK (cache bersama MekanikView; refetch 8 detik agar
+  // status serah-terima selalu segar). Workbench serah terima gudang → mekanik.
+  const { data: partSpkList, isError: partSpkError, refetch: refetchPartSpk } = useQuery({
+    queryKey: ['part-list'],
+    queryFn: api.getPartSpk,
+    refetchInterval: 8000,
+  });
+
+  const { data: spkServiceList } = useQuery({
+    queryKey: ['spk-list'],
+    queryFn: api.getSpkList,
+    refetchInterval: 8000,
   });
 
   // Cart Calculations
@@ -391,6 +405,40 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       setPickingStep('serah');
     },
     onError: (err: any) => toast.error('Gagal konfirmasi picking: ' + (err?.message || 'Coba lagi.')),
+  });
+
+  // Serah terima part SPK service → mekanik (stok gudang berkurang 1x per part).
+  // Lokasi rak DIINPUT gudang saat serahkan (prefill master, boleh dikosongkan).
+  const [serahSpkPart, setSerahSpkPart] = useState<{ part: SpkItemPart; spk: SpkService } | null>(null);
+  const [serahRak, setSerahRak] = useState('');
+
+  const serahkanPartSpkMutation = useMutation({
+    mutationFn: async ({ part, lokasi_rak }: { part: SpkItemPart; spk: SpkService; lokasi_rak?: string }) => {
+      return api.serahkanPartSpk({ id_part: part.id, lokasi_rak: lokasi_rak?.trim() || undefined });
+    },
+    onSuccess: (_res, { part, spk, lokasi_rak }) => {
+      queryClient.invalidateQueries({ queryKey: ['part-list'] });
+      queryClient.invalidateQueries({ queryKey: ['stok-part'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      const rakInfo = lokasi_rak?.trim() ? ` (Rak: ${lokasi_rak.trim()})` : '';
+      // Notif personal ke mekanik pemegang WO (jatuh ke broadcast role bila WO tanpa id_mekanik).
+      realtimeHub.publish({
+        type: 'PART_HANDED_OVER',
+        targetRoles: ['Mekanik'],
+        targetUserId: spk.id_mekanik ?? undefined,
+        title: 'Part Diserahkan Gudang — Ambil di Gudang',
+        message: `Gudang menyerahkan ${part.nama_part} x${part.jumlah} untuk ${spk.no_spk} (${formatPlat(spk.no_polisi)})${rakInfo}. Segera ambil di gudang.`,
+        linkTab: 'mekanik',
+        urgency: 'success',
+      });
+
+      toast.success(`${part.nama_part} diserahkan ke mekanik. Stok gudang berkurang ${part.jumlah}.`);
+      setSerahSpkPart(null);
+      setSerahRak('');
+    },
+    onError: (err: any) => toast.error('Gagal menyerahkan part: ' + (err?.message || 'Coba lagi.')),
   });
 
   // Filtered Transaksi List
@@ -1049,6 +1097,79 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
       {/* ======================================================== */}
       {activeTab === 'picking' && (
         <div className="space-y-6">
+          {/* Serah terima part SPK service → mekanik (Excel ADMIN INVENTORY).
+              START mekanik memicu notif ke gudang; gudang serahkan di sini →
+              stok berkurang & modal ambil-part mekanik hilang otomatis. */}
+          {(() => {
+            const spkAktif = new Map((spkServiceList || []).map((s) => [s.id, s]));
+            const pendingSerah = (partSpkList || []).filter((p) => {
+              const spk = spkAktif.get(p.id_spk);
+              if (!spk) return false;
+              if (['Selesai', 'FIR Closed', 'QC Passed', 'Waiting QC'].includes(spk.status_spk as string)) return false;
+              return p.status_part !== 'Diambil Mekanik';
+            });
+            return (
+              <div className="card-modern p-5 space-y-3">
+                <SectionHeader
+                  title="Picking & Serah Part SPK ke Mekanik"
+                  description={pendingSerah.length > 0
+                    ? `${pendingSerah.length} part menunggu diserahkan — serahkan agar modal ambil-part mekanik hilang & stok berkurang`
+                    : 'Tidak ada part menunggu — semua sudah diserahkan gudang'}
+                />
+                {partSpkError ? (
+                  <div className="p-4 rounded-xl bg-status-red-bg border border-status-red/30 text-status-red text-xs font-bold text-center space-y-2">
+                    <p>Gagal memuat daftar part SPK (akses ditolak / jaringan). Halaman serah tidak bisa tampil tanpa data ini.</p>
+                    <button
+                      type="button"
+                      onClick={() => refetchPartSpk()}
+                      className="px-4 py-2 rounded-xl bg-status-red text-white font-bold text-xs cursor-pointer"
+                    >
+                      Muat Ulang
+                    </button>
+                  </div>
+                ) : pendingSerah.length === 0 ? (
+                  <EmptyState title="Nihil" description="Semua part SPK service sudah diserahkan ke mekanik." />
+                ) : (
+                  <div className="space-y-2">
+                    {pendingSerah.map((p) => {
+                      const spk = spkAktif.get(p.id_spk)!;
+                      const rakMaster = (stokList || []).find((s) => s.kode_part === p.kode_part)?.lokasi_rak?.trim();
+                      return (
+                        <div key={p.id} className="p-3.5 bg-surface rounded-xl border border-border flex flex-col sm:flex-row sm:items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-ink truncate">{p.nama_part} <span className="text-accent">x{p.jumlah}</span></p>
+                            <p className="text-xs text-ink-muted mt-0.5">
+                              {spk.no_spk} • {formatPlat(spk.no_polisi)} • Mekanik: {spk.nama_mekanik || '—'}
+                              {rakMaster ? ` • Rak: ${rakMaster}` : ' • Rak: —'}
+                            </p>
+                            <p className="text-xs mt-1">
+                              <span className="px-2 py-0.5 rounded-full font-bold bg-status-amber-bg text-status-amber">
+                                {p.status_part || 'Menunggu Gudang'}
+                              </span>
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={!bolehKelolaGudang || serahkanPartSpkMutation.isPending}
+                            onClick={() => { setSerahRak(rakMaster || ''); setSerahSpkPart({ part: p, spk }); }}
+                            className="py-2.5 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0"
+                          >
+                            <CheckCheck className="w-4 h-4" />
+                            <span>Serahkan ke Mekanik</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {!bolehKelolaGudang && (
+                      <p className="text-xs text-ink-subtle text-center pt-1">
+                        Penyerahan part SPK khusus peran Warehouse atau Super Admin.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <div className="card-modern p-5 space-y-4">
             <div>
               <label className="block text-xs font-bold text-ink-muted mb-1.5">
@@ -1412,6 +1533,55 @@ export const BeliPartView: React.FC<{ initialTab?: 'transaksi' | 'estimasi' | 'p
             if (activeTransaksi) serahkanBarangMutation.mutate(activeTransaksi);
           }}
         />
+      )}
+
+      {/* Serah part SPK: input lokasi rak (prefill master, boleh kosong) */}
+      {serahSpkPart && (
+        <ModalPortal onClose={() => { if (!serahkanPartSpkMutation.isPending) { setSerahSpkPart(null); setSerahRak(''); } }}>
+          <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-4 bg-ink/60 backdrop-blur-sm" onClick={() => { if (!serahkanPartSpkMutation.isPending) { setSerahSpkPart(null); setSerahRak(''); } }}>
+            <div className="w-full max-w-md bg-surface-raised rounded-2xl border border-border shadow-2xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div>
+                <h2 className="text-base font-black text-ink">Serahkan {serahSpkPart.part.nama_part} x{serahSpkPart.part.jumlah}?</h2>
+                <p className="text-xs text-ink-muted mt-1">
+                  WO {serahSpkPart.spk.no_spk} ({formatPlat(serahSpkPart.spk.no_polisi)}) — Mekanik: {serahSpkPart.spk.nama_mekanik || '—'}.
+                  Stok gudang berkurang {serahSpkPart.part.jumlah} & mekanik menerima notif ambil barang.
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-ink-muted mb-1.5">
+                  Lokasi Rak <span className="font-medium text-ink-subtle">(opsional — diketik gudang, bukan data dummy)</span>
+                </label>
+                <input
+                  type="text"
+                  value={serahRak}
+                  onChange={(e) => setSerahRak(e.target.value)}
+                  placeholder="Contoh: Rak B-01"
+                  maxLength={60}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-surface text-ink font-bold text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={serahkanPartSpkMutation.isPending}
+                  onClick={() => { setSerahSpkPart(null); setSerahRak(''); }}
+                  className="px-4 py-2.5 rounded-xl border border-border text-ink font-bold text-xs hover:bg-surface-raised transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={serahkanPartSpkMutation.isPending}
+                  onClick={() => serahkanPartSpkMutation.mutate({ ...serahSpkPart, lokasi_rak: serahRak })}
+                  className="px-4 py-2.5 rounded-xl bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCheck className="w-4 h-4" />
+                  <span>{serahkanPartSpkMutation.isPending ? 'Menyerahkan...' : 'Ya, Serahkan'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
       )}
 
     </div>

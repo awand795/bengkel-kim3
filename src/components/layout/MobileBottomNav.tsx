@@ -9,6 +9,7 @@ import {
   Truck,
   Clock,
   Package,
+  PackageCheck,
   Receipt,
   FileText,
   Car,
@@ -162,6 +163,7 @@ export const MobileBottomNav: React.FC = () => {
         return {
           primary: [
             { id: 'beli-part', label: 'Penjualan Part', icon: Package },
+            { id: 'beli-part-picking', label: 'Serah Part SPK', icon: PackageCheck },
           ],
           more: [],
         };
@@ -183,7 +185,7 @@ export const MobileBottomNav: React.FC = () => {
     if (tabId === 'sa-baru' && (current === 'sa-penerimaan' || current === 'sa-baru')) return true;
     if (tabId === 'sa-kotak-merah' && (current === 'sa-kotak-merah' || (currentRole === 'SA' && current === 'purchasing'))) return true;
     if (tabId === 'foreman' && (current === 'foreman' || current === 'foreman-tugas' || current === 'foreman-cek' || current === 'foreman-qc')) return true;
-    if (tabId === 'beli-part' && current.startsWith('beli-part')) return true;
+    if (tabId === 'beli-part' && current.startsWith('beli-part') && current !== 'beli-part-picking') return true;
     if (tabId === 'admin-panel' && (current.startsWith('admin-') || current === 'pengaturan')) return true;
     return false;
   };

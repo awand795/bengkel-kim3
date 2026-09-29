@@ -246,6 +246,8 @@ export interface SpkItemPart {
   subtotal: number;
   status_ketersediaan: 'Ready di Stock' | 'Tidak Ready di Stock';
   status_part?: 'Draft' | 'PR Diajukan' | 'PO Dibuat' | 'Menunggu Barang Datang' | 'Barang Ready' | 'Diambil Mekanik';
+  /** Lokasi rak diinput Warehouse saat serah terima ke mekanik (boleh kosong). */
+  lokasi_rak?: string;
   estimasi_barang_ready_eta?: string;
   id_pr?: number;
 }

@@ -17,6 +17,7 @@ import {
   AlertCircle,
   CheckCircle,
   Check,
+  CheckCheck,
   X,
   Printer
 } from 'lucide-react';
@@ -64,6 +65,7 @@ export const MekanikView: React.FC = () => {
   const { data: sparepartList } = useQuery({
     queryKey: ['part-list'],
     queryFn: () => api.getPartSpk(),
+    refetchInterval: 8000,
   });
 
   // Filter SPK spesifik untuk Mekanik yang bertugas (kecuali Super Admin atau Foreman yang dapat melihat seluruh antrian bengkel).
@@ -107,9 +109,11 @@ export const MekanikView: React.FC = () => {
       if (
         event.type === 'SPK_STATUS_CHANGED' ||
         event.type === 'PART_READY' ||
+        event.type === 'PART_HANDED_OVER' ||
         event.type === 'PURCHASE_REQUEST_CREATED'
       ) {
         queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+        queryClient.invalidateQueries({ queryKey: ['part-list'] });
       }
     });
     return () => unsubscribe();
@@ -175,11 +179,25 @@ export const MekanikView: React.FC = () => {
         status_spk: 'Dalam Pengerjaan',
       });
     },
-    onSuccess: () => {
+    onSuccess: (_res, spk) => {
       setIsManualPaused(false);
       setAutoPausedReason(null);
       setTimerRunning(true);
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['part-list'] });
+
+      // Notif ke Warehouse: mekanik START → siapkan & serahkan part SPK ini.
+      // Serah terima oleh gudang yang menutup modal ambil-part mekanik.
+      const partCount = (sparepartList || []).filter((p) => p.id_spk === spk.id).length;
+      realtimeHub.publish({
+        type: 'SPK_STATUS_CHANGED',
+        targetRoles: ['Warehouse'],
+        title: 'Mekanik START — Siapkan Part SPK',
+        message: `Mekanik mulai ${spk.no_spk} (${formatPlat(spk.no_polisi || '')}). ${partCount} part menunggu diserahkan ke mekanik.`,
+        linkTab: 'beli-part-picking',
+        urgency: 'warning',
+      });
+
       toast.success('Pekerjaan dimulai/dilanjutkan! Timer pengerjaan berjalan otomatis.');
     },
     onError: (err: any) => toast.error('Gagal memulai pekerjaan: ' + (err?.message || 'Terjadi kesalahan.')),
@@ -525,9 +543,21 @@ export const MekanikView: React.FC = () => {
                       <div className="font-bold text-ink truncate">{p.nama_part}</div>
                       <div className="text-xs text-ink-muted font-mono">Kode: {p.kode_part || '-'} | Qty: {p.jumlah} {p.satuan}</div>
                     </div>
-                    <span className={`px-2.5 py-1 font-bold rounded-md text-xs flex items-center gap-1 whitespace-nowrap shrink-0 ${p.status_ketersediaan === 'Ready di Stock' ? 'bg-status-green-bg text-status-green' : 'bg-status-amber-bg text-status-amber'}`}>
-                      <Check className="w-3.5 h-3.5 shrink-0" /> {p.status_ketersediaan || '-'}
-                    </span>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className={`px-2.5 py-1 font-bold rounded-md text-xs flex items-center gap-1 whitespace-nowrap ${p.status_ketersediaan === 'Ready di Stock' ? 'bg-status-green-bg text-status-green' : 'bg-status-amber-bg text-status-amber'}`}>
+                        <Check className="w-3.5 h-3.5 shrink-0" /> {p.status_ketersediaan || '-'}
+                      </span>
+                      {/* Status serah terima gudang → mekanik (Excel ADMIN INVENTORY). */}
+                      {p.status_part === 'Diambil Mekanik' ? (
+                        <span className="px-2.5 py-1 font-bold rounded-md text-xs flex items-center gap-1 whitespace-nowrap bg-status-green-bg text-status-green">
+                          <CheckCheck className="w-3.5 h-3.5 shrink-0" /> Sudah Diserahkan
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 font-bold rounded-md text-xs flex items-center gap-1 whitespace-nowrap bg-status-amber-bg text-status-amber">
+                          <Clock className="w-3.5 h-3.5 shrink-0" /> Menunggu Gudang
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -671,6 +701,56 @@ export const MekanikView: React.FC = () => {
           ]}
         />
       )}
+
+      {/* MODAL PERMANEN AMBIL SPAREPART — muncul setelah START bila masih ada
+          part belum diserahkan gudang; TANPA tombol tutup/Escape. Hilang otomatis
+          saat semua part berstatus Diambil Mekanik. Timer tetap jalan. */}
+      {(() => {
+        const pendingSerah = (myJob && myJobStatus === 'Dalam Pengerjaan')
+          ? myJobParts.filter((p) => p.status_part !== 'Diambil Mekanik')
+          : [];
+        if (pendingSerah.length === 0 || !myJob) return null;
+        return (
+          <ModalPortal>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-sm">
+              <div className="w-full max-w-md bg-surface rounded-2xl border-2 border-status-amber shadow-2xl overflow-hidden">
+                <div className="bg-status-amber px-5 py-4 text-white">
+                  <div className="flex items-center gap-2.5">
+                    <Package className="w-6 h-6 shrink-0" />
+                    <div>
+                      <h2 className="text-base font-black leading-tight">Ambil Sparepart di Gudang</h2>
+                      <p className="text-xs opacity-90 font-semibold">{myJob.no_spk} • {formatPlat(myJob.no_polisi)}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <p className="text-xs text-ink-muted leading-relaxed">
+                    Timer pengerjaan <strong className="text-ink">tetap berjalan</strong>. Tunjukkan WO ini ke gudang dan ambil part berikut. Layar ini tertutup otomatis setelah gudang menyerahkan semua part.
+                  </p>
+                  <div className="space-y-2">
+                    {pendingSerah.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-surface-raised border border-border text-xs">
+                        <div className="min-w-0">
+                          <div className="font-bold text-ink truncate">{p.nama_part} <span className="text-accent">x{p.jumlah}</span></div>
+                          <div className="text-ink-muted font-mono text-[11px]">Kode: {p.kode_part || '-'}</div>
+                          <div className="text-[11px] font-bold text-accent">Rak: {p.lokasi_rak?.trim() || 'tanya gudang'}</div>
+                        </div>
+                        <span className="px-2.5 py-1 font-bold rounded-md text-xs whitespace-nowrap shrink-0 bg-status-amber-bg text-status-amber">
+                          ⏳ Menunggu Gudang
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-status-green-bg border border-status-green/30 text-status-green text-xs font-bold">
+                    <Clock className="w-4 h-4 shrink-0" />
+                    <span>Timer: {formatTimer(jobTimerSeconds)} — terus berjalan selama menunggu.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ModalPortal>
+        );
+      })()}
 
       {/* Printable SPK A4 Modal */}
       {showPrintSpk && (

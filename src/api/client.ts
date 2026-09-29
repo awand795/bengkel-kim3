@@ -393,6 +393,10 @@ export const api = {
     const res = await apiClient.post('/kim3/spk-part-tambah', data);
     return res.data;
   },
+  serahkanPartSpk: async (data: { id_part: number; lokasi_rak?: string }): Promise<any> => {
+    const res = await apiClient.post('/kim3/spk-part-serahkan', data);
+    return res.data;
+  },
 
   // Stok Sparepart
   getStokPart: async (): Promise<StokSparepart[]> =>

@@ -58,7 +58,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'beli-part': { title: 'Penjualan Part Langsung', subtitle: 'Direct Sale' },
   'beli-part-transaksi': { title: 'Daftar Transaksi Part', subtitle: 'Direct Sale' },
   'beli-part-estimasi': { title: 'Estimasi & POS Baru', subtitle: 'Direct Sale' },
-  'beli-part-picking': { title: 'Warehouse Picking', subtitle: 'Direct Sale' },
+  'beli-part-picking': { title: 'Picking & Serah Part SPK', subtitle: 'Gudang ke Mekanik + Direct Sale' },
   'kasir': { title: 'Kasir & Faktur Tagihan', subtitle: 'Invoice & Pembayaran' },
   'fleet-dashboard': { title: 'Portal Kendaraan Fleet', subtitle: 'Customer Fleet' },
   'fleet-booking': { title: 'Booking Service Baru', subtitle: 'Customer Fleet' },

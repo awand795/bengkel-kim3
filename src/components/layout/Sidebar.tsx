@@ -115,7 +115,7 @@ export const Sidebar: React.FC = () => {
       children: [
         { id: 'beli-part-transaksi', label: 'Daftar Transaksi', icon: FileText },
         { id: 'beli-part-estimasi', label: 'Estimasi & POS Baru', icon: PlusCircle },
-        { id: 'beli-part-picking', label: 'Warehouse Picking', icon: PackageCheck },
+        { id: 'beli-part-picking', label: 'Picking & Serah Part SPK', icon: PackageCheck },
       ],
     },
     {
@@ -231,7 +231,7 @@ export const Sidebar: React.FC = () => {
       defaultTab: 'beli-part-transaksi',
       children: [
         { id: 'beli-part-transaksi', label: 'Daftar Transaksi', icon: FileText },
-        { id: 'beli-part-picking', label: 'Warehouse Picking', icon: PackageCheck },
+        { id: 'beli-part-picking', label: 'Picking & Serah Part SPK', icon: PackageCheck },
       ],
     },
 
@@ -263,7 +263,7 @@ export const Sidebar: React.FC = () => {
       defaultTab: 'beli-part-transaksi',
       children: [
         { id: 'beli-part-transaksi', label: 'Daftar Transaksi', icon: FileText },
-        { id: 'beli-part-picking', label: 'Warehouse Picking', icon: PackageCheck },
+        { id: 'beli-part-picking', label: 'Picking & Serah Part SPK', icon: PackageCheck },
       ],
     },
 

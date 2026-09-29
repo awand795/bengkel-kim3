@@ -163,6 +163,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   const [tambahanWizardStep, setTambahanWizardStep] = useState(0);
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
+  // Keputusan estimasi dikirim dari mana pun (kartu alert / wizard / modal riwayat):
+  // tutup wizard agar tombol Setujui/Tolak tak bisa diklik dua kali.
+  React.useEffect(() => {
+    const close = () => setShowEstimasiWizard(false);
+    window.addEventListener('kim3:estimasi-decided', close);
+    return () => window.removeEventListener('kim3:estimasi-decided', close);
+  }, []);
+
   return (
     <div className="space-y-6">
           
@@ -277,6 +285,21 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     <span>Tinjau & Beri Keputusan</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
+                </div>
+              )}
+
+              {/* Konfirmasi sukses: estimasi disetujui, WO terbit */}
+              {spk && spk.status_spk === 'Estimasi Disetujui' && (
+                <div className="p-4 sm:p-5 rounded-xl border border-status-green/40 bg-status-green-bg flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-status-green text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink">Estimasi Disetujui — WO Terbit</h3>
+                    <p className="text-xs text-ink-muted mt-0.5">
+                      Keputusan Anda tercatat. Mekanik siap memulai pengerjaan unit ini.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -458,6 +481,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               ? 'Pekerjaan Selesai Dikerjakan — Menunggu Inspeksi QC Foreman'
                               : spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai'
                               ? 'Pengerjaan Service Teknisi Selesai'
+                              : spk.status_spk === 'Menunggu Pengecekan Mekanik'
+                              ? 'Menunggu Pengecekan & Estimasi Bengkel'
+                              : spk.status_spk === 'Estimasi Dibuat'
+                              ? 'Estimasi Biaya Sedang Disusun SA'
+                              : spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval'
+                              ? 'Menunggu Persetujuan Estimasi Anda'
+                              : spk.status_spk === 'Estimasi Disetujui'
+                              ? 'WO Terbit — Siap Dikerjakan Mekanik'
                               : 'Pengerjaan Sedang Dilakukan oleh Mekanik'}
                           </div>
                           <div className="text-xs text-ink-muted">
@@ -1743,7 +1774,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       });
     },
     onSuccess: (_res, { setuju, spk }) => {
+      // Optimistic UI: balik status seketika agar kartu approval langsung
+      // hilang/berubah tanpa menunggu refetch (refetch tab background bisa lama).
+      queryClient.setQueryData<SpkService[]>(['spk-list'], (old) =>
+        old ? old.map((s) => (s.id === spk.id ? { ...s, status_spk: setuju ? 'Estimasi Disetujui' : 'Estimasi Dibuat' } : s)) : old
+      );
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      window.dispatchEvent(new CustomEvent('kim3:estimasi-decided'));
       if (setuju) {
         realtimeHub.publish({
           type: 'SPK_STATUS_CHANGED',
