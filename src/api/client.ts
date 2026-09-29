@@ -71,11 +71,12 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 401) {
-      // If it's already an auth endpoint (login, refresh, or me)
-      if (originalRequest.url?.includes('/auth/')) {
-        if (originalRequest.url?.includes('/auth/me')) {
-          useAppStore.getState().logout();
-        }
+      // Endpoint login & refresh-token sendiri tidak boleh memicu refresh
+      // (anti-loop). /auth/me SENGAJA diikutkan alur refresh di bawah agar
+      // refresh halaman saat access token kedaluwarsa tidak langsung logout
+      // padahal refresh-token 30 hari masih valid.
+      const reqUrl: string = originalRequest.url || '';
+      if (reqUrl.includes('/auth/login') || reqUrl.includes('/auth/refresh-token')) {
         return Promise.reject(error);
       }
 
