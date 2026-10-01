@@ -58,7 +58,7 @@ export const LoginBrandPanel: React.FC = () => {
         aria-hidden="true"
         viewBox="0 0 400 400"
         fill="none"
-        className="login-wheel absolute -right-24 -top-24 w-[20rem] pointer-events-none select-none opacity-[0.05] text-slate-400 z-0"
+        className="login-wheel absolute -right-24 -top-24 w-[20rem] pointer-events-none select-none opacity-[0.12] text-white z-0"
       >
         {/* Ban luar */}
         <circle cx="200" cy="200" r="190" stroke="currentColor" strokeWidth="1.5" />
@@ -86,7 +86,7 @@ export const LoginBrandPanel: React.FC = () => {
 
         {/* Logo chip */}
         <div className="mb-9 login-reveal" style={{ animationDelay: '0ms' }}>
-          <div className="bg-white p-2.5 rounded-xl inline-flex border border-slate-200 shadow-xs">
+          <div className="bg-white p-2.5 rounded-xl inline-flex border border-slate-200/90 shadow-sm shadow-slate-900/5">
             <img
               src={LOGO_SRC}
               alt="PT Lotus Pradipta Mulia"
@@ -98,8 +98,8 @@ export const LoginBrandPanel: React.FC = () => {
         <div className="login-reveal" style={{ animationDelay: '80ms' }}>
           <p className="mb-2 text-xs uppercase tracking-[0.18em] lg-text-bright font-bold">
             <span aria-hidden className="relative inline-flex w-1.5 h-1.5 mr-2 align-middle">
-              <span className="lg-dot-warm absolute inset-0 rounded-full animate-ping opacity-60" />
-              <span className="lg-dot-warm relative w-1.5 h-1.5 rounded-full" />
+              <span className="absolute inset-0 rounded-full bg-[#FBBF24] animate-ping opacity-60" />
+              <span className="relative w-1.5 h-1.5 rounded-full bg-[#FBBF24]" />
             </span>
             Distributor Sparepart &amp; Pelumas
           </p>
@@ -109,7 +109,7 @@ export const LoginBrandPanel: React.FC = () => {
           <div className="login-accent-line" aria-hidden="true" />
         </div>
 
-        <p className="mb-4 text-sm xl:text-[15px] leading-relaxed lg-p-text login-reveal" style={{ animationDelay: '160ms' }}>
+        <p className="mb-4 text-sm xl:text-[15px] leading-relaxed text-[#E2E8F0] auth-text-dark lg-p-text login-reveal" style={{ animationDelay: '160ms' }}>
           PT Lotus Pradipta Mulia adalah perusahaan distributor sparepart motor, mobil, dan oli yang berbasis di Palembang. Melayani distribusi ke wilayah Sumatera Selatan, Lampung, Bengkulu, Jambi, dan Bangka Belitung.
         </p>
 
@@ -121,23 +121,23 @@ export const LoginBrandPanel: React.FC = () => {
               className="group grid grid-cols-[1.75rem_6.75rem_1fr] items-start gap-3 py-2.5 login-reveal"
               style={{ animationDelay: `${faktaDelay[index]}ms` }}
             >
-              <div aria-hidden="true" className="lg-icon-box w-7 h-7 rounded-md flex items-center justify-center transition-colors">
+              <div aria-hidden="true" className="auth-icon-box lg-icon-box w-7 h-7 rounded-md flex items-center justify-center transition-colors">
                 <Icon className="w-4 h-4" />
               </div>
-              <dt className="text-xs uppercase tracking-wider lg-p-muted pt-1 whitespace-nowrap">{label}</dt>
-              <dd className="text-[13px] lg-p-title font-semibold leading-snug pt-1 [text-wrap:pretty]">{nilai}</dd>
+              <dt className="text-xs uppercase tracking-wider text-[#CBD5E1] auth-label-dark lg-p-muted pt-1 whitespace-nowrap">{label}</dt>
+              <dd className="text-[13px] text-white auth-title-dark lg-p-title font-semibold leading-snug pt-1 [text-wrap:pretty]">{nilai}</dd>
             </div>
           ))}
         </dl>
 
         {/* Merek yang didistribusikan (disembunyikan otomatis di layar sangat pendek) */}
         <div className="[@media(max-height:560px)]:hidden">
-          <p className="mb-2 text-xs font-medium lg-p-muted">Merek yang Didistribusikan</p>
+          <p className="mb-2 text-xs font-medium text-[#CBD5E1] auth-label-dark lg-p-muted">Merek yang Didistribusikan</p>
           <div className="flex flex-wrap gap-1.5">
             {merek.map((nama, index) => (
               <span
                 key={nama}
-                className="login-pop lg-chip rounded-full px-2.5 py-1 text-xs"
+                className="login-pop auth-chip lg-chip rounded-full px-2.5 py-1 text-xs"
                 style={{ animationDelay: `${450 + index * 60}ms` }}
               >
                 {nama}

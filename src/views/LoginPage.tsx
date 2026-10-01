@@ -19,10 +19,10 @@ import { toast } from '../components/common/Toast';
 import { LoginBrandPanel } from '../components/login/LoginBrandPanel';
 
 // Kelas bersama skala form sisi kanan (dipakai form Login & Daftar Mitra)
-const INPUT_CLS = 'w-full pl-11 pr-3.5 py-3 text-sm sm:text-[15px] rounded-lg border border-border bg-white text-ink placeholder:text-ink-subtle focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all';
+const INPUT_CLS = 'auth-input w-full pl-11 pr-3.5 py-3 text-sm sm:text-[15px] rounded-lg border border-[#CBD5E1] bg-white text-[#0F172A] placeholder:text-[#64748B] focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition-all';
 const INPUT_PWD_CLS = INPUT_CLS.replace('pr-3.5', 'pr-11');
-const LABEL_CLS = 'block text-sm font-semibold text-ink mb-1.5';
-const ICON_WRAP_CLS = 'absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle group-focus-within:text-accent transition-colors';
+const LABEL_CLS = 'auth-label block text-sm font-semibold text-[#0F172A] mb-1.5';
+const ICON_WRAP_CLS = 'absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#64748B] group-focus-within:text-[#12388F] transition-colors';
 
 export const LoginPage: React.FC = () => {
   const { loginUser } = useAppStore();
@@ -190,7 +190,7 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <main className="login-legacy-theme min-h-screen lg:h-dvh lg:overflow-hidden flex flex-col lg:flex-row bg-surface text-ink antialiased font-sans relative">
+    <main className="auth-page login-legacy-theme min-h-screen lg:h-dvh lg:overflow-hidden flex flex-col lg:flex-row bg-surface text-ink antialiased font-sans relative">
       
       {/* Top Bar Aksen Tipis (--color-accent Petrol Teal) */}
       <div className="h-[2px] w-full bg-accent fixed top-0 left-0 z-50 pointer-events-none" />
@@ -203,14 +203,14 @@ export const LoginPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* SISI KANAN: FORM LOGIN & REGISTER (Kontras Tinggi, Aksen Teal)            */}
       {/* ========================================================================= */}
-      <section className="flex-1 bg-surface login-form-bg flex flex-col items-center p-6 sm:p-8 lg:p-12 overflow-y-auto">
+      <section className="flex-1 bg-[#E8EEF5] login-form-bg flex flex-col items-center p-6 sm:p-8 lg:p-12 overflow-y-auto">
         <div className="w-full max-w-[30rem] my-auto">
           
           {/* Mobile Header Branding */}
           <div className="lg:hidden mb-5 flex flex-col items-center text-center">
-            <div className="bg-surface-raised p-2 px-3.5 rounded-md border border-border mb-2 inline-flex items-center gap-2 shadow-xs">
+            <div className="bg-surface-raised p-2 px-3.5 rounded-md border border-[#CBD5E1] mb-2 inline-flex items-center gap-2 shadow-xs">
               <img src="/logo.png" alt="PT Lotus Pradipta Mulia Logo" className="h-7 w-auto object-contain" />
-              <span className="text-sm font-bold text-ink">PT LOTUS PRADIPTA MULIA</span>
+              <span className="text-sm font-bold text-[#0F172A]">PT LOTUS PRADIPTA MULIA</span>
             </div>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-accent-subtle text-accent border border-accent/20">
               Web Fleet
@@ -218,11 +218,11 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Card Form */}
-          <div className="relative overflow-hidden bg-surface-raised border border-border rounded-2xl p-6 sm:p-9 shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/10 login-reveal">
-            <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent via-[#3B82F6] to-[#60A5FA]" />
+          <div className="relative overflow-hidden bg-white border border-[#CBD5E1] rounded-2xl p-6 sm:p-9 shadow-2xl shadow-slate-900/15 ring-1 ring-slate-900/10 login-reveal">
+            <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent via-[#2563EB] to-[#F59E0B]" />
             
             {/* Tab Navigasi Masuk / Daftar: Segmented Pill Switcher Modern */}
-            <div className="flex p-1 bg-surface rounded-lg border border-border/70 mb-7">
+            <div className="flex p-1 bg-[#F1F5F9] rounded-lg border border-[#CBD5E1]/70 mb-7">
               <button
                 type="button"
                 onClick={() => {
@@ -230,10 +230,10 @@ export const LoginPage: React.FC = () => {
                   setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
-                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all cursor-pointer text-center ${
+                className={`flex-1 py-2 text-sm rounded-md transition-all cursor-pointer text-center ${
                   activeTab === 'login'
-                    ? 'bg-surface-raised text-accent shadow-xs font-bold'
-                    : 'text-ink-muted hover:text-ink'
+                    ? 'bg-white text-[#12388F] shadow-xs font-bold'
+                    : 'auth-tab-inactive text-[#475569] hover:text-[#12388F] font-semibold'
                 }`}
               >
                 Login
@@ -245,10 +245,10 @@ export const LoginPage: React.FC = () => {
                   setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
-                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all cursor-pointer text-center ${
+                className={`flex-1 py-2 text-sm rounded-md transition-all cursor-pointer text-center ${
                   activeTab === 'register'
-                    ? 'bg-surface-raised text-accent shadow-xs font-bold'
-                    : 'text-ink-muted hover:text-ink'
+                    ? 'bg-white text-[#12388F] shadow-xs font-bold'
+                    : 'auth-tab-inactive text-[#475569] hover:text-[#12388F] font-semibold'
                 }`}
               >
                 Daftar Mitra
@@ -257,10 +257,10 @@ export const LoginPage: React.FC = () => {
 
             {/* Header Form */}
             <div className="mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
                 {activeTab === 'login' ? 'Login' : 'Pendaftaran Mitra Fleet'}
               </h2>
-              <p className="text-sm text-ink-muted mt-1 leading-relaxed">
+              <p className="auth-subtitle text-sm text-[#475569] mt-1 leading-relaxed">
                 {activeTab === 'login' 
                   ? 'Masuk dengan nomor HP atau email akun mitra fleet Anda.' 
                   : 'Pilih tipe kemitraan dan lengkapi data untuk mendaftar akun.'}
@@ -333,7 +333,7 @@ export const LoginPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => toast.info('Untuk reset kata sandi, hubungi Helpdesk Bengkel KIM 3.')}
-                      className="text-sm text-ink-muted hover:text-accent cursor-pointer transition-colors"
+                      className="text-sm font-semibold text-[#12388F] hover:underline cursor-pointer transition-colors"
                     >
                       Lupa kata sandi?
                     </button>

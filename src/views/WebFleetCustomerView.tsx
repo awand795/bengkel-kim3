@@ -2020,14 +2020,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {fleetMenu === 'dashboard' && (
         <div className="space-y-6">
           {/* Welcome Banner */}
-          <div className="bg-accent rounded-xl p-6 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div
+            style={{ background: 'linear-gradient(120deg, #1D4ED8 0%, #2563EB 55%, #3B82F6 100%)' }}
+            className="rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border-0 text-white"
+          >
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-raised/10 text-white/70 text-xs font-semibold mb-2">
-                <Truck className="w-3.5 h-3.5 text-white/70" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.18] border border-white/30 text-xs font-semibold text-white mb-2 shadow-2xs">
+                <Truck className="w-3.5 h-3.5 text-white" />
                 Portal Monitoring Fleet KIM 3 Medan
               </div>
-              <h1 className="text-xl md:text-2xl font-black tracking-tight">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
-              <p className="text-xs text-white/70 mt-1 max-w-xl leading-relaxed">
+              <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
+              <p className="text-xs text-[#E0EAFF] mt-1 max-w-xl leading-relaxed font-normal">
                 Pantau status perbaikan kendaraan, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK & KIR secara realtime.
               </p>
             </div>
@@ -2043,7 +2046,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   setFleetMenu('booking');
                   setActiveTab('fleet-booking');
                 }}
-                className={`px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 ${
+                className={`px-4 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-[#0F172A] text-xs font-bold rounded-xl transition-all shadow-[0_4px_12px_rgba(0,0,0,0.18)] flex items-center gap-2 ${
                   !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
                 title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
@@ -2098,7 +2101,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               value={myDokumenList.length}
               subtitle="STNK & KIR"
               icon={FileText}
-              tone="neutral"
+              tone="teal"
               onClick={() => {
                 setFleetMenu('dokumen');
                 setActiveTab('fleet-dokumen');

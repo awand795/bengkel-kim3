@@ -45,7 +45,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-surface-raised border-b border-border font-sans safe-top shadow-xs">
+      <header className="sticky top-0 z-40 bg-white dark:bg-surface-raised border-b border-[#E2E8F0] dark:border-border font-sans safe-top shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         {/* Mobile Header (< 768px) */}
         <div className="flex md:hidden items-center justify-between px-3 h-14">
           <div className="flex items-center">
@@ -121,9 +121,9 @@ export const Navbar: React.FC = () => {
               alt="KIM3 Bengkel"
               className="h-9 w-auto object-contain"
             />
-            <div className="border-l border-border pl-3">
-              <span className="block text-xs font-bold text-ink leading-tight">KIM 3 WEB FLEET</span>
-              <span className="block text-[10px] text-ink-subtle">Customer Monitoring Portal</span>
+            <div className="border-l border-[#E2E8F0] dark:border-border pl-3">
+              <span className="block text-xs font-bold text-[#0F172A] dark:text-white leading-tight">KIM 3 WEB FLEET</span>
+              <span className="block text-[10px] text-[#64748B] dark:text-slate-400">Customer Monitoring Portal</span>
             </div>
           </div>
 
@@ -133,14 +133,14 @@ export const Navbar: React.FC = () => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-surface hover:bg-surface-raised text-ink-muted transition-all cursor-pointer hover:border-accent/40 group"
+              className="flex items-center justify-center w-9 h-9 rounded-lg border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface hover:bg-[#EEF2FF] dark:hover:bg-white/10 text-[#475569] dark:text-slate-300 hover:text-[#12388F] dark:hover:text-white transition-all cursor-pointer group"
               aria-label="Ganti tema tampilan"
               title={theme === 'dark' ? 'Ganti ke Mode Terang (Light Mode)' : 'Ganti ke Mode Industri Gelap (Dark Mode)'}
             >
               {theme === 'dark' ? (
                 <Sun className="w-4 h-4 text-amber-400 group-hover:rotate-45 transition-transform" />
               ) : (
-                <Moon className="w-4 h-4 text-ink-muted group-hover:-rotate-12 transition-transform" />
+                <Moon className="w-4 h-4 text-inherit group-hover:-rotate-12 transition-transform" />
               )}
             </button>
 

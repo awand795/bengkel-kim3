@@ -222,13 +222,13 @@ export const NotificationDropdown: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className={`relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer ${
           isOpen
-            ? 'bg-accent-subtle text-accent shadow-xs'
-            : 'text-ink-muted hover:text-ink hover:bg-surface active:bg-accent-subtle'
+            ? 'bg-[#EEF2FF] text-[#12388F] shadow-xs'
+            : 'text-[#475569] dark:text-slate-300 hover:text-[#12388F] dark:hover:text-white hover:bg-[#EEF2FF] dark:hover:bg-white/10'
         }`}
         title={`Pusat Notifikasi (${unreadCount} belum dibaca)`}
         aria-label="Pusat Notifikasi"
       >
-        <Bell className={`w-5 h-5 transition-transform ${unreadCount > 0 ? 'text-ink' : 'text-ink-muted'}`} />
+        <Bell className={`w-5 h-5 transition-transform ${unreadCount > 0 ? 'text-[#0F172A] dark:text-white' : 'text-inherit'}`} />
 
         {/* Facebook-style Red Badge Counter: ONLY SHOWS IF UNREAD > 0 */}
         {unreadCount > 0 && (

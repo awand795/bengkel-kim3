@@ -5,28 +5,28 @@
 
 @layer utilities {
   .bg-accent {
-    background-color: var(--color-accent, #2563EB);
+    background-color: var(--color-accent, #12388F);
   }
   .hover\:bg-accent-hover:hover {
-    background-color: var(--color-accent-hover, #1D4ED8);
+    background-color: var(--color-accent-hover, #0D2A6B);
   }
   .active\:bg-accent-active:active {
-    background-color: var(--color-accent-active, #1E40AF);
+    background-color: var(--color-accent-active, #0A2154);
   }
   .text-accent {
-    color: var(--color-accent, #2563EB);
+    color: var(--color-accent, #12388F);
   }
   .hover\:text-accent:hover {
-    color: var(--color-accent, #1D4ED8);
+    color: var(--color-accent-hover, #0D2A6B);
   }
   .border-accent {
-    border-color: var(--color-accent, #2563EB);
+    border-color: var(--color-accent, #12388F);
   }
   .focus\:border-accent:focus {
-    border-color: var(--color-accent, #2563EB);
+    border-color: var(--color-accent, #12388F);
   }
   .focus\:ring-accent:focus {
-    --tw-ring-color: var(--color-accent, #2563EB);
+    --tw-ring-color: var(--color-accent, #12388F);
   }
 }
 
@@ -38,12 +38,20 @@
   
   body {
     font-family: var(--font-sans);
-    background-color: var(--color-surface);
-    color: var(--color-ink);
+    background-color: var(--color-surface, #EEF2F7);
+    color: #334155;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Form Elements Base Clean Polish (Excluding Login Legacy) */
+  h1, h2, h3, h4, h5, h6 {
+    color: #0F172A;
+  }
+
+  html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6 {
+    color: #F8FAFC;
+  }
+
+  /* Form Elements Base Clean Polish */
   body:not(.login-legacy-theme) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="range"]),
   body:not(.login-legacy-theme) select,
   body:not(.login-legacy-theme) textarea {
@@ -52,7 +60,7 @@
     color: #0F172A;
   }
 
-  /* Dark cockpit: form mengikuti token (jangan putih). */
+  /* Dark cockpit: form mengikuti token */
   html.dark body:not(.login-legacy-theme) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="range"]),
   html.dark body:not(.login-legacy-theme) select,
   html.dark body:not(.login-legacy-theme) textarea {
@@ -61,28 +69,53 @@
     color: var(--color-ink);
   }
 
+  input::placeholder,
+  select::placeholder,
+  textarea::placeholder {
+    color: #64748B;
+  }
+
   html.dark body:not(.login-legacy-theme) input::placeholder,
   html.dark body:not(.login-legacy-theme) select::placeholder,
   html.dark body:not(.login-legacy-theme) textarea::placeholder {
-    color: var(--color-ink-subtle);
+    color: #94A3B8;
   }
 
   body:not(.login-legacy-theme) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="range"]):focus,
   body:not(.login-legacy-theme) select:focus,
   body:not(.login-legacy-theme) textarea:focus {
-    border-color: #2563EB !important;
+    border-color: #12388F !important;
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+    box-shadow: 0 0 0 3px rgba(18, 56, 143, 0.20) !important;
   }
 
-  /* Custom text selection styling - modern blue */
+  /* Global Table Styling: header #F1F5F9, hover #F8FAFC */
+  thead {
+    background-color: #F1F5F9;
+    color: #334155;
+  }
+
+  tbody tr:hover {
+    background-color: #F8FAFC;
+  }
+
+  html.dark thead {
+    background-color: #0F172A;
+    color: #CBD5E1;
+  }
+
+  html.dark tbody tr:hover {
+    background-color: #131C31;
+  }
+
+  /* Custom text selection styling - KIM3 navy */
   ::selection {
-    background-color: var(--color-accent, #2563EB);
+    background-color: #12388F;
     color: #FFFFFF;
   }
 
   ::-moz-selection {
-    background-color: var(--color-accent, #2563EB);
+    background-color: #12388F;
     color: #FFFFFF;
   }
 }
@@ -182,6 +215,105 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* ==========================================================================
+   AUTH PAGE SCOPED VARIABLES & STYLING
+   Khusus untuk halaman Login & Register (tidak mempengaruhi Dashboard)
+   ========================================================================== */
+.auth-page {
+  --auth-label-dark: #CBD5E1;
+  --auth-text-dark: #E2E8F0;
+  --auth-title-dark: #FFFFFF;
+  --auth-text-muted: #475569;
+  --auth-placeholder: #64748B;
+  --auth-input-border: #CBD5E1;
+  --auth-bg-right: #E8EEF5;
+  --auth-amber: #FBBF24;
+  --auth-amber-hover: #F59E0B;
+  --auth-navy: #12388F;
+  --auth-navy-hover: #0D2A6B;
+}
+
+.auth-page .login-form-bg {
+  background-color: var(--auth-bg-right, #E8EEF5);
+  background-image:
+    radial-gradient(55% 45% at 100% 0%, rgba(18, 56, 143, 0.07) 0%, transparent 70%),
+    radial-gradient(rgba(18, 56, 143, 0.08) 1px, transparent 1.3px);
+  background-size: auto, 24px 24px;
+}
+
+.auth-page .auth-label-dark {
+  color: var(--auth-label-dark, #CBD5E1);
+}
+
+.auth-page .auth-text-dark {
+  color: var(--auth-text-dark, #E2E8F0);
+}
+
+.auth-page .auth-title-dark {
+  color: var(--auth-title-dark, #FFFFFF);
+}
+
+.auth-page .auth-icon-box {
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  color: var(--auth-amber, #FBBF24);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-page .group:hover .auth-icon-box {
+  background: var(--auth-amber, #FBBF24);
+  border-color: var(--auth-amber-hover, #F59E0B);
+  color: #0B1F4D;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.50);
+  transform: translateY(-1px);
+}
+
+.auth-page .auth-chip {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.15);
+  font-weight: 500;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, transform 0.2s, color 0.2s;
+}
+
+.auth-page .auth-chip:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.40);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.auth-page .auth-subtitle {
+  color: var(--auth-text-muted, #475569);
+}
+
+.auth-page .auth-tab-inactive {
+  color: var(--auth-text-muted, #475569);
+}
+
+.auth-page .auth-tab-inactive:hover {
+  color: var(--auth-navy, #12388F);
+}
+
+.auth-page .auth-input {
+  border-color: var(--auth-input-border, #CBD5E1);
+  color: #0F172A;
+}
+
+.auth-page .auth-input::placeholder {
+  color: var(--auth-placeholder, #64748B);
+}
+
+.auth-page .auth-input:focus {
+  border-color: var(--auth-navy, #12388F) !important;
+  box-shadow: 0 0 0 2px rgba(18, 56, 143, 0.20) !important;
+}
+
 /* Kelas animasi & utilitas login legacy scoped */
 .login-legacy-theme {
   .login-aurora-a,
@@ -194,15 +326,6 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   .login-btn::after {
     will-change: transform, opacity;
   }
-}
-
-.login-legacy-theme .login-form-bg {
-  background-color: var(--lg-right-bg);
-  background-image:
-    radial-gradient(55% 45% at 100% 0%, rgb(var(--lg-blue-glow-rgb) / 0.05) 0%, transparent 70%),
-    radial-gradient(rgb(30 64 175 / 0.06) 1px, transparent 1.3px);
-  background-size: auto, 24px 24px;
-  box-shadow: inset 18px 0 30px -20px rgba(13, 17, 23, 0.30);
 }
 
 @keyframes login-fade-up {
@@ -219,23 +342,25 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 .login-wheel {
-  color: #2563EB;
+  color: rgba(255, 255, 255, 0.18);
   transform-origin: 200px 200px;
   animation: login-wheel-spin 90s linear infinite;
 }
 
 .login-aurora-a {
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.08), transparent 70%);
-  filter: blur(50px);
+  background: radial-gradient(circle, rgba(18, 56, 143, 0.40), transparent 70%);
+  filter: blur(52px);
   animation: login-drift-a 18s ease-in-out infinite alternate;
+  display: block;
 }
 
 .login-aurora-b {
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.07), transparent 70%);
-  filter: blur(56px);
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.12), transparent 70%);
+  filter: blur(60px);
   animation: login-drift-b 22s ease-in-out infinite alternate;
+  display: block;
 }
 
 @keyframes login-drift-a {
@@ -247,25 +372,17 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 .login-title-sheen {
-  background: linear-gradient(110deg, var(--lg-p-title) 0%, var(--lg-p-title) 42%, #2563EB 50%, var(--lg-p-title) 58%, var(--lg-p-title) 100%);
-  background-size: 260% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: login-sheen 8s ease-in-out infinite;
-  letter-spacing: -0.02em;
-}
-
-@keyframes login-sheen {
-  0% { background-position: 130% 0; }
-  60%, 100% { background-position: -30% 0; }
+  color: #FFFFFF;
+  font-weight: 800;
+  letter-spacing: -0.025em;
 }
 
 .login-accent-line {
-  height: 3px;
-  width: 48px;
+  height: 3.5px;
+  width: 52px;
   border-radius: 9999px;
-  background: linear-gradient(90deg, #2563EB, #60A5FA);
+  background: linear-gradient(90deg, #F59E0B, #FBBF24);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
   margin-bottom: 16px;
   animation: login-line-grow 700ms 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -306,67 +423,71 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   transition: transform 700ms ease;
 }
 
-/* Tombol login aksen biru */
+/* Tombol login KIM3 Navy */
 .login-legacy-theme .login-btn {
-  background-image: linear-gradient(180deg, var(--lg-btn-top) 0%, var(--color-accent) 100%);
-  box-shadow: 0 6px 16px rgb(var(--lg-brand-rgb) / 0.30);
+  background-color: #12388F;
+  background-image: linear-gradient(180deg, #1742A3 0%, #12388F 100%);
+  box-shadow: 0 4px 14px rgba(18, 56, 143, 0.28);
   color: #FFFFFF;
 }
 
 .login-legacy-theme .login-btn:hover:not(:disabled) {
-  background-image: linear-gradient(180deg, var(--lg-btn-hover-top) 0%, var(--color-accent-hover) 100%);
+  background-color: #0D2A6B;
+  background-image: linear-gradient(180deg, #12388F 0%, #0D2A6B 100%);
 }
 
-/* Kelas warna semantik panel login (sumber: palet --lg-*) */
+/* Kelas warna semantik panel login KIM3 */
 .lg-text-bright { 
-  color: var(--lg-p-accent-text); 
-  font-weight: 600;
+  color: var(--lg-p-accent-text, #FBBF24); 
+  font-weight: 700;
   letter-spacing: 0.16em;
 }
 
 .lg-dot-warm { 
-  background: var(--lg-p-accent); 
-  box-shadow: 0 0 6px rgba(37, 99, 235, 0.40);
+  background: var(--lg-p-accent, #FBBF24); 
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.70);
 }
 
 .lg-icon-box {
-  background: #EFF6FF;
-  border: 1px solid #DBEAFE;
-  color: var(--lg-p-accent);
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.05);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  color: #FBBF24;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .group:hover .lg-icon-box {
-  background: var(--lg-p-accent);
-  border-color: #1D4ED8;
-  color: #FFFFFF;
-  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.30);
+  background: #FBBF24;
+  border-color: #F59E0B;
+  color: #0B1F4D;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.50);
   transform: translateY(-1px);
 }
 
 .lg-chip {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  color: #334155;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.15);
   font-weight: 500;
   transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, transform 0.2s, color 0.2s;
 }
 
 .lg-chip:hover {
-  background: #EFF6FF;
-  border-color: #93C5FD;
-  color: #1D4ED8;
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.40);
+  color: #FFFFFF;
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px -2px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .lg-edge-light {
-  background-image: linear-gradient(to bottom, transparent, rgba(148, 163, 184, 0.30), transparent);
+  background-image: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.15), transparent);
 }
 
-/* Teks panel kiri terang */
+/* Teks panel kiri */
 .lg-p-title { color: var(--lg-p-title); }
 
 .lg-p-text { color: var(--lg-p-text); }
