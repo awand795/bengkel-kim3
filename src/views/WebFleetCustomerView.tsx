@@ -36,6 +36,7 @@ import {
   ArrowRight,
   Search,
   ChevronRight,
+  ChevronDown,
   Wrench,
   AlertCircle,
   XCircle,
@@ -1537,6 +1538,41 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     });
   }, [spkList]);
 
+  // Helper: Status badge masa berlaku dokumen (berlaku > 30 hari, mendekati <= 30 hari, kadaluarsa < 0)
+  const renderDocExpiryBadge = useCallback((dateStr?: string | null) => {
+    if (!dateStr) return <span className="text-ink-muted">-</span>;
+    const target = new Date(dateStr);
+    if (isNaN(target.getTime())) return <span className="text-ink-muted">-</span>;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const expiry = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const dateFormatted = target.toLocaleDateString('id-ID');
+
+    if (diffDays < 0) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/50">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]" />
+          {dateFormatted}
+        </span>
+      );
+    }
+    if (diffDays <= 30) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#FEF3C7] text-[#B45309] border border-[#FDE68A] dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#B45309]" />
+          {dateFormatted}
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0] dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#15803D]" />
+        {dateFormatted}
+      </span>
+    );
+  }, []);
+
   // Aturan cancel booking: status masih Booked dan minimal 10 menit sebelum
   // jadwal (tanggal_booking + jam_booking). Server juga menolak bila status
   // sudah berubah / sudah ada check-in dari booking tersebut.
@@ -2130,7 +2166,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 setBookingStep(1);
                 setOpenBookingModal(true);
               }}
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 ${
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 ${
                 !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
               }`}
               title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
@@ -2141,12 +2177,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Booking Saya: Daftar booking aktif */}
-          <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-3">
+          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised p-5 space-y-4 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-accent" /> Daftar Booking Saya
+                <Calendar className="w-4 h-4 text-[#12388F] dark:text-blue-400" /> Daftar Booking Saya
               </h3>
-              <span className="text-xs font-semibold text-accent px-2.5 py-0.5 rounded-full bg-accent-subtle">
+              <span className="text-xs font-semibold text-[#12388F] dark:text-blue-300 px-2.5 py-0.5 rounded-full bg-[#EEF2FF] dark:bg-blue-950/60">
                 {bookingAktifList.length} Booking Aktif
               </span>
             </div>
@@ -2161,11 +2197,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         key={b.id}
                         title={formatPlat(b.no_polisi)}
                         subtitle={`${b.jenis_layanan} • Jadwal: ${b.tanggal_booking} ${b.jam_booking} WIB`}
-                        badge={
-                          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-accent-subtle text-accent">
-                            {effStatus}
-                          </span>
-                        }
+                        badge={<StatusBadge status={effStatus} size="sm" />}
                         actions={<BookingCancelButton b={b} />}
                       />
                     );
@@ -2611,7 +2643,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-black text-ink tracking-tight flex items-center gap-2">
-                <Truck className="w-5 h-5 text-accent" />
+                <Truck className="w-5 h-5 text-[var(--menu-accent-text,var(--color-accent))]" />
                 <span>Kendaraan Saya</span>
               </h2>
               <p className="text-xs text-ink-muted mt-0.5">
@@ -2628,7 +2660,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }
                 setOpenTambahArmadaModal(true);
               }}
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-md shadow-accent/20 transition-all shrink-0 ${
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 ${
                 !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
               }`}
               title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
@@ -2638,27 +2670,29 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </button>
           </div>
 
-          {/* Pencarian kendaraan */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={armadaSearch}
-              onChange={(e) => setArmadaSearch(e.target.value)}
-              placeholder="Cari no. polisi, merk, model..."
-              aria-label="Cari kendaraan"
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-surface-raised text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
-            />
-            {armadaSearch && (
-              <button
-                type="button"
-                onClick={() => setArmadaSearch('')}
-                aria-label="Bersihkan pencarian kendaraan"
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface transition cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+          {/* Pencarian kendaraan dalam toolbar */}
+          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-[#F8FAFC] dark:bg-slate-900/40 p-2.5 sm:p-3 mb-4">
+            <div className="relative">
+              <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={armadaSearch}
+                onChange={(e) => setArmadaSearch(e.target.value)}
+                placeholder="Cari no. polisi, merk, model..."
+                aria-label="Cari kendaraan"
+                className="w-full h-10 pl-10 pr-10 rounded-lg border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 focus:outline-hidden transition-all"
+              />
+              {armadaSearch && (
+                <button
+                  type="button"
+                  onClick={() => setArmadaSearch('')}
+                  aria-label="Bersihkan pencarian kendaraan"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white transition cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           {armadaRows.length > 0 ? (
@@ -2669,13 +2703,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 return (
                   <div
                     key={k.id}
-                    className="bg-surface-raised rounded-2xl border border-border p-4 sm:p-5 hover:border-accent/40 hover:shadow-xs transition-all flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-6"
+                    className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-4 sm:p-5 hover:border-[#12388F]/30 hover:shadow-xs transition-all flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-6 shadow-2xs"
                   >
-                    {/* Left: Thumbnail & Identitas Utama */}
+                    {/* Zona 1: Foto 88px, Plat Chip & Identitas Utama */}
                     <div className="flex items-start sm:items-center gap-4 min-w-[240px] sm:min-w-[280px]">
                       {k.foto_kendaraan ? (
                         <div
-                          className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-surface border border-border shrink-0 cursor-pointer group/thumb"
+                          className="relative w-[88px] h-[88px] rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 shrink-0 cursor-pointer group/thumb"
                           onClick={() =>
                             setPreviewImage({
                               url: k.foto_kendaraan!,
@@ -2697,7 +2731,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </div>
                       ) : (
                         <div
-                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface border border-dashed border-border flex flex-col items-center justify-center gap-1 shrink-0 text-ink-subtle cursor-pointer hover:border-accent hover:text-accent transition-colors"
+                          className="w-[88px] h-[88px] rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-dashed border-[#CBD5E1] dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0 text-[#94A3B8] cursor-pointer hover:border-[#12388F] hover:text-[#12388F] transition-colors"
                           onClick={() => {
                             setEditArmadaForm({
                               jenis_armada: k.jenis_armada || 'Truk',
@@ -2721,7 +2755,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                       <div className="min-w-0 space-y-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono font-black text-sm tracking-wider text-ink bg-surface px-2.5 py-1 rounded-lg border border-border">
+                          <span className="font-mono font-bold text-xs tracking-wider text-[#0F172A] dark:text-slate-200 bg-[#F1F5F9] dark:bg-slate-800 px-2.5 py-1 rounded-md border border-[#E2E8F0] dark:border-slate-700/60">
                             {formatPlat(k.no_polisi)}
                           </span>
                           {sedangDiBengkel ? (
@@ -2736,55 +2770,51 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             </span>
                           )}
                         </div>
-                        <h3 className="text-sm font-bold text-ink truncate">
+                        <h3 className="text-sm font-bold text-[#0F172A] dark:text-white truncate">
                           {k.merk} {k.model}
                         </h3>
-                        <p className="text-[11px] text-ink-muted">
+                        <p className="text-[11px] text-[#64748B] dark:text-slate-400">
                           {k.jenis_armada || 'Truk'} • Pemilik: {k.nama_pemilik || currentUser || 'Perusahaan'}
                         </p>
                       </div>
                     </div>
 
-                    {/* Middle: Spesifikasi Teknis Kolom */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5 text-xs py-2 sm:py-0 border-y sm:border-y-0 sm:border-l border-border/70 sm:pl-6 flex-1 min-w-0">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-ink-muted w-20 shrink-0">Jenis:</span>
-                          <span className="font-medium text-ink truncate">{k.jenis_armada || 'Truk'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-ink-muted w-20 shrink-0">Tahun:</span>
-                          <span className="font-medium text-ink truncate">{k.tahun || '-'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-ink-muted w-20 shrink-0">No. Rangka:</span>
-                          <span className="font-mono font-medium text-ink truncate" title={k.no_rangka || '-'}>
-                            {k.no_rangka || '-'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-ink-muted w-20 shrink-0">No. Mesin:</span>
-                          <span className="font-mono font-medium text-ink truncate" title={k.no_mesin || '-'}>
-                            {k.no_mesin || '-'}
-                          </span>
-                        </div>
+                    {/* Zona 2: Spesifikasi Grid Label Kecil di Atas Nilai */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 py-3 xl:py-0 border-y xl:border-y-0 xl:border-l xl:border-r border-[#F1F5F9] dark:border-slate-800 xl:px-6 flex-1 min-w-0">
+                      <div>
+                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Jenis:</span>
+                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.jenis_armada || 'Truk'}</span>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-ink-muted w-24 shrink-0">Asuransi:</span>
-                          <span className="font-medium text-ink truncate">{k.asuransi || '-'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-ink-muted w-24 shrink-0">Masa Berlaku:</span>
-                          <span className="font-mono font-medium text-ink truncate">
-                            {k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '-'}
-                          </span>
+                      <div>
+                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Tahun:</span>
+                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.tahun || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">No. Rangka:</span>
+                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={k.no_rangka || '-'}>
+                          {k.no_rangka || '-'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">No. Mesin:</span>
+                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={k.no_mesin || '-'}>
+                          {k.no_mesin || '-'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Asuransi:</span>
+                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.asuransi || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Masa Berlaku:</span>
+                        <div>
+                          {renderDocExpiryBadge(k.masa_berlaku_asuransi)}
                         </div>
                       </div>
                     </div>
 
-                    {/* Right: Action Buttons (Booking, Edit, Hapus) */}
-                    <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0">
+                    {/* Zona 3: Aksi Tombol Ikon Ghost */}
+                    <div className="flex items-center justify-end gap-2 shrink-0 pt-2 xl:pt-0">
                       <button
                         type="button"
                         disabled={!isVerifiedByAdmin}
@@ -2797,13 +2827,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           setFleetMenu('booking');
                           setActiveTab('fleet-booking');
                         }}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs font-bold rounded-xl shadow-xs transition-colors ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-2 bg-[#EEF2FF] hover:bg-[#12388F] text-[#12388F] hover:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold rounded-lg transition-colors ${
                           !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                         }`}
                         title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
                       >
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>Booking Service</span>
+                        <span>Booking</span>
                       </button>
                       <button
                         type="button"
@@ -2821,7 +2851,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           });
                           setEditArmadaData(k);
                         }}
-                        className="p-2 rounded-xl border border-border bg-surface hover:bg-surface-raised hover:border-accent hover:text-accent text-ink-muted transition-colors cursor-pointer"
+                        className="p-2 rounded-lg border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised text-[#475569] dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
                         aria-label={`Edit unit ${k.no_polisi}`}
                         title="Edit spesifikasi unit"
                       >
@@ -2830,7 +2860,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <button
                         type="button"
                         onClick={() => setHapusArmadaTarget(k)}
-                        className="p-2 rounded-xl border border-border bg-surface hover:bg-status-red-bg hover:border-status-red/40 hover:text-status-red text-ink-muted transition-colors cursor-pointer"
+                        className="p-2 rounded-lg border border-transparent hover:border-red-200 dark:hover:border-red-900/40 bg-transparent hover:bg-[#FEE2E2] dark:hover:bg-rose-950/40 text-[#DC2626] transition-colors cursor-pointer"
                         aria-label={`Hapus unit ${k.no_polisi}`}
                         title="Hapus unit kendaraan"
                       >
@@ -2900,8 +2930,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 4: DOKUMEN SAYA — berkas kendaraan + faktur otomatis (service & beli part) */}
       {fleetMenu === 'dokumen' && (
-        <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
+        <div className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E8F0] dark:border-border pb-3 mb-4">
             <div>
               <h2 className="text-base font-bold text-ink">Dokumen Saya</h2>
               <p className="text-xs text-ink-muted">Berkas legalitas kendaraan (STNK, BPKB, KIR, Asuransi)</p>
@@ -2914,22 +2944,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }
                 setOpenTambahDokumenModal(true);
               }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>Unggah Dokumen Baru</span>
             </button>
           </div>
 
-          {/* Filter kendaraan (plat nomor) */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+          {/* Filter kendaraan (plat nomor) dalam toolbar */}
+          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-[#F8FAFC] dark:bg-surface p-2.5 sm:p-3 mb-4 flex flex-col sm:flex-row sm:items-center gap-2.5">
             <div className="relative sm:max-w-xs w-full">
-              <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-[#64748B] dark:text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={dokumenFilterPlat}
                 onChange={(e) => setDokumenFilterPlat(e.target.value)}
                 aria-label="Filter dokumen per kendaraan"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-surface-raised text-xs text-ink focus:ring-2 focus:ring-accent focus:outline-hidden appearance-none cursor-pointer"
+                className="h-10 w-full pl-9 pr-8 rounded-lg border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised text-xs text-[#0F172A] dark:text-ink font-medium focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 focus:outline-hidden appearance-none cursor-pointer"
               >
                 <option value="">Semua Kendaraan</option>
                 {myKendaraanList.map((k) => (
@@ -2938,12 +2968,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   </option>
                 ))}
               </select>
+              <ChevronDown className="w-4 h-4 text-[#64748B] dark:text-ink-subtle absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
             {dokumenFilterPlat && (
               <button
                 type="button"
                 onClick={() => setDokumenFilterPlat('')}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border text-ink-muted hover:text-ink rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="h-10 inline-flex items-center gap-1.5 px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink-muted hover:text-[#0F172A] hover:bg-[#F1F5F9] dark:hover:bg-surface rounded-lg text-xs font-semibold transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" /> Reset
               </button>
@@ -2951,37 +2982,41 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {dokumenRows.length > 0 ? (
-            <>
+            <div className="rounded-xl border border-[#E2E8F0] dark:border-border overflow-hidden bg-white dark:bg-surface-raised shadow-xs">
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-surface text-ink-muted border-y border-border">
+                  <thead className="bg-[#F8FAFC] dark:bg-surface text-[11px] uppercase tracking-wide text-[#64748B] dark:text-ink-subtle font-semibold border-b border-[#E2E8F0] dark:border-border sticky top-0">
                     <tr>
-                      <th className="py-2.5 px-3 font-semibold">Nama Dokumen</th>
-                      <th className="py-2.5 px-3 font-semibold">Jenis</th>
-                      <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
-                      <th className="py-2.5 px-3 font-semibold">Masa Berlaku</th>
-                      <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
+                      <th className="py-3 px-3 font-semibold">Nama Dokumen</th>
+                      <th className="py-3 px-3 font-semibold">Jenis</th>
+                      <th className="py-3 px-3 font-semibold">No. Polisi</th>
+                      <th className="py-3 px-3 font-semibold">Masa Berlaku</th>
+                      <th className="py-3 px-3 font-semibold text-right">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-[#F1F5F9] dark:divide-border">
                     {dokumenRows.map((item) => (
-                      <tr key={`doc-${item.id}`} className="hover:bg-surface transition-colors">
-                        <td className="py-3 px-3 font-semibold text-ink">{item.nama_dokumen}</td>
-                        <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-surface text-ink-muted">
+                      <tr key={`doc-${item.id}`} className="hover:bg-[#F8FAFF] dark:hover:bg-slate-800/40 transition-colors group">
+                        <td className="py-3.5 px-3 font-semibold text-[#0F172A] dark:text-ink border-l-2 border-transparent group-hover:border-[#12388F] transition-colors">{item.nama_dokumen}</td>
+                        <td className="py-3.5 px-3">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#F1F5F9] dark:bg-surface text-[#475569] dark:text-ink-muted">
                             {item.jenis_dokumen}
                           </span>
                         </td>
-                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(item.no_polisi)}</td>
-                        <td className="py-3 px-3 text-ink-muted font-mono">
-                          {item.masa_berlaku ? new Date(item.masa_berlaku).toLocaleDateString('id-ID') : '-'}
+                        <td className="py-3.5 px-3">
+                          <span className="inline-flex px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-[#F1F5F9] dark:bg-surface text-[#0F172A] dark:text-ink border border-[#E2E8F0] dark:border-border">
+                            {formatPlat(item.no_polisi)}
+                          </span>
                         </td>
-                        <td className="py-3 px-3 text-right">
+                        <td className="py-3.5 px-3">
+                          {renderDocExpiryBadge(item.masa_berlaku)}
+                        </td>
+                        <td className="py-3.5 px-3 text-right">
                           <a
                             href={item.file_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-[#12388F] text-[#12388F] dark:text-blue-400 hover:bg-[#12388F] hover:text-white dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold transition-colors"
                           >
                             <Download className="w-3.5 h-3.5" /> Unduh
                           </a>
@@ -2993,31 +3028,35 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
-              <div className="block md:hidden space-y-2.5">
+              <div className="block md:hidden p-3 space-y-2.5">
                 {dokumenRows.map((item) => (
-                  <div key={`doc-${item.id}`} className="rounded-xl border border-border p-3.5">
+                  <div key={`doc-${item.id}`} className="rounded-xl border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="text-sm font-bold text-ink leading-snug">{item.nama_dokumen}</div>
-                        <div className="font-mono text-xs font-bold text-ink-muted mt-0.5">{formatPlat(item.no_polisi)}</div>
+                        <div className="text-sm font-bold text-[#0F172A] dark:text-ink leading-snug">{item.nama_dokumen}</div>
+                        <div className="mt-1">
+                          <span className="inline-flex px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-[#F1F5F9] dark:bg-surface-raised text-[#0F172A] dark:text-ink border border-[#E2E8F0] dark:border-border">
+                            {formatPlat(item.no_polisi)}
+                          </span>
+                        </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-xs font-bold shrink-0 bg-surface text-ink-muted">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold shrink-0 bg-[#F1F5F9] dark:bg-surface-raised text-[#475569] dark:text-ink-muted">
                         {item.jenis_dokumen}
                       </span>
                     </div>
 
-                    <div className="mt-2.5 pt-2.5 border-t border-border flex items-center justify-between text-xs text-ink-subtle">
+                    <div className="mt-2.5 pt-2.5 border-t border-[#E2E8F0] dark:border-border flex items-center justify-between text-xs text-[#64748B] dark:text-ink-subtle">
                       <span>Masa Berlaku</span>
-                      <span className="font-mono font-semibold text-ink-muted">
-                        {item.masa_berlaku ? new Date(item.masa_berlaku).toLocaleDateString('id-ID') : '-'}
-                      </span>
+                      <div>
+                        {renderDocExpiryBadge(item.masa_berlaku)}
+                      </div>
                     </div>
 
                     <a
                       href={item.file_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent-subtle text-accent active:bg-accent rounded-xl text-xs font-bold transition-colors"
+                      className="mt-3 w-full min-h-[40px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-[#12388F] text-[#12388F] dark:text-blue-400 hover:bg-[#12388F] hover:text-white active:bg-[#12388F] active:text-white text-xs font-semibold transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" /> Unduh Dokumen
                     </a>
@@ -3025,19 +3064,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 ))}
               </div>
 
-              <PaginationBar
-                page={dokumenSafePage}
-                totalPages={dokumenTotalPages}
-                totalRecords={dokumenTerfilterList.length}
-                limit={dokumenLimit}
-                label="dokumen"
-                onPageChange={setDokumenPage}
-                onLimitChange={(l) => setDokumenLimit(l)}
-              />
-            </>
+              {/* Pagination menempel di footer container tabel */}
+              <div className="bg-[#F8FAFC] dark:bg-surface border-t border-[#E2E8F0] dark:border-border px-4 py-2">
+                <PaginationBar
+                  page={dokumenSafePage}
+                  totalPages={dokumenTotalPages}
+                  totalRecords={dokumenTerfilterList.length}
+                  limit={dokumenLimit}
+                  label="dokumen"
+                  onPageChange={setDokumenPage}
+                  onLimitChange={(l) => setDokumenLimit(l)}
+                />
+              </div>
+            </div>
           ) : (
-            <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-accent-subtle text-accent flex items-center justify-center mx-auto">
+            <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] dark:border-border rounded-xl bg-[#F8FAFC] dark:bg-surface space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mx-auto">
                 <FileText className="w-6 h-6" />
               </div>
               <div>
@@ -3054,7 +3096,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   }
                   setOpenTambahDokumenModal(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Unggah Dokumen Baru
               </button>
@@ -3065,8 +3107,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 5: PROFIL CUSTOMER & KONTAK — editable, tersimpan di tabel pengguna */}
       {fleetMenu === 'profil' && (
-        <div className="bg-surface-raised rounded-xl border border-border p-6 shadow-xs max-w-2xl mx-auto space-y-6">
-          <div className="border-b border-border pb-3 flex items-start justify-between gap-3">
+        <div className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-6 shadow-xs max-w-2xl mx-auto space-y-6">
+          <div className="border-b border-[#E2E8F0] dark:border-border pb-3 flex items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-ink">Profil Customer & Kontak</h2>
               <p className="text-xs text-ink-muted">Informasi perusahaan dan kontak PIC penanggung jawab — dapat diperbarui langsung di sini</p>
@@ -3084,7 +3126,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   });
                   setProfilEditing(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 hover:bg-[#12388F] hover:text-white dark:hover:bg-[#12388F] dark:hover:text-white rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer"
               >
                 <Edit3 className="w-3.5 h-3.5" /> Edit Profil
               </button>
@@ -3092,55 +3134,55 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           <div className="space-y-4 text-xs">
-            <div className="p-4 rounded-xl bg-surface border border-border space-y-3">
-              <span className="font-bold text-ink block text-sm">Informasi Perusahaan:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border space-y-3.5">
+              <span className="font-bold text-xs tracking-wider uppercase text-[#64748B] dark:text-ink-subtle block">Informasi Perusahaan:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <span className="text-ink-subtle block text-xs mb-1">Nama Perusahaan / Entitas:</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Nama Perusahaan / Entitas:</span>
                   {profilEditing ? (
                     <input
                       value={profilForm.nama_perusahaan}
                       onChange={(e) => setProfilForm((p) => ({ ...p, nama_perusahaan: e.target.value }))}
                       placeholder="cth: PT. Andi Jaya"
-                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
+                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
                     />
                   ) : (
-                    <span className="font-bold text-ink">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '-'}</span>
+                    <span className="font-bold text-xs text-[#0F172A] dark:text-ink">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '-'}</span>
                   )}
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs">ID Pelanggan / Kemitraan:</span>
-                  <span className="font-mono font-bold text-accent">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || authUser?.id || 1).padStart(4, '0')}</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">ID Pelanggan / Kemitraan:</span>
+                  <span className="font-mono font-bold text-xs text-[#12388F] dark:text-blue-400">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || authUser?.id || 1).padStart(4, '0')}</span>
                 </div>
                 <div className="sm:col-span-2">
-                  <span className="text-ink-subtle block text-xs mb-1">Alamat Perusahaan:</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Alamat Perusahaan:</span>
                   {profilEditing ? (
                     <textarea
                       value={profilForm.alamat}
                       onChange={(e) => setProfilForm((p) => ({ ...p, alamat: e.target.value }))}
                       rows={2}
                       placeholder="cth: Jl. Industri Raya No. 88, Medan, Sumatera Utara"
-                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition resize-none"
+                      className="w-full px-3 py-2 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition resize-none"
                     />
                   ) : (
-                    <span className="font-semibold text-ink">{authUser?.alamat || '-'}</span>
+                    <span className="font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.alamat || '-'}</span>
                   )}
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs mb-1">NPWP:</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">NPWP:</span>
                   {profilEditing ? (
                     <input
                       value={profilForm.npwp}
                       onChange={(e) => setProfilForm((p) => ({ ...p, npwp: e.target.value }))}
                       placeholder="cth: 01.234.567.8-901.000"
-                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
+                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
                     />
                   ) : (
-                    <span className="font-mono font-semibold text-ink">{authUser?.npwp || '-'}</span>
+                    <span className="font-mono font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.npwp || '-'}</span>
                   )}
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs">Status Verifikasi Admin:</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Status Verifikasi Admin:</span>
                   {isVerifiedByAdmin ? (
                     <span className="font-semibold text-status-green inline-flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Terverifikasi oleh Admin
@@ -3154,54 +3196,54 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-surface border border-border space-y-3">
-              <span className="font-bold text-ink block text-sm">Kontak PIC / Penanggung Jawab:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border space-y-3.5">
+              <span className="font-bold text-xs tracking-wider uppercase text-[#64748B] dark:text-ink-subtle block">Kontak PIC / Penanggung Jawab:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <span className="text-ink-subtle block text-xs mb-1">Nama PIC:</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Nama PIC:</span>
                   {profilEditing ? (
                     <input
                       value={profilForm.nama_pic}
                       onChange={(e) => setProfilForm((p) => ({ ...p, nama_pic: e.target.value }))}
                       placeholder="cth: Budi Santoso"
-                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
+                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
                     />
                   ) : (
-                    <span className="font-bold text-ink">{authUser?.nama_pic || '-'}</span>
+                    <span className="font-bold text-xs text-[#0F172A] dark:text-ink">{authUser?.nama_pic || '-'}</span>
                   )}
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs mb-1">No. Telepon / WhatsApp:</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">No. Telepon / WhatsApp:</span>
                   {profilEditing ? (
                     <input
                       value={profilForm.no_telepon}
                       onChange={(e) => setProfilForm((p) => ({ ...p, no_telepon: e.target.value }))}
                       placeholder="cth: 0812-3456-7890"
-                      className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
+                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
                     />
                   ) : (
-                    <span className="font-semibold text-ink">{authUser?.no_telepon || '-'}</span>
+                    <span className="font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.no_telepon || '-'}</span>
                   )}
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs">Email Login:</span>
-                  <span className="font-mono font-semibold text-ink">{authUser?.email || '-'}</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Email Login:</span>
+                  <span className="font-mono font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.email || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs">Tipe Akun:</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Mitra Fleet</span>
+                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Tipe Akun:</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0] dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50">Mitra Fleet</span>
                 </div>
               </div>
             </div>
           </div>
 
           {profilEditing && (
-            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end border-t border-border pt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end border-t border-[#E2E8F0] dark:border-border pt-4">
               <button
                 type="button"
                 disabled={simpanProfilMutation.isPending}
                 onClick={() => setProfilEditing(false)}
-                className="min-h-[40px] px-4 py-2 bg-surface border border-border text-ink-muted hover:text-ink rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                className="min-h-[40px] px-4 py-2 bg-white dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink hover:bg-[#F1F5F9] dark:hover:bg-surface-raised rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -3209,7 +3251,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 type="button"
                 disabled={simpanProfilMutation.isPending || !profilForm.nama_perusahaan.trim()}
                 onClick={() => simpanProfilMutation.mutate()}
-                className="min-h-[40px] px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                className="min-h-[40px] px-4 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
               >
                 {simpanProfilMutation.isPending ? (
                   <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -3225,73 +3267,79 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 6: HISTORY SERVICE */}
       {fleetMenu === 'history' && (
-        <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
-            <div>
-              <h2 className="text-base font-bold text-ink">Riwayat Kendaraan (History)</h2>
-              <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Bengkel KIM 3</p>
-            </div>
-            <FilterChips
-              options={[
-                { id: 'semua', label: 'Semua', count: mySpkList.length },
-                { id: 'sedang-diservis', label: 'Sedang Diservis', count: mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length },
-                { id: 'selesai', label: 'Selesai', count: mySpkList.filter(s => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed').length },
-              ]}
-              selectedId={historyStatusFilter}
-              onChange={(id) => setHistoryStatusFilter(id as 'semua' | 'sedang-diservis' | 'selesai')}
-            />
+        <div className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-5 shadow-xs">
+          <div className="border-b border-[#E2E8F0] dark:border-border pb-3 mb-4">
+            <h2 className="text-base font-bold text-ink">Riwayat Kendaraan (History)</h2>
+            <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Bengkel KIM 3</p>
           </div>
 
-          {/* Pencarian riwayat (server-side lewat parameter `q`) */}
-          <div className="relative mb-4">
-            <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={historySearch}
-              onChange={(e) => setHistorySearch(e.target.value)}
-              placeholder="Cari no. SPK, no. polisi, keluhan, atau status..."
-              aria-label="Cari riwayat service"
-              className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-border bg-surface-raised text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
-            />
-            {historySearch && (
-              <button
-                type="button"
-                onClick={() => setHistorySearch('')}
-                aria-label="Bersihkan pencarian riwayat"
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded text-ink-subtle hover:text-ink transition cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+          {/* Toolbar Search & Status Filter */}
+          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-[#F8FAFC] dark:bg-surface p-2.5 sm:p-3 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md w-full">
+              <Search className="w-4 h-4 text-[#64748B] dark:text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                placeholder="Cari no. SPK, no. polisi, keluhan, atau status..."
+                aria-label="Cari riwayat service"
+                className="h-10 w-full pl-9 pr-9 rounded-lg border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised text-xs text-[#0F172A] dark:text-ink placeholder:text-[#94A3B8] focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 focus:outline-hidden transition"
+              />
+              {historySearch && (
+                <button
+                  type="button"
+                  onClick={() => setHistorySearch('')}
+                  aria-label="Bersihkan pencarian riwayat"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-[#64748B] hover:text-[#0F172A] dark:hover:text-white transition cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="shrink-0 overflow-x-auto">
+              <FilterChips
+                options={[
+                  { id: 'semua', label: 'Semua', count: mySpkList.length },
+                  { id: 'sedang-diservis', label: 'Sedang Diservis', count: mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length },
+                  { id: 'selesai', label: 'Selesai', count: mySpkList.filter(s => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed').length },
+                ]}
+                selectedId={historyStatusFilter}
+                onChange={(id) => setHistoryStatusFilter(id as 'semua' | 'sedang-diservis' | 'selesai')}
+              />
+            </div>
           </div>
 
           {historyRows.length > 0 ? (
-            <>
+            <div className="rounded-xl border border-[#E2E8F0] dark:border-border overflow-hidden bg-white dark:bg-surface-raised shadow-xs">
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-surface text-ink-muted border-y border-border">
+                  <thead className="bg-[#F8FAFC] dark:bg-surface text-[11px] uppercase tracking-wide text-[#64748B] dark:text-ink-subtle font-semibold border-b border-[#E2E8F0] dark:border-border sticky top-0">
                     <tr>
-                      <th className="py-2.5 px-3 font-semibold">No. Booking / SPK</th>
-                      <th className="py-2.5 px-3 font-semibold">Kendaraan</th>
-                      <th className="py-2.5 px-3 font-semibold">Layanan</th>
-                      <th className="py-2.5 px-3 font-semibold">Tanggal Masuk</th>
-                      <th className="py-2.5 px-3 font-semibold">Biaya</th>
-                      <th className="py-2.5 px-3 font-semibold">Status</th>
-                      <th className="py-2.5 px-3 font-semibold text-center">Detail</th>
+                      <th className="py-3 px-3 font-semibold">No. Booking / SPK</th>
+                      <th className="py-3 px-3 font-semibold">Kendaraan</th>
+                      <th className="py-3 px-3 font-semibold">Layanan</th>
+                      <th className="py-3 px-3 font-semibold">Tanggal Masuk</th>
+                      <th className="py-3 px-3 font-semibold text-right">Biaya</th>
+                      <th className="py-3 px-3 font-semibold">Status</th>
+                      <th className="py-3 px-3 font-semibold text-center">Detail</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-[#F1F5F9] dark:divide-border">
                     {historyRows.map((spk) => (
-                      <tr key={spk.id} onClick={() => setHistoryDetail(spk)} className="hover:bg-surface transition-colors cursor-pointer">
-                        <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
-                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(spk.no_polisi)}</td>
-                        <td className="py-3 px-3 text-ink-muted">{spk.keluhan_customer}</td>
-                        <td className="py-3 px-3 font-mono text-ink-muted">{new Date(spk.created_at).toLocaleDateString('id-ID')}</td>
-                        <td className="py-3 px-3 font-mono font-bold text-ink">Rp {Number(spk.estimasi_biaya || 0).toLocaleString()}</td>
-                        <td className="py-3 px-3">
+                      <tr key={spk.id} onClick={() => setHistoryDetail(spk)} className="hover:bg-[#F8FAFF] dark:hover:bg-slate-800/40 transition-colors cursor-pointer group">
+                        <td className="py-3.5 px-3 font-mono font-bold text-[#12388F] dark:text-blue-400 border-l-2 border-transparent group-hover:border-[#12388F] transition-colors">{spk.no_spk}</td>
+                        <td className="py-3.5 px-3">
+                          <span className="inline-flex px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-[#F1F5F9] dark:bg-surface text-[#0F172A] dark:text-ink border border-[#E2E8F0] dark:border-border">
+                            {formatPlat(spk.no_polisi)}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-3 text-[#475569] dark:text-ink-muted">{spk.keluhan_customer}</td>
+                        <td className="py-3.5 px-3 font-mono text-[#64748B] dark:text-ink-muted">{new Date(spk.created_at).toLocaleDateString('id-ID')}</td>
+                        <td className="py-3.5 px-3 font-mono font-bold text-[#0F172A] dark:text-ink text-right tabular-nums">Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}</td>
+                        <td className="py-3.5 px-3">
                           <StatusBadge status={spk.status_spk} size="sm" />
                         </td>
-                        <td className="py-3 px-3 text-center">
+                        <td className="py-3.5 px-3 text-center">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -3300,9 +3348,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             }}
                             title={`Lihat detail tracking ${spk.no_spk}`}
                             aria-label={`Lihat detail tracking ${spk.no_spk}`}
-                            className="p-2 rounded-xl border border-border bg-surface-raised text-ink-muted hover:text-accent hover:border-accent/40 transition-colors inline-flex items-center gap-1.5 font-bold text-xs"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-[#12388F] text-[#12388F] dark:text-blue-400 hover:bg-[#12388F] hover:text-white dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold transition-colors cursor-pointer"
                           >
-                            <FileText className="w-4 h-4" />
+                            <FileText className="w-3.5 h-3.5" />
                             <span className="hidden xl:inline">Detail</span>
                           </button>
                         </td>
@@ -3313,28 +3361,32 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
-              <div className="block md:hidden space-y-2.5">
+              <div className="block md:hidden p-3 space-y-2.5">
                 {historyRows.map((spk) => (
-                  <div key={spk.id} onClick={() => setHistoryDetail(spk)} className="rounded-xl border border-border p-3.5 cursor-pointer hover:border-accent/40 transition-colors">
+                  <div key={spk.id} onClick={() => setHistoryDetail(spk)} className="rounded-xl border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface p-3.5 cursor-pointer hover:border-[#12388F]/40 transition-colors">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="font-mono text-xs font-bold text-accent">{spk.no_spk}</div>
-                        <div className="text-base font-black font-mono text-ink mt-0.5">{formatPlat(spk.no_polisi)}</div>
+                        <div className="font-mono text-xs font-bold text-[#12388F] dark:text-blue-400">{spk.no_spk}</div>
+                        <div className="mt-1">
+                          <span className="inline-flex px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-[#F1F5F9] dark:bg-surface-raised text-[#0F172A] dark:text-ink border border-[#E2E8F0] dark:border-border">
+                            {formatPlat(spk.no_polisi)}
+                          </span>
+                        </div>
                       </div>
                       <StatusBadge status={spk.status_spk} size="sm" />
                     </div>
 
-                    <div className="mt-2.5 pt-2.5 border-t border-border space-y-1.5">
-                      <p className="text-xs text-ink-muted leading-relaxed">{spk.keluhan_customer}</p>
-                      <div className="flex items-center justify-between text-xs text-ink-subtle">
+                    <div className="mt-2.5 pt-2.5 border-t border-[#E2E8F0] dark:border-border space-y-1.5">
+                      <p className="text-xs text-[#475569] dark:text-ink-muted leading-relaxed">{spk.keluhan_customer}</p>
+                      <div className="flex items-center justify-between text-xs text-[#64748B] dark:text-ink-subtle">
                         <span>Tanggal Masuk</span>
-                        <span className="font-mono font-semibold text-ink-muted">
+                        <span className="font-mono font-semibold text-[#0F172A] dark:text-ink-muted">
                           {new Date(spk.created_at).toLocaleDateString('id-ID')}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-ink-subtle">
+                      <div className="flex items-center justify-between text-xs text-[#64748B] dark:text-ink-subtle">
                         <span>Biaya</span>
-                        <span className="font-mono font-bold text-ink">
+                        <span className="font-mono font-bold text-[#0F172A] dark:text-ink tabular-nums">
                           Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
                         </span>
                       </div>
@@ -3346,31 +3398,34 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         e.stopPropagation();
                         setHistoryDetail(spk);
                       }}
-                      className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-border bg-surface-raised hover:border-accent/40 text-ink-muted hover:text-accent font-bold text-xs transition-colors"
+                      className="mt-2.5 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-[#12388F] text-[#12388F] dark:text-blue-400 hover:bg-[#12388F] hover:text-white font-semibold text-xs transition-colors"
                     >
-                      <FileText className="w-4 h-4" />
+                      <FileText className="w-3.5 h-3.5" />
                       Lihat Detail Service
                     </button>
                   </div>
                 ))}
               </div>
 
-              <PaginationBar
-                page={historySafePage}
-                totalPages={historyTotalPages}
-                totalRecords={historyFiltered.length}
-                limit={historyLimit}
-                label="riwayat service"
-                onPageChange={setHistoryPage}
-                onLimitChange={(l) => {
-                  setHistoryLimit(l);
-                  setHistoryPage(1);
-                }}
-              />
-            </>
+              {/* Pagination menempel di footer container tabel */}
+              <div className="bg-[#F8FAFC] dark:bg-surface border-t border-[#E2E8F0] dark:border-border px-4 py-2">
+                <PaginationBar
+                  page={historySafePage}
+                  totalPages={historyTotalPages}
+                  totalRecords={historyFiltered.length}
+                  limit={historyLimit}
+                  label="riwayat service"
+                  onPageChange={setHistoryPage}
+                  onLimitChange={(l) => {
+                    setHistoryLimit(l);
+                    setHistoryPage(1);
+                  }}
+                />
+              </div>
+            </div>
           ) : historySearch.trim() ? (
-            <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-surface-raised text-ink-subtle flex items-center justify-center mx-auto">
+            <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] dark:border-border rounded-xl bg-[#F8FAFC] dark:bg-surface space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border text-[#64748B] flex items-center justify-center mx-auto">
                 <Search className="w-6 h-6" />
               </div>
               <div>
@@ -3383,14 +3438,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <button
                 type="button"
                 onClick={() => setHistorySearch('')}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-subtle text-accent text-xs font-bold rounded-xl transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink hover:bg-[#F1F5F9] dark:hover:bg-surface-raised text-xs font-semibold rounded-lg transition cursor-pointer"
               >
                 <X className="w-4 h-4" /> Bersihkan Pencarian
               </button>
             </div>
           ) : (
-            <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-accent-subtle text-accent flex items-center justify-center mx-auto">
+            <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] dark:border-border rounded-xl bg-[#F8FAFC] dark:bg-surface space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mx-auto">
                 <Wrench className="w-6 h-6" />
               </div>
               <div>
@@ -3409,8 +3464,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
           )}
-
-
         </div>
       )}
 
@@ -3452,12 +3505,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {openTambahArmadaModal && (
         <ModalPortal onClose={() => setOpenTambahArmadaModal(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm app-backdrop-in">
             <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-xl w-full max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in my-auto">
             {/* Modal Header */}
             <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#E0E7FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-300 flex items-center justify-center">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
@@ -3625,14 +3678,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setOpenTambahArmadaModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-border text-xs font-bold text-ink-muted hover:bg-surface transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border text-xs font-bold text-[#334155] dark:text-ink-muted bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={tambahArmadaMutation.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Kendaraan'}</span>
@@ -3649,12 +3702,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {openTambahDokumenModal && (
         <ModalPortal onClose={() => setOpenTambahDokumenModal(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm app-backdrop-in">
             <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-lg w-full max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in my-auto">
             {/* Modal Header */}
             <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#CCFBF1] text-[#0F766E] dark:bg-teal-950/40 dark:text-teal-300 flex items-center justify-center">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
@@ -3761,14 +3814,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setOpenTambahDokumenModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-border text-xs font-bold text-ink-muted hover:bg-surface transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border text-xs font-bold text-[#334155] dark:text-ink-muted bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={tambahDokumenMutation.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{tambahDokumenMutation.isPending ? 'Menyimpan...' : 'Simpan Dokumen'}</span>
@@ -3785,12 +3838,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {editArmadaData && (
         <ModalPortal onClose={() => setEditArmadaData(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm app-backdrop-in">
             <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-xl w-full max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in my-auto">
             {/* Modal Header */}
             <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#E0E7FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-300 flex items-center justify-center">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
@@ -3934,14 +3987,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setEditArmadaData(null)}
-                  className="px-4 py-2.5 rounded-xl border border-border text-xs font-bold text-ink-muted hover:bg-surface transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border text-xs font-bold text-[#334155] dark:text-ink-muted bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={editArmadaMutation.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
                   <span>{editArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</span>

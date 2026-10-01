@@ -138,7 +138,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
       )}
 
       <div className="relative flex items-center">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-accent pointer-events-none">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#12388F] dark:text-blue-400 pointer-events-none">
           <Clock className="w-4 h-4" />
         </div>
         <input
@@ -156,7 +156,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
           }}
           placeholder="JJ:MM (contoh 08:30)"
           maxLength={5}
-          className="w-full pl-9 pr-16 py-2.5 rounded-xl border border-border bg-surface-raised text-ink font-mono font-bold text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-none transition-all shadow-2xs"
+          className="w-full pl-9 pr-16 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface-raised text-[#0F172A] dark:text-white font-mono font-bold text-xs placeholder-[#64748B] focus:ring-2 focus:ring-[#12388F]/20 focus:border-[#12388F] focus:outline-none transition-all shadow-2xs"
         />
         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold text-ink-subtle px-1.5 py-0.5 rounded bg-surface border border-border pointer-events-none">
           WIB
@@ -175,8 +175,8 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
               title={slot.label}
               className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
                 value === slot.time
-                  ? 'bg-accent text-white shadow-2xs'
-                  : 'bg-surface-raised text-ink hover:bg-accent-subtle hover:text-accent border border-border'
+                  ? 'bg-[#12388F] text-white shadow-2xs'
+                  : 'bg-white dark:bg-surface-raised text-[#334155] dark:text-slate-200 hover:bg-[#EEF2FF] hover:text-[#12388F] border border-[#CBD5E1] dark:border-border'
               }`}
             >
               {slot.time}

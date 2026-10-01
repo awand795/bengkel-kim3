@@ -31,8 +31,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
   return (
     <div className={containerClasses}>
-      <div className="w-11 h-11 rounded-xl bg-accent-subtle text-accent border border-accent/20 flex items-center justify-center shadow-2xs">
-        <Icon className="w-5 h-5" />
+      <div className="w-11 h-11 rounded-xl bg-[var(--menu-accent-subtle,var(--color-accent-subtle))] text-[var(--menu-accent-text,var(--color-accent))] border border-[var(--menu-accent,var(--color-accent))]/20 flex items-center justify-center shadow-2xs">
+        <Icon className="w-5 h-5 text-[var(--menu-accent-text,var(--color-accent))]" />
       </div>
       <div className="max-w-md space-y-0.5">
         <h3 className="text-sm font-bold text-ink">
@@ -48,7 +48,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <button
           type="button"
           onClick={action.onClick}
-          className="mt-1 px-4 py-2 rounded-xl bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-md shadow-accent/20 flex items-center gap-1.5 transition-all cursor-pointer"
+          className="mt-1 px-4 py-2 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
         >
           {ActionIcon && <ActionIcon className="w-4 h-4" />}
           <span>{action.label}</span>

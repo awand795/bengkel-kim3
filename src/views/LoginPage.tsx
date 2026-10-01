@@ -209,8 +209,8 @@ export const LoginPage: React.FC = () => {
           {/* Mobile Header Branding */}
           <div className="lg:hidden mb-5 flex flex-col items-center text-center">
             <div className="bg-surface-raised p-2 px-3.5 rounded-md border border-[#CBD5E1] mb-2 inline-flex items-center gap-2 shadow-xs">
-              <img src="/logo.png" alt="PT Lotus Pradipta Mulia Logo" className="h-7 w-auto object-contain" />
-              <span className="text-sm font-bold text-[#0F172A]">PT LOTUS PRADIPTA MULIA</span>
+              <img src="/logo.png" alt="Master Truck Logo" className="h-7 w-auto object-contain" />
+              <span className="text-sm font-bold text-[#0F172A]">MASTER TRUCK</span>
             </div>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-accent-subtle text-accent border border-accent/20">
               Web Fleet

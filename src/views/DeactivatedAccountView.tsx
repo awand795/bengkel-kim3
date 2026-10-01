@@ -39,7 +39,7 @@ export const DeactivatedAccountView: React.FC<DeactivatedAccountViewProps> = ({
           <p className="text-sm text-slate-600 leading-relaxed mb-6">
             Mohon maaf, status keanggotaan/akun kemitraan kendaraan Anda saat ini dinyatakan{' '}
             <strong className="text-rose-700 font-bold">Non-Aktif</strong>. Anda tidak dapat mengakses
-            dan mengelola armada pada sistem Web Fleet PT Lotus Pradipta Mulia.
+            dan mengelola armada pada sistem Web Fleet Master Truck.
           </p>
 
           {/* Target account info */}
@@ -84,7 +84,7 @@ export const DeactivatedAccountView: React.FC<DeactivatedAccountViewProps> = ({
 
       {/* Footer Branding */}
       <footer className="py-4 text-center text-xs text-slate-400 border-t border-slate-100">
-        PT Lotus Pradipta Mulia — Sistem Manajemen Layanan &amp; Perawatan Kendaraan
+        Master Truck — Sistem Manajemen Layanan &amp; Perawatan Kendaraan
       </footer>
     </div>
   );

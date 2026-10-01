@@ -9,7 +9,7 @@ import type { LucideIcon } from 'lucide-react';
  * seluruh animasi dekoratif mati otomatis pada prefers-reduced-motion.
  */
 
-const LOGO_SRC = '/logo.png'; // ganti ke logo PT Lotus Pradipta Mulia
+const LOGO_SRC = '/logo.png'; // ganti ke logo Master Truck
 
 // Foto opsional untuk latar panel: isi mis. '/panel-gudang.jpg' (taruh file di folder public/)
 const PANEL_PHOTO: string | null = null;
@@ -89,7 +89,7 @@ export const LoginBrandPanel: React.FC = () => {
           <div className="bg-white p-2.5 rounded-xl inline-flex border border-slate-200/90 shadow-sm shadow-slate-900/5">
             <img
               src={LOGO_SRC}
-              alt="PT Lotus Pradipta Mulia"
+              alt="Master Truck"
               className="h-8 w-auto object-contain"
             />
           </div>
@@ -104,13 +104,13 @@ export const LoginBrandPanel: React.FC = () => {
             Distributor Sparepart &amp; Pelumas
           </p>
           <h1 className="mb-3 text-3xl xl:text-4xl font-bold tracking-tight leading-tight login-title-sheen tracking-[-0.02em]">
-            PT Lotus Pradipta Mulia
+            Master Truck
           </h1>
           <div className="login-accent-line" aria-hidden="true" />
         </div>
 
         <p className="mb-4 text-sm xl:text-[15px] leading-relaxed text-[#E2E8F0] auth-text-dark lg-p-text login-reveal" style={{ animationDelay: '160ms' }}>
-          PT Lotus Pradipta Mulia adalah perusahaan distributor sparepart motor, mobil, dan oli yang berbasis di Palembang. Melayani distribusi ke wilayah Sumatera Selatan, Lampung, Bengkulu, Jambi, dan Bangka Belitung.
+          Master Truck adalah perusahaan distributor sparepart motor, mobil, dan oli yang berbasis di Palembang. Melayani distribusi ke wilayah Sumatera Selatan, Lampung, Bengkulu, Jambi, dan Bangka Belitung.
         </p>
 
         {/* Fakta ringkas dengan ikon */}

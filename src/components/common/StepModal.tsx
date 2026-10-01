@@ -87,7 +87,7 @@ export const StepModal: React.FC<StepModalProps> = ({
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 app-backdrop-in">
+      <div className="fixed inset-0 z-50 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 app-backdrop-in">
         <div
           ref={dialogRef}
           role="dialog"
@@ -135,10 +135,10 @@ export const StepModal: React.FC<StepModalProps> = ({
                       <div
                         className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${
                           isPassed
-                            ? 'bg-status-green text-white shadow-2xs'
+                            ? 'bg-[#16A34A] text-white shadow-2xs'
                             : isCurrent
-                            ? 'bg-accent text-white shadow-2xs ring-3 ring-accent/20'
-                            : 'bg-surface-raised border border-border text-ink-muted'
+                            ? 'bg-[#12388F] text-white shadow-2xs ring-3 ring-[#12388F]/20'
+                            : 'bg-white dark:bg-surface-raised border border-[#CBD5E1] dark:border-border text-[#64748B]'
                         }`}
                       >
                         {isPassed ? <Check className="w-3.5 h-3.5" /> : idx + 1}
@@ -154,7 +154,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                     {idx < steps.length - 1 && (
                       <div
                         className={`flex-1 h-0.5 min-w-4 mx-2 transition-colors ${
-                          idx < stepIndex ? 'bg-status-green' : 'bg-border'
+                          idx < stepIndex ? 'bg-[#16A34A]' : 'bg-[#CBD5E1] dark:bg-border'
                         }`}
                       />
                     )}
@@ -197,7 +197,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                   type="button"
                   onClick={onBack}
                   disabled={isPending}
-                  className="px-4 py-2.5 rounded-xl border border-border bg-surface-raised hover:bg-surface text-ink font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
+                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface-raised hover:bg-[#F1F5F9] dark:hover:bg-surface text-[#334155] dark:text-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Kembali</span>
@@ -210,7 +210,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isPending}
-                className="px-4 py-2.5 rounded-xl border border-border bg-surface-raised hover:bg-surface text-ink font-medium text-xs transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
+                className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface-raised hover:bg-[#F1F5F9] dark:hover:bg-surface text-[#334155] dark:text-slate-200 font-medium text-xs transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
               >
                 Batal
               </button>
@@ -220,7 +220,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                   type="button"
                   onClick={onSubmit}
                   disabled={!isCurrentValid || isPending}
-                  className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white font-semibold text-xs shadow-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isPending ? (
                     <>
@@ -236,7 +236,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                   type="button"
                   onClick={onNext}
                   disabled={!isCurrentValid || isPending}
-                  className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white font-semibold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>Lanjut</span>
                   <ChevronRight className="w-4 h-4" />

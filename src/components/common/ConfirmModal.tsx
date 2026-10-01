@@ -19,7 +19,7 @@ const TONE = {
   red: {
     iconBox: 'bg-status-red-bg text-status-red',
     Icon: AlertTriangle,
-    button: 'bg-status-red hover:bg-status-red/90 shadow-status-red/20',
+    button: 'bg-[#DC2626] hover:bg-[#B91C1C] shadow-red-500/20',
   },
   green: {
     iconBox: 'bg-status-green-bg text-status-green',
@@ -53,7 +53,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 md:py-10 app-backdrop-in">
+      <div className="fixed inset-0 z-50 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 md:py-10 app-backdrop-in">
         <div className="bg-surface-raised rounded-2xl w-full max-w-sm p-6 sm:p-7 shadow-2xl border border-border space-y-5 my-auto app-modal-in">
           <div className="flex items-start gap-3">
             <div className={`w-10 h-10 rounded-md ${t.iconBox} flex items-center justify-center shrink-0`}>
@@ -73,7 +73,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="flex-1 py-2.5 rounded-md border border-border bg-surface hover:bg-surface-raised text-ink-muted font-bold text-xs transition-colors disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-md border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised text-[#334155] dark:text-slate-200 font-bold text-xs transition-colors disabled:opacity-50"
             >
               {cancelLabel}
             </button>

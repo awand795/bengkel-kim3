@@ -89,7 +89,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           className={`border-2 border-dashed rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
             loading
               ? 'bg-surface border-border cursor-not-allowed'
-              : 'border-border hover:border-accent hover:bg-accent-subtle/40 bg-surface-raised shadow-2xs'
+              : 'border-[#CBD5E1] dark:border-border hover:border-[#12388F] hover:bg-[#EEF2FF] dark:hover:bg-blue-950/30 bg-white dark:bg-surface-raised shadow-2xs'
           }`}
         >
           {loading ? (
@@ -99,7 +99,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
             </div>
           ) : (
             <>
-              <div className="w-10 h-10 rounded-full bg-accent-subtle text-accent flex items-center justify-center mb-2 shadow-2xs">
+              <div className="w-10 h-10 rounded-full bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/50 dark:text-blue-300 flex items-center justify-center mb-2 shadow-2xs">
                 <Camera className="w-5 h-5" />
               </div>
               <p className="text-xs font-semibold text-ink">

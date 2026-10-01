@@ -70,7 +70,7 @@ export const UnverifiedEmailView: React.FC<UnverifiedEmailViewProps> = ({ email,
           </h1>
 
           <p className="text-slate-600 text-sm sm:text-base leading-relaxed mb-6">
-            Akun Anda belum terverifikasi. Tolong verifikasi email Anda terlebih dahulu sebelum dapat mengakses portal Web Fleet PT Lotus Pradipta Mulia.
+            Akun Anda belum terverifikasi. Tolong verifikasi email Anda terlebih dahulu sebelum dapat mengakses portal Web Fleet Master Truck.
           </p>
 
           {/* Email target box */}
@@ -95,7 +95,7 @@ export const UnverifiedEmailView: React.FC<UnverifiedEmailViewProps> = ({ email,
               <p className="font-semibold mb-1">Petunjuk Verifikasi:</p>
               <ul className="list-disc list-inside space-y-1 text-amber-800/90 text-xs">
                 <li>Buka aplikasi email Anda (Gmail, Yahoo, Outlook, dll).</li>
-                <li>Cari email dari <strong>PT Lotus Pradipta Mulia</strong>.</li>
+                <li>Cari email dari <strong>Master Truck</strong>.</li>
                 <li>Klik tombol <strong>Verifikasi Email</strong> di dalam pesan.</li>
                 <li>Jika email tidak muncul, tunggu beberapa saat atau klik tombol kirim ulang di bawah.</li>
               </ul>
@@ -133,7 +133,7 @@ export const UnverifiedEmailView: React.FC<UnverifiedEmailViewProps> = ({ email,
 
       {/* Clean minimal footer */}
       <footer className="py-4 text-center text-xs text-slate-400 border-t border-slate-100">
-        &copy; {new Date().getFullYear()} PT Lotus Pradipta Mulia &bull; KIM 3, Medan &bull; Layanan Web Fleet
+        &copy; {new Date().getFullYear()} Master Truck &bull; KIM 3, Medan &bull; Layanan Web Fleet
       </footer>
     </div>
   );

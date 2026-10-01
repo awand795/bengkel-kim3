@@ -13,6 +13,15 @@ export interface ListItemCardProps {
   actions?: React.ReactNode;
 }
 
+/**
+ * ListItemCard - KIM3 Bengkel Design System
+ * Clean modern list item card:
+ * - 40px icon tile in #EEF2FF with navy #12388F icon
+ * - Row 1: Title + status badge
+ * - Row 2: Subtitle / meta row
+ * - Right: Chevron indicator
+ * - Hover: translate-y -1px, border navy 30%, subtle shadow
+ */
 export const ListItemCard: React.FC<ListItemCardProps> = ({
   title,
   subtitle,
@@ -37,43 +46,43 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className={`card-modern group bg-surface-raised rounded-xl p-4 border transition-all relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+      className={`group bg-white dark:bg-surface-raised rounded-xl p-4 border transition-all relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
         selected
-          ? 'border-accent ring-2 ring-accent/30 shadow-md'
-          : 'border-border hover:border-accent/40 hover:shadow-md'
+          ? 'border-[#12388F] ring-2 ring-[#12388F]/20 shadow-xs'
+          : 'border-[#E2E8F0] dark:border-border hover:-translate-y-[1px] hover:border-[#12388F]/30 hover:shadow-xs'
       } ${
         onClick
-          ? 'cursor-pointer active:scale-[0.995] focus:outline-none focus:ring-2 focus:ring-accent'
+          ? 'cursor-pointer active:scale-[0.995] focus:outline-none focus:ring-2 focus:ring-[#12388F]/20'
           : ''
       } ${className}`}
     >
-      {/* Main Info (Max 3 primary items: Title, Subtitle, Badge) */}
+      {/* Main Info */}
       <div className="flex items-center gap-3.5 min-w-0 flex-1">
         {Icon && (
-          <div className="w-10 h-10 rounded-xl bg-accent-subtle text-accent border border-accent/20 flex items-center justify-center shrink-0">
-            <Icon className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-300 flex items-center justify-center shrink-0">
+            <Icon className="w-5 h-5 text-[#12388F] dark:text-blue-300" />
           </div>
         )}
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-sm font-bold text-ink truncate leading-tight">
+            <span className="text-sm font-bold text-[#0F172A] dark:text-white truncate leading-tight">
               {title}
             </span>
             {badge && <div className="shrink-0">{badge}</div>}
           </div>
           {subtitle && (
-            <p className="text-xs text-ink-muted truncate font-medium">
+            <p className="text-xs text-[#64748B] dark:text-slate-400 truncate font-medium">
               {subtitle}
             </p>
           )}
 
-          {/* Optional small chips (max 1-2) */}
+          {/* Optional small chips */}
           {chips && chips.length > 0 && (
             <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
               {chips.slice(0, 2).map((chip, idx) => (
                 <span
                   key={idx}
-                  className="text-[11px] font-semibold text-ink-subtle bg-surface px-2 py-0.5 rounded-md border border-border"
+                  className="text-[11px] font-semibold text-[#64748B] dark:text-slate-300 bg-[#F1F5F9] dark:bg-slate-800 px-2 py-0.5 rounded-md border border-[#E2E8F0] dark:border-slate-700/60"
                 >
                   {chip}
                 </span>
@@ -83,8 +92,8 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({
         </div>
       </div>
 
-      {/* Right Slot: Optional Quick Action + Chevron */}
-      <div className="flex items-center justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+      {/* Right Slot: Optional Actions + Chevron */}
+      <div className="flex items-center justify-end gap-2.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#F1F5F9] dark:border-slate-800">
         {actions && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -95,7 +104,7 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({
           </div>
         )}
         {onClick && (
-          <div className="w-7 h-7 rounded-lg bg-surface flex items-center justify-center text-ink-subtle group-hover:text-accent group-hover:translate-x-0.5 transition-all shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-[#F8FAFC] dark:bg-slate-800 flex items-center justify-center text-[#64748B] group-hover:text-[#12388F] dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0">
             <ChevronRight className="w-4 h-4" />
           </div>
         )}
