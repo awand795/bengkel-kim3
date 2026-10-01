@@ -180,7 +180,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
             <div className="flex items-center gap-2 text-xs text-ink-subtle bg-surface rounded-lg border border-border px-3 py-2">
               <Mail className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{authUser?.email || '-'}</span>
-              <span className="ml-auto shrink-0 font-semibold">{authUser?.peran || ''}</span>
+              <span className="ml-auto shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Mitra Fleet</span>
             </div>
 
             <button

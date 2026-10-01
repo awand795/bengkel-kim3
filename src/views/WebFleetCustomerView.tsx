@@ -3107,8 +3107,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <span className="font-mono font-semibold text-ink">{authUser?.email || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs">Peran Pengguna:</span>
-                  <span className="font-semibold text-ink">{authUser?.peran || 'Customer Fleet'}</span>
+                  <span className="text-ink-subtle block text-xs">Tipe Akun:</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Mitra Fleet</span>
                 </div>
               </div>
             </div>

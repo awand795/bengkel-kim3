@@ -505,7 +505,7 @@ export const NotificationDropdown: React.FC = () => {
       {confirmDeleteAll && (
         <ConfirmModal
           title="Hapus Semua Notifikasi?"
-          message="Seluruh notifikasi milik Anda (pribadi & peran) akan dihapus permanen. Notifikasi broadcast umum ('ALL') tidak ikut terhapus dan tetap tampil untuk semua orang."
+          message="Seluruh notifikasi milik Anda akan dihapus permanen. Notifikasi broadcast umum ('ALL') tidak ikut terhapus dan tetap tampil untuk semua orang."
           confirmLabel="Ya, Hapus Semua"
           tone="red"
           isPending={deleteAllMutation.isPending}
