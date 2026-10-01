@@ -1984,6 +1984,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <StatCard
+              title="Booking Terjadwal"
+              value={upcomingBookings.length}
+              subtitle="Antrian Masuk"
+              icon={Calendar}
+              tone="blue"
+              onClick={() => {
+                setFleetMenu('booking');
+                setActiveTab('fleet-booking');
+              }}
+            />
+            <StatCard
               title="Total Kendaraan Truk"
               value={myKendaraanList.length}
               subtitle="Unit Terdaftar"
@@ -2008,17 +2019,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   setFleetMenu('history');
                   setActiveTab('fleet-history');
                 }
-              }}
-            />
-            <StatCard
-              title="Booking Terjadwal"
-              value={upcomingBookings.length}
-              subtitle="Antrian Masuk"
-              icon={Calendar}
-              tone="blue"
-              onClick={() => {
-                setFleetMenu('booking');
-                setActiveTab('fleet-booking');
               }}
             />
             <StatCard
