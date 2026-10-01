@@ -4,29 +4,18 @@ import { api } from './api/client';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
-
-// Views
 import { LoginPage } from './views/LoginPage';
-import { DashboardView } from './views/DashboardView';
-import { SecurityView } from './views/SecurityView';
-import { ServiceAdvisorView } from './views/ServiceAdvisorView';
-import { ForemanView } from './views/ForemanView';
-import { MekanikView } from './views/MekanikView';
-import { PurchasingView } from './views/PurchasingView';
-import { BeliPartView } from './views/BeliPartView';
-import { KasirInvoiceView } from './views/KasirInvoiceView';
+import { UnverifiedEmailView } from './views/UnverifiedEmailView';
+import { DeactivatedAccountView } from './views/DeactivatedAccountView';
 import { WebFleetCustomerView } from './views/WebFleetCustomerView';
-import { PicTerkaitView } from './views/PicTerkaitView';
-import { KunjunganModuleView } from './views/KunjunganModuleView';
-import { AdminPanelView } from './views/AdminPanelView';
 import { ToastContainer } from './components/common/Toast';
 import { ApprovalAutoPopup } from './components/common/ApprovalAutoPopup';
 
 export const App: React.FC = () => {
   const {
     activeTab,
-    currentRole,
     isLoggedIn,
+    authUser,
     isVerifyingSession,
     setIsVerifyingSession,
     logout,
@@ -49,7 +38,7 @@ export const App: React.FC = () => {
         useAppStore.setState({
           authUser: me,
           currentUser: me.nama_lengkap,
-          currentRole: me.peran,
+          currentRole: 'Customer Fleet',
           isLoggedIn: true,
           isVerifyingSession: false,
         });
@@ -74,7 +63,7 @@ export const App: React.FC = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-9 h-9 border-3 border-accent/20 border-t-accent rounded-full animate-spin" />
           <div className="text-xs font-semibold text-teal-100/80 tracking-wide">
-            Memverifikasi Sesi Bengkel KIM 3...
+            Memverifikasi Sesi Web Fleet Bengkel KIM 3...
           </div>
         </div>
       </div>
@@ -86,165 +75,26 @@ export const App: React.FC = () => {
     return <LoginPage />;
   }
 
+  // Jika akun user dinonaktifkan (status_no_aktif === true atau status_aktif === false), blokir akses ke Web Fleet
+  if (authUser && (authUser.status_no_aktif === true || authUser.status_aktif === false)) {
+    return (
+      <DeactivatedAccountView
+        email={authUser.email}
+        namaLengkap={authUser.nama_lengkap}
+        onLogout={logout}
+      />
+    );
+  }
+
+  // Jika email user belum terverifikasi, tampilkan layar blank putih dengan pemberitahuan warning
+  if (authUser && authUser.email_verifikasi === false) {
+    return <UnverifiedEmailView email={authUser.email} onLogout={logout} />;
+  }
+
   const renderActiveView = () => {
-    // ── ROLE-BASED ACCESS CONTROL (RBAC) GUARD ──────────────────────────────
-    // Mencegah kebocoran modul internal ke role yang tidak berhak (misal: Customer Fleet masuk ke menu SA/SPK)
-    if (currentRole === 'Customer Fleet') {
-      if (activeTab === 'fleet-booking') return <WebFleetCustomerView initialMenu="booking" />;
-      if (activeTab === 'fleet-status') return <WebFleetCustomerView initialMenu="status" />;
-      if (activeTab === 'fleet-history') return <WebFleetCustomerView initialMenu="history" />;
-      if (activeTab === 'fleet-kendaraan') return <WebFleetCustomerView initialMenu="kendaraan" />;
-      if (activeTab === 'fleet-dokumen') return <WebFleetCustomerView initialMenu="dokumen" />;
-      if (activeTab === 'fleet-profil') return <WebFleetCustomerView initialMenu="profil" />;
-      return <WebFleetCustomerView initialMenu="dashboard" />;
-    }
-
-    if (currentRole === 'Security') {
-      if (activeTab === 'security-checkin') return <SecurityView initialTab="checkin" />;
-      if (activeTab === 'security-booking') return <SecurityView initialTab="booking" />;
-      if (activeTab === 'security-onprogress') return <SecurityView initialTab="onprogress" />;
-      if (activeTab === 'security-selesai') return <SecurityView initialTab="selesai" />;
-      if (activeTab === 'security-memo') return <SecurityView initialTab="memo" />;
-      if (activeTab === 'dashboard') return <DashboardView />;
-      return <SecurityView initialTab="dashboard" />;
-    }
-
-    if (currentRole === 'SA') {
-      if (activeTab === 'sa-penerimaan' || activeTab === 'sa-baru') return <ServiceAdvisorView initialTab="penerimaan" />;
-      if (activeTab === 'sa' || activeTab === 'sa-list') return <ServiceAdvisorView initialTab="spk-list" />;
-      if (activeTab === 'sa-permintaan-part') return <ServiceAdvisorView initialTab="permintaan-part" />;
-      if (activeTab === 'dashboard') return <DashboardView />;
-      // Sidebar SA Kotak Merah (PR) + notif link_tab 'purchasing' / 'sa-kotak-merah':
-      if (activeTab === 'purchasing' || activeTab === 'sa-kotak-merah') return <ServiceAdvisorView initialTab="estimasi-pr" />;
-      // Penjualan Part Langsung: satu modul modal-driven di dalam ServiceAdvisorView.
-      // 'beli-part-estimasi' = sidebar "Estimasi Baru (POS)" → langsung buka modal POS.
-      if (
-        activeTab === 'beli-part' ||
-        activeTab === 'beli-part-transaksi' ||
-        activeTab === 'sa-penjualan-part'
-      ) {
-        return <ServiceAdvisorView initialTab="penjualan-part" />;
-      }
-      if (activeTab === 'beli-part-estimasi') {
-        return <ServiceAdvisorView initialTab="penjualan-part-pos" />;
-      }
-      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
-      return <ServiceAdvisorView initialTab="spk-list" />;
-    }
-
-    if (currentRole === 'Foreman') {
-      if (activeTab === 'foreman-cek') return <ForemanView initialTab="hasil-pengecekan" />;
-      if (activeTab === 'foreman-qc') return <ForemanView initialTab="qc-fir" />;
-      if (activeTab === 'foreman' || activeTab === 'foreman-tugas') return <ForemanView initialTab="dashboard" />;
-      if (activeTab === 'mekanik') return <MekanikView />;
-      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
-      if (activeTab === 'dashboard') return <DashboardView />;
-      return <ForemanView initialTab="dashboard" />;
-    }
-
-    if (currentRole === 'Mekanik') {
-      if (activeTab === 'mekanik') return <MekanikView />;
-      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
-      if (activeTab === 'dashboard') return <DashboardView />;
-      return <MekanikView />;
-    }
-
-    if (currentRole === 'Admin Purchasing') {
-      if (activeTab === 'purchasing') return <PurchasingView />;
-      if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
-      if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
-      if (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi') return <BeliPartView initialTab="transaksi" />;
-      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
-      if (activeTab === 'dashboard') return <DashboardView />;
-      return <PurchasingView />;
-    }
-
-    if (currentRole === 'Admin Invoice') {
-      if (activeTab === 'kasir') return <KasirInvoiceView />;
-      if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
-      if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
-      if (activeTab === 'beli-part' || activeTab === 'beli-part-transaksi') return <BeliPartView initialTab="transaksi" />;
-      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
-      if (activeTab === 'dashboard') return <DashboardView />;
-      return <KasirInvoiceView />;
-    }
-
-    if (currentRole === 'Warehouse') {
-      if (activeTab === 'beli-part-estimasi') return <BeliPartView initialTab="estimasi" />;
-      if (activeTab === 'beli-part-picking') return <BeliPartView initialTab="picking" />;
-      if (activeTab === 'kunjungan') return <KunjunganModuleView />;
-      return <BeliPartView initialTab="transaksi" />;
-    }
-
-    if (currentRole === 'PIC Terkait') {
-      if (activeTab === 'pic-terkait') return <PicTerkaitView />;
-      if (activeTab === 'dashboard') return <DashboardView />;
-      return <PicTerkaitView />;
-    }
-
-    // Super Admin: Akses penuh ke seluruh modul sistem
     switch (activeTab) {
-      case 'admin-panel':
-      case 'admin-users':
-        return <AdminPanelView initialTab="users" />;
-      case 'admin-ppn':
-        return <AdminPanelView initialTab="ppn" />;
-      case 'admin-print':
-        return <AdminPanelView initialTab="print-templates" />;
-      case 'admin-settings':
-      case 'pengaturan':
-        return <AdminPanelView initialTab="settings" />;
-      case 'dashboard':
-        return <DashboardView />;
-      case 'security':
-      case 'security-dashboard':
-        return <SecurityView initialTab="dashboard" />;
-      case 'security-checkin':
-        return <SecurityView initialTab="checkin" />;
-      case 'security-booking':
-        return <SecurityView initialTab="booking" />;
-      case 'security-onprogress':
-        return <SecurityView initialTab="onprogress" />;
-      case 'security-selesai':
-        return <SecurityView initialTab="selesai" />;
-      case 'security-memo':
-        return <SecurityView initialTab="memo" />;
-      case 'sa':
-      case 'sa-list':
-        return <ServiceAdvisorView initialTab="spk-list" />;
-      case 'sa-penerimaan':
-      case 'sa-baru':
-        return <ServiceAdvisorView initialTab="penerimaan" />;
-      case 'sa-kotak-merah':
-        return <ServiceAdvisorView initialTab="estimasi-pr" />;
-      case 'sa-penjualan-part':
-        return <ServiceAdvisorView initialTab="penjualan-part" />;
-      case 'foreman':
-      case 'foreman-tugas':
-        return <ForemanView initialTab="dashboard" />;
-      case 'foreman-cek':
-        return <ForemanView initialTab="hasil-pengecekan" />;
-      case 'foreman-qc':
-        return <ForemanView initialTab="qc-fir" />;
-      case 'mekanik':
-        return <MekanikView />;
-      case 'purchasing':
-        return <PurchasingView />;
-      case 'beli-part':
-      case 'beli-part-transaksi':
-        return <BeliPartView initialTab="transaksi" />;
-      case 'beli-part-estimasi':
-        return <BeliPartView initialTab="estimasi" />;
-      case 'beli-part-picking':
-        return <BeliPartView initialTab="picking" />;
-      case 'kasir':
-        return <KasirInvoiceView />;
-      case 'fleet-dashboard':
-        return <WebFleetCustomerView initialMenu="dashboard" />;
       case 'fleet-booking':
         return <WebFleetCustomerView initialMenu="booking" />;
-      case 'fleet-status':
-        return <WebFleetCustomerView initialMenu="status" />;
       case 'fleet-history':
         return <WebFleetCustomerView initialMenu="history" />;
       case 'fleet-kendaraan':
@@ -253,12 +103,9 @@ export const App: React.FC = () => {
         return <WebFleetCustomerView initialMenu="dokumen" />;
       case 'fleet-profil':
         return <WebFleetCustomerView initialMenu="profil" />;
-      case 'pic-terkait':
-        return <PicTerkaitView />;
-      case 'kunjungan':
-        return <KunjunganModuleView />;
+      case 'fleet-dashboard':
       default:
-        return <DashboardView />;
+        return <WebFleetCustomerView initialMenu="dashboard" />;
     }
   };
 
@@ -274,16 +121,7 @@ export const App: React.FC = () => {
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto max-h-[calc(100vh-60px)]">
           <div className="max-w-[1400px] mx-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
-            <div
-              key={
-                activeTab.startsWith('security-')
-                  ? 'module-security'
-                  : activeTab.startsWith('fleet-')
-                  ? 'module-fleet'
-                  : activeTab
-              }
-              className="app-page-transition w-full"
-            >
+            <div key={activeTab} className="app-page-transition w-full">
               {renderActiveView()}
             </div>
           </div>
@@ -296,7 +134,7 @@ export const App: React.FC = () => {
       {/* Global Toast Notification System */}
       <ToastContainer />
 
-      {/* Watcher approval realtime → modal otomatis di modul mana pun */}
+      {/* Watcher approval realtime */}
       <ApprovalAutoPopup />
     </div>
   );

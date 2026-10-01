@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, normalizePlat, formatPlat, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart, AntrianKunjungan, TransaksiBeliPart } from '../types';
+import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { useAppStore } from '../store/useAppStore';
@@ -57,7 +57,7 @@ import {
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
-  initialMenu?: 'dashboard' | 'booking' | 'status' | 'history' | 'kendaraan' | 'dokumen' | 'profil';
+  initialMenu?: 'dashboard' | 'booking' | 'history' | 'kendaraan' | 'dokumen' | 'profil';
 }
 
 interface SpkTrackingDetailProps {
@@ -1166,7 +1166,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
 export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ initialMenu }) => {
   const queryClient = useQueryClient();
   const { setActiveTab, currentUser, authUser, fleetPendingPartId, setFleetPendingPartId, fleetPendingSpkId, setFleetPendingSpkId, setApprovalModalOpen } = useAppStore();
-  const [fleetMenu, setFleetMenu] = useState<'dashboard' | 'booking' | 'status' | 'history' | 'kendaraan' | 'dokumen' | 'profil'>(
+  const [fleetMenu, setFleetMenu] = useState<'dashboard' | 'booking' | 'history' | 'kendaraan' | 'dokumen' | 'profil'>(
     initialMenu || 'dashboard'
   );
 
@@ -1182,11 +1182,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     setHistoryDetail(null);
     setPreviewInvoice(null);
     setShowPrintInvoice(false);
-    setKunjunganDetail(null);
-    setBeliPartDetail(null);
-    setHistoryTab('service');
-    setKunjunganPage(1);
-    setPartPage(1);
   }, [fleetMenu]);
 
   // Booking Wizard Step (image5.png Mockup 1)
@@ -1322,22 +1317,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     placeholderData: (prev) => prev,
   });
 
-  // Riwayat kunjungan & beli part (plate-linked, tampil setelah plat didaftarkan)
-  const { data: kunjunganList, isFetching: kunjunganFetching } = useQuery({
-    queryKey: ['antrian-list'],
-    queryFn: api.getAntrian,
-    refetchInterval: 15000,
-  });
-  const { data: beliPartList, isFetching: beliPartFetching } = useQuery({
-    queryKey: ['beli-part-list'],
-    queryFn: api.getBeliPartList,
-    refetchInterval: 15000,
-  });
-  const [historyTab, setHistoryTab] = useState<'service' | 'kunjungan' | 'part'>('service');
-  const [kunjunganPage, setKunjunganPage] = useState(1);
-  const [partPage, setPartPage] = useState(1);
-  const [kunjunganDetail, setKunjunganDetail] = useState<AntrianKunjungan | null>(null);
-  const [beliPartDetail, setBeliPartDetail] = useState<TransaksiBeliPart | null>(null);
+
 
   // Profil Customer & Kontak: form editable (tersimpan di tabel pengguna via /kim3/profil-simpan)
   const [profilEditing, setProfilEditing] = useState(false);
@@ -1420,77 +1400,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const armadaRows = (armadaPageData?.rows || []).filter((k) => isMyKendaraan(k));
   const historyRows = (historyPageData?.rows || []).filter((s) => isMySpk(s));
 
-  // Riwayat kunjungan & beli part berbasis plat (primary key):
-  // walk-in tampil otomatis setelah plat didaftarkan sebagai kendaraan.
-  const normPlat = (s?: string) => (s || '').toUpperCase().replace(/\s+/g, '');
-  const isMyKunjungan = (a: AntrianKunjungan) => {
-    if (a.no_polisi && myPlateSet.has(normPlat(a.no_polisi))) return true;
-    if (myCompanyName && a.nama_customer && a.nama_customer.toLowerCase().trim() === myCompanyName) return true;
-    return false;
-  };
-  const isMyBeliPart = (t: TransaksiBeliPart) => {
-    if (t.no_polisi && myPlateSet.has(normPlat(t.no_polisi))) return true;
-    if (myCompanyName && t.nama_customer && t.nama_customer.toLowerCase().trim() === myCompanyName) return true;
-    return false;
-  };
-  const matchHistSearch = (hay: Array<string | number | undefined | null>) => {
-    const q = historyQuery.trim().toLowerCase();
-    if (!q) return true;
-    return hay.some((v) => String(v ?? '').toLowerCase().includes(q));
-  };
-  const myKunjunganList = (kunjunganList || [])
-    .filter((a) => isMyKunjungan(a))
-    .filter((a) => a.tujuan_kedatangan === 'Kunjungan')
-    .filter((a) => matchHistSearch([a.no_tiket, a.no_polisi, a.nama_customer, a.tujuan_kedatangan, a.status_kunjungan, a.pic_tujuan, a.keperluan]))
-    .sort((a, b) => String(b.waktu_masuk || '').localeCompare(String(a.waktu_masuk || '')));
-  const myBeliPartList = (beliPartList || [])
-    .filter((t) => isMyBeliPart(t))
-    .filter((t) => matchHistSearch([t.no_transaksi, t.no_polisi, t.nama_customer, t.status_transaksi]))
-    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
-  const KUNJ_LIMIT = 10;
-  const PART_LIMIT = 10;
-  const kunjunganTotalPages = Math.max(1, Math.ceil(myKunjunganList.length / KUNJ_LIMIT));
-  const partTotalPages = Math.max(1, Math.ceil(myBeliPartList.length / PART_LIMIT));
-  const kunjunganRows = myKunjunganList.slice((kunjunganPage - 1) * KUNJ_LIMIT, kunjunganPage * KUNJ_LIMIT);
-  const beliPartRows = myBeliPartList.slice((partPage - 1) * PART_LIMIT, partPage * PART_LIMIT);
-
-  // Deep-link approval realtime (konsumsi sekali): pindah ke menu history dulu
-  // (id dipertahankan), lalu buka modal/halaman approval saat menu settle.
-  React.useEffect(() => {
-    if (fleetPendingPartId == null) return;
-    if (fleetMenu !== 'history') {
-      setFleetMenu('history');
-      return;
-    }
-    if (beliPartList === undefined) return; // tunggu data termuat
-    const target = myBeliPartList.find((t) => t.id === fleetPendingPartId);
-    if (target) {
-      setHistoryTab('part');
-      setPartPage(1);
-      setBeliPartDetail(target);
-    }
-    setFleetPendingPartId(null);
-  }, [fleetPendingPartId, fleetMenu, beliPartList, myBeliPartList, setFleetMenu, setHistoryTab, setPartPage, setBeliPartDetail, setFleetPendingPartId]);
-
+  // Deep-link approval realtime SPK: buka detail saat link settle
   React.useEffect(() => {
     if (fleetPendingSpkId == null) return;
     if (fleetMenu !== 'history') {
       setFleetMenu('history');
       return;
     }
-    if (spkList === undefined) return; // tunggu data termuat
+    if (spkList === undefined) return;
     const target = mySpkList.find((s) => s.id === fleetPendingSpkId);
     if (target) {
-      setHistoryTab('service');
       setHistoryDetail(target);
     }
     setFleetPendingSpkId(null);
-  }, [fleetPendingSpkId, fleetMenu, spkList, mySpkList, setFleetMenu, setHistoryTab, setHistoryDetail, setFleetPendingSpkId]);
+  }, [fleetPendingSpkId, fleetMenu, spkList, mySpkList, setFleetMenu, setHistoryDetail, setFleetPendingSpkId]);
 
-  // Kunci antre popup global selama detail approval (auto/manual) terbuka.
   React.useEffect(() => {
-    setApprovalModalOpen(!!beliPartDetail || !!historyDetail);
-  }, [beliPartDetail, historyDetail, setApprovalModalOpen]);
+    setApprovalModalOpen(!!historyDetail);
+  }, [historyDetail, setApprovalModalOpen]);
 
   // Kalau jumlah data menyusut (mis. filter pencarian aktif) sampai halaman aktif
   // melewati halaman terakhir, tarik kembali ke halaman terakhir yang valid.
@@ -1516,28 +1443,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return false;
   });
 
-  // Helper: Cek apakah kendaraan dari jadwal booking ini sudah di-check in di gerbang atau terbit SPK
+  // Helper: Cek apakah kendaraan dari jadwal booking ini sudah di-check in atau terbit SPK
   const isBookingCheckedIn = useCallback((b: BookingService): boolean => {
     if (b.status === 'Check In') return true;
     if (b.status === 'Dibatalkan') return false;
 
     const bPlate = normalizePlat(b.no_polisi);
-
-    // 1. Cek dari kunjungan antrian gerbang (Pos Security check-in)
-    const hasAntrian = (kunjunganList || []).some((a) => {
-      // Cocok langsung berdasarkan relasi id_booking
-      if (a.id_booking != null && a.id_booking === b.id) return true;
-      // Atau cocok berdasarkan nopol
-      if (bPlate && normalizePlat(a.no_polisi) === bPlate) {
-        const aTime = a.waktu_masuk || '';
-        const bDate = (b.tanggal_booking || '').slice(0, 10);
-        if (!bDate || !aTime || aTime.slice(0, 10) >= bDate) return true;
-      }
-      return false;
-    });
-    if (hasAntrian) return true;
-
-    // 2. Cek dari SPK yang telah diterbitkan bengkel
     const hasSpk = (spkList || []).some((s) => {
       if (s.id_booking != null && s.id_booking === b.id) return true;
       if (bPlate && normalizePlat(s.no_polisi) === bPlate) {
@@ -1549,9 +1460,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     });
 
     return hasSpk;
-  }, [kunjunganList, spkList]);
+  }, [spkList]);
 
-  // Status operasional booking: 'Check In' bila sudah tiba di Pos Security / terbit SPK
+  // Status operasional booking: 'Check In' bila sudah terbit SPK / berstatus Check In
   const getBookingEffectiveStatus = useCallback((b: BookingService): 'Booked' | 'Check In' | 'Dibatalkan' => {
     if (b.status === 'Dibatalkan') return 'Dibatalkan';
     if (b.status === 'Check In' || isBookingCheckedIn(b)) return 'Check In';
@@ -1563,11 +1474,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (!nopol) return false;
     const cleanP = normalizePlat(nopol);
     if (!cleanP) return false;
-    return (kunjunganList || []).some((a) => {
-      if (normalizePlat(a.no_polisi) !== cleanP) return false;
-      return a.status_kunjungan !== 'Selesai' && a.status_kunjungan !== 'Keluar';
+    return (spkList || []).some((s) => {
+      if (normalizePlat(s.no_polisi) !== cleanP) return false;
+      return s.status_spk !== 'Selesai' && !s.waktu_check_out;
     });
-  }, [kunjunganList]);
+  }, [spkList]);
 
   // Aturan cancel booking: status masih Booked dan minimal 10 menit sebelum
   // jadwal (tanggal_booking + jam_booking). Server juga menolak bila status
@@ -1716,7 +1627,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // otomatis muncul sebagai dokumen — ambil dari invoice_pembayaran via id_transaksi_beli_part / id_spk.
   const myInvoiceFakturList = myInvoiceList.filter((inv) => {
     if (inv.id_spk && mySpkList.some((s) => s.id === inv.id_spk)) return true;
-    if (inv.id_transaksi_beli_part && myBeliPartList.some((t) => t.id === inv.id_transaksi_beli_part)) return true;
     return false;
   });
   const [dokumenFilterPlat, setDokumenFilterPlat] = useState('');
@@ -1819,46 +1729,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       toast.error('Gagal Mengirim Keputusan', err?.message || 'Coba beberapa saat lagi.'),
   });
 
-  // Keputusan estimasi pembelian part (portal customer): Setujui → terus ke
-  // Warehouse Picking; Tolak → 'Ditolak' agar SA merevisi & membuat ulang.
-  const approvalPartMutation = useMutation({
-    mutationFn: async (payload: { setuju: boolean; trx: TransaksiBeliPart }) => {
-      const { setuju, trx } = payload;
-      if (!trx) throw new Error('Tidak ada transaksi part.');
-      return api.updateBeliPartStatus({
-        id: trx.id,
-        status_transaksi: setuju ? 'Estimasi Disetujui' : 'Ditolak',
-      });
-    },
-    onSuccess: (_res, { setuju, trx }) => {
-      queryClient.invalidateQueries({ queryKey: ['beli-part-list'] });
-      if (setuju) {
-        realtimeHub.publish({
-          type: 'PART_REQUESTED',
-          targetRoles: ['Warehouse'],
-          title: 'Picking Request Part Baru',
-          message: `Estimasi ${trx?.no_transaksi} (${formatPlat(trx?.no_polisi || '')} - ${trx?.nama_customer}) telah disetujui customer, menunggu picking gudang.`,
-          linkTab: 'beli-part-picking',
-          urgency: 'info',
-        });
-        toast.success('Estimasi Disetujui', 'Pesanan diteruskan ke gudang untuk picking.');
-        setBeliPartDetail(null);
-      } else {
-        realtimeHub.publish({
-          type: 'PART_REQUESTED',
-          targetRoles: ['SA'],
-          title: 'Estimasi Part Ditolak Customer',
-          message: `Estimasi ${trx?.no_transaksi} (${formatPlat(trx?.no_polisi || '')} - ${trx?.nama_customer}) ditolak. Mohon revisi & buat ulang.`,
-          linkTab: 'beli-part',
-          urgency: 'warning',
-        });
-        toast.info('Estimasi Ditolak', 'Bengkel akan merevisi estimasi dan mengirim ulang.');
-        setBeliPartDetail(null);
-      }
-    },
-    onError: (err: any) =>
-      toast.error('Gagal Mengirim Keputusan', err?.message || getApiErrorMessage(err)),
-  });
 
   // Booking Mutation
   const createBookingMutation = useMutation({
@@ -1980,7 +1850,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           targetPelangganId: myPelangganId,
           title: 'Riwayat Kendaraan Ditemukan',
           message: `Plat ${plat} memiliki riwayat (${parts.join(', ')}) yang kini masuk ke akun Anda.`,
-          linkTab: 'fleet-status',
+          linkTab: 'fleet-history',
           urgency: 'success',
         });
       }
@@ -2132,8 +2002,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               badge={mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length > 0 ? 'Aktif' : undefined}
               tone="amber"
               onClick={() => {
-                setFleetMenu('status');
-                setActiveTab('fleet-status');
+                if (activeTrackSpk) {
+                  setHistoryDetail(activeTrackSpk);
+                } else {
+                  setFleetMenu('history');
+                  setActiveTab('fleet-history');
+                }
               }}
             />
             <StatCard
@@ -2200,10 +2074,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <button
                     type="button"
                     onClick={() => {
-                      setFleetMenu('status');
-                      setActiveTab('fleet-status');
+                      setHistoryDetail(activeTrackSpk);
                     }}
-                    className="px-3.5 py-2 bg-surface hover:bg-surface text-ink text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 self-start sm:self-auto"
+                    className="px-3.5 py-2 bg-surface hover:bg-surface text-ink text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
                   >
                     Lihat Detail Tracker <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -2343,51 +2216,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
           </div>
         </div>
-      )}
-
-      {/* Empty State for Status if no active SPK */}
-      {fleetMenu === 'status' && !activeTrackSpk && (
-        <div className="bg-surface-raised rounded-xl border border-border p-8 text-center shadow-xs max-w-lg mx-auto space-y-4">
-          <div className="w-16 h-16 rounded-xl bg-accent-subtle text-accent flex items-center justify-center mx-auto">
-            <Truck className="w-8 h-8" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-ink">Tidak Ada Servis Berjalan</h2>
-            <p className="text-xs text-ink-muted mt-1 leading-relaxed">
-              Saat ini tidak ada unit kendaraan Anda yang sedang dalam proses pengerjaan di Bengkel KIM 3 Medan.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setFleetMenu('booking');
-              setActiveTab('fleet-booking');
-            }}
-            className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-all inline-flex items-center gap-2"
-          >
-            <Calendar className="w-4 h-4" /> Jadwalkan Booking Service
-          </button>
-        </div>
-      )}
-
-      {/* MENU 1: STATUS SERVICE REALTIME TRACKER (image5.png Mockup 2) */}
-      {fleetMenu === 'status' && activeTrackSpk && (
-        <SpkTrackingDetail
-          spk={activeTrackSpk}
-          pekerjaanList={pekerjaanList}
-          partSpkList={partSpkList}
-          myDokumenList={myDokumenList}
-          myInvoiceList={myInvoiceList}
-          tambahanList={tambahanList}
-          purchasingList={purchasingList}
-          ppnRate={ppnRateCustomer}
-          approvingTambahan={approvalTambahanMutation.isPending}
-          decidingEstimasi={approvalEstimasiMutation.isPending}
-          onApproveTambahan={(id, keputusan) =>
-            approvalTambahanMutation.mutate({ id, status_approval_customer: keputusan })
-          }
-          onDecideEstimasi={(s, setuju) => approvalEstimasiMutation.mutate({ setuju, spk: s })}
-        />
       )}
 
       {/* MENU 2: BOOKING SERVICE (image5.png Mockup 1) */}
@@ -2830,7 +2658,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <div>
               <h2 className="text-lg font-black text-ink tracking-tight flex items-center gap-2">
                 <Truck className="w-5 h-5 text-accent" />
-                <span>Kendaraan &amp; Armada Saya</span>
+                <span>Daftar Unit Kendaraan Saya</span>
               </h2>
               <p className="text-xs text-ink-muted mt-0.5">
                 Kelola spesifikasi truk, dokumen legalitas, dan jadwalkan service berkala langsung dari dashboard fleet
@@ -2853,7 +2681,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <Truck className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs text-ink-muted block">Total Armada</span>
+                <span className="text-xs text-ink-muted block">Total Unit Kendaraan</span>
                 <span className="text-base font-black text-ink tabular-nums">
                   {armadaPageData?.pagination?.total_records ?? armadaRows.length} Unit
                 </span>
@@ -3475,7 +3303,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
                 <div>
                   <span className="text-ink-subtle block text-xs">Status Akun:</span>
-                  <span className="font-semibold text-status-green">{authUser?.status_aktif === false ? 'Tidak Aktif' : 'Aktif Terverifikasi'}</span>
+                  <span className={(authUser?.status_no_aktif === true || authUser?.status_aktif === false) ? 'font-semibold text-rose-500' : 'font-semibold text-status-green'}>
+                    {(authUser?.status_no_aktif === true || authUser?.status_aktif === false) ? 'Non-Aktif' : 'Aktif Terverifikasi'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -3554,38 +3384,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
           <div className="border-b border-border pb-3 mb-4">
             <h2 className="text-base font-bold text-ink">Riwayat Kendaraan (History)</h2>
-            <p className="text-xs text-ink-muted">Service, kunjungan gerbang, dan pembelian part — terhubung otomatis per plat nomor</p>
+            <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Bengkel KIM 3</p>
           </div>
 
-          {/* Sub-tab riwayat */}
-          <div className="flex gap-2 mb-4 overflow-x-auto">
-            {([
-              { id: 'service', label: 'Service', count: historyPageData?.pagination?.total_records ?? historyRows.length },
-              { id: 'kunjungan', label: 'Kunjungan', count: myKunjunganList.length },
-              { id: 'part', label: 'Beli Part', count: myBeliPartList.length },
-            ] as const).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setHistoryTab(t.id)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-colors shrink-0 ${
-                  historyTab === t.id
-                    ? 'bg-accent text-white shadow-xs'
-                    : 'bg-surface text-ink-muted hover:text-ink border border-border'
-                }`}
-              >
-                {t.label}
-                <span className={`px-1.5 py-0.5 rounded-full text-xs font-black ${
-                  historyTab === t.id ? 'bg-white/20 text-white' : 'bg-surface-raised text-ink-subtle border border-border'
-                }`}>
-                  {t.count}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {historyTab === 'service' && (
-          <>
           {/* Pencarian riwayat (server-side lewat parameter `q`) */}
           <div className="relative mb-4">
             <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -3791,196 +3592,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
           )}
-          </>
-          )}
 
-          {/* TAB: Riwayat Kunjungan Gerbang (terhubung per plat) */}
-          {historyTab === 'kunjungan' && (
-            <>
-              {kunjunganRows.length > 0 ? (
-                <>
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-surface text-ink-muted border-y border-border">
-                        <tr>
-                          <th className="py-2.5 px-3 font-semibold">No. Tiket</th>
-                          <th className="py-2.5 px-3 font-semibold">Kendaraan</th>
-                          <th className="py-2.5 px-3 font-semibold">Tujuan</th>
-                          <th className="py-2.5 px-3 font-semibold">Masuk</th>
-                          <th className="py-2.5 px-3 font-semibold">Keluar</th>
-                          <th className="py-2.5 px-3 font-semibold">Status</th>
-                          <th className="py-2.5 px-3 font-semibold text-center">Detail</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {kunjunganRows.map((a) => (
-                          <tr key={a.id} onClick={() => setKunjunganDetail(a)} className="hover:bg-surface transition-colors cursor-pointer">
-                            <td className="py-3 px-3 font-mono font-bold text-accent">{a.no_tiket}</td>
-                            <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(a.no_polisi)}</td>
-                            <td className="py-3 px-3 text-ink-muted">{a.tujuan_kedatangan || '-'}</td>
-                            <td className="py-3 px-3 font-mono text-ink-muted text-xs">
-                              {a.waktu_masuk ? new Date(a.waktu_masuk).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
-                            </td>
-                            <td className="py-3 px-3 font-mono text-ink-muted text-xs">
-                              {a.waktu_keluar ? new Date(a.waktu_keluar).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
-                            </td>
-                            <td className="py-3 px-3">
-                              <StatusBadge status={a.status_kunjungan} size="sm" />
-                            </td>
-                            <td className="py-3 px-3 text-center">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setKunjunganDetail(a);
-                                }}
-                                title={`Detail kunjungan ${a.no_tiket}`}
-                                aria-label={`Detail kunjungan ${a.no_tiket}`}
-                                className="p-2 rounded-xl border border-border bg-surface-raised text-ink-muted hover:text-accent hover:border-accent/40 transition-colors inline-flex items-center gap-1.5 font-bold text-xs"
-                              >
-                                <FileText className="w-4 h-4" />
-                                <span className="hidden xl:inline">Detail</span>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="block md:hidden space-y-2.5">
-                    {kunjunganRows.map((a) => (
-                      <div key={a.id} onClick={() => setKunjunganDetail(a)} className="rounded-xl border border-border p-3.5 cursor-pointer hover:border-accent/40 transition-colors">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-mono text-xs font-bold text-accent">{a.no_tiket}</div>
-                            <div className="text-base font-black font-mono text-ink mt-0.5">{formatPlat(a.no_polisi)}</div>
-                          </div>
-                          <StatusBadge status={a.status_kunjungan} size="sm" />
-                        </div>
-                        <div className="mt-2 text-xs text-ink-muted">
-                          {a.tujuan_kedatangan || '-'} • {a.waktu_masuk ? new Date(a.waktu_masuk).toLocaleDateString('id-ID') : '-'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <PaginationBar
-                    page={kunjunganPage}
-                    totalPages={kunjunganTotalPages}
-                    totalRecords={myKunjunganList.length}
-                    limit={KUNJ_LIMIT}
-                    label="kunjungan"
-                    isLoading={kunjunganFetching}
-                    onPageChange={setKunjunganPage}
-                    onLimitChange={() => setKunjunganPage(1)}
-                  />
-                </>
-              ) : (
-                <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
-                  <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Kunjungan</h3>
-                  <p className="text-xs text-ink-muted mt-1">
-                    Kunjungan gerbang (termasuk walk-in) tampil di sini otomatis setelah plat didaftarkan sebagai kendaraan.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* TAB: Riwayat Beli Part Langsung (terhubung per plat) */}
-          {historyTab === 'part' && (
-            <>
-              {myBeliPartList.some((t) => t.status_transaksi === 'Menunggu Approval') && (
-                <div className="mb-3 rounded-xl border-2 border-status-amber/50 bg-status-amber-bg/40 p-3.5 flex items-start gap-2.5 text-xs">
-                  <AlertCircle className="w-5 h-5 text-status-amber shrink-0" />
-                  <div>
-                    <p className="font-black text-ink">Ada estimasi pembelian part menunggu persetujuan Anda.</p>
-                    <p className="text-ink-muted text-xs mt-0.5">Klik baris transaksi di bawah, lalu Setujui / Tolak di detailnya.</p>
-                  </div>
-                </div>
-              )}
-              {beliPartRows.length > 0 ? (
-                <>
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-surface text-ink-muted border-y border-border">
-                        <tr>
-                          <th className="py-2.5 px-3 font-semibold">No. Transaksi</th>
-                          <th className="py-2.5 px-3 font-semibold">Kendaraan</th>
-                          <th className="py-2.5 px-3 font-semibold text-right">Total</th>
-                          <th className="py-2.5 px-3 font-semibold">Status</th>
-                          <th className="py-2.5 px-3 font-semibold">Tanggal</th>
-                          <th className="py-2.5 px-3 font-semibold text-center">Detail</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {beliPartRows.map((t) => (
-                          <tr key={t.id} onClick={() => setBeliPartDetail(t)} className="hover:bg-surface transition-colors cursor-pointer">
-                            <td className="py-3 px-3 font-mono font-bold text-accent">{t.no_transaksi}</td>
-                            <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(t.no_polisi)}</td>
-                            <td className="py-3 px-3 text-right font-mono font-bold text-ink">Rp {Number(t.total_biaya || 0).toLocaleString('id-ID')}</td>
-                            <td className="py-3 px-3">
-                              <StatusBadge status={t.status_transaksi} size="sm" />
-                            </td>
-                            <td className="py-3 px-3 font-mono text-ink-muted text-xs">
-                              {t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID') : '-'}
-                            </td>
-                            <td className="py-3 px-3 text-center">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setBeliPartDetail(t);
-                                }}
-                                title={`Detail transaksi ${t.no_transaksi}`}
-                                aria-label={`Detail transaksi ${t.no_transaksi}`}
-                                className="p-2 rounded-xl border border-border bg-surface-raised text-ink-muted hover:text-accent hover:border-accent/40 transition-colors inline-flex items-center gap-1.5 font-bold text-xs"
-                              >
-                                <FileText className="w-4 h-4" />
-                                <span className="hidden xl:inline">Detail</span>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="block md:hidden space-y-2.5">
-                    {beliPartRows.map((t) => (
-                      <div key={t.id} onClick={() => setBeliPartDetail(t)} className="rounded-xl border border-border p-3.5 cursor-pointer hover:border-accent/40 transition-colors">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-mono text-xs font-bold text-accent">{t.no_transaksi}</div>
-                            <div className="text-base font-black font-mono text-ink mt-0.5">{formatPlat(t.no_polisi)}</div>
-                          </div>
-                          <StatusBadge status={t.status_transaksi} size="sm" />
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-xs text-ink-subtle">
-                          <span>{t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID') : '-'}</span>
-                          <span className="font-mono font-bold text-ink">Rp {Number(t.total_biaya || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <PaginationBar
-                    page={partPage}
-                    totalPages={partTotalPages}
-                    totalRecords={myBeliPartList.length}
-                    limit={PART_LIMIT}
-                    label="transaksi part"
-                    isLoading={beliPartFetching}
-                    onPageChange={setPartPage}
-                    onLimitChange={() => setPartPage(1)}
-                  />
-                </>
-              ) : (
-                <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
-                  <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Beli Part</h3>
-                  <p className="text-xs text-ink-muted mt-1">
-                    Pembelian part langsung tampil di sini otomatis setelah plat didaftarkan sebagai kendaraan.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
 
         </div>
       )}
@@ -4014,218 +3626,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         )}
       </DetailModal>
 
-      {/* MODAL: Detail Riwayat Kunjungan */}
-      {kunjunganDetail && (
-        <ModalPortal onClose={() => setKunjunganDetail(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in overflow-y-auto">
-            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-2xl w-full my-auto app-modal-in overflow-hidden max-h-[88vh] flex flex-col">
-              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
-                    <Truck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-ink">Detail Kunjungan</h3>
-                    <p className="text-xs text-ink-muted font-mono">{kunjunganDetail.no_tiket} • {formatPlat(kunjunganDetail.no_polisi)}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setKunjunganDetail(null)}
-                  className="p-1.5 rounded-xl text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
-                  aria-label="Tutup detail kunjungan"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 overflow-y-auto text-xs flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">Tujuan: <span className="font-bold text-ink">{kunjunganDetail.tujuan_kedatangan || '-'}</span></span>
-                  <StatusBadge status={kunjunganDetail.status_kunjungan} size="md" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-border bg-surface p-3.5 space-y-1.5">
-                    <div className="flex justify-between"><span className="text-ink-subtle">Masuk</span><span className="font-mono font-semibold">{kunjunganDetail.waktu_masuk ? new Date(kunjunganDetail.waktu_masuk).toLocaleString('id-ID') : '-'}</span></div>
-                    <div className="flex justify-between"><span className="text-ink-subtle">Keluar</span><span className="font-mono font-semibold">{kunjunganDetail.waktu_keluar ? new Date(kunjunganDetail.waktu_keluar).toLocaleString('id-ID') : '—'}</span></div>
-                    <div className="flex justify-between"><span className="text-ink-subtle">Keperluan</span><span className="font-semibold text-right max-w-[60%]">{kunjunganDetail.keperluan || '-'}</span></div>
-                    {kunjunganDetail.no_memo_keluar && (
-                      <div className="flex justify-between"><span className="text-ink-subtle">Memo Keluar</span><span className="font-mono font-bold text-accent">{kunjunganDetail.no_memo_keluar}</span></div>
-                    )}
-                  </div>
-                  <div className="rounded-xl border border-border bg-surface p-3.5 space-y-2">
-                    <span className="font-bold text-ink block">Dokumentasi Foto</span>
-                    {kunjunganDetail.foto_kendaraan_masuk && (
-                      <div>
-                        <div className="flex items-center justify-between text-xs text-ink-subtle mb-1">
-                          <span>Masuk</span>
-                          <span className="text-[10px] text-accent flex items-center gap-1 font-semibold cursor-pointer">
-                            <Maximize2 className="w-3 h-3" /> Perbesar
-                          </span>
-                        </div>
-                        <img
-                          src={kunjunganDetail.foto_kendaraan_masuk}
-                          alt="Foto masuk"
-                          onClick={() =>
-                            setPreviewImage({
-                              url: kunjunganDetail.foto_kendaraan_masuk!,
-                              title: formatPlat(kunjunganDetail.no_polisi),
-                              subtitle: `Dokumentasi Masuk • No. Tiket: ${kunjunganDetail.no_tiket}`,
-                            })
-                          }
-                          className="w-full max-h-40 object-cover rounded-xl border border-border cursor-pointer hover:opacity-85 transition-opacity"
-                          title="Klik untuk memperbesar foto"
-                        />
-                      </div>
-                    )}
-                    {kunjunganDetail.foto_kendaraan_keluar && (
-                      <div>
-                        <div className="flex items-center justify-between text-xs text-ink-subtle mb-1">
-                          <span>Keluar</span>
-                          <span className="text-[10px] text-accent flex items-center gap-1 font-semibold cursor-pointer">
-                            <Maximize2 className="w-3 h-3" /> Perbesar
-                          </span>
-                        </div>
-                        <img
-                          src={kunjunganDetail.foto_kendaraan_keluar}
-                          alt="Foto keluar"
-                          onClick={() =>
-                            setPreviewImage({
-                              url: kunjunganDetail.foto_kendaraan_keluar!,
-                              title: formatPlat(kunjunganDetail.no_polisi),
-                              subtitle: `Dokumentasi Keluar • No. Tiket: ${kunjunganDetail.no_tiket}`,
-                            })
-                          }
-                          className="w-full max-h-40 object-cover rounded-xl border border-border cursor-pointer hover:opacity-85 transition-opacity"
-                          title="Klik untuk memperbesar foto"
-                        />
-                      </div>
-                    )}
-                    {!kunjunganDetail.foto_kendaraan_masuk && !kunjunganDetail.foto_kendaraan_keluar && (
-                      <p className="text-xs text-ink-subtle">Tidak ada foto.</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setKunjunganDetail(null)}
-                    className="px-4 py-2.5 rounded-xl border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
-                  >
-                    Tutup
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ModalPortal>
-      )}
 
-      {/* MODAL: Detail Riwayat Beli Part */}
-      {beliPartDetail && (
-        <ModalPortal onClose={() => setBeliPartDetail(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in overflow-y-auto">
-            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-2xl w-full my-auto app-modal-in overflow-hidden max-h-[88vh] flex flex-col">
-              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
-                    <Package className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-ink">Detail Pembelian Part</h3>
-                    <p className="text-xs text-ink-muted font-mono">{beliPartDetail.no_transaksi} • {formatPlat(beliPartDetail.no_polisi)}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBeliPartDetail(null)}
-                  className="p-1.5 rounded-xl text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
-                  aria-label="Tutup detail pembelian"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 overflow-y-auto text-xs flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">Total: <span className="font-mono font-black text-status-green">Rp {Number(beliPartDetail.total_biaya || 0).toLocaleString('id-ID')}</span></span>
-                  <StatusBadge status={beliPartDetail.status_transaksi} size="md" />
-                </div>
-                <div className="rounded-xl border border-border bg-surface p-3.5 space-y-1.5">
-                  <div className="flex justify-between"><span className="text-ink-subtle">Subtotal</span><span className="font-mono font-semibold">Rp {Number(beliPartDetail.subtotal || 0).toLocaleString('id-ID')}</span></div>
-                  <div className="flex justify-between"><span className="text-ink-subtle">PPN</span><span className="font-mono font-semibold">Rp {Number(beliPartDetail.ppn_11 || 0).toLocaleString('id-ID')}</span></div>
-                  <div className="flex justify-between"><span className="text-ink-subtle">Tanggal</span><span className="font-mono font-semibold">{beliPartDetail.created_at ? new Date(beliPartDetail.created_at).toLocaleDateString('id-ID') : '-'}</span></div>
-                  {beliPartDetail.catatan && (
-                    <div className="pt-1 text-ink-muted">Catatan: <span className="text-ink">{beliPartDetail.catatan}</span></div>
-                  )}
-                </div>
-                {beliPartDetail.foto_penyerahan ? (
-                  <div>
-                    <div className="flex items-center justify-between text-xs font-bold text-ink-muted mb-1.5">
-                      <span>Foto Penyerahan</span>
-                      <span className="text-[10px] text-accent flex items-center gap-1 font-semibold cursor-pointer">
-                        <Maximize2 className="w-3 h-3" /> Perbesar
-                      </span>
-                    </div>
-                    <img
-                      src={beliPartDetail.foto_penyerahan}
-                      alt="Foto penyerahan"
-                      onClick={() =>
-                        setPreviewImage({
-                          url: beliPartDetail.foto_penyerahan!,
-                          title: formatPlat(beliPartDetail.no_polisi),
-                          subtitle: `Foto Penyerahan Part • No. Transaksi: ${beliPartDetail.no_transaksi}`,
-                        })
-                      }
-                      className="w-full max-h-56 object-cover rounded-xl border border-border cursor-pointer hover:opacity-85 transition-opacity"
-                      title="Klik untuk memperbesar foto"
-                    />
-                  </div>
-                ) : (
-                  <p className="text-xs text-ink-subtle">Tidak ada foto penyerahan.</p>
-                )}
-                {/* Keputusan customer: hanya saat estimasi menunggu persetujuan */}
-                {beliPartDetail.status_transaksi === 'Menunggu Approval' ? (
-                  <div className="rounded-xl border-2 border-status-amber/50 bg-status-amber-bg/40 p-4 space-y-2.5">
-                    <p className="text-xs font-bold text-ink flex items-center gap-1.5">
-                      <AlertCircle className="w-4 h-4 text-status-amber" /> Estimasi ini menunggu persetujuan Anda
-                    </p>
-                    <p className="text-xs text-ink-muted">
-                      Setujui untuk meneruskan pesanan ke gudang, atau Tolak bila angka/jenis barang tidak sesuai.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <button
-                        type="button"
-                        disabled={approvalPartMutation.isPending}
-                        onClick={() => approvalPartMutation.mutate({ setuju: true, trx: beliPartDetail })}
-                        className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-green hover:bg-status-green/90 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-status-green/20 transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <CheckCircle2 className="w-4 h-4" /> {approvalPartMutation.isPending ? 'Mengirim...' : 'Setujui Estimasi'}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={approvalPartMutation.isPending}
-                        onClick={() => approvalPartMutation.mutate({ setuju: false, trx: beliPartDetail })}
-                        className="flex-1 min-h-[44px] py-2.5 px-4 bg-status-red hover:bg-status-red/90 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md shadow-status-red/20 transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <XCircle className="w-4 h-4" /> Tolak
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setBeliPartDetail(null)}
-                      className="px-4 py-2.5 rounded-xl border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
-                    >
-                      Tutup
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </ModalPortal>
-      )}
 
       {/* MODAL: Preview Faktur & Pembayaran */}
       {previewInvoice && (

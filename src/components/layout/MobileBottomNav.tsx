@@ -2,28 +2,15 @@ import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import {
   LayoutDashboard,
-  ShieldCheck,
-  ClipboardList,
-  Wrench,
-  ShoppingBag,
-  Truck,
-  Clock,
-  Package,
-  PackageCheck,
-  Receipt,
-  FileText,
-  Car,
   Calendar,
+  Receipt,
+  Truck,
+  FileText,
   Building2,
-  PlusCircle,
-  PackagePlus,
-  LogOut,
-  UserCheck,
+  HelpCircle,
   MoreHorizontal,
-  Settings,
   X
 } from 'lucide-react';
-import { PeranUser } from '../../types';
 
 interface NavTab {
   id: string;
@@ -31,173 +18,37 @@ interface NavTab {
   icon: any;
 }
 
-interface RoleNavConfig {
-  primary: NavTab[];
-  more: NavTab[];
-}
-
 export const MobileBottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, bumpNav, currentRole } = useAppStore();
+  const { activeTab, setActiveTab, bumpNav } = useAppStore();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // Exact menu alignment with desktop sidebar per role (Stage 9)
-  const getRoleConfig = (role: PeranUser): RoleNavConfig => {
-    switch (role) {
-      // 1. Security (6 menu: 4 di bar, 2 di "Lainnya")
-      case 'Security':
-        return {
-          primary: [
-            { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'security-checkin', label: 'Check In', icon: PlusCircle },
-            { id: 'security-booking', label: 'Booking', icon: Calendar },
-            { id: 'security-onprogress', label: 'On Progress', icon: Clock },
-          ],
-          more: [
-            { id: 'security-selesai', label: 'Telah Keluar', icon: LogOut },
-            { id: 'security-memo', label: 'Memo Keluar', icon: FileText },
-          ],
-        };
+  const primaryTabs: NavTab[] = [
+    { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'fleet-booking', label: 'Booking', icon: Calendar },
+    { id: 'fleet-history', label: 'History', icon: Receipt },
+    { id: 'fleet-kendaraan', label: 'Kendaraan', icon: Truck },
+  ];
 
-      // 2. Service Advisor (4 menu utama di bar + 1 di Lainnya)
-      case 'SA':
-        return {
-          primary: [
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'sa-list', label: 'Daftar SPK', icon: ClipboardList },
-            { id: 'sa-baru', label: 'Buat SPK', icon: PlusCircle },
-            { id: 'sa-kotak-merah', label: 'Part Indent', icon: ShoppingBag },
-          ],
-          more: [
-            { id: 'beli-part', label: 'Penjualan Part', icon: Package },
-            { id: 'sa-permintaan-part', label: 'Permintaan Part', icon: PackagePlus },
-          ],
-        };
-
-      // 3. Foreman (3 menu: pas 3 di bar, tanpa "Lainnya")
-      case 'Foreman':
-        return {
-          primary: [
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'foreman', label: 'QC & Tugas', icon: Wrench },
-            { id: 'mekanik', label: 'Live Mekanik', icon: Clock },
-          ],
-          more: [],
-        };
-
-      // 4. Mekanik (2 menu: pas 2 di bar, tanpa "Lainnya")
-      case 'Mekanik':
-        return {
-          primary: [
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'mekanik', label: 'Pekerjaan Saya', icon: Clock },
-          ],
-          more: [],
-        };
-
-      // 5. Kasir / Admin Invoice (3 menu: pas 3 di bar, tanpa "Lainnya")
-      case 'Admin Invoice':
-        return {
-          primary: [
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'kasir', label: 'Kasir & Inv', icon: Receipt },
-            { id: 'beli-part', label: 'Beli Part', icon: Package },
-          ],
-          more: [],
-        };
-
-      // 6. Admin Purchasing (2 menu: pas 2 di bar, tanpa "Lainnya")
-      case 'Admin Purchasing':
-        return {
-          primary: [
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'purchasing', label: 'PR & PO Part', icon: ShoppingBag },
-          ],
-          more: [],
-        };
-
-      // 7. PIC Terkait (2 menu: pas 2 di bar, tanpa "Lainnya")
-      case 'PIC Terkait':
-        return {
-          primary: [
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'pic-terkait', label: 'Kunjungan Tamu', icon: UserCheck },
-          ],
-          more: [],
-        };
-
-      // 8. Web Fleet / Customer Fleet (7 menu: 4 di bar, 3 di "Lainnya")
-      case 'Customer Fleet':
-        return {
-          primary: [
-            { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-            { id: 'fleet-booking', label: 'Booking', icon: Calendar },
-            { id: 'fleet-status', label: 'Status Unit', icon: Truck },
-            { id: 'fleet-history', label: 'Histori & Inv', icon: Receipt },
-          ],
-          more: [
-            { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Car },
-            { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
-            { id: 'fleet-profil', label: 'Profil Customer & Kontak', icon: Building2 },
-          ],
-        };
-
-      // Super Admin (8 menu: 4 di bar, 4 di "Lainnya")
-      case 'Super Admin':
-        return {
-          primary: [
-            { id: 'admin-panel', label: 'Admin', icon: Settings },
-            { id: 'dashboard', label: 'Monitoring', icon: LayoutDashboard },
-            { id: 'security-dashboard', label: 'Security', icon: ShieldCheck },
-            { id: 'sa', label: 'SA / SPK', icon: ClipboardList },
-          ],
-          more: [
-            { id: 'foreman', label: 'Foreman QC', icon: Wrench },
-            { id: 'purchasing', label: 'Purchasing & Part', icon: ShoppingBag },
-            { id: 'kasir', label: 'Kasir & Faktur', icon: Receipt },
-            { id: 'fleet-dashboard', label: 'Portal Kendaraan Fleet', icon: Truck },
-          ],
-        };
-
-      // Warehouse
-      case 'Warehouse':
-        return {
-          primary: [
-            { id: 'beli-part', label: 'Penjualan Part', icon: Package },
-            { id: 'beli-part-picking', label: 'Serah Part SPK', icon: PackageCheck },
-          ],
-          more: [],
-        };
-
-      default:
-        return {
-          primary: [
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          ],
-          more: [],
-        };
-    }
-  };
+  const moreTabs: NavTab[] = [
+    { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
+    { id: 'fleet-profil', label: 'Profil Perusahaan', icon: Building2 },
+    { id: 'fleet-bantuan', label: 'Bantuan (WhatsApp)', icon: HelpCircle },
+  ];
 
   const isMatchTab = (tabId: string, current: string) => {
     if (tabId === current) return true;
-    if (tabId === 'sa-list' && (current === 'sa' || current === 'sa-list')) return true;
-    if (tabId === 'sa' && (current === 'sa' || current === 'sa-list')) return true;
-    if (tabId === 'sa-baru' && (current === 'sa-penerimaan' || current === 'sa-baru')) return true;
-    if (tabId === 'sa-kotak-merah' && (current === 'sa-kotak-merah' || (currentRole === 'SA' && current === 'purchasing'))) return true;
-    if (tabId === 'foreman' && (current === 'foreman' || current === 'foreman-tugas' || current === 'foreman-cek' || current === 'foreman-qc')) return true;
-    if (tabId === 'beli-part' && current.startsWith('beli-part') && current !== 'beli-part-picking') return true;
-    if (tabId === 'admin-panel' && (current.startsWith('admin-') || current === 'pengaturan')) return true;
+    if (tabId === 'fleet-dashboard' && current === 'dashboard') return true;
     return false;
   };
 
-  const { primary: tabs, more: moreTabs } = getRoleConfig(currentRole);
   const isMoreActive = moreTabs.some((tab) => isMatchTab(tab.id, activeTab));
 
-  if (tabs.length === 0) {
-    return null;
-  }
-
   const handleNavigate = (id: string) => {
+    if (id === 'fleet-bantuan') {
+      window.open('https://wa.me/6281234567890?text=Halo%20Bengkel%20KIM3%2C%20saya%20butuh%20bantuan%20Web%20Fleet', '_blank');
+      setMoreOpen(false);
+      return;
+    }
     setActiveTab(id);
     bumpNav();
     setMoreOpen(false);
@@ -210,7 +61,7 @@ export const MobileBottomNav: React.FC = () => {
         aria-label="Navigasi Bawah Seluler"
         className="fixed bottom-0 inset-x-0 bg-surface-raised/95 backdrop-blur-md border-t border-border md:hidden z-40 px-1 py-1 safe-bottom flex items-center justify-around shadow-md font-sans"
       >
-        {tabs.map((tab) => {
+        {primaryTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = isMatchTab(tab.id, activeTab);
 
@@ -241,67 +92,60 @@ export const MobileBottomNav: React.FC = () => {
           );
         })}
 
-        {/* Slot 5: "Lainnya" Button if role has > 4 tabs */}
-        {moreTabs.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-md active:scale-95 ${
-              isMoreActive ? 'text-accent' : 'text-ink-subtle hover:text-ink'
+        {/* "Lainnya" Button */}
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-md active:scale-95 ${
+            isMoreActive ? 'text-accent' : 'text-ink-subtle hover:text-ink'
+          }`}
+        >
+          <div
+            className={`p-1.5 rounded-md transition-colors ${
+              isMoreActive ? 'bg-accent-subtle text-accent' : 'bg-transparent text-ink-subtle'
             }`}
           >
-            <div
-              className={`p-1.5 rounded-md transition-colors ${
-                isMoreActive ? 'bg-accent-subtle text-accent' : 'bg-transparent text-ink-subtle'
-              }`}
-            >
-              <MoreHorizontal className="w-5 h-5 shrink-0" />
-            </div>
-            <span
-              className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
-                isMoreActive ? 'font-bold text-accent' : 'font-medium text-ink-subtle'
-              }`}
-            >
-              Lainnya
-            </span>
-          </button>
-        )}
+            <MoreHorizontal className="w-5 h-5 shrink-0" />
+          </div>
+          <span
+            className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
+              isMoreActive ? 'font-bold text-accent' : 'font-medium text-ink-subtle'
+            }`}
+          >
+            Lainnya
+          </span>
+        </button>
       </nav>
 
       {/* "Lainnya" Menu Bottom Sheet Modal */}
       {moreOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex items-end">
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-surface-dark/50 backdrop-blur-xs transition-opacity"
             onClick={() => setMoreOpen(false)}
             aria-hidden="true"
           />
 
-          {/* Sheet Container */}
           <div className="relative w-full bg-surface-raised rounded-t-xl shadow-2xl border-t border-border max-h-[80vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] font-sans animate-in slide-in-from-bottom duration-200">
-            {/* Grab Handle */}
             <div className="pt-2.5 pb-1 flex justify-center">
               <span className="w-10 h-1 rounded-full bg-border" />
             </div>
 
-            {/* Header */}
             <div className="px-4 pb-3 pt-1 flex items-center justify-between border-b border-border">
               <div>
-                <h3 className="text-sm font-bold text-ink">Menu Lainnya</h3>
-                <p className="text-[11px] text-ink-subtle">Menu khusus {currentRole}</p>
+                <h3 className="text-sm font-bold text-ink">Menu Web Fleet Lainnya</h3>
+                <p className="text-[11px] text-ink-subtle">Akses cepat menu armada & profil</p>
               </div>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink-subtle hover:text-ink hover:bg-surface active:bg-accent-subtle transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink-subtle hover:text-ink hover:bg-surface active:bg-accent-subtle transition-colors cursor-pointer"
                 aria-label="Tutup menu lainnya"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Menu List */}
             <div className="p-3 space-y-2">
               {moreTabs.map((tab) => {
                 const Icon = tab.icon;

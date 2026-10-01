@@ -1,14 +1,4 @@
-export type PeranUser = 
-  | 'Super Admin'
-  | 'SA' 
-  | 'Foreman' 
-  | 'Mekanik' 
-  | 'Admin Purchasing' 
-  | 'Admin Invoice' 
-  | 'Security' 
-  | 'Customer Fleet'
-  | 'PIC Terkait'
-  | 'Warehouse';
+export type PeranUser = 'Customer Fleet';
 
 export interface PengaturanSistem {
   id: number;
@@ -55,8 +45,11 @@ export interface AuthUser {
   alamat?: string | null;
   npwp?: string | null;
   status_aktif?: boolean;
+  status_no_aktif?: boolean;
   no_telepon?: string | null;
   foto_profil?: string | null;
+  email_verifikasi?: boolean;
+  nomor_hp_verifikasi?: boolean;
 }
 
 export interface LoginResponse {
