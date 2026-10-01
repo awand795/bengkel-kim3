@@ -22,23 +22,17 @@ interface ToastItem {
 }
 
 export const FloatingNotificationToast: React.FC = () => {
-  const { currentRole, authUser, setActiveTab } = useAppStore();
+  const { authUser, setActiveTab } = useAppStore();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   useEffect(() => {
     const unsubscribe = realtimeHub.subscribe((event) => {
-      // Role matching check
-      const isRoleTarget =
-        event.targetRoles.includes('ALL') ||
-        event.targetRoles.includes(currentRole as NotificationRole);
-
-      if (!isRoleTarget) return;
-
-      // User-specific targeting check (e.g. specific PIC or customer)
-      if (event.targetUserEmail && authUser?.email && event.targetUserEmail.toLowerCase() !== authUser.email.toLowerCase()) {
+      // User-specific targeting check (e.g. specific customer)
+      const targetUser = event.id_pengguna ?? event.targetUserId;
+      if (targetUser && authUser?.id && targetUser !== authUser.id) {
         return;
       }
-      if (event.targetUserId && authUser?.id && event.targetUserId !== authUser.id) {
+      if (event.targetUserEmail && authUser?.email && event.targetUserEmail.toLowerCase() !== authUser.email.toLowerCase()) {
         return;
       }
 
@@ -59,7 +53,7 @@ export const FloatingNotificationToast: React.FC = () => {
     return () => {
       unsubscribe();
     };
-  }, [currentRole, authUser]);
+  }, [authUser]);
 
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

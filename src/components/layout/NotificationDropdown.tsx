@@ -50,7 +50,7 @@ function formatNotificationTime(dateStr?: string | null): string {
 
 export const NotificationDropdown: React.FC = () => {
   const queryClient = useQueryClient();
-  const { currentRole, authUser, setActiveTab, setFleetPendingPartId } = useAppStore();
+  const { authUser, setActiveTab, setFleetPendingPartId } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
   const [deleteTarget, setDeleteTarget] = useState<Notifikasi | null>(null);
@@ -123,16 +123,12 @@ export const NotificationDropdown: React.FC = () => {
   useEffect(() => {
     const unsubscribe = realtimeHub.subscribe((evt: RealtimeEvent) => {
       const myId = authUser?.id ?? null;
-      const myPelangganId = authUser?.id_pelanggan ?? null;
       let isForMe = false;
-      if (evt.targetUserId != null) {
-        isForMe = myId != null && evt.targetUserId === myId;
-      } else if (evt.targetPelangganId != null) {
-        isForMe = myPelangganId != null && evt.targetPelangganId === myPelangganId;
+      const targetUser = evt.id_pengguna ?? evt.targetUserId;
+      if (targetUser != null) {
+        isForMe = myId != null && targetUser === myId;
       } else {
-        isForMe =
-          evt.targetRoles.includes('ALL') ||
-          (currentRole != null && evt.targetRoles.includes(currentRole as any));
+        isForMe = true;
       }
 
       if (isForMe) {
@@ -144,7 +140,7 @@ export const NotificationDropdown: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [currentRole, authUser, queryClient]);
+  }, [authUser, queryClient]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -177,22 +173,14 @@ export const NotificationDropdown: React.FC = () => {
       markReadMutation.mutate(item.id);
     }
     if (item.link_tab) {
-      // Role-safe navigation: Customer Fleet can NEVER be routed to internal staff menus!
-      if (currentRole === 'Customer Fleet') {
-        // Deep-link approval part: fleet-history:part:<id> → modul + modal langsung.
-        const partLink = /^fleet-history:part:(\d+)$/.exec(item.link_tab);
-        if (partLink) {
-          setActiveTab('fleet-history');
-          setFleetPendingPartId(Number(partLink[1]));
-        } else {
-          const safeTab = item.link_tab.startsWith('fleet-') ? item.link_tab : 'fleet-status';
-          setActiveTab(safeTab);
-        }
-      } else if (currentRole === 'Security') {
-        const safeTab = item.link_tab.startsWith('security-') ? item.link_tab : 'security-dashboard';
-        setActiveTab(safeTab);
+      // Deep-link approval part: fleet-history:part:<id> → modul + modal langsung.
+      const partLink = /^fleet-history:part:(\d+)$/.exec(item.link_tab);
+      if (partLink) {
+        setActiveTab('fleet-history');
+        setFleetPendingPartId(Number(partLink[1]));
       } else {
-        setActiveTab(item.link_tab);
+        const safeTab = item.link_tab.startsWith('fleet-') ? item.link_tab : 'fleet-status';
+        setActiveTab(safeTab);
       }
     }
     setIsOpen(false);
@@ -266,7 +254,7 @@ export const NotificationDropdown: React.FC = () => {
                 )}
               </div>
               <p className="text-[11px] text-ink-subtle mt-0.5 font-medium">
-                Pusat Aktivitas • {currentRole}
+                Pusat Aktivitas &amp; Notifikasi Armada
               </p>
             </div>
 

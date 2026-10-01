@@ -398,9 +398,7 @@ export interface DashboardSummary {
 
 export interface Notifikasi {
   id: number;
-  target_role: string;
-  target_user_id?: number | null;
-  target_pelanggan_id?: number | null;
+  id_pengguna?: number | null;
   title: string;
   pesan: string;
   link_tab?: string;

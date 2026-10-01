@@ -33,11 +33,10 @@ export type EventType =
 export interface RealtimeEvent {
   id: string;
   type: EventType;
-  targetRoles: NotificationRole[];
+  targetRoles?: NotificationRole[];
   targetUserId?: number;
+  id_pengguna?: number;
   targetUserEmail?: string;
-  // Pelanggan pemilik (walk-in by plat): diteruskan ke target_pelanggan_id
-  // agar baris notif terikat tenant walau user-nya belum login.
   targetPelangganId?: number | null;
   title: string;
   message: string;
@@ -199,17 +198,13 @@ class RealtimeNotificationHub {
     // Persist to server backend database so notifications are saved permanently
     if (typeof window !== 'undefined') {
       import('../api/client').then(({ api }) => {
-        (event.targetRoles || ['ALL']).forEach((role) => {
-          api.kirimNotifikasi({
-            target_role: role,
-            target_user_id: event.targetUserId,
-            target_pelanggan_id: event.targetPelangganId ?? undefined,
-            title: event.title,
-            pesan: event.message,
-            link_tab: event.linkTab,
-            urgency: event.urgency || 'info',
-          }).catch(() => {});
-        });
+        api.kirimNotifikasi({
+          id_pengguna: event.id_pengguna ?? event.targetUserId,
+          title: event.title,
+          pesan: event.message,
+          link_tab: event.linkTab,
+          urgency: event.urgency || 'info',
+        }).catch(() => {});
       }).catch(() => {});
     }
 
