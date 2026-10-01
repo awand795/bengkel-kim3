@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { 
   LogOut, 
-  ShieldCheck, 
   ArrowLeft, 
   User, 
   X, 
@@ -15,72 +14,29 @@ import {
 import { NotificationDropdown } from './NotificationDropdown';
 import { ProfileModal } from './ProfileModal';
 import { FloatingNotificationToast } from '../common/FloatingNotificationToast';
-import { PeranUser } from '../../types';
-
-const roleDefaultTabs: Record<PeranUser, string> = {
-  'Super Admin': 'admin-panel',
-  'SA': 'dashboard',
-  'Foreman': 'dashboard',
-  'Mekanik': 'dashboard',
-  'Admin Purchasing': 'dashboard',
-  'Admin Invoice': 'dashboard',
-  'Security': 'security-dashboard',
-  'Customer Fleet': 'fleet-dashboard',
-  'PIC Terkait': 'dashboard',
-  'Warehouse': 'beli-part',
-};
 
 const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
-  'admin-panel': { title: 'Admin Panel & Sistem', subtitle: 'Super Admin' },
-  'admin-users': { title: 'Manajemen Pengguna & Role', subtitle: 'Super Admin' },
-  'admin-ppn': { title: 'Pengaturan PPN', subtitle: 'Super Admin' },
-  'admin-print': { title: 'Template Kop & Cetak', subtitle: 'Super Admin' },
-  'admin-settings': { title: 'Profil Bengkel & Rekening', subtitle: 'Super Admin' },
-  'dashboard': { title: 'Monitoring Operasional', subtitle: 'Dashboard' },
-  'security-dashboard': { title: 'Dashboard Security', subtitle: 'Pos Security' },
-  'security-checkin': { title: 'Check In Kendaraan', subtitle: 'Pos Security' },
-  'security-booking': { title: 'List Nopol Booking', subtitle: 'Pos Security' },
-  'security-onprogress': { title: 'Nopol di Bengkel', subtitle: 'Unit On Progress' },
-  'security-selesai': { title: 'Meninggalkan Bengkel', subtitle: 'Unit Keluar' },
-  'security-memo': { title: 'Memo Keluar Resmi', subtitle: 'Pos Security' },
-  'sa': { title: 'Daftar SPK Aktif', subtitle: 'Service Advisor' },
-  'sa-list': { title: 'Daftar SPK Aktif', subtitle: 'Service Advisor' },
-  'sa-baru': { title: 'Buat SPK Baru', subtitle: 'Service Advisor' },
-  'sa-penerimaan': { title: 'Buat SPK Baru', subtitle: 'Service Advisor' },
-  'sa-kotak-merah': { title: 'Part Indent (PR Part)', subtitle: 'Service Advisor' },
-  'sa-permintaan-part': { title: 'Permintaan Part', subtitle: 'Service Advisor' },
-  'foreman': { title: 'Foreman (QC & Penugasan)', subtitle: 'Workshop Control' },
-  'foreman-tugas': { title: 'Tugas Mekanik & SPK', subtitle: 'Foreman' },
-  'foreman-cek': { title: 'Input Hasil Cek Mekanik', subtitle: 'Foreman' },
-  'foreman-qc': { title: 'Quality Control (FIR)', subtitle: 'Foreman' },
-  'mekanik': { title: 'Pekerjaan Saya', subtitle: 'Mekanik Stopwatch' },
-  'purchasing': { title: 'Purchasing & Part', subtitle: 'PR, PO & Part Indent' },
-  'beli-part': { title: 'Penjualan Part Langsung', subtitle: 'Direct Sale' },
-  'beli-part-transaksi': { title: 'Daftar Transaksi Part', subtitle: 'Direct Sale' },
-  'beli-part-estimasi': { title: 'Estimasi & POS Baru', subtitle: 'Direct Sale' },
-  'beli-part-picking': { title: 'Picking & Serah Part SPK', subtitle: 'Gudang ke Mekanik + Direct Sale' },
-  'kasir': { title: 'Kasir & Faktur Tagihan', subtitle: 'Invoice & Pembayaran' },
-  'fleet-dashboard': { title: 'Portal Kendaraan Fleet', subtitle: 'Customer Fleet' },
-  'fleet-booking': { title: 'Booking Service Baru', subtitle: 'Customer Fleet' },
-  'fleet-status': { title: 'Status & Pelacakan Unit', subtitle: 'Live Tracking' },
-  'fleet-history': { title: 'Histori Servis & Invoice', subtitle: 'Riwayat Servis' },
-  'fleet-kendaraan': { title: 'Kendaraan Saya', subtitle: 'Data Kendaraan' },
-  'fleet-dokumen': { title: 'Dokumen Saya', subtitle: 'Berkas & Faktur' },
-  'fleet-profil': { title: 'Profil Customer & Kontak', subtitle: 'Data Pelanggan' },
-  'pic-terkait': { title: 'Konfirmasi Tamu (PIC)', subtitle: 'Persetujuan Tamu' },
+  'fleet-dashboard': { title: 'Dashboard', subtitle: 'Web Fleet Customer' },
+  'dashboard': { title: 'Dashboard', subtitle: 'Web Fleet Customer' },
+  'fleet-booking': { title: 'Booking Service', subtitle: 'Pemesanan Jadwal Servis' },
+  'fleet-status': { title: 'Status Service', subtitle: 'Live Tracking Perawatan' },
+  'fleet-history': { title: 'History Service', subtitle: 'Riwayat Servis Kendaraan' },
+  'fleet-kendaraan': { title: 'Kendaraan Saya', subtitle: 'Kelola Data Armada' },
+  'fleet-dokumen': { title: 'Dokumen Saya', subtitle: 'Berkas Legalitas & Faktur' },
+  'fleet-profil': { title: 'Profil Perusahaan', subtitle: 'Informasi Mitra' },
 };
 
 export const Navbar: React.FC = () => {
-  const { currentRole, currentUser, authUser, activeTab, setActiveTab, logout, theme, toggleTheme } = useAppStore();
+  const { currentUser, authUser, activeTab, setActiveTab, logout, theme, toggleTheme } = useAppStore();
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const defaultTab = roleDefaultTabs[currentRole] || 'dashboard';
-  const isRootTab = activeTab === defaultTab;
+  const defaultTab = 'fleet-dashboard';
+  const isRootTab = activeTab === defaultTab || activeTab === 'dashboard';
 
   const currentInfo = TAB_TITLES[activeTab] || {
     title: activeTab.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-    subtitle: currentRole,
+    subtitle: 'Web Fleet Customer',
   };
 
   const handleBack = () => {
@@ -89,19 +45,16 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-surface-raised border-b border-border font-sans safe-top shadow-sm">
-        {/* ======================================================== */}
-        {/* 1. MOBILE NATIVE TOP APP BAR (< 768px)                   */}
-        {/* ======================================================== */}
+      <header className="sticky top-0 z-40 bg-surface-raised border-b border-border font-sans safe-top shadow-xs">
+        {/* Mobile Header (< 768px) */}
         <div className="flex md:hidden items-center justify-between px-3 h-14">
-          {/* Left: Back button (if non-root) or Workshop brand mark */}
           <div className="flex items-center">
             {!isRootTab ? (
               <button
                 type="button"
                 onClick={handleBack}
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink hover:bg-surface active:bg-accent-subtle transition-colors"
-                aria-label="Kembali ke halaman utama role"
+                aria-label="Kembali ke Dashboard"
               >
                 <ArrowLeft className="w-5 h-5 text-ink" />
               </button>
@@ -116,17 +69,15 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Center: Slim Title & Subtitle */}
           <div className="flex-1 min-w-0 px-2 text-left">
             <h1 className="text-sm font-bold text-ink truncate leading-tight">
               {currentInfo.title}
             </h1>
             <p className="text-[10px] text-ink-subtle truncate font-medium">
-              {currentInfo.subtitle || currentRole}
+              {currentInfo.subtitle}
             </p>
           </div>
 
-          {/* Right: Theme Toggle, Notifications & User Avatar Button */}
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -161,27 +112,23 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
 
-        {/* ======================================================== */}
-        {/* 2. DESKTOP APP HEADER (>= 768px)                         */}
-        {/* ======================================================== */}
+        {/* Desktop Header (>= 768px) */}
         <div className="hidden md:flex max-w-[1600px] mx-auto px-4 lg:px-6 h-[60px] items-center justify-between gap-4">
-          {/* Brand Logo */}
+          {/* Brand Logo & Title */}
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
               alt="KIM3 Bengkel"
               className="h-9 w-auto object-contain"
             />
+            <div className="border-l border-border pl-3">
+              <span className="block text-xs font-bold text-ink leading-tight">KIM 3 WEB FLEET</span>
+              <span className="block text-[10px] text-ink-subtle">Customer Monitoring Portal</span>
+            </div>
           </div>
 
-          {/* Right Controls: Role Badge, Theme Switcher, Notifications, User Details, Logout */}
+          {/* Right Controls */}
           <div className="flex items-center gap-2.5">
-            {/* Locked Role Badge */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-accent/20 bg-accent-subtle text-accent text-xs font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{currentRole}</span>
-            </div>
-
             {/* Desktop Theme Switcher */}
             <button
               type="button"
@@ -218,17 +165,17 @@ export const Navbar: React.FC = () => {
                 </span>
                 <span className="text-left">
                   <span className="block text-xs font-bold text-ink leading-tight group-hover:text-accent transition-colors">
-                    {currentUser || 'Pengguna'}
+                    {authUser?.nama_perusahaan || currentUser || 'Mitra Customer'}
                   </span>
                   <span className="block text-[10px] text-ink-subtle font-medium">
-                    {authUser?.nama_perusahaan || currentRole}
+                    {authUser?.email || currentUser}
                   </span>
                 </span>
               </button>
               <button
                 type="button"
                 onClick={logout}
-                className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-md text-ink-subtle hover:text-status-red hover:bg-status-red-bg/70 active:bg-status-red-bg transition-colors ml-1"
+                className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-md text-ink-subtle hover:text-status-red hover:bg-status-red-bg/70 active:bg-status-red-bg transition-colors ml-1 cursor-pointer"
                 title="Keluar dari Akun (Logout)"
                 aria-label="Logout"
               >
@@ -242,41 +189,33 @@ export const Navbar: React.FC = () => {
         <FloatingNotificationToast />
       </header>
 
-      {/* ======================================================== */}
-      {/* 3. MOBILE USER PROFILE BOTTOM SHEET (< 768px)            */}
-      {/* ======================================================== */}
+      {/* Mobile User Profile Sheet */}
       {mobileProfileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex items-end">
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-surface-dark/50 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileProfileOpen(false)}
             aria-hidden="true"
           />
 
-          {/* Sheet Body */}
           <div className="relative w-full bg-surface-raised rounded-t-xl shadow-2xl border-t border-border max-h-[85vh] overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] font-sans animate-in slide-in-from-bottom duration-200">
-            {/* Grab Handle */}
             <div className="pt-2.5 pb-1 flex justify-center">
               <span className="w-10 h-1 rounded-full bg-border" />
             </div>
 
-            {/* Sheet Header */}
             <div className="px-4 pb-3 pt-1 flex items-center justify-between border-b border-border">
-              <h3 className="text-sm font-bold text-ink">Akun Pengguna</h3>
+              <h3 className="text-sm font-bold text-ink">Akun Web Fleet</h3>
               <button
                 type="button"
                 onClick={() => setMobileProfileOpen(false)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink-subtle hover:text-ink hover:bg-surface active:bg-accent-subtle transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md text-ink-subtle hover:text-ink hover:bg-surface active:bg-accent-subtle transition-colors cursor-pointer"
                 aria-label="Tutup profil"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Sheet Content */}
             <div className="p-4 space-y-4">
-              {/* User Identity Card */}
               <div className="flex items-center gap-3 p-3 bg-surface rounded-md border border-border">
                 <div className="w-12 h-12 rounded-md bg-accent text-white font-bold flex items-center justify-center text-lg shadow-xs overflow-hidden shrink-0">
                   {authUser?.foto_profil ? (
@@ -287,7 +226,7 @@ export const Navbar: React.FC = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-bold text-ink truncate">
-                    {currentUser || 'Pengguna'}
+                    {currentUser || 'Customer Fleet'}
                   </div>
                   <div className="text-xs text-ink-muted truncate flex items-center gap-1 mt-0.5">
                     <Mail className="w-3.5 h-3.5 text-ink-subtle" />
@@ -302,24 +241,14 @@ export const Navbar: React.FC = () => {
                 </div>
               </div>
 
-              {/* Role Chip */}
-              <div className="flex items-center justify-between p-3 rounded-md border border-accent/30 bg-accent-subtle">
-                <span className="text-xs font-semibold text-accent">Peran / Otoritas Akses</span>
-                <span className="px-2.5 py-0.5 rounded bg-accent text-white text-xs font-bold">
-                  {currentRole}
-                </span>
-              </div>
-
-              {/* System Note */}
               <div className="p-3 rounded-md bg-surface border border-border text-[11px] text-ink-muted space-y-1">
                 <div className="font-semibold text-ink flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-status-green" />
-                  <span>Sesi Bengkel KIM 3 Aktif</span>
+                  <span>Sesi Web Fleet Aktif</span>
                 </div>
-                <p>Navigasi dioptimalkan untuk mobile app-shell. Mode offline aktif dengan cache lokal.</p>
+                <p>Status pelacakan kendaraan dan persetujuan estimasi realtime.</p>
               </div>
 
-              {/* Theme Switcher Row */}
               <div className="flex items-center justify-between p-3 rounded-md bg-surface border border-border">
                 <div className="flex items-center gap-2">
                   {theme === 'dark' ? (
@@ -332,33 +261,31 @@ export const Navbar: React.FC = () => {
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-raised border border-border text-xs font-bold text-ink shadow-2xs active:bg-accent-subtle"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-raised border border-border text-xs font-bold text-ink shadow-2xs active:bg-accent-subtle cursor-pointer"
                 >
                   {theme === 'dark' ? 'Gelap (Dark)' : 'Terang (Light)'}
                 </button>
               </div>
 
-              {/* Edit Profil Button */}
               <button
                 type="button"
                 onClick={() => {
                   setMobileProfileOpen(false);
                   setProfileOpen(true);
                 }}
-                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-accent-subtle text-accent border border-accent/25 font-bold text-xs hover:bg-accent hover:text-white transition-colors"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-accent-subtle text-accent border border-accent/25 font-bold text-xs hover:bg-accent hover:text-white transition-colors cursor-pointer"
               >
                 <User className="w-4 h-4" />
-                <span>Edit Profil Saya</span>
+                <span>Edit Profil Perusahaan</span>
               </button>
 
-              {/* Logout Button (min 44px touch target) */}
               <button
                 type="button"
                 onClick={() => {
                   setMobileProfileOpen(false);
                   logout();
                 }}
-                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-status-red-bg text-status-red border border-status-red/25 font-bold text-xs hover:bg-status-red-bg/80 active:bg-status-red-bg transition-colors"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-status-red-bg text-status-red border border-status-red/25 font-bold text-xs hover:bg-status-red-bg/80 active:bg-status-red-bg transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Keluar dari Akun (Logout)</span>
@@ -368,7 +295,7 @@ export const Navbar: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Profil Saya (desktop & mobile) */}
+      {/* Modal Profil Saya */}
       {profileOpen && <ProfileModal onClose={() => setProfileOpen(false)} />}
     </>
   );

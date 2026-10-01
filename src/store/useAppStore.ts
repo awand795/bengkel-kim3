@@ -47,22 +47,13 @@ interface AppState {
 }
 
 const roleDefaultTabs: Record<PeranUser, string> = {
-  'Super Admin': 'admin-panel',
-  'SA': 'dashboard',
-  'Foreman': 'dashboard',
-  'Mekanik': 'dashboard',
-  'Admin Purchasing': 'dashboard',
-  'Admin Invoice': 'dashboard',
-  'Security': 'security-dashboard',
   'Customer Fleet': 'fleet-dashboard',
-  'PIC Terkait': 'dashboard',
-  'Warehouse': 'beli-part',
 };
 
 // Initial state from localStorage
 const savedToken = typeof localStorage !== 'undefined' ? localStorage.getItem('bengkel_jwt_token') : null;
 let initialUser = '';
-let initialRole: PeranUser = 'SA';
+let initialRole: PeranUser = 'Customer Fleet';
 let initialAuthUser: AuthUser | null = null;
 
 try {
@@ -71,7 +62,7 @@ try {
     const parsed = JSON.parse(savedUserJson);
     initialAuthUser = parsed;
     if (parsed.nama_lengkap) initialUser = parsed.nama_lengkap;
-    if (parsed.peran) initialRole = parsed.peran;
+    initialRole = 'Customer Fleet';
   }
 } catch (e) {
   console.error('Failed to parse saved auth user:', e);
@@ -141,8 +132,8 @@ export const useAppStore = create<AppState>((set) => ({
   setIsVerifyingSession: (verifying: boolean) => set({ isVerifyingSession: verifying }),
 
   loginUser: (user: Partial<AuthUser>, token: string, refreshToken?: string) => {
-    const role = (user.peran as PeranUser) || 'SA';
-    const defaultTab = roleDefaultTabs[role] || 'dashboard';
+    const role: PeranUser = 'Customer Fleet';
+    const defaultTab = 'fleet-dashboard';
     const fullUser = user as AuthUser;
     
     if (typeof localStorage !== 'undefined') {

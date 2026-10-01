@@ -2472,10 +2472,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <div>
               <h2 className="text-lg font-black text-ink tracking-tight flex items-center gap-2">
                 <Truck className="w-5 h-5 text-accent" />
-                <span>Daftar Unit Kendaraan Saya</span>
+                <span>Kendaraan Saya</span>
               </h2>
               <p className="text-xs text-ink-muted mt-0.5">
-                Kelola spesifikasi truk, dokumen legalitas, dan jadwalkan service berkala langsung dari dashboard fleet
+                Kelola data kendaraan perusahaan Anda.
               </p>
             </div>
             <button
@@ -2484,57 +2484,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-md shadow-accent/20 transition-all cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Tambah Unit Kendaraan</span>
+              <span>Tambah Kendaraan</span>
             </button>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="p-3.5 rounded-xl border border-border bg-surface-raised flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-accent-subtle text-accent flex items-center justify-center shrink-0">
-                <Truck className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs text-ink-muted block">Total Unit Kendaraan</span>
-                <span className="text-base font-black text-ink tabular-nums">
-                  {armadaPageData?.pagination?.total_records ?? armadaRows.length} Unit
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-border bg-surface-raised flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-status-green-bg text-status-green flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs text-ink-muted block">Siap Operasi</span>
-                <span className="text-base font-black text-status-green tabular-nums">
-                  {armadaRows.filter((k) => !isKendaraanInBengkel(k.no_polisi)).length} Unit
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl border border-border bg-surface-raised col-span-2 sm:col-span-1 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-status-amber-bg text-status-amber flex items-center justify-center shrink-0">
-                <Wrench className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs text-ink-muted block">Di Bengkel / Servis</span>
-                <span className="text-base font-black text-status-amber tabular-nums">
-                  {armadaRows.filter((k) => isKendaraanInBengkel(k.no_polisi)).length} Unit
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Pencarian kendaraan (server-side lewat parameter `q`) */}
+          {/* Pencarian kendaraan */}
           <div className="relative">
             <Search className="w-4 h-4 text-ink-subtle absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={armadaSearch}
               onChange={(e) => setArmadaSearch(e.target.value)}
-              placeholder="Cari no. polisi, merk, model, atau nomor rangka..."
+              placeholder="Cari no. polisi, merk, model..."
               aria-label="Cari kendaraan"
               className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-surface-raised text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
             />
@@ -2552,77 +2513,41 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
           {armadaRows.length > 0 ? (
             <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-3.5">
               {armadaRows.map((k) => {
                 const sedangDiBengkel = isKendaraanInBengkel(k.no_polisi);
                 return (
                   <div
                     key={k.id}
-                    className="group bg-surface-raised rounded-2xl border border-border hover:border-accent/50 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col"
+                    className="bg-surface-raised rounded-2xl border border-border p-4 sm:p-5 hover:border-accent/40 hover:shadow-xs transition-all flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-6"
                   >
-                    {/* Visual Header / Cover Image */}
-                    {k.foto_kendaraan ? (
-                      <div
-                        className="relative h-48 w-full bg-surface overflow-hidden cursor-pointer group/photo"
-                        onClick={() =>
-                          setPreviewImage({
-                            url: k.foto_kendaraan!,
-                            title: formatPlat(k.no_polisi),
-                            subtitle: `${k.merk} ${k.model} • ${k.jenis_armada || 'Truk'} (${k.tahun || '-'})`,
-                          })
-                        }
-                        title="Klik untuk memperbesar foto unit"
-                      >
-                        <img
-                          src={k.foto_kendaraan}
-                          alt={formatPlat(k.no_polisi)}
-                          className="w-full h-full object-cover group-hover/photo:scale-105 transition-transform duration-500 ease-out"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/30 pointer-events-none" />
-
-                        {/* Badge Jenis Armada (Kiri Atas) */}
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-xs">
-                          <Truck className="w-3.5 h-3.5 text-accent" />
-                          <span>{k.jenis_armada || 'Truk'}</span>
+                    {/* Left: Thumbnail & Identitas Utama */}
+                    <div className="flex items-start sm:items-center gap-4 min-w-[240px] sm:min-w-[280px]">
+                      {k.foto_kendaraan ? (
+                        <div
+                          className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-surface border border-border shrink-0 cursor-pointer group/thumb"
+                          onClick={() =>
+                            setPreviewImage({
+                              url: k.foto_kendaraan!,
+                              title: formatPlat(k.no_polisi),
+                              subtitle: `${k.merk} ${k.model} • ${k.jenis_armada || 'Truk'} (${k.tahun || '-'})`,
+                            })
+                          }
+                          title="Klik untuk memperbesar foto unit"
+                        >
+                          <img
+                            src={k.foto_kendaraan}
+                            alt={formatPlat(k.no_polisi)}
+                            className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-black/25 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                            <Maximize2 className="w-4 h-4 text-white drop-shadow-md" />
+                          </div>
                         </div>
-
-                        {/* Status Operasional (Kanan Atas) */}
-                        <div className="absolute top-3 right-3">
-                          {sedangDiBengkel ? (
-                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-status-amber text-white text-xs font-black shadow-xs animate-pulse">
-                              <Wrench className="w-3.5 h-3.5" />
-                              <span>Sedang di Bengkel</span>
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-status-green/90 backdrop-blur-xs text-white text-xs font-bold shadow-xs">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Siap Operasi</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Tombol Perbesar Foto (Kanan Bawah) */}
-                        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/25 text-white text-xs font-bold shadow-md transition-all group-hover/photo:scale-105">
-                          <Maximize2 className="w-3.5 h-3.5 text-accent" />
-                          <span>Perbesar Foto</span>
-                        </div>
-
-                        {/* Label Tahun (Kiri Bawah) */}
-                        <div className="absolute bottom-3 left-3 text-white pointer-events-none">
-                          <span className="text-xs text-white/90 font-semibold drop-shadow-xs">
-                            Tahun Perakitan {k.tahun || '-'}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="relative h-40 w-full bg-surface border-b border-border flex flex-col items-center justify-center gap-2 p-4 text-ink-subtle">
-                        <div className="w-12 h-12 rounded-2xl bg-accent-subtle text-accent flex items-center justify-center shadow-xs">
-                          <Truck className="w-6 h-6" />
-                        </div>
-                        <span className="text-xs font-semibold text-ink-muted">Belum ada foto unit</span>
-                        <button
-                          type="button"
+                      ) : (
+                        <div
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface border border-dashed border-border flex flex-col items-center justify-center gap-1 shrink-0 text-ink-subtle cursor-pointer hover:border-accent hover:text-accent transition-colors"
                           onClick={() => {
                             setEditArmadaForm({
                               jenis_armada: k.jenis_armada || 'Truk',
@@ -2637,136 +2562,122 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             });
                             setEditArmadaData(k);
                           }}
-                          className="text-xs font-bold text-accent hover:underline flex items-center gap-1 cursor-pointer"
+                          title="Pasang foto unit"
                         >
-                          <Camera className="w-3.5 h-3.5" /> Pasang Foto Sekarang
-                        </button>
-
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-raised border border-border text-ink-muted text-xs font-bold">
-                          <Truck className="w-3.5 h-3.5 text-accent" />
-                          <span>{k.jenis_armada || 'Truk'}</span>
+                          <Truck className="w-6 h-6" />
+                          <span className="text-[10px] font-bold">+ Foto</span>
                         </div>
+                      )}
 
-                        <div className="absolute top-3 right-3">
+                      <div className="min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-black text-sm tracking-wider text-ink bg-surface px-2.5 py-1 rounded-lg border border-border">
+                            {formatPlat(k.no_polisi)}
+                          </span>
                           {sedangDiBengkel ? (
-                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-status-amber text-white text-xs font-black shadow-xs animate-pulse">
-                              <Wrench className="w-3.5 h-3.5" />
-                              <span>Sedang di Bengkel</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-amber-bg text-status-amber border border-status-amber/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-status-amber animate-pulse" />
+                              Sedang di Bengkel
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-status-green-bg text-status-green border border-status-green/30 text-xs font-bold">
-                              Siap Operasi
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-green-bg text-status-green border border-status-green/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-status-green" />
+                              Aktif
                             </span>
                           )}
                         </div>
+                        <h3 className="text-sm font-bold text-ink truncate">
+                          {k.merk} {k.model}
+                        </h3>
+                        <p className="text-[11px] text-ink-muted">
+                          {k.jenis_armada || 'Truk'} • Pemilik: {k.nama_pemilik || currentUser || 'Perusahaan'}
+                        </p>
                       </div>
-                    )}
+                    </div>
 
-                    {/* Card Content Body */}
-                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                      <div>
-                        {/* License Plate & Unit Model */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="inline-flex items-center px-3 py-1 rounded-lg border-2 border-border bg-surface font-mono font-black text-sm tracking-wider text-ink shadow-2xs">
-                              <span className="w-2 h-2 rounded-full bg-accent mr-2 inline-block"></span>
-                              {formatPlat(k.no_polisi)}
-                            </div>
-                            <h3 className="text-base font-black text-ink tracking-tight mt-1.5">
-                              {k.merk} {k.model}
-                            </h3>
-                            <p className="text-xs text-ink-muted font-medium">
-                              {k.jenis_armada || 'Truk'} • Pemilik: {k.nama_pemilik || currentUser || 'Perusahaan'}
-                            </p>
-                          </div>
+                    {/* Middle: Spesifikasi Teknis Kolom */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5 text-xs py-2 sm:py-0 border-y sm:border-y-0 sm:border-l border-border/70 sm:pl-6 flex-1 min-w-0">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-ink-muted w-20 shrink-0">Jenis:</span>
+                          <span className="font-medium text-ink truncate">{k.jenis_armada || 'Truk'}</span>
                         </div>
-
-                        {/* Technical Specifications Grid */}
-                        <div className="mt-4 pt-3.5 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                          <div className="p-3 rounded-xl bg-surface border border-border space-y-1.5">
-                            <span className="text-ink-subtle font-bold flex items-center gap-1.5">
-                              <FileText className="w-3.5 h-3.5 text-accent" /> Nomor Identifikasi
-                            </span>
-                            <div>
-                              <span className="text-ink-subtle block text-xs">No. Rangka (VIN):</span>
-                              <span className="font-mono font-bold text-ink truncate block" title={k.no_rangka || '-'}>
-                                {k.no_rangka || '-'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-ink-subtle block text-xs">No. Mesin:</span>
-                              <span className="font-mono font-bold text-ink truncate block" title={k.no_mesin || '-'}>
-                                {k.no_mesin || '-'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="p-3 rounded-xl bg-surface border border-border space-y-1.5">
-                            <span className="text-ink-subtle font-bold flex items-center gap-1.5">
-                              <ShieldCheck className="w-3.5 h-3.5 text-status-green" /> Asuransi &amp; Proteksi
-                            </span>
-                            <div>
-                              <span className="text-ink-subtle block text-xs">Polis / Vendor:</span>
-                              <span className="font-bold text-ink truncate block">
-                                {k.asuransi || 'Belum Terdaftar'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-ink-subtle block text-xs">Masa Berlaku:</span>
-                              <span className="font-mono font-bold text-ink-muted block">
-                                {k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '-'}
-                              </span>
-                            </div>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-ink-muted w-20 shrink-0">Tahun:</span>
+                          <span className="font-medium text-ink truncate">{k.tahun || '-'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-ink-muted w-20 shrink-0">No. Rangka:</span>
+                          <span className="font-mono font-medium text-ink truncate" title={k.no_rangka || '-'}>
+                            {k.no_rangka || '-'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-ink-muted w-20 shrink-0">No. Mesin:</span>
+                          <span className="font-mono font-medium text-ink truncate" title={k.no_mesin || '-'}>
+                            {k.no_mesin || '-'}
+                          </span>
                         </div>
                       </div>
-
-                      {/* Action Buttons Footer */}
-                      <div className="pt-3 border-t border-border flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
-                            setFleetMenu('booking');
-                            setActiveTab('fleet-booking');
-                          }}
-                          className="flex-1 py-2.5 px-3 bg-accent hover:bg-accent-hover text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                        >
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>Jadwalkan Service</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditArmadaForm({
-                              jenis_armada: k.jenis_armada || 'Truk',
-                              merk: k.merk || '',
-                              model: k.model || '',
-                              tahun: k.tahun || new Date().getFullYear(),
-                              no_rangka: k.no_rangka || '',
-                              no_mesin: k.no_mesin || '',
-                              asuransi: k.asuransi || '',
-                              masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '',
-                              foto_kendaraan: k.foto_kendaraan || '',
-                            });
-                            setEditArmadaData(k);
-                          }}
-                          className="p-2.5 rounded-xl border border-border bg-surface hover:bg-surface-raised hover:border-accent hover:text-accent text-ink-muted transition-colors cursor-pointer"
-                          aria-label={`Edit unit ${k.no_polisi}`}
-                          title="Edit spesifikasi unit"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setHapusArmadaTarget(k)}
-                          className="p-2.5 rounded-xl border border-border bg-surface hover:bg-status-red-bg hover:border-status-red/40 hover:text-status-red text-ink-muted transition-colors cursor-pointer"
-                          aria-label={`Hapus unit ${k.no_polisi}`}
-                          title="Hapus unit kendaraan"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-ink-muted w-24 shrink-0">Asuransi:</span>
+                          <span className="font-medium text-ink truncate">{k.asuransi || '-'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-ink-muted w-24 shrink-0">Masa Berlaku:</span>
+                          <span className="font-mono font-medium text-ink truncate">
+                            {k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '-'}
+                          </span>
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Right: Action Buttons (Booking, Edit, Hapus) */}
+                    <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
+                          setFleetMenu('booking');
+                          setActiveTab('fleet-booking');
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Booking Service</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditArmadaForm({
+                            jenis_armada: k.jenis_armada || 'Truk',
+                            merk: k.merk || '',
+                            model: k.model || '',
+                            tahun: k.tahun || new Date().getFullYear(),
+                            no_rangka: k.no_rangka || '',
+                            no_mesin: k.no_mesin || '',
+                            asuransi: k.asuransi || '',
+                            masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '',
+                            foto_kendaraan: k.foto_kendaraan || '',
+                          });
+                          setEditArmadaData(k);
+                        }}
+                        className="p-2 rounded-xl border border-border bg-surface hover:bg-surface-raised hover:border-accent hover:text-accent text-ink-muted transition-colors cursor-pointer"
+                        aria-label={`Edit unit ${k.no_polisi}`}
+                        title="Edit spesifikasi unit"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHapusArmadaTarget(k)}
+                        className="p-2 rounded-xl border border-border bg-surface hover:bg-status-red-bg hover:border-status-red/40 hover:text-status-red text-ink-muted transition-colors cursor-pointer"
+                        aria-label={`Hapus unit ${k.no_polisi}`}
+                        title="Hapus unit kendaraan"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 );

@@ -273,21 +273,8 @@ export interface CustomerNotifOpts {
  * Tidak mengirim apa pun bila pemilik tak ditemukan (return false).
  */
 export const publishKeCustomer = async (opts: CustomerNotifOpts): Promise<boolean> => {
-  let userId = opts.userId;
-  let pelangganId = opts.pelangganId ?? null;
-  if ((userId == null || pelangganId == null) && opts.noPolisi) {
-    try {
-      const { api } = await import('../api/client');
-      const rows = await api.cariPemilikPlat(opts.noPolisi);
-      const r = rows[0];
-      if (r) {
-        if (userId == null && r.user_id != null) userId = r.user_id;
-        if (pelangganId == null && r.id_pelanggan != null) pelangganId = r.id_pelanggan;
-      }
-    } catch {
-      /* lookup gagal -> perlakukan sebagai tak ketemu */
-    }
-  }
+  const userId = opts.userId;
+  const pelangganId = opts.pelangganId ?? null;
   if (userId == null && pelangganId == null) return false;
   realtimeHub.publish({
     type: opts.type || 'SPK_STATUS_CHANGED',
