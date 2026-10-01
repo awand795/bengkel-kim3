@@ -26,11 +26,11 @@ export const MobileBottomNav: React.FC = () => {
     { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'fleet-booking', label: 'Booking', icon: Calendar },
     { id: 'fleet-history', label: 'History', icon: Receipt },
-    { id: 'fleet-kendaraan', label: 'Kendaraan', icon: Truck },
+    { id: 'fleet-dokumen', label: 'Dokumen', icon: FileText },
   ];
 
   const moreTabs: NavTab[] = [
-    { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
+    { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Truck },
     { id: 'fleet-profil', label: 'Profil Perusahaan', icon: Building2 },
     { id: 'fleet-bantuan', label: 'Bantuan (WhatsApp)', icon: HelpCircle },
   ];
