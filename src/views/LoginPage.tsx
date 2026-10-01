@@ -203,7 +203,7 @@ export const LoginPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* SISI KANAN: FORM LOGIN & REGISTER (Kontras Tinggi, Aksen Teal)            */}
       {/* ========================================================================= */}
-      <section className="flex-1 bg-surface flex flex-col items-center p-6 sm:p-8 lg:p-12 overflow-y-auto">
+      <section className="flex-1 bg-surface login-form-bg flex flex-col items-center p-6 sm:p-8 lg:p-12 overflow-y-auto">
         <div className="w-full max-w-[30rem] my-auto">
           
           {/* Mobile Header Branding */}
@@ -218,7 +218,8 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Card Form */}
-          <div className="bg-surface-raised border border-border rounded-2xl p-6 sm:p-9 shadow-lg shadow-slate-900/5">
+          <div className="relative overflow-hidden bg-surface-raised border border-border rounded-2xl p-6 sm:p-9 shadow-lg shadow-slate-900/5 login-reveal">
+            <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent via-teal-400 to-accent" />
             
             {/* Tab Navigasi Masuk / Daftar: Segmented Pill Switcher Modern */}
             <div className="flex p-1 bg-surface rounded-lg border border-border/70 mb-7">
@@ -367,7 +368,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={Boolean(isLoading)}
-                    className="w-full py-3 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-[15px] rounded-md shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-[15px] rounded-md shadow-md shadow-accent/25 hover:-translate-y-px active:translate-y-0 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {isLoading ? (
                       <>
@@ -568,7 +569,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={Boolean(isLoading)}
-                    className="w-full py-3 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-[15px] rounded-md shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-[15px] rounded-md shadow-md shadow-accent/25 hover:-translate-y-px active:translate-y-0 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {isLoading ? (
                       <>

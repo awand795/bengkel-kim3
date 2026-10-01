@@ -52,6 +52,7 @@ export interface AuthUser {
   foto_profil?: string | null;
   email_verifikasi?: boolean;
   nomor_hp_verifikasi?: boolean;
+  pos_verifikasi?: boolean;
 }
 
 export interface LoginResponse {

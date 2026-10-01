@@ -52,7 +52,8 @@ import {
   ArrowLeft,
   Maximize2,
   ExternalLink,
-  Layers
+  Layers,
+  AlertTriangle
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
@@ -1355,6 +1356,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const myPelangganId = authUser?.id_pelanggan || null;
   const myCompanyName = (authUser?.nama_perusahaan || authUser?.nama_lengkap || '').toLowerCase().trim();
 
+  // Status Verifikasi POS / Admin
+  const isVerifiedByAdmin = authUser?.pos_verifikasi === true;
+
   // Predikat kepemilikan kendaraan (guard tambahan di atas filter tenant SQL)
   const isMyKendaraan = (k: Kendaraan) => {
     if (myPelangganId && k.id_pelanggan === myPelangganId) return true;
@@ -1988,6 +1992,26 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   return (
     <div className="space-y-6">
       
+      {/* Alert Akun Belum Terverifikasi oleh Admin */}
+      {!isVerifiedByAdmin && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-sm text-amber-800 dark:text-amber-100">Akun Belum Terverifikasi oleh Admin</h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">Menunggu Approval POS</span>
+              </div>
+              <p className="text-xs text-amber-700/90 dark:text-amber-200/90 mt-1 leading-relaxed">
+                Akun kemitraan Anda saat ini menunggu verifikasi data oleh admin sistem POS. Anda belum dapat melakukan booking service atau menambahkan armada kendaraan baru sampai akun selesai diverifikasi oleh admin.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MENU 0: DASHBOARD RINGKASAN KENDARAAN */}
       {fleetMenu === 'dashboard' && (
         <div className="space-y-6">
@@ -2006,11 +2030,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <div className="flex flex-wrap gap-2 shrink-0">
               <button
                 type="button"
+                disabled={!isVerifiedByAdmin}
                 onClick={() => {
+                  if (!isVerifiedByAdmin) {
+                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                    return;
+                  }
                   setFleetMenu('booking');
                   setActiveTab('fleet-booking');
                 }}
-                className="px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2"
+                className={`px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 ${
+                  !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
+                title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
               >
                 <Plus className="w-4 h-4" /> Booking Service
               </button>
@@ -2082,11 +2114,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
             <button
               type="button"
+              disabled={!isVerifiedByAdmin}
               onClick={() => {
+                if (!isVerifiedByAdmin) {
+                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                  return;
+                }
                 setBookingStep(1);
                 setOpenBookingModal(true);
               }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 ${
+                !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
+              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
             >
               <Plus className="w-4 h-4" />
               <span>Jadwalkan Service Baru</span>
@@ -2139,13 +2179,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 icon={Calendar}
                 title="Belum Ada Booking Aktif"
                 description="Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3."
-                action={{
+                action={isVerifiedByAdmin ? {
                   label: '+ Buat Booking Baru',
                   onClick: () => {
                     setBookingStep(1);
                     setOpenBookingModal(true);
                   },
-                }}
+                } : undefined}
               />
             )}
             <p className="text-xs text-ink-subtle">
@@ -2219,8 +2259,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <span className="text-xs font-bold text-ink">Pilih kendaraan yang akan diservice:</span>
                         <button
                           type="button"
-                          onClick={() => setOpenTambahArmadaModal(true)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-subtle hover:bg-accent-subtle text-accent text-xs font-bold rounded-xl border border-accent/30 transition cursor-pointer shrink-0"
+                          disabled={!isVerifiedByAdmin}
+                          onClick={() => {
+                            if (!isVerifiedByAdmin) {
+                              toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                              return;
+                            }
+                            setOpenTambahArmadaModal(true);
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-subtle hover:bg-accent-subtle text-accent text-xs font-bold rounded-xl border border-accent/30 transition shrink-0 ${
+                            !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
+                          title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Tambah Kendaraan</span>
@@ -2563,8 +2613,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
             <button
               type="button"
-              onClick={() => setOpenTambahArmadaModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-md shadow-accent/20 transition-all cursor-pointer shrink-0"
+              disabled={!isVerifiedByAdmin}
+              onClick={() => {
+                if (!isVerifiedByAdmin) {
+                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                  return;
+                }
+                setOpenTambahArmadaModal(true);
+              }}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-md shadow-accent/20 transition-all shrink-0 ${
+                !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
+              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Kendaraan</span>
@@ -2720,12 +2780,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0">
                       <button
                         type="button"
+                        disabled={!isVerifiedByAdmin}
                         onClick={() => {
+                          if (!isVerifiedByAdmin) {
+                            toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                            return;
+                          }
                           setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
                           setFleetMenu('booking');
                           setActiveTab('fleet-booking');
                         }}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors ${
+                          !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
+                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
                       >
                         <Calendar className="w-3.5 h-3.5" />
                         <span>Booking Service</span>
@@ -3065,10 +3133,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   )}
                 </div>
                 <div>
-                  <span className="text-ink-subtle block text-xs">Status Akun:</span>
-                  <span className={(authUser?.status_no_aktif === true || authUser?.status_aktif === false) ? 'font-semibold text-rose-500' : 'font-semibold text-status-green'}>
-                    {(authUser?.status_no_aktif === true || authUser?.status_aktif === false) ? 'Non-Aktif' : 'Aktif Terverifikasi'}
-                  </span>
+                  <span className="text-ink-subtle block text-xs">Status Verifikasi Admin:</span>
+                  {isVerifiedByAdmin ? (
+                    <span className="font-semibold text-status-green inline-flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Terverifikasi oleh Admin
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-amber-600 inline-flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Belum Terverifikasi oleh Admin
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

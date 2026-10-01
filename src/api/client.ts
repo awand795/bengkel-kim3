@@ -376,6 +376,7 @@ export const api = {
       npwp: (data as any).npwp ?? null,
       no_telepon: (data as any).no_telepon ?? null,
       foto_profil: (data as any).foto_profil ?? null,
+      pos_verifikasi: (data as any).pos_verifikasi === true,
     };
   },
 

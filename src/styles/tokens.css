@@ -255,12 +255,11 @@ html.dark,
 
 /* Panel workshop kiri: gradasi petrol teal klasik (Stage 8) */
 .login-legacy-theme .bg-workshop-pattern {
-  background-color: #08282E;
+  background-color: #061F24;
   background-image:
-    radial-gradient(circle at 12% 8%, rgba(15, 102, 116, 0.55) 0%, transparent 42%),
-    radial-gradient(circle at 88% 95%, rgba(15, 102, 116, 0.35) 0%, transparent 50%),
-    linear-gradient(155deg, #0A2126 0%, #0D3038 45%, #061F24 100%),
-    linear-gradient(rgba(20, 184, 166, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(20, 184, 166, 0.04) 1px, transparent 1px);
-  background-size: auto, auto, auto, 40px 40px, 40px 40px;
+    radial-gradient(60% 50% at 10% 0%, rgba(45, 212, 191, 0.22) 0%, transparent 70%),
+    radial-gradient(55% 55% at 95% 100%, rgba(15, 102, 116, 0.55) 0%, transparent 70%),
+    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1.3px),
+    linear-gradient(160deg, #0A2A31 0%, #082329 55%, #051A1F 100%);
+  background-size: auto, auto, 22px 22px, auto;
 }
