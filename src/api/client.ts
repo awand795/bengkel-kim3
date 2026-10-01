@@ -388,11 +388,12 @@ export const api = {
     return res.data;
   },
 
-  // Pengaturan Sistem & PPN (Read-only untuk faktur & kop)
-  getPengaturan: async (): Promise<PengaturanSistem> => {
-    const res = await apiClient.get<PengaturanSistem[]>('/kim3/pengaturan');
-    return res.data[0] || ({} as PengaturanSistem);
-  },
+  // Pengaturan Sistem & PPN (Default klien)
+  getPengaturan: async (): Promise<PengaturanSistem> => ({
+    id: 1,
+    nama_bengkel: 'PT LOTUS PRADIPTA MULIA',
+    ppn_persen: 11,
+  }),
 
   // Notifikasi
   getNotifikasi: async (): Promise<Notifikasi[]> =>
