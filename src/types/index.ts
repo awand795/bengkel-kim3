@@ -26,6 +26,7 @@ export interface PengaturanSistem {
 export interface Pengguna {
   id: number;
   nama_lengkap: string;
+  nama_pic?: string | null;
   peran: PeranUser;
   no_telepon?: string;
   email: string;
@@ -37,6 +38,7 @@ export interface Pengguna {
 export interface AuthUser {
   id: number;
   nama_lengkap: string;
+  nama_pic?: string | null;
   peran: PeranUser;
   role?: string;
   email: string;

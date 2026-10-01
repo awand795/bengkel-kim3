@@ -320,6 +320,7 @@ export const api = {
     email: string;
     password: string;
     nama_lengkap: string;
+    nama_pic?: string;
     nama_perusahaan?: string;
     no_telepon?: string;
     peran?: string;
@@ -365,11 +366,12 @@ export const api = {
       id: data.id,
       email: data.email,
       nama_lengkap: data.nama_lengkap,
+      nama_pic: (data as any).nama_pic ?? null,
       peran: 'Customer Fleet',
       role: 'Customer_Fleet',
       status_aktif: data.status_aktif !== false,
       id_pelanggan: data.id_pelanggan,
-      nama_perusahaan: data.nama_perusahaan ?? null,
+      nama_perusahaan: data.nama_perusahaan ?? data.nama_lengkap,
       alamat: (data as any).alamat ?? null,
       npwp: (data as any).npwp ?? null,
       no_telepon: (data as any).no_telepon ?? null,
@@ -378,7 +380,7 @@ export const api = {
   },
 
   // Profil Perusahaan & Akun
-  updateProfil: async (data: { nama_lengkap: string; nama_perusahaan?: string; alamat?: string; npwp?: string; no_telepon?: string; foto_profil?: string }): Promise<any> => {
+  updateProfil: async (data: { nama_lengkap: string; nama_pic?: string; nama_perusahaan?: string; alamat?: string; npwp?: string; no_telepon?: string; foto_profil?: string }): Promise<any> => {
     const res = await apiClient.post('/kim3/profil-simpan', data);
     return res.data;
   },

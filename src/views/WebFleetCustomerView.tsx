@@ -1320,17 +1320,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Profil Customer & Kontak: form editable (tersimpan di tabel pengguna via /kim3/profil-simpan)
   const [profilEditing, setProfilEditing] = useState(false);
   const [profilForm, setProfilForm] = useState({
-    nama_perusahaan: authUser?.nama_perusahaan || '',
+    nama_perusahaan: authUser?.nama_lengkap || '',
     alamat: authUser?.alamat || '',
     npwp: authUser?.npwp || '',
     no_telepon: authUser?.no_telepon || '',
-    nama_pic: authUser?.nama_lengkap || '',
+    nama_pic: authUser?.nama_pic || '',
   });
   const simpanProfilMutation = useMutation({
     mutationFn: () =>
       api.updateProfil({
-        nama_lengkap: profilForm.nama_pic.trim() || authUser?.nama_lengkap || '',
-        nama_perusahaan: profilForm.nama_perusahaan.trim(),
+        nama_lengkap: (profilForm.nama_perusahaan.trim() || authUser?.nama_lengkap || '').trim(),
+        nama_pic: profilForm.nama_pic.trim(),
         alamat: profilForm.alamat.trim(),
         npwp: profilForm.npwp.trim(),
         no_telepon: profilForm.no_telepon.trim(),
@@ -3001,11 +3001,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 type="button"
                 onClick={() => {
                   setProfilForm({
-                    nama_perusahaan: authUser?.nama_perusahaan || '',
+                    nama_perusahaan: authUser?.nama_lengkap || '',
                     alamat: authUser?.alamat || '',
                     npwp: authUser?.npwp || '',
                     no_telepon: authUser?.no_telepon || '',
-                    nama_pic: authUser?.nama_lengkap || '',
+                    nama_pic: authUser?.nama_pic || '',
                   });
                   setProfilEditing(true);
                 }}
@@ -3086,7 +3086,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       className="w-full px-3 py-2 bg-surface-raised border border-border rounded-xl text-xs text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition"
                     />
                   ) : (
-                    <span className="font-bold text-ink">{authUser?.nama_lengkap || currentUser || '-'}</span>
+                    <span className="font-bold text-ink">{authUser?.nama_pic || '-'}</span>
                   )}
                 </div>
                 <div>
@@ -3126,7 +3126,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </button>
               <button
                 type="button"
-                disabled={simpanProfilMutation.isPending || !profilForm.nama_pic.trim()}
+                disabled={simpanProfilMutation.isPending || !profilForm.nama_perusahaan.trim()}
                 onClick={() => simpanProfilMutation.mutate()}
                 className="min-h-[40px] px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
               >

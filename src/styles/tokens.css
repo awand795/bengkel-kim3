@@ -260,7 +260,7 @@ html.dark,
     radial-gradient(circle at 12% 8%, rgba(15, 102, 116, 0.55) 0%, transparent 42%),
     radial-gradient(circle at 88% 95%, rgba(15, 102, 116, 0.35) 0%, transparent 50%),
     linear-gradient(155deg, #0A2126 0%, #0D3038 45%, #061F24 100%),
-    linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(20, 184, 166, 0.08) 1px, transparent 1px);
-  background-size: auto, auto, auto, 32px 32px, 32px 32px;
+    linear-gradient(rgba(20, 184, 166, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.04) 1px, transparent 1px);
+  background-size: auto, auto, auto, 40px 40px, 40px 40px;
 }
