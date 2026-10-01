@@ -2046,12 +2046,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   setFleetMenu('booking');
                   setActiveTab('fleet-booking');
                 }}
-                className={`px-4 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-[#0F172A] text-xs font-bold rounded-xl transition-all shadow-[0_4px_12px_rgba(0,0,0,0.18)] flex items-center gap-2 ${
+                className={`px-4 py-2.5 bg-white hover:bg-[#EFF6FF] active:bg-[#DBEAFE] text-[#1D4ED8] text-xs font-semibold rounded-xl border-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-[1px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-[#2563EB] flex items-center gap-2 ${
                   !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
                 title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
               >
-                <Plus className="w-4 h-4" /> Booking Service
+                <Plus className="w-4 h-4 text-[#1D4ED8]" /> Booking Service
               </button>
             </div>
           </div>
@@ -2797,7 +2797,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           setFleetMenu('booking');
                           setActiveTab('fleet-booking');
                         }}
-                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition-colors ${
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs font-bold rounded-xl shadow-xs transition-colors ${
                           !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                         }`}
                         title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
