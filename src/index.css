@@ -164,28 +164,54 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   .app-modal-in,
   .app-page-transition,
   .animate-engine-start,
+  .login-aurora-a,
+  .login-aurora-b,
+  .login-wheel,
   .login-reveal,
-  .login-wheel {
+  .login-pop,
+  .login-accent-line,
+  .login-form-swap,
+  .login-btn::after {
     animation: none !important;
+    transition: none !important;
     transform: none !important;
+  }
+  .login-title-sheen {
+    animation: none !important;
+    background-position: 0 0;
   }
 }
 
-/* Login: latar tipis sisi kanan + animasi reveal/roda (mati via prefers-reduced-motion) */
+/* Kelas animasi & utilitas login legacy scoped */
+.login-legacy-theme {
+  .login-aurora-a,
+  .login-aurora-b,
+  .login-wheel,
+  .login-reveal,
+  .login-pop,
+  .login-accent-line,
+  .login-form-swap,
+  .login-btn::after {
+    will-change: transform, opacity;
+  }
+}
+
 .login-legacy-theme .login-form-bg {
+  background-color: var(--lg-right-bg);
   background-image:
-    radial-gradient(50% 40% at 85% 5%, rgba(15, 102, 116, 0.10) 0%, transparent 70%),
-    radial-gradient(rgba(15, 102, 116, 0.12) 1px, transparent 1.3px);
+    radial-gradient(55% 45% at 100% 0%, rgb(var(--lg-blue-glow-rgb) / 0.05) 0%, transparent 70%),
+    radial-gradient(rgb(30 64 175 / 0.06) 1px, transparent 1.3px);
   background-size: auto, 24px 24px;
+  box-shadow: inset 18px 0 30px -20px rgba(13, 17, 23, 0.30);
 }
 
 @keyframes login-fade-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
 }
 
 .login-reveal {
-  animation: login-fade-up 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: login-fade-up 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes login-wheel-spin {
@@ -193,7 +219,180 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 .login-wheel {
+  color: #2563EB;
+  transform-origin: 200px 200px;
   animation: login-wheel-spin 90s linear infinite;
+}
+
+.login-aurora-a {
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.08), transparent 70%);
+  filter: blur(50px);
+  animation: login-drift-a 18s ease-in-out infinite alternate;
+}
+
+.login-aurora-b {
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.07), transparent 70%);
+  filter: blur(56px);
+  animation: login-drift-b 22s ease-in-out infinite alternate;
+}
+
+@keyframes login-drift-a {
+  to { transform: translate3d(70px, -40px, 0) scale(1.18); }
+}
+
+@keyframes login-drift-b {
+  to { transform: translate3d(-60px, -50px, 0) scale(1.12); }
+}
+
+.login-title-sheen {
+  background: linear-gradient(110deg, var(--lg-p-title) 0%, var(--lg-p-title) 42%, #2563EB 50%, var(--lg-p-title) 58%, var(--lg-p-title) 100%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: login-sheen 8s ease-in-out infinite;
+  letter-spacing: -0.02em;
+}
+
+@keyframes login-sheen {
+  0% { background-position: 130% 0; }
+  60%, 100% { background-position: -30% 0; }
+}
+
+.login-accent-line {
+  height: 3px;
+  width: 48px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #2563EB, #60A5FA);
+  margin-bottom: 16px;
+  animation: login-line-grow 700ms 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes login-line-grow {
+  from { width: 0; }
+}
+
+@keyframes login-pop {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: none; }
+}
+
+.login-pop {
+  animation: login-pop 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes login-swap {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.login-form-swap {
+  animation: login-swap 260ms ease-out both;
+}
+
+.login-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  transform: translateX(-120%);
+}
+
+.login-btn:hover:not(:disabled)::after {
+  transform: translateX(120%);
+  transition: transform 700ms ease;
+}
+
+/* Tombol login aksen biru */
+.login-legacy-theme .login-btn {
+  background-image: linear-gradient(180deg, var(--lg-btn-top) 0%, var(--color-accent) 100%);
+  box-shadow: 0 6px 16px rgb(var(--lg-brand-rgb) / 0.30);
+  color: #FFFFFF;
+}
+
+.login-legacy-theme .login-btn:hover:not(:disabled) {
+  background-image: linear-gradient(180deg, var(--lg-btn-hover-top) 0%, var(--color-accent-hover) 100%);
+}
+
+/* Kelas warna semantik panel login (sumber: palet --lg-*) */
+.lg-text-bright { 
+  color: var(--lg-p-accent-text); 
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.lg-dot-warm { 
+  background: var(--lg-p-accent); 
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.40);
+}
+
+.lg-icon-box {
+  background: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  color: var(--lg-p-accent);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.05);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.group:hover .lg-icon-box {
+  background: var(--lg-p-accent);
+  border-color: #1D4ED8;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.30);
+  transform: translateY(-1px);
+}
+
+.lg-chip {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #334155;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  font-weight: 500;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, transform 0.2s, color 0.2s;
+}
+
+.lg-chip:hover {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+  color: #1D4ED8;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px -2px rgba(37, 99, 235, 0.18);
+}
+
+.lg-edge-light {
+  background-image: linear-gradient(to bottom, transparent, rgba(148, 163, 184, 0.30), transparent);
+}
+
+/* Teks panel kiri terang */
+.lg-p-title { color: var(--lg-p-title); }
+
+.lg-p-text { color: var(--lg-p-text); }
+
+.lg-p-muted { color: var(--lg-p-muted); }
+
+.lg-p-dl {
+  border-top: 1px solid var(--lg-p-line);
+  border-bottom: 1px solid var(--lg-p-line);
+}
+
+.lg-p-dl > * + * {
+  border-top: 1px solid var(--lg-p-line);
+}
+
+/* Seleksi teks panel kiri login: biru aksen, selaras palet panel terang */
+.login-legacy-theme .bg-workshop-pattern ::selection,
+.login-legacy-theme .bg-surface-dark ::selection {
+  background-color: rgb(var(--lg-p-accent-rgb) / 0.25);
+  color: #0F1F3D;
+}
+
+.login-legacy-theme .bg-workshop-pattern ::-moz-selection,
+.login-legacy-theme .bg-surface-dark ::-moz-selection {
+  background-color: rgb(var(--lg-p-accent-rgb) / 0.25);
+  color: #0F1F3D;
 }
 
 /* ============================================================ */

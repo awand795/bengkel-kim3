@@ -223,21 +223,21 @@ html.dark,
    Aktifkan dengan menambahkan class "login-legacy-theme" di root halaman.
    ========================================================================== */
 .login-legacy-theme {
-  --color-ink: #1B2126;
-  --color-ink-muted: #525C65;
-  --color-ink-subtle: #79838C;
+  --color-ink: #0F172A;
+  --color-ink-muted: #475569;
+  --color-ink-subtle: #7C8AA0;
 
-  --color-surface: #F2F4F5;
+  --color-surface: #F1F5F9;
   --color-surface-raised: #FFFFFF;
-  --color-surface-dark: #08282E;
+  --color-surface-dark: #070D1F;
 
-  --color-accent: #0F6674;
-  --color-accent-hover: #0B525E;
-  --color-accent-active: #083E47;
-  --color-accent-subtle: #E6F3F5;
+  --color-accent: #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-accent-active: #1E40AF;
+  --color-accent-subtle: #EFF6FF;
 
-  --color-border: #D8DCDF;
-  --color-border-dark: #124B53;
+  --color-border: #D9E0EA;
+  --color-border-dark: #E2E8F0;
 
   --color-status-green: #16A34A;
   --color-status-green-bg: #DCFCE7;
@@ -251,15 +251,40 @@ html.dark,
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+
+  --lg-deep: #070D1F;
+  --lg-base: #0C1A3D;
+  --lg-mid: #10234D;
+  --lg-bright: #60A5FA;
+  --lg-warm: #60A5FA;
+  --lg-glow-rgb: 96 165 250;
+  --lg-bright-rgb: 96 165 250;
+  --lg-warm-rgb: 96 165 250;
+  --lg-brand-rgb: 30 64 175;
+  --lg-btn-top: #2F6BEA;
+  --lg-btn-hover-top: #4A82F3;
+  --lg-right-bg: #F8FAFC;
+  --lg-blue-glow-rgb: 37 99 235;
+  --lg-sky-rgb: 56 189 248;
+  --lg-bar-end: #93C5FD;
+
+  /* Variabel khusus panel kiri (Harmonis, Tenang & Enak Dipandang): */
+  --lg-p-title: #0F172A;
+  --lg-p-text: #475569;
+  --lg-p-muted: #64748B;
+  --lg-p-line: rgba(226, 232, 240, 0.85);
+  --lg-p-accent: #2563EB;
+  --lg-p-accent-text: #2563EB;
+  --lg-p-accent-rgb: 37 99 235;
 }
 
-/* Panel workshop kiri: gradasi petrol teal klasik (Stage 8) */
+/* Panel workshop kiri: latar bernuansa lembut, elegan & enak dipandang */
 .login-legacy-theme .bg-workshop-pattern {
-  background-color: #061F24;
+  background-color: #F4F7FB;
   background-image:
-    radial-gradient(60% 50% at 10% 0%, rgba(45, 212, 191, 0.22) 0%, transparent 70%),
-    radial-gradient(55% 55% at 95% 100%, rgba(15, 102, 116, 0.55) 0%, transparent 70%),
-    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1.3px),
-    linear-gradient(160deg, #0A2A31 0%, #082329 55%, #051A1F 100%);
-  background-size: auto, auto, 22px 22px, auto;
+    radial-gradient(60% 50% at 20% 15%, rgba(219, 234, 254, 0.60) 0%, transparent 75%),
+    radial-gradient(50% 50% at 85% 85%, rgba(224, 231, 255, 0.45) 0%, transparent 70%),
+    radial-gradient(rgba(100, 116, 139, 0.11) 1px, transparent 1px),
+    linear-gradient(160deg, #F8FAFD 0%, #F1F5F9 50%, #E8EEF5 100%);
+  background-size: auto, auto, 20px 20px, auto;
 }
