@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, normalizePlat, formatPlat, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -1189,6 +1189,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [bookingStep, setBookingStep] = useState<number>(1);
   const [isCustomService, setIsCustomService] = useState(false);
   const [customServiceText, setCustomServiceText] = useState('');
+  const [bookingKendaraanSearch, setBookingKendaraanSearch] = useState('');
+  const [bookingKendaraanPage, setBookingKendaraanPage] = useState(1);
+  const [bookingKendaraanLimit, setBookingKendaraanLimit] = useState(5);
   const [bookingForm, setBookingForm] = useState({
     no_polisi: '',
     jenis_layanan: 'Service Berkala (Ganti Oli & Filter)',
@@ -1373,6 +1376,37 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Himpunan plat nomor kendaraan kendaraan customer
   const myPlateSet = new Set(myKendaraanList.map((k) => k.no_polisi.toUpperCase().replace(/\s+/g, '')));
+
+  // Pilihan kendaraan di modal booking (Step 1): filter by plat nomor, merk, model + pagination
+  const filteredBookingKendaraanList = useMemo(() => {
+    const q = bookingKendaraanSearch.trim().toLowerCase().replace(/\s+/g, '');
+    if (!q) return myKendaraanList;
+    return myKendaraanList.filter((k) => {
+      const plat = (k.no_polisi || '').toLowerCase().replace(/\s+/g, '');
+      const merk = (k.merk || '').toLowerCase();
+      const model = (k.model || '').toLowerCase();
+      return plat.includes(q) || merk.includes(q) || model.includes(q);
+    });
+  }, [myKendaraanList, bookingKendaraanSearch]);
+
+  const bookingKendaraanTotalPages = Math.max(1, Math.ceil(filteredBookingKendaraanList.length / bookingKendaraanLimit));
+  const bookingKendaraanSafePage = Math.min(bookingKendaraanPage, bookingKendaraanTotalPages);
+  const bookingKendaraanPaginated = filteredBookingKendaraanList.slice(
+    (bookingKendaraanSafePage - 1) * bookingKendaraanLimit,
+    bookingKendaraanSafePage * bookingKendaraanLimit
+  );
+
+  // Otomatis sinkronkan halaman kendaraan di modal booking saat unit tertentu dipilih
+  React.useEffect(() => {
+    if (openBookingModal && bookingForm.no_polisi) {
+      const idx = filteredBookingKendaraanList.findIndex(
+        (k) => normalizePlat(k.no_polisi) === normalizePlat(bookingForm.no_polisi)
+      );
+      if (idx !== -1) {
+        setBookingKendaraanPage(Math.floor(idx / bookingKendaraanLimit) + 1);
+      }
+    }
+  }, [openBookingModal, bookingForm.no_polisi, bookingKendaraanLimit, filteredBookingKendaraanList]);
 
   // Filter SPK khusus kendaraan customer yang sedang login
   const isMySpk = (s: SpkService) => {
@@ -2195,20 +2229,50 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   isValid: !!bookingForm.no_polisi && myKendaraanList.length > 0,
                   content: (
                     <div className="space-y-3.5">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <span className="text-xs font-bold text-ink">Pilih kendaraan yang akan diservice:</span>
                         <button
                           type="button"
                           onClick={() => setOpenTambahArmadaModal(true)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-subtle hover:bg-accent-subtle text-accent text-xs font-bold rounded-xl border border-accent/30 transition cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-subtle hover:bg-accent-subtle text-accent text-xs font-bold rounded-xl border border-accent/30 transition cursor-pointer shrink-0"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Tambah Kendaraan</span>
                         </button>
                       </div>
+
+                      {/* Pencarian Plat Nomor / Model Kendaraan */}
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={bookingKendaraanSearch}
+                          onChange={(e) => {
+                            setBookingKendaraanSearch(e.target.value);
+                            setBookingKendaraanPage(1);
+                          }}
+                          placeholder="Cari no. polisi / plat kendaraan..."
+                          aria-label="Cari plat nomor kendaraan"
+                          className="w-full pl-9 pr-9 py-2 rounded-xl border border-border bg-surface text-xs text-ink placeholder:text-ink-subtle focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        />
+                        {bookingKendaraanSearch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBookingKendaraanSearch('');
+                              setBookingKendaraanPage(1);
+                            }}
+                            aria-label="Bersihkan pencarian"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface-raised transition cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
                       <div className="space-y-2.5">
-                        {myKendaraanList.length > 0 ? (
-                          myKendaraanList.map((k) => {
+                        {filteredBookingKendaraanList.length > 0 ? (
+                          bookingKendaraanPaginated.map((k) => {
                             const isSelected = bookingForm.no_polisi === k.no_polisi;
                             return (
                               <label
@@ -2268,6 +2332,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               </label>
                             );
                           })
+                        ) : myKendaraanList.length > 0 ? (
+                          <div className="p-6 text-center border border-dashed border-border rounded-xl bg-surface space-y-2">
+                            <p className="text-xs text-ink-muted font-medium">
+                              Tidak ada kendaraan dengan plat nomor atau nama <span className="font-semibold text-ink">"{bookingKendaraanSearch}"</span>.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBookingKendaraanSearch('');
+                                setBookingKendaraanPage(1);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-subtle text-accent text-xs font-bold rounded-xl transition cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" /> Bersihkan Pencarian
+                            </button>
+                          </div>
                         ) : (
                           <div className="p-6 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-2">
                             <p className="text-xs text-ink-muted font-medium">Belum ada kendaraan terdaftar untuk akun fleet Anda.</p>
@@ -2281,6 +2361,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </div>
                         )}
                       </div>
+
+                      {/* Pagination Bar untuk Pilihan Kendaraan */}
+                      {filteredBookingKendaraanList.length > 0 && (
+                        <PaginationBar
+                          page={bookingKendaraanSafePage}
+                          totalPages={bookingKendaraanTotalPages}
+                          totalRecords={filteredBookingKendaraanList.length}
+                          limit={bookingKendaraanLimit}
+                          limitOptions={[5, 10, 20]}
+                          label="kendaraan"
+                          onPageChange={setBookingKendaraanPage}
+                          onLimitChange={(l) => {
+                            setBookingKendaraanLimit(l);
+                            setBookingKendaraanPage(1);
+                          }}
+                        />
+                      )}
                     </div>
                   ),
                 },
