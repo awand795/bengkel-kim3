@@ -227,11 +227,14 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <div className="max-w-lg">
-            <h1 className="text-xl xl:text-2xl font-bold tracking-tight text-white leading-snug">
-              Web Fleet
+            <h1 className="text-xl xl:text-2xl font-black tracking-tight text-white leading-snug uppercase">
+              PT LOTUS PRADIPTA MULIA
             </h1>
-            <p className="mt-1 text-xs text-slate-300 leading-relaxed font-normal">
-              Portal terintegrasi pemantauan perawatan kendaraan operasional, tata kelola bengkel, dan pasokan komponen resmi PT Lotus Pradipta Mulia.
+            <p className="mt-1 text-xs text-teal-300 font-semibold leading-relaxed">
+              Distributor Resmi Nasional Suku Cadang &amp; Pelumas Otomotif
+            </p>
+            <p className="mt-1 text-[11px] text-slate-300 leading-relaxed font-normal">
+              Portal terintegrasi pemantauan perawatan kendaraan operasional (Web Fleet), tata kelola bengkel, dan pasokan komponen resmi standar OEM.
             </p>
           </div>
 
