@@ -1225,6 +1225,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [historyLimit, setHistoryLimit] = useState(10);
   const [historySearch, setHistorySearch] = useState('');
   const [historyQuery, setHistoryQuery] = useState('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<'semua' | 'sedang-diservis' | 'selesai'>('semua');
   // Modal preview faktur + cetak struk (History)
   const [previewInvoice, setPreviewInvoice] = useState<InvoicePembayaran | null>(null);
   const [showPrintInvoice, setShowPrintInvoice] = useState(false);
@@ -1398,7 +1399,38 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Server sudah memfilter per tenant di SQL, guard di sini hanya jaring pengaman
   // agar data mitra lain tidak pernah ikut tampil.
   const armadaRows = (armadaPageData?.rows || []).filter((k) => isMyKendaraan(k));
-  const historyRows = (historyPageData?.rows || []).filter((s) => isMySpk(s));
+
+  // Filter SPK riwayat berdasarkan status pengerjaan (Sedang Diservis vs Selesai) & kata kunci pencarian
+  const historyFiltered = React.useMemo(() => {
+    let list = mySpkList;
+    if (historyStatusFilter === 'sedang-diservis') {
+      list = list.filter((s) => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed');
+    } else if (historyStatusFilter === 'selesai') {
+      list = list.filter((s) => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed');
+    }
+
+    const q = historySearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter((s) =>
+        (s.no_spk && s.no_spk.toLowerCase().includes(q)) ||
+        (s.no_polisi && s.no_polisi.toLowerCase().includes(q)) ||
+        (s.keluhan_customer && s.keluhan_customer.toLowerCase().includes(q)) ||
+        (s.status_spk && s.status_spk.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [mySpkList, historyStatusFilter, historySearch]);
+
+  const historyTotalPages = Math.max(1, Math.ceil(historyFiltered.length / historyLimit));
+  const historySafePage = Math.min(historyPage, historyTotalPages);
+  const historyRows = historyFiltered.slice(
+    (historySafePage - 1) * historyLimit,
+    historySafePage * historyLimit
+  );
+
+  React.useEffect(() => {
+    setHistoryPage(1);
+  }, [historyStatusFilter, historySearch, historyLimit]);
 
   // Deep-link approval realtime SPK: buka detail saat link settle
   React.useEffect(() => {
@@ -1427,13 +1459,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       setArmadaPage(meta.total_pages);
     }
   }, [armadaPageData, armadaPage]);
-
-  React.useEffect(() => {
-    const meta = historyPageData?.pagination;
-    if (meta && meta.total_pages > 0 && historyPage > meta.total_pages) {
-      setHistoryPage(meta.total_pages);
-    }
-  }, [historyPageData, historyPage]);
 
   // Filter Booking khusus customer yang sedang login
   const myBookingList = (bookingList || []).filter((b) => {
@@ -1513,19 +1538,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return `${a.tanggal_booking} ${a.jam_booking}`.localeCompare(`${b.tanggal_booking} ${b.jam_booking}`);
   });
 
-  // ── Booking Saya: kategori Aktif / Selesai / Dibatalkan + pagination ─────────
-  // Aktif  = masih Booked (belum di-check-in oleh Security)
-  // Selesai = sudah check-in / diproses oleh Security (kendaraan sudah ditangani)
-  const [bookingViewFilter, setBookingViewFilter] = useState<'aktif' | 'selesai' | 'dibatalkan'>('aktif');
+  // ── Booking Saya: hanya menampilkan booking yang Aktif (Booked) ──────────────
   const [bookingViewPage, setBookingViewPage] = useState(1);
   const [bookingViewLimit, setBookingViewLimit] = useState(10);
   const bookingAktifList = myBookingSorted.filter((b) => getBookingEffectiveStatus(b) === 'Booked');
-  const bookingSelesaiList = myBookingSorted.filter((b) => getBookingEffectiveStatus(b) === 'Check In');
-  const bookingDibatalkanList = myBookingSorted.filter((b) => getBookingEffectiveStatus(b) === 'Dibatalkan');
-  const bookingFiltered =
-    bookingViewFilter === 'aktif' ? bookingAktifList
-    : bookingViewFilter === 'selesai' ? bookingSelesaiList
-    : bookingDibatalkanList;
+  const bookingFiltered = bookingAktifList;
   const bookingViewTotalPages = Math.max(1, Math.ceil(bookingFiltered.length / bookingViewLimit));
   const bookingViewSafePage = Math.min(bookingViewPage, bookingViewTotalPages);
   const bookingViewRows = bookingFiltered.slice(
@@ -1534,7 +1551,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   );
   React.useEffect(() => {
     setBookingViewPage(1);
-  }, [bookingViewFilter, bookingViewLimit]);
+  }, [bookingViewLimit]);
 
   // Jadwal Booking Terdekat: hanya yang masih Booked DAN jadwalnya belum lewat.
   // Booking yang sudah check-in (Diproses), Selesai, Dibatalkan, atau terlewat
@@ -1776,7 +1793,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       );
       setOpenBookingModal(false);
       setBookingStep(1);
-      setBookingViewFilter('aktif');
       setFleetMenu('booking');
       setActiveTab('fleet-booking');
     },
@@ -2057,21 +2073,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </button>
           </div>
 
-          {/* Booking Saya: kategori Aktif / Selesai / Dibatalkan + pagination */}
+          {/* Booking Saya: Daftar booking aktif */}
           <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="text-sm font-bold text-ink flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-accent" /> Daftar Booking Saya
               </h3>
-              <FilterChips
-                options={[
-                  { id: 'aktif', label: 'Aktif', count: bookingAktifList.length },
-                  { id: 'selesai', label: 'Selesai', count: bookingSelesaiList.length },
-                  { id: 'dibatalkan', label: 'Dibatalkan', count: bookingDibatalkanList.length },
-                ]}
-                selectedId={bookingViewFilter}
-                onChange={(id) => setBookingViewFilter(id as 'aktif' | 'selesai' | 'dibatalkan')}
-              />
+              <span className="text-xs font-semibold text-accent px-2.5 py-0.5 rounded-full bg-accent-subtle">
+                {bookingAktifList.length} Booking Aktif
+              </span>
             </div>
 
             {bookingFiltered.length > 0 ? (
@@ -2085,14 +2095,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         title={formatPlat(b.no_polisi)}
                         subtitle={`${b.jenis_layanan} • Jadwal: ${b.tanggal_booking} ${b.jam_booking} WIB`}
                         badge={
-                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
-                            effStatus === 'Dibatalkan'
-                              ? 'bg-surface text-ink-subtle border border-border'
-                              : effStatus === 'Check In'
-                              ? 'bg-status-green-bg text-status-green'
-                              : 'bg-accent-subtle text-accent'
-                          }`}>
-                            {effStatus === 'Check In' ? 'Check In' : effStatus}
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-accent-subtle text-accent">
+                            {effStatus}
                           </span>
                         }
                         actions={<BookingCancelButton b={b} />}
@@ -2113,27 +2117,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             ) : (
               <EmptyState
                 icon={Calendar}
-                title={
-                  bookingViewFilter === 'selesai' ? 'Belum Ada Booking Selesai'
-                  : bookingViewFilter === 'dibatalkan' ? 'Tidak Ada Booking Dibatalkan'
-                  : 'Belum Ada Booking Aktif'
-                }
-                description={
-                  bookingViewFilter === 'aktif'
-                    ? 'Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3.'
-                    : 'Booking yang sudah diproses/dibatalkan akan muncul di kategori ini.'
-                }
-                action={bookingViewFilter === 'aktif' ? {
+                title="Belum Ada Booking Aktif"
+                description="Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3."
+                action={{
                   label: '+ Buat Booking Baru',
                   onClick: () => {
                     setBookingStep(1);
                     setOpenBookingModal(true);
                   },
-                } : undefined}
+                }}
               />
             )}
             <p className="text-xs text-ink-subtle">
-              Aktif = belum check-in di gerbang. Setelah Security melakukan check-in, booking pindah ke kategori Selesai. Pembatalan maksimal 10 menit sebelum jadwal.
+              Kendaraan yang telah tiba dan di-check-in di gerbang otomatis diproses ke Riwayat Kendaraan (History). Pembatalan booking dapat dilakukan maksimal 10 menit sebelum jadwal.
             </p>
           </div>
 
@@ -3200,9 +3196,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* MENU 6: HISTORY SERVICE */}
       {fleetMenu === 'history' && (
         <div className="bg-surface-raised rounded-xl border border-border p-5 shadow-xs">
-          <div className="border-b border-border pb-3 mb-4">
-            <h2 className="text-base font-bold text-ink">Riwayat Kendaraan (History)</h2>
-            <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Bengkel KIM 3</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
+            <div>
+              <h2 className="text-base font-bold text-ink">Riwayat Kendaraan (History)</h2>
+              <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Bengkel KIM 3</p>
+            </div>
+            <FilterChips
+              options={[
+                { id: 'semua', label: 'Semua', count: mySpkList.length },
+                { id: 'sedang-diservis', label: 'Sedang Diservis', count: mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length },
+                { id: 'selesai', label: 'Selesai', count: mySpkList.filter(s => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed').length },
+              ]}
+              selectedId={historyStatusFilter}
+              onChange={(id) => setHistoryStatusFilter(id as 'semua' | 'sedang-diservis' | 'selesai')}
+            />
           </div>
 
           {/* Pencarian riwayat (server-side lewat parameter `q`) */}
@@ -3364,12 +3371,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               <PaginationBar
-                page={historyPage}
-                totalPages={historyPageData?.pagination?.total_pages ?? 1}
-                totalRecords={historyPageData?.pagination?.total_records ?? historyRows.length}
+                page={historySafePage}
+                totalPages={historyTotalPages}
+                totalRecords={historyFiltered.length}
                 limit={historyLimit}
                 label="riwayat service"
-                isLoading={historyFetching}
                 onPageChange={setHistoryPage}
                 onLimitChange={(l) => {
                   setHistoryLimit(l);
@@ -3377,7 +3383,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }}
               />
             </>
-          ) : historyQuery ? (
+          ) : historySearch.trim() ? (
             <div className="p-8 text-center border-2 border-dashed border-border rounded-xl bg-surface space-y-3">
               <div className="w-12 h-12 rounded-xl bg-surface-raised text-ink-subtle flex items-center justify-center mx-auto">
                 <Search className="w-6 h-6" />
@@ -3386,7 +3392,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <h3 className="text-sm font-bold text-ink">Riwayat Tidak Ditemukan</h3>
                 <p className="text-xs text-ink-muted mt-1">
                   Tidak ada riwayat service yang cocok dengan pencarian{' '}
-                  <span className="font-semibold text-ink">"{historyQuery}"</span>.
+                  <span className="font-semibold text-ink">"{historySearch}"</span>.
                 </p>
               </div>
               <button
@@ -3403,9 +3409,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <Wrench className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-ink">Belum Ada Riwayat Service</h3>
+                <h3 className="text-sm font-bold text-ink">
+                  {historyStatusFilter === 'sedang-diservis'
+                    ? 'Tidak Ada Unit Sedang Diservis'
+                    : historyStatusFilter === 'selesai'
+                    ? 'Belum Ada Riwayat Selesai'
+                    : 'Belum Ada Riwayat Service'}
+                </h3>
                 <p className="text-xs text-ink-muted mt-1">
-                  Seluruh riwayat pengerjaan service kendaraan Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.
+                  {historyStatusFilter === 'sedang-diservis'
+                    ? 'Saat ini seluruh kendaraan Anda beroperasi prima dan tidak ada unit yang sedang dalam proses pengerjaan di bengkel.'
+                    : 'Seluruh riwayat pengerjaan service kendaraan Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.'}
                 </p>
               </div>
             </div>
