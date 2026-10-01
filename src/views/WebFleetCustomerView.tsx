@@ -4,7 +4,6 @@ import { api, normalizePlat, formatPlat, getApiErrorMessage } from '../api/clien
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
-import { PrintThermalInvoiceModal } from '../components/print/PrintThermalInvoiceModal';
 import { useAppStore } from '../store/useAppStore';
 import { usePpnRate } from '../hooks/usePpnRate';
 import { realtimeHub } from '../services/realtimeService';
@@ -1177,11 +1176,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, [initialMenu]);
 
   // Pindah menu (mis. via sidebar) = kembali ke tampilan awal menu tersebut:
-  // tutup halaman detail riwayat & modal faktur yang menggantung.
+  // tutup halaman detail riwayat yang menggantung.
   React.useEffect(() => {
     setHistoryDetail(null);
-    setPreviewInvoice(null);
-    setShowPrintInvoice(false);
   }, [fleetMenu]);
 
   // Booking Wizard Step (image5.png Mockup 1)
@@ -1229,9 +1226,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [historySearch, setHistorySearch] = useState('');
   const [historyQuery, setHistoryQuery] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'semua' | 'sedang-diservis' | 'selesai'>('semua');
-  // Modal preview faktur + cetak struk (History)
-  const [previewInvoice, setPreviewInvoice] = useState<InvoicePembayaran | null>(null);
-  const [showPrintInvoice, setShowPrintInvoice] = useState(false);
   // Halaman khusus detail riwayat SPK (tersembunyi dari sidebar)
   const [historyDetail, setHistoryDetail] = useState<SpkService | null>(null);
   // Modal lightbox preview foto armada / dokumen yang membesar
@@ -1673,21 +1667,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Active SPK being monitored: ambil SPK aktif milik customer yang sedang berjalan
   const activeTrackSpk = mySpkList.find(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed') || mySpkList[0];
 
-  // ── DOKUMEN SAYA: faktur otomatis dari transaksi milik customer ─────────────
-  // Semua invoice (service SPK & beli part) yang tercatat untuk user/pelanggan ini
-  // otomatis muncul sebagai dokumen — ambil dari invoice_pembayaran via id_transaksi_beli_part / id_spk.
-  const myInvoiceFakturList = myInvoiceList.filter((inv) => {
-    if (inv.id_spk && mySpkList.some((s) => s.id === inv.id_spk)) return true;
-    return false;
-  });
+  // ── DOKUMEN SAYA: Berkas legalitas kendaraan (STNK, BPKB, KIR, Asuransi) ─────
   const [dokumenFilterPlat, setDokumenFilterPlat] = useState('');
   const [dokumenPage, setDokumenPage] = useState(1);
   const [dokumenLimit, setDokumenLimit] = useState(10);
 
-  const dokumenSemuaList = [...myDokumenList, ...myInvoiceFakturList].sort((a, b) => {
-    const dateOf = (x: DokumenKendaraan | InvoicePembayaran): string =>
-      'tanggal_upload' in x ? String(x.tanggal_upload || '') : String(x.tanggal_invoice || '');
-    return dateOf(b).localeCompare(dateOf(a));
+  const dokumenSemuaList = [...myDokumenList].sort((a, b) => {
+    return String(b.tanggal_upload || '').localeCompare(String(a.tanggal_upload || ''));
   });
   const dokumenTerfilterList = dokumenSemuaList.filter((item) => {
     if (!dokumenFilterPlat) return true;
@@ -2843,7 +2829,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
             <div>
               <h2 className="text-base font-bold text-ink">Dokumen Saya</h2>
-              <p className="text-xs text-ink-muted">Berkas kendaraan (STNK, BPKB, KIR, Asuransi) & faktur otomatis dari service maupun pembelian part</p>
+              <p className="text-xs text-ink-muted">Berkas legalitas kendaraan (STNK, BPKB, KIR, Asuransi)</p>
             </div>
             <button
               type="button"
@@ -2898,115 +2884,70 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <th className="py-2.5 px-3 font-semibold">Nama Dokumen</th>
                       <th className="py-2.5 px-3 font-semibold">Jenis</th>
                       <th className="py-2.5 px-3 font-semibold">No. Polisi</th>
-                      <th className="py-2.5 px-3 font-semibold">Tanggal</th>
-                      <th className="py-2.5 px-3 font-semibold">Nilai</th>
-                      <th className="py-2.5 px-3 font-semibold">Status</th>
+                      <th className="py-2.5 px-3 font-semibold">Masa Berlaku</th>
                       <th className="py-2.5 px-3 font-semibold text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {dokumenRows.map((item) => {
-                      const inv = 'status_pembayaran' in item ? (item as InvoicePembayaran) : null;
-                      return (
-                        <tr key={inv ? `inv-${item.id}` : `doc-${item.id}`} className="hover:bg-surface transition-colors">
-                          <td className="py-3 px-3 font-semibold text-ink">{inv ? inv.no_invoice : (item as DokumenKendaraan).nama_dokumen}</td>
-                          <td className="py-3 px-3">
-                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${inv ? 'bg-accent-subtle text-accent' : 'bg-surface text-ink-muted'}`}>
-                              {inv ? 'Faktur' : (item as DokumenKendaraan).jenis_dokumen}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(item.no_polisi)}</td>
-                          <td className="py-3 px-3 text-ink-muted font-mono">
-                            {inv
-                              ? (inv.tanggal_invoice ? new Date(inv.tanggal_invoice).toLocaleDateString('id-ID') : '-')
-                              : ((item as DokumenKendaraan).masa_berlaku ? new Date((item as DokumenKendaraan).masa_berlaku!).toLocaleDateString('id-ID') : '-')}
-                          </td>
-                          <td className="py-3 px-3 font-mono font-semibold text-ink">
-                            {inv ? `Rp ${Number(inv.grand_total || 0).toLocaleString('id-ID')}` : '-'}
-                          </td>
-                          <td className="py-3 px-3">
-                            {inv ? <StatusBadge status={inv.status_pembayaran} /> : <span className="text-ink-subtle">-</span>}
-                          </td>
-                          <td className="py-3 px-3 text-right">
-                            {inv ? (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewInvoice(inv)}
-                                className="inline-flex items-center gap-1 px-3 py-1 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                              >
-                                <Eye className="w-3.5 h-3.5" /> Lihat
-                              </button>
-                            ) : (
-                              <a
-                                href={(item as DokumenKendaraan).file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 px-3 py-1 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors"
-                              >
-                                <Download className="w-3.5 h-3.5" /> Unduh
-                              </a>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {dokumenRows.map((item) => (
+                      <tr key={`doc-${item.id}`} className="hover:bg-surface transition-colors">
+                        <td className="py-3 px-3 font-semibold text-ink">{item.nama_dokumen}</td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-surface text-ink-muted">
+                            {item.jenis_dokumen}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(item.no_polisi)}</td>
+                        <td className="py-3 px-3 text-ink-muted font-mono">
+                          {item.masa_berlaku ? new Date(item.masa_berlaku).toLocaleDateString('id-ID') : '-'}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <a
+                            href={item.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-accent-subtle text-accent hover:bg-accent hover:text-white rounded-xl text-xs font-bold transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Unduh
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
               <div className="block md:hidden space-y-2.5">
-                {dokumenRows.map((item) => {
-                  const inv = 'status_pembayaran' in item ? (item as InvoicePembayaran) : null;
-                  return (
-                    <div key={inv ? `inv-${item.id}` : `doc-${item.id}`} className="rounded-xl border border-border p-3.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="text-sm font-bold text-ink leading-snug">{inv ? inv.no_invoice : (item as DokumenKendaraan).nama_dokumen}</div>
-                          <div className="font-mono text-xs font-bold text-ink-muted mt-0.5">{formatPlat(item.no_polisi)}</div>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold shrink-0 ${inv ? 'bg-accent-subtle text-accent' : 'bg-surface text-ink-muted'}`}>
-                          {inv ? 'Faktur' : (item as DokumenKendaraan).jenis_dokumen}
-                        </span>
+                {dokumenRows.map((item) => (
+                  <div key={`doc-${item.id}`} className="rounded-xl border border-border p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-ink leading-snug">{item.nama_dokumen}</div>
+                        <div className="font-mono text-xs font-bold text-ink-muted mt-0.5">{formatPlat(item.no_polisi)}</div>
                       </div>
-
-                      <div className="mt-2.5 pt-2.5 border-t border-border flex items-center justify-between text-xs text-ink-subtle">
-                        <span>{inv ? 'Tanggal Invoice' : 'Masa Berlaku'}</span>
-                        <span className="font-mono font-semibold text-ink-muted">
-                          {inv
-                            ? (inv.tanggal_invoice ? new Date(inv.tanggal_invoice).toLocaleDateString('id-ID') : '-')
-                            : ((item as DokumenKendaraan).masa_berlaku ? new Date((item as DokumenKendaraan).masa_berlaku!).toLocaleDateString('id-ID') : '-')}
-                        </span>
-                      </div>
-
-                      {inv && (
-                        <div className="mt-1.5 flex items-center justify-between text-xs">
-                          <span className="text-ink-subtle">Total</span>
-                          <span className="font-mono font-black text-ink">Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                      )}
-
-                      {inv ? (
-                        <button
-                          type="button"
-                          onClick={() => setPreviewInvoice(inv)}
-                          className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent-subtle text-accent active:bg-accent rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> Lihat Faktur
-                        </button>
-                      ) : (
-                        <a
-                          href={(item as DokumenKendaraan).file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent-subtle text-accent active:bg-accent rounded-xl text-xs font-bold transition-colors"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Unduh Dokumen
-                        </a>
-                      )}
+                      <span className="px-2 py-0.5 rounded text-xs font-bold shrink-0 bg-surface text-ink-muted">
+                        {item.jenis_dokumen}
+                      </span>
                     </div>
-                  );
-                })}
+
+                    <div className="mt-2.5 pt-2.5 border-t border-border flex items-center justify-between text-xs text-ink-subtle">
+                      <span>Masa Berlaku</span>
+                      <span className="font-mono font-semibold text-ink-muted">
+                        {item.masa_berlaku ? new Date(item.masa_berlaku).toLocaleDateString('id-ID') : '-'}
+                      </span>
+                    </div>
+
+                    <a
+                      href={item.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent-subtle text-accent active:bg-accent rounded-xl text-xs font-bold transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Unduh Dokumen
+                    </a>
+                  </div>
+                ))}
               </div>
 
               <PaginationBar
@@ -3027,7 +2968,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div>
                 <h3 className="text-sm font-bold text-ink">Belum Ada Dokumen</h3>
                 <p className="text-xs text-ink-muted mt-1">
-                  Unggah berkas STNK, KIR, atau polis asuransi kendaraan Anda — faktur service & pembelian part akan muncul otomatis di sini.
+                  Unggah berkas STNK, KIR, atau polis asuransi kendaraan Anda di sini.
                 </p>
               </div>
               <button
@@ -3255,17 +3196,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <th className="py-2.5 px-3 font-semibold">Tanggal Masuk</th>
                       <th className="py-2.5 px-3 font-semibold">Biaya</th>
                       <th className="py-2.5 px-3 font-semibold">Status</th>
-                      <th className="py-2.5 px-3 font-semibold text-center">Faktur</th>
                       <th className="py-2.5 px-3 font-semibold text-center">Detail</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {historyRows.map((spk) => {
-                      const paidInv = myInvoiceList.find(
-                        (inv) => inv.id_spk === spk.id &&
-                          (inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas')
-                      );
-                      return (
+                    {historyRows.map((spk) => (
                       <tr key={spk.id} onClick={() => setHistoryDetail(spk)} className="hover:bg-surface transition-colors cursor-pointer">
                         <td className="py-3 px-3 font-mono font-bold text-accent">{spk.no_spk}</td>
                         <td className="py-3 px-3 font-mono font-bold text-ink">{formatPlat(spk.no_polisi)}</td>
@@ -3274,25 +3209,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <td className="py-3 px-3 font-mono font-bold text-ink">Rp {Number(spk.estimasi_biaya || 0).toLocaleString()}</td>
                         <td className="py-3 px-3">
                           <StatusBadge status={spk.status_spk} size="sm" />
-                        </td>
-                        <td className="py-3 px-3 text-center">
-                          {paidInv ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPreviewInvoice(paidInv);
-                              }}
-                              title={`Lihat faktur ${paidInv.no_invoice}`}
-                              aria-label={`Lihat faktur ${paidInv.no_invoice}`}
-                              className="p-2 rounded-xl bg-accent-subtle text-accent hover:bg-accent hover:text-white transition-colors inline-flex items-center gap-1.5 font-bold text-xs"
-                            >
-                              <Eye className="w-4 h-4" />
-                              <span className="hidden xl:inline">Lihat</span>
-                            </button>
-                          ) : (
-                            <span className="text-ink-subtle">–</span>
-                          )}
                         </td>
                         <td className="py-3 px-3 text-center">
                           <button
@@ -3310,20 +3226,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </button>
                         </td>
                       </tr>
-                      );
-                    })}
+                    ))}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
               <div className="block md:hidden space-y-2.5">
-                {historyRows.map((spk) => {
-                  const paidInv = myInvoiceList.find(
-                    (inv) => inv.id_spk === spk.id &&
-                      (inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas')
-                  );
-                  return (
+                {historyRows.map((spk) => (
                   <div key={spk.id} onClick={() => setHistoryDetail(spk)} className="rounded-xl border border-border p-3.5 cursor-pointer hover:border-accent/40 transition-colors">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -3349,19 +3259,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       </div>
                     </div>
 
-                    {paidInv && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPreviewInvoice(paidInv);
-                        }}
-                        className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-bold text-xs transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                        Lihat Faktur • {paidInv.no_invoice}
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -3374,8 +3271,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       Lihat Detail Service
                     </button>
                   </div>
-                  );
-                })}
+                ))}
               </div>
 
               <PaginationBar
@@ -3468,99 +3364,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
 
 
-      {/* MODAL: Preview Faktur & Pembayaran */}
-      {previewInvoice && (
-        <ModalPortal onClose={() => setPreviewInvoice(null)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-black/60 backdrop-blur-xs app-backdrop-in overflow-y-auto">
-            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-2xl w-full my-auto app-modal-in overflow-hidden max-h-[88vh] flex flex-col">
-              <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-accent-subtle text-accent flex items-center justify-center">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-ink">Faktur Pembayaran</h3>
-                    <p className="text-xs text-ink-muted font-mono">{previewInvoice.no_invoice}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPreviewInvoice(null)}
-                  className="p-1.5 rounded-xl text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
-                  aria-label="Tutup faktur"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              <div className="px-6 sm:px-8 py-6 sm:py-7 space-y-5 overflow-y-auto flex-1">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-base font-black font-mono text-ink">{formatPlat(previewInvoice.no_polisi)}</div>
-                    <div className="text-xs text-ink-muted">
-                      Invoice: {previewInvoice.tanggal_invoice ? new Date(previewInvoice.tanggal_invoice).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
-                    </div>
-                    <div className="text-xs text-ink-muted">
-                      {previewInvoice.tanggal_bayar
-                        ? `Lunas: ${new Date(previewInvoice.tanggal_bayar).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}`
-                        : 'Belum dibayar'}
-                      {previewInvoice.metode_pembayaran ? ` • ${previewInvoice.metode_pembayaran}` : ''}
-                    </div>
-                  </div>
-                  <StatusBadge status={previewInvoice.status_pembayaran} size="md" />
-                </div>
-
-                <div className="rounded-xl border border-border bg-surface p-4 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between text-ink-muted">
-                    <span>Subtotal</span>
-                    <span className="font-mono font-semibold">Rp {Number(previewInvoice.subtotal || 0).toLocaleString('id-ID')}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-ink-muted">
-                    <span>PPN</span>
-                    <span className="font-mono font-semibold">Rp {Number(previewInvoice.ppn_nominal || 0).toLocaleString('id-ID')}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
-                    <span className="font-bold text-ink text-sm">Grand Total</span>
-                    <span className="font-mono font-black text-status-green text-sm">Rp {Number(previewInvoice.grand_total || 0).toLocaleString('id-ID')}</span>
-                  </div>
-                </div>
-
-                {(previewInvoice.status_pembayaran !== 'Paid' && previewInvoice.status_pembayaran !== 'Lunas') && (
-                  <p className="text-xs text-status-amber font-semibold">
-                    Menunggu pembayaran — tunjukkan nomor faktur ini ke Kasir.
-                  </p>
-                )}
-
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewInvoice(null)}
-                    className="px-4 py-2.5 rounded-xl border border-border hover:bg-surface text-ink font-bold text-xs transition-colors"
-                  >
-                    Tutup
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPrintInvoice(true)}
-                    className="px-4 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
-                  >
-                    <Printer className="w-4 h-4" />
-                    CETAK STRUK
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ModalPortal>
-      )}
-
-      {/* Struk thermal faktur (print / PDF via dialog browser) */}
-      {showPrintInvoice && previewInvoice && (
-        <PrintThermalInvoiceModal
-          invoice={previewInvoice}
-          onClose={() => setShowPrintInvoice(false)}
-        />
-      )}
 
       {/* ========================================================================= */}
       {/* MODAL 1: TAMBAH KENDARAAN KENDARAAN BARU                                     */}

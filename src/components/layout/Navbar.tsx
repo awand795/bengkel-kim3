@@ -22,7 +22,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'fleet-status': { title: 'Status Service', subtitle: 'Live Tracking Perawatan' },
   'fleet-history': { title: 'History Service', subtitle: 'Riwayat Servis Kendaraan' },
   'fleet-kendaraan': { title: 'Kendaraan Saya', subtitle: 'Kelola Data Armada' },
-  'fleet-dokumen': { title: 'Dokumen Saya', subtitle: 'Berkas Legalitas & Faktur' },
+  'fleet-dokumen': { title: 'Dokumen Saya', subtitle: 'Berkas Legalitas Kendaraan' },
   'fleet-profil': { title: 'Profil Perusahaan', subtitle: 'Informasi Mitra' },
 };
 
