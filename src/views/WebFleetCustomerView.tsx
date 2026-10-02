@@ -58,7 +58,9 @@ import {
   Maximize2,
   ExternalLink,
   Layers,
-  AlertTriangle
+  AlertTriangle,
+  MapPin,
+  Building2
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
@@ -1343,6 +1345,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
 
   // Profil Customer & Kontak: form editable (tersimpan di tabel pengguna via /kim3/profil-simpan)
+  const [profilTab, setProfilTab] = useState<'bengkel' | 'mitra'>('bengkel');
   const [profilEditing, setProfilEditing] = useState(false);
   const [profilForm, setProfilForm] = useState({
     nama_perusahaan: authUser?.nama_lengkap || '',
@@ -3339,161 +3342,418 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </div>
       )}
 
-      {/* MENU 5: PROFIL CUSTOMER & KONTAK — editable, tersimpan di tabel pengguna */}
+      {/* MENU 5: PROFIL PERUSAHAAN (COMPANY PROFILE PT LOTUS PRADIPTA MULIA) & DATA AKUN MITRA */}
       {fleetMenu === 'profil' && (
-        <div className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-6 shadow-xs max-w-2xl mx-auto space-y-6">
-          <div className="border-b border-[#E2E8F0] dark:border-border pb-3 flex items-start justify-between gap-3">
+        <div className="space-y-6 max-w-5xl mx-auto">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold text-ink">Profil Customer & Kontak</h2>
-              <p className="text-xs text-ink-muted">Informasi perusahaan dan kontak PIC penanggung jawab — dapat diperbarui langsung di sini</p>
+              <h2 className="text-lg font-bold text-ink">Profil Perusahaan &amp; Akun Kemitraan</h2>
+              <p className="text-xs text-ink-muted">Profil distributor resmi PT Lotus Pradipta Mulia dan pengelolaan data akun kemitraan Anda</p>
             </div>
-            {!profilEditing && (
+            
+            {/* Tab Switcher */}
+            <div className="inline-flex p-1 bg-[#EEF2F6] dark:bg-surface border border-[#E2E8F0] dark:border-border rounded-xl">
               <button
                 type="button"
-                onClick={() => {
-                  setProfilForm({
-                    nama_perusahaan: authUser?.nama_lengkap || '',
-                    alamat: authUser?.alamat || '',
-                    npwp: authUser?.npwp || '',
-                    no_telepon: authUser?.no_telepon || '',
-                    nama_pic: authUser?.nama_pic || '',
-                  });
-                  setProfilEditing(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 hover:bg-[#12388F] hover:text-white dark:hover:bg-[#12388F] dark:hover:text-white rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+                onClick={() => setProfilTab('bengkel')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  profilTab === 'bengkel'
+                    ? 'bg-white dark:bg-surface-raised text-[#12388F] dark:text-blue-400 shadow-xs'
+                    : 'text-[#64748B] dark:text-slate-400 hover:text-ink'
+                }`}
               >
-                <Edit3 className="w-3.5 h-3.5" /> Edit Profil
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-4 text-xs">
-            <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border space-y-3.5">
-              <span className="font-bold text-xs tracking-wider uppercase text-[#64748B] dark:text-ink-subtle block">Informasi Perusahaan:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Nama Perusahaan / Entitas:</span>
-                  {profilEditing ? (
-                    <input
-                      value={profilForm.nama_perusahaan}
-                      onChange={(e) => setProfilForm((p) => ({ ...p, nama_perusahaan: e.target.value }))}
-                      placeholder="cth: PT. Andi Jaya"
-                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
-                    />
-                  ) : (
-                    <span className="font-bold text-xs text-[#0F172A] dark:text-ink">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">ID Pelanggan / Kemitraan:</span>
-                  <span className="font-mono font-bold text-xs text-[#12388F] dark:text-blue-400">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || authUser?.id || 1).padStart(4, '0')}</span>
-                </div>
-                <div className="sm:col-span-2">
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Alamat Perusahaan:</span>
-                  {profilEditing ? (
-                    <textarea
-                      value={profilForm.alamat}
-                      onChange={(e) => setProfilForm((p) => ({ ...p, alamat: e.target.value }))}
-                      rows={2}
-                      placeholder="cth: Jl. Industri Raya No. 88, Medan, Sumatera Utara"
-                      className="w-full px-3 py-2 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition resize-none"
-                    />
-                  ) : (
-                    <span className="font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.alamat || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">NPWP:</span>
-                  {profilEditing ? (
-                    <input
-                      value={profilForm.npwp}
-                      onChange={(e) => setProfilForm((p) => ({ ...p, npwp: e.target.value }))}
-                      placeholder="cth: 01.234.567.8-901.000"
-                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
-                    />
-                  ) : (
-                    <span className="font-mono font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.npwp || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Status Verifikasi Admin:</span>
-                  {isVerifiedByAdmin ? (
-                    <span className="font-semibold text-status-green inline-flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Terverifikasi oleh Admin
-                    </span>
-                  ) : (
-                    <span className="font-semibold text-amber-600 inline-flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Belum Terverifikasi oleh Admin
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border space-y-3.5">
-              <span className="font-bold text-xs tracking-wider uppercase text-[#64748B] dark:text-ink-subtle block">Kontak PIC / Penanggung Jawab:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Nama PIC:</span>
-                  {profilEditing ? (
-                    <input
-                      value={profilForm.nama_pic}
-                      onChange={(e) => setProfilForm((p) => ({ ...p, nama_pic: e.target.value }))}
-                      placeholder="cth: Budi Santoso"
-                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
-                    />
-                  ) : (
-                    <span className="font-bold text-xs text-[#0F172A] dark:text-ink">{authUser?.nama_pic || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">No. Telepon / WhatsApp:</span>
-                  {profilEditing ? (
-                    <input
-                      value={profilForm.no_telepon}
-                      onChange={(e) => setProfilForm((p) => ({ ...p, no_telepon: e.target.value }))}
-                      placeholder="cth: 0812-3456-7890"
-                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
-                    />
-                  ) : (
-                    <span className="font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.no_telepon || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Email Login:</span>
-                  <span className="font-mono font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.email || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Tipe Akun:</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0] dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50">Mitra Fleet</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {profilEditing && (
-            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end border-t border-[#E2E8F0] dark:border-border pt-4">
-              <button
-                type="button"
-                disabled={simpanProfilMutation.isPending}
-                onClick={() => setProfilEditing(false)}
-                className="min-h-[40px] px-4 py-2 bg-white dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink hover:bg-[#F1F5F9] dark:hover:bg-surface-raised rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
-              >
-                Batal
+                <Building2 className="w-4 h-4" />
+                <span>Profil Perusahaan</span>
               </button>
               <button
                 type="button"
-                disabled={simpanProfilMutation.isPending || !profilForm.nama_perusahaan.trim()}
-                onClick={() => simpanProfilMutation.mutate()}
-                className="min-h-[40px] px-4 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                onClick={() => setProfilTab('mitra')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  profilTab === 'mitra'
+                    ? 'bg-white dark:bg-surface-raised text-[#12388F] dark:text-blue-400 shadow-xs'
+                    : 'text-[#64748B] dark:text-slate-400 hover:text-ink'
+                }`}
               >
-                {simpanProfilMutation.isPending ? (
-                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Check className="w-3.5 h-3.5" />
+                <User className="w-4 h-4" />
+                <span>Data Akun Mitra Saya</span>
+              </button>
+            </div>
+          </div>
+
+          {/* TAB 1: PROFIL PT LOTUS PRADIPTA MULIA (DARI WORDPRESS BIZNIZ) */}
+          {profilTab === 'bengkel' && (
+            <div className="space-y-6">
+              {/* Hero Company Profile Banner */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-[#0F285E] via-[#12388F] to-[#1E40AF] rounded-2xl p-6 sm:p-8 text-white shadow-md">
+                <div className="absolute -right-12 -top-12 w-64 h-64 bg-white/5 rounded-full pointer-events-none blur-2xl" />
+                <div className="absolute -left-12 -bottom-12 w-64 h-64 bg-amber-400/10 rounded-full pointer-events-none blur-2xl" />
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-3 max-w-2xl">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-[11px] font-semibold text-amber-300">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>DISTRIBUTOR RESMI NASIONAL • EST. 2000 • TERDAFTAR KEMENDAG RI</span>
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                      PT LOTUS PRADIPTA MULIA
+                    </h1>
+                    <p className="text-sm font-medium text-blue-100 leading-relaxed">
+                      Distribusi Suku Cadang, Aki, Ban &amp; Pelumas Terpercaya untuk Kendaraan &amp; Bengkel Bisnis Anda.
+                    </p>
+                    <p className="text-xs text-blue-200/90 leading-relaxed">
+                      Menjadi mitra strategis terpercaya lebih dari 24 tahun (sejak 2000) dalam penyediaan produk pelumas, aki, ban, dan sparepart berkualitas standar OEM dengan dukungan sistem integrasi monitoring kendaraan terpadu (Web Fleet).
+                    </p>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 flex flex-col items-center justify-center shrink-0 text-center min-w-[200px]">
+                    <div className="bg-white p-2.5 rounded-xl shadow-xs mb-2">
+                      <img src="/logo.png" alt="PT Lotus Pradipta Mulia" className="h-10 w-auto object-contain" />
+                    </div>
+                    <span className="text-xs font-bold text-white tracking-wide">Distributor Resmi</span>
+                    <span className="text-[11px] text-blue-200">KIM 3 • Wilayah Sumatera</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Bar (Sesuai WordPress Stats Counter) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 text-center shadow-2xs">
+                  <span className="block text-2xl font-extrabold text-[#12388F] dark:text-blue-400">24+</span>
+                  <span className="text-[11px] font-medium text-ink-muted">Tahun Pengalaman (Est. 2000)</span>
+                </div>
+                <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 text-center shadow-2xs">
+                  <span className="block text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">2</span>
+                  <span className="text-[11px] font-medium text-ink-muted">Region (SUMBAGUT &amp; SUMBAGSEL)</span>
+                </div>
+                <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 text-center shadow-2xs">
+                  <span className="block text-2xl font-extrabold text-amber-600 dark:text-amber-400">8+</span>
+                  <span className="text-[11px] font-medium text-ink-muted">Merek Resmi Terdistribusi</span>
+                </div>
+                <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 text-center shadow-2xs">
+                  <span className="block text-2xl font-extrabold text-purple-600 dark:text-purple-400">1.500+</span>
+                  <span className="text-[11px] font-medium text-ink-muted">Mitra Bengkel &amp; Perusahaan</span>
+                </div>
+              </div>
+
+              {/* Grid Informasi Kantor & Hub Distribusi */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Kantor Pusat & Pergudangan Utama */}
+                <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-5 shadow-2xs space-y-4">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-[#E2E8F0] dark:border-border">
+                    <div className="w-8 h-8 rounded-lg bg-[#EEF2FF] dark:bg-blue-950/40 text-[#12388F] dark:text-blue-400 flex items-center justify-center">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-ink">Kantor Pusat &amp; Gudang Utama</h3>
+                      <p className="text-[11px] text-ink-muted">Pusat Pergudangan &amp; Manajemen Logistik</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <span className="text-[11px] font-medium text-ink-subtle block mb-1">Alamat Gudang &amp; Fasilitas:</span>
+                      <p className="font-semibold text-ink leading-relaxed">
+                        Komplek Pergudangan Palembang Star 1 Blok E5, Jl. Letjen Harun Sohar / Jl. Tanjung Api-Api, Kebun Bunga, Kec. Sukarami, Kota Palembang, Sumatera Selatan.
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-medium text-ink-subtle block mb-1">Status Legalitas:</span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Terdaftar Resmi di Kementerian Perdagangan RI
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cakupan Wilayah & Kontak */}
+                <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-5 shadow-2xs space-y-4">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-[#E2E8F0] dark:border-border">
+                    <div className="w-8 h-8 rounded-lg bg-[#F0FDF4] dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-ink">Cakupan Wilayah &amp; Kontak</h3>
+                      <p className="text-[11px] text-ink-muted">Jaringan Suplai &amp; Layanan Pelanggan</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border">
+                        <span className="text-[10px] font-bold text-[#12388F] dark:text-blue-400 uppercase tracking-wider block mb-0.5">Region SUMBAGUT:</span>
+                        <span className="text-[11px] font-medium text-ink">Medan (KIM 3), Aceh, Pekanbaru (Riau)</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border">
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-0.5">Region SUMBAGSEL:</span>
+                        <span className="text-[11px] font-medium text-ink">Palembang, Lampung, Jambi, Bengkulu, Babel</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border">
+                        <Phone className="w-3.5 h-3.5 text-[#12388F] dark:text-blue-400 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-[10px] text-ink-subtle block">Telepon Kantor</span>
+                          <span className="text-xs font-mono font-bold text-ink">(0711) 571-0888</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border">
+                        <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-[10px] text-ink-subtle block">WhatsApp Kemitraan</span>
+                          <span className="text-xs font-mono font-bold text-ink">0812-7888-2000</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Merek Suku Cadang & Pelumas Resmi (Original Parts Partner dari WordPress) */}
+              <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-5 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-[#12388F] dark:text-blue-400" />
+                    <h3 className="text-xs font-bold text-ink">Merek Resmi Terdistribusi Nasional</h3>
+                  </div>
+                  <span className="text-[11px] text-ink-muted">100% Produk Original Standar OEM Pabrikan</span>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {[
+                    { name: 'Federal Oil', desc: 'Pelumas & Oli Mesin' },
+                    { name: 'Furukawa Battery (FB)', desc: 'Aki Maintenance Free & Basah' },
+                    { name: 'Michelin', desc: 'Ban Truk & Komersial' },
+                    { name: 'Indotube', desc: 'Ban Dalam & Komponen Roda' },
+                    { name: 'Kaizen Tires', desc: 'Ban Angkutan Berat' },
+                    { name: 'RKN Parts', desc: 'Piston Kit & Suku Cadang' },
+                    { name: 'Ichidai', desc: 'Suku Cadang & Filter' },
+                    { name: 'Philips Automotive', desc: 'Pencahayaan Halogen & LED' },
+                    { name: 'Osram', desc: 'Lampu Otomotif OEM' },
+                  ].map((item) => (
+                    <div
+                      key={item.name}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border text-xs shadow-2xs"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <div>
+                        <span className="font-bold text-[#0F172A] dark:text-white mr-1.5">{item.name}</span>
+                        <span className="text-[10px] text-ink-muted hidden sm:inline">({item.desc})</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4 Pilar Solusi Web Fleet (Gaya Bizniz Theme WordPress) */}
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-xs font-bold text-ink">Solusi Digital Kemitraan (Web Fleet Portal)</h3>
+                  <p className="text-[11px] text-ink-muted">Pemantauan &amp; Tata Kelola Kendaraan Operasional Terpadu</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                  <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 space-y-2 shadow-2xs">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                      1
+                    </div>
+                    <h4 className="text-xs font-bold text-ink">Transparansi Status Perawatan</h4>
+                    <p className="text-[11px] text-ink-muted leading-relaxed">
+                      Pantau tahapan pengerjaan unit dari check-in hingga selesai secara real-time dan terverifikasi.
+                    </p>
+                  </div>
+
+                  <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 space-y-2 shadow-2xs">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                      2
+                    </div>
+                    <h4 className="text-xs font-bold text-ink">Jaminan Komponen OEM</h4>
+                    <p className="text-[11px] text-ink-muted leading-relaxed">
+                      Jaminan kepastian suku cadang dan pelumas 100% original langsung dari distributor resmi.
+                    </p>
+                  </div>
+
+                  <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 space-y-2 shadow-2xs">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                      3
+                    </div>
+                    <h4 className="text-xs font-bold text-ink">Efisiensi Uptime Operasional</h4>
+                    <p className="text-[11px] text-ink-muted leading-relaxed">
+                      Meminimalkan downtime kendaraan dengan jadwal perawatan terencana dan tanggap darurat.
+                    </p>
+                  </div>
+
+                  <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 space-y-2 shadow-2xs">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                      4
+                    </div>
+                    <h4 className="text-xs font-bold text-ink">Persetujuan &amp; Rekap Digital</h4>
+                    <p className="text-[11px] text-ink-muted leading-relaxed">
+                      Approval estimasi biaya dan arsip riwayat invoice faktur tersimpan rapi, transparan, dan akuntabel.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: DATA AKUN MITRA SAYA (FORM EDITABLE SEPERTI SEBELUMNYA) */}
+          {profilTab === 'mitra' && (
+            <div className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-6 shadow-xs space-y-6">
+              <div className="border-b border-[#E2E8F0] dark:border-border pb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-bold text-ink">Data Akun Mitra &amp; Kontak PIC</h2>
+                  <p className="text-xs text-ink-muted">Informasi perusahaan mitra dan kontak PIC penanggung jawab — dapat diperbarui langsung di sini</p>
+                </div>
+                {!profilEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfilForm({
+                        nama_perusahaan: authUser?.nama_lengkap || '',
+                        alamat: authUser?.alamat || '',
+                        npwp: authUser?.npwp || '',
+                        no_telepon: authUser?.no_telepon || '',
+                        nama_pic: authUser?.nama_pic || '',
+                      });
+                      setProfilEditing(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 hover:bg-[#12388F] hover:text-white dark:hover:bg-[#12388F] dark:hover:text-white rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" /> Edit Profil
+                  </button>
                 )}
-                {simpanProfilMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
-              </button>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border space-y-3.5">
+                  <span className="font-bold text-xs tracking-wider uppercase text-[#64748B] dark:text-ink-subtle block">Informasi Perusahaan Mitra:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Nama Perusahaan / Entitas:</span>
+                      {profilEditing ? (
+                        <input
+                          value={profilForm.nama_perusahaan}
+                          onChange={(e) => setProfilForm((p) => ({ ...p, nama_perusahaan: e.target.value }))}
+                          placeholder="cth: PT. Andi Jaya"
+                          className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
+                        />
+                      ) : (
+                        <span className="font-bold text-xs text-[#0F172A] dark:text-ink">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '-'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">ID Pelanggan / Kemitraan:</span>
+                      <span className="font-mono font-bold text-xs text-[#12388F] dark:text-blue-400">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || authUser?.id || 1).padStart(4, '0')}</span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Alamat Perusahaan:</span>
+                      {profilEditing ? (
+                        <textarea
+                          value={profilForm.alamat}
+                          onChange={(e) => setProfilForm((p) => ({ ...p, alamat: e.target.value }))}
+                          rows={2}
+                          placeholder="cth: Jl. Industri Raya No. 88, Medan, Sumatera Utara"
+                          className="w-full px-3 py-2 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition resize-none"
+                        />
+                      ) : (
+                        <span className="font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.alamat || '-'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">NPWP:</span>
+                      {profilEditing ? (
+                        <input
+                          value={profilForm.npwp}
+                          onChange={(e) => setProfilForm((p) => ({ ...p, npwp: e.target.value }))}
+                          placeholder="cth: 01.234.567.8-901.000"
+                          className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
+                        />
+                      ) : (
+                        <span className="font-mono font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.npwp || '-'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Status Verifikasi Admin:</span>
+                      {isVerifiedByAdmin ? (
+                        <span className="font-semibold text-status-green inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Terverifikasi oleh Admin
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-amber-600 inline-flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Belum Terverifikasi oleh Admin
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border space-y-3.5">
+                  <span className="font-bold text-xs tracking-wider uppercase text-[#64748B] dark:text-ink-subtle block">Kontak PIC / Penanggung Jawab:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Nama PIC:</span>
+                      {profilEditing ? (
+                        <input
+                          value={profilForm.nama_pic}
+                          onChange={(e) => setProfilForm((p) => ({ ...p, nama_pic: e.target.value }))}
+                          placeholder="cth: Budi Santoso"
+                          className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
+                        />
+                      ) : (
+                        <span className="font-bold text-xs text-[#0F172A] dark:text-ink">{authUser?.nama_pic || '-'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">No. Telepon / WhatsApp:</span>
+                      {profilEditing ? (
+                        <input
+                          value={profilForm.no_telepon}
+                          onChange={(e) => setProfilForm((p) => ({ ...p, no_telepon: e.target.value }))}
+                          placeholder="cth: 0812-3456-7890"
+                          className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
+                        />
+                      ) : (
+                        <span className="font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.no_telepon || '-'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Email Login:</span>
+                      <span className="font-mono font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.email || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Tipe Akun:</span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0] dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50">Mitra Fleet</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {profilEditing && (
+                <div className="flex flex-col sm:flex-row gap-2 sm:justify-end border-t border-[#E2E8F0] dark:border-border pt-4">
+                  <button
+                    type="button"
+                    disabled={simpanProfilMutation.isPending}
+                    onClick={() => setProfilEditing(false)}
+                    className="min-h-[40px] px-4 py-2 bg-white dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink hover:bg-[#F1F5F9] dark:hover:bg-surface-raised rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={simpanProfilMutation.isPending || !profilForm.nama_perusahaan.trim()}
+                    onClick={() => simpanProfilMutation.mutate()}
+                    className="min-h-[40px] px-4 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                  >
+                    {simpanProfilMutation.isPending ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
+                    {simpanProfilMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

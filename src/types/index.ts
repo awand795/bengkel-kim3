@@ -1,28 +1,5 @@
 export type PeranUser = 'Customer Fleet';
 
-export interface PengaturanSistem {
-  id: number;
-  nama_bengkel: string;
-  slogan_bengkel?: string;
-  alamat_bengkel?: string;
-  no_telepon_bengkel?: string;
-  email_bengkel?: string;
-  npwp_bengkel?: string;
-  logo_url?: string;
-  ppn_persen: number;
-  header_print_memo?: string;
-  footer_print_memo?: string;
-  header_print_spk?: string;
-  footer_print_spk?: string;
-  header_print_invoice?: string;
-  footer_print_invoice?: string;
-  bank_nama?: string;
-  bank_rekening?: string;
-  bank_atas_nama?: string;
-  catatan_garansi?: string;
-  update_dt?: string;
-}
-
 export interface Pengguna {
   id: number;
   nama_lengkap: string;

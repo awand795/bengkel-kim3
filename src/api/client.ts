@@ -13,7 +13,6 @@ import {
   InvoicePembayaran,
   LoginResponse,
   AuthUser,
-  PengaturanSistem,
   PeranUser,
   Notifikasi
 } from '../types';
@@ -463,13 +462,6 @@ export const api = {
     const res = await apiClient.post('/kim3/auth/ganti-password', { password_baru });
     return res.data;
   },
-
-  // Pengaturan Sistem & PPN (Default klien)
-  getPengaturan: async (): Promise<PengaturanSistem> => ({
-    id: 1,
-    nama_bengkel: 'PT LOTUS PRADIPTA MULIA',
-    ppn_persen: 11,
-  }),
 
   // Notifikasi
   getNotifikasi: async (): Promise<Notifikasi[]> =>
