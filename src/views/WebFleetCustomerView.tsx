@@ -3342,14 +3342,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </div>
       )}
 
-      {/* MENU 5: PROFIL PERUSAHAAN (COMPANY PROFILE PT LOTUS PRADIPTA MULIA) & DATA AKUN MITRA */}
+      {/* MENU 5: PROFIL PERUSAHAAN (COMPANY PROFILE MASTER TRUCK) & DATA AKUN MITRA */}
       {fleetMenu === 'profil' && (
         <div className="space-y-6 max-w-5xl mx-auto">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-ink">Profil Perusahaan &amp; Akun Kemitraan</h2>
-              <p className="text-xs text-ink-muted">Profil distributor resmi PT Lotus Pradipta Mulia dan pengelolaan data akun kemitraan Anda</p>
+              <p className="text-xs text-ink-muted">Profil resmi Master Truck dan pengelolaan data akun kemitraan armada Anda</p>
             </div>
             
             {/* Tab Switcher */}
@@ -3364,7 +3364,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }`}
               >
                 <Building2 className="w-4 h-4" />
-                <span>Profil Perusahaan</span>
+                <span>Profil Master Truck</span>
               </button>
               <button
                 type="button"
@@ -3381,7 +3381,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
           </div>
 
-          {/* TAB 1: PROFIL PT LOTUS PRADIPTA MULIA (DARI WORDPRESS BIZNIZ) */}
+          {/* TAB 1: PROFIL MASTER TRUCK */}
           {profilTab === 'bengkel' && (
             <div className="space-y-6">
               {/* Hero Company Profile Banner */}
@@ -3393,74 +3393,74 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div className="space-y-3 max-w-2xl">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-[11px] font-semibold text-amber-300">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>DISTRIBUTOR RESMI NASIONAL • EST. 2000 • TERDAFTAR KEMENDAG RI</span>
+                      <span>BENGKEL SPESIALIS PERAWATAN &amp; PERBAIKAN TRUK NIAGA</span>
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                      PT LOTUS PRADIPTA MULIA
+                      MASTER TRUCK
                     </h1>
                     <p className="text-sm font-medium text-blue-100 leading-relaxed">
-                      Distribusi Suku Cadang, Aki, Ban &amp; Pelumas Terpercaya untuk Kendaraan &amp; Bengkel Bisnis Anda.
+                      Bengkel Perawatan &amp; Perbaikan Armada Truk dan Kendaraan Niaga Terpercaya di Medan.
                     </p>
                     <p className="text-xs text-blue-200/90 leading-relaxed">
-                      Menjadi mitra strategis terpercaya lebih dari 24 tahun (sejak 2000) dalam penyediaan produk pelumas, aki, ban, dan sparepart berkualitas standar OEM dengan dukungan sistem integrasi monitoring kendaraan terpadu (Web Fleet).
+                      Master Truck adalah bengkel spesialis perawatan dan perbaikan armada truk serta kendaraan niaga yang berbasis di Medan. Melayani servis berkala, overhaul mesin, kelistrikan, dan suku cadang untuk kawasan industri dan sekitarnya dengan integrasi sistem monitoring Web Fleet.
                     </p>
                   </div>
 
                   <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 flex flex-col items-center justify-center shrink-0 text-center min-w-[200px]">
                     <div className="bg-white p-2.5 rounded-xl shadow-xs mb-2">
-                      <img src="/logo.png" alt="PT Lotus Pradipta Mulia" className="h-10 w-auto object-contain" />
+                      <img src="/logo.png" alt="Master Truck" className="h-10 w-auto object-contain" />
                     </div>
-                    <span className="text-xs font-bold text-white tracking-wide">Distributor Resmi</span>
-                    <span className="text-[11px] text-blue-200">KIM 3 • Wilayah Sumatera</span>
+                    <span className="text-xs font-bold text-white tracking-wide">Workshop KIM 3</span>
+                    <span className="text-[11px] text-blue-200">Kawasan Industri Medan</span>
                   </div>
                 </div>
               </div>
 
-              {/* Stats Bar (Sesuai WordPress Stats Counter) */}
+              {/* Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
                 <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 text-center shadow-2xs">
-                  <span className="block text-2xl font-extrabold text-[#12388F] dark:text-blue-400">24+</span>
-                  <span className="text-[11px] font-medium text-ink-muted">Tahun Pengalaman (Est. 2000)</span>
+                  <span className="block text-2xl font-extrabold text-[#12388F] dark:text-blue-400">12+</span>
+                  <span className="text-[11px] font-medium text-ink-muted">Stall Pengerjaan Truk</span>
                 </div>
                 <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 text-center shadow-2xs">
-                  <span className="block text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">2</span>
-                  <span className="text-[11px] font-medium text-ink-muted">Region (SUMBAGUT &amp; SUMBAGSEL)</span>
+                  <span className="block text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">24 Jam</span>
+                  <span className="text-[11px] font-medium text-ink-muted">Layanan Darurat On-Site</span>
                 </div>
                 <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 text-center shadow-2xs">
                   <span className="block text-2xl font-extrabold text-amber-600 dark:text-amber-400">8+</span>
-                  <span className="text-[11px] font-medium text-ink-muted">Merek Resmi Terdistribusi</span>
+                  <span className="text-[11px] font-medium text-ink-muted">Merek Suku Cadang Resmi</span>
                 </div>
                 <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 text-center shadow-2xs">
                   <span className="block text-2xl font-extrabold text-purple-600 dark:text-purple-400">1.500+</span>
-                  <span className="text-[11px] font-medium text-ink-muted">Mitra Bengkel &amp; Perusahaan</span>
+                  <span className="text-[11px] font-medium text-ink-muted">Unit Armada Terlayani</span>
                 </div>
               </div>
 
               {/* Grid Informasi Kantor & Hub Distribusi */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Kantor Pusat & Pergudangan Utama */}
+                {/* Kantor & Workshop Utama KIM 3 */}
                 <div className="bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-5 shadow-2xs space-y-4">
                   <div className="flex items-center gap-2.5 pb-3 border-b border-[#E2E8F0] dark:border-border">
                     <div className="w-8 h-8 rounded-lg bg-[#EEF2FF] dark:bg-blue-950/40 text-[#12388F] dark:text-blue-400 flex items-center justify-center">
                       <Building2 className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="text-xs font-bold text-ink">Kantor Pusat &amp; Gudang Utama</h3>
-                      <p className="text-[11px] text-ink-muted">Pusat Pergudangan &amp; Manajemen Logistik</p>
+                      <h3 className="text-xs font-bold text-ink">Kantor &amp; Workshop Utama</h3>
+                      <p className="text-[11px] text-ink-muted">Fasilitas Bengkel &amp; Gudang Sparepart</p>
                     </div>
                   </div>
 
                   <div className="space-y-3 text-xs">
                     <div>
-                      <span className="text-[11px] font-medium text-ink-subtle block mb-1">Alamat Gudang &amp; Fasilitas:</span>
+                      <span className="text-[11px] font-medium text-ink-subtle block mb-1">Alamat Bengkel:</span>
                       <p className="font-semibold text-ink leading-relaxed">
-                        Komplek Pergudangan Palembang Star 1 Blok E5, Jl. Letjen Harun Sohar / Jl. Tanjung Api-Api, Kebun Bunga, Kec. Sukarami, Kota Palembang, Sumatera Selatan.
+                        Jl. Pulau Bunaken Komplek Warehouse KIM III No. 3A, Mabar, Kec. Medan Labuhan, Kota Medan, Sumatera Utara 20242.
                       </p>
                     </div>
                     <div>
-                      <span className="text-[11px] font-medium text-ink-subtle block mb-1">Status Legalitas:</span>
+                      <span className="text-[11px] font-medium text-ink-subtle block mb-1">Bidang Usaha:</span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Terdaftar Resmi di Kementerian Perdagangan RI
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Bengkel perawatan &amp; perbaikan armada niaga
                       </span>
                     </div>
                   </div>
@@ -3474,19 +3474,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-ink">Cakupan Wilayah &amp; Kontak</h3>
-                      <p className="text-[11px] text-ink-muted">Jaringan Suplai &amp; Layanan Pelanggan</p>
+                      <p className="text-[11px] text-ink-muted">Layanan Workshop &amp; Respons Darurat</p>
                     </div>
                   </div>
 
                   <div className="space-y-3 text-xs">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div className="p-2.5 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border">
-                        <span className="text-[10px] font-bold text-[#12388F] dark:text-blue-400 uppercase tracking-wider block mb-0.5">Region SUMBAGUT:</span>
-                        <span className="text-[11px] font-medium text-ink">Medan (KIM 3), Aceh, Pekanbaru (Riau)</span>
+                        <span className="text-[10px] font-bold text-[#12388F] dark:text-blue-400 uppercase tracking-wider block mb-0.5">Wilayah Layanan:</span>
+                        <span className="text-[11px] font-medium text-ink">KIM I, II, III, Medan, Belawan, Deli Serdang</span>
                       </div>
                       <div className="p-2.5 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border">
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-0.5">Region SUMBAGSEL:</span>
-                        <span className="text-[11px] font-medium text-ink">Palembang, Lampung, Jambi, Bengkulu, Babel</span>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-0.5">Jam Operasional:</span>
+                        <span className="text-[11px] font-medium text-ink">Senin–Sabtu 08:00–17:00 (Darurat 24 Jam)</span>
                       </div>
                     </div>
 
@@ -3494,15 +3494,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border">
                         <Phone className="w-3.5 h-3.5 text-[#12388F] dark:text-blue-400 shrink-0" />
                         <div className="min-w-0">
-                          <span className="text-[10px] text-ink-subtle block">Telepon Kantor</span>
-                          <span className="text-xs font-mono font-bold text-ink">(0711) 571-0888</span>
+                          <span className="text-[10px] text-ink-subtle block">Telepon / Hotline</span>
+                          <span className="text-xs font-mono font-bold text-ink">(061) 8882-9999</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border">
                         <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <div className="min-w-0">
-                          <span className="text-[10px] text-ink-subtle block">WhatsApp Kemitraan</span>
-                          <span className="text-xs font-mono font-bold text-ink">0812-7888-2000</span>
+                          <span className="text-[10px] text-ink-subtle block">WhatsApp Service</span>
+                          <span className="text-xs font-mono font-bold text-ink">0812-3456-7890</span>
                         </div>
                       </div>
                     </div>
