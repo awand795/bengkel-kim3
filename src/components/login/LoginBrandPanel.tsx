@@ -17,14 +17,13 @@ const PANEL_PHOTO: string | null = null;
 const merek = ['Federal Oil', 'Furukawa Battery', 'Indotube', 'RKN', 'Ichidai', 'Philips'];
 
 const faktaProfil: { label: string; nilai: React.ReactNode; Icon: LucideIcon }[] = [
-  { label: 'Bidang Usaha', nilai: 'Sparepart motor & mobil, oli dan pelumas', Icon: Package },
-  { label: 'Wilayah', nilai: 'Sumatera Selatan, Lampung, Bengkulu, Jambi, Bangka Belitung', Icon: Truck },
+  { label: 'Bidang Usaha', nilai: 'Bengkel perawatan & perbaikan armada niaga', Icon: Package },
+  { label: 'Wilayah', nilai: 'KIM III, Kota Medan, Sumatera Utara & sekitarnya', Icon: Truck },
   {
     label: 'Kantor',
     nilai: (
       <>
-        Komp. Pergudangan Palembang Star 1 Blok E5,{' '}
-        <span className="whitespace-nowrap">Jl. Tanjung Api-Api,</span> Palembang
+        Jl. Pulau Bunaken Komplek Warehouse KIM III No. 3A, Mabar, Kec. Medan Labuhan, Kota Medan, Sumatera Utara 20242
       </>
     ),
     Icon: MapPin,
@@ -50,15 +49,12 @@ export const LoginBrandPanel: React.FC = () => {
       <div aria-hidden="true" className="login-aurora-a absolute -left-24 top-1/4 w-[22rem] h-[22rem] pointer-events-none z-0" />
       <div aria-hidden="true" className="login-aurora-b absolute -right-20 -bottom-24 w-[26rem] h-[26rem] pointer-events-none z-0" />
 
-      {/* Titik fokus cahaya halus di belakang judul */}
-      <div aria-hidden="true" className="absolute left-0 top-[26%] w-[78%] h-[38%] pointer-events-none z-0 bg-[radial-gradient(closest-side,rgba(255,255,255,0.06),transparent)]" />
-
       {/* Dekorasi: roda/ban otomotif berputar sangat pelan di pojok kanan atas */}
       <svg
         aria-hidden="true"
         viewBox="0 0 400 400"
         fill="none"
-        className="login-wheel absolute -right-24 -top-24 w-[20rem] pointer-events-none select-none opacity-[0.12] text-white z-0"
+        className="login-wheel absolute -right-24 -top-24 w-[20rem] pointer-events-none select-none opacity-[0.08] text-white z-0"
       >
         {/* Ban luar */}
         <circle cx="200" cy="200" r="190" stroke="currentColor" strokeWidth="1.5" />
@@ -86,7 +82,7 @@ export const LoginBrandPanel: React.FC = () => {
 
         {/* Logo chip */}
         <div className="mb-9 login-reveal" style={{ animationDelay: '0ms' }}>
-          <div className="bg-white p-2.5 rounded-xl inline-flex border border-slate-200/90 shadow-sm shadow-slate-900/5">
+          <div className="bg-[#E9EEF6] p-2.5 rounded-xl inline-flex border border-white/[0.18]">
             <img
               src={LOGO_SRC}
               alt="Master Truck"
@@ -96,12 +92,9 @@ export const LoginBrandPanel: React.FC = () => {
         </div>
 
         <div className="login-reveal" style={{ animationDelay: '80ms' }}>
-          <p className="mb-2 text-xs uppercase tracking-[0.18em] lg-text-bright font-bold">
-            <span aria-hidden className="relative inline-flex w-1.5 h-1.5 mr-2 align-middle">
-              <span className="absolute inset-0 rounded-full bg-[#FBBF24] animate-ping opacity-60" />
-              <span className="relative w-1.5 h-1.5 rounded-full bg-[#FBBF24]" />
-            </span>
-            Distributor Sparepart &amp; Pelumas
+          <p className="mb-2 text-xs uppercase tracking-[0.18em] text-[#F2C14E] lg-text-bright font-semibold">
+            <span aria-hidden className="inline-flex w-1.5 h-1.5 mr-2 align-middle rounded-full bg-[#F2C14E]" />
+            Bengkel Perawatan &amp; Perbaikan Truk
           </p>
           <h1 className="mb-3 text-3xl xl:text-4xl font-bold tracking-tight leading-tight login-title-sheen tracking-[-0.02em]">
             Master Truck
@@ -110,7 +103,7 @@ export const LoginBrandPanel: React.FC = () => {
         </div>
 
         <p className="mb-4 text-sm xl:text-[15px] leading-relaxed text-[#E2E8F0] auth-text-dark lg-p-text login-reveal" style={{ animationDelay: '160ms' }}>
-          Master Truck adalah perusahaan distributor sparepart motor, mobil, dan oli yang berbasis di Palembang. Melayani distribusi ke wilayah Sumatera Selatan, Lampung, Bengkulu, Jambi, dan Bangka Belitung.
+          Master Truck adalah bengkel spesialis perawatan dan perbaikan armada truk serta kendaraan niaga yang berbasis di Medan. Melayani servis berkala, overhaul mesin, kelistrikan, dan suku cadang untuk kawasan industri dan sekitarnya.
         </p>
 
         {/* Fakta ringkas dengan ikon */}
@@ -125,14 +118,14 @@ export const LoginBrandPanel: React.FC = () => {
                 <Icon className="w-4 h-4" />
               </div>
               <dt className="text-xs uppercase tracking-wider text-[#CBD5E1] auth-label-dark lg-p-muted pt-1 whitespace-nowrap">{label}</dt>
-              <dd className="text-[13px] text-white auth-title-dark lg-p-title font-semibold leading-snug pt-1 [text-wrap:pretty]">{nilai}</dd>
+              <dd className="text-[13px] text-[#F1F5F9] auth-title-dark lg-p-title font-semibold leading-snug pt-1 [text-wrap:pretty]">{nilai}</dd>
             </div>
           ))}
         </dl>
 
-        {/* Merek yang didistribusikan (disembunyikan otomatis di layar sangat pendek) */}
+        {/* Merek suku cadang & pelumas resmi */}
         <div className="[@media(max-height:560px)]:hidden">
-          <p className="mb-2 text-xs font-medium text-[#CBD5E1] auth-label-dark lg-p-muted">Merek yang Didistribusikan</p>
+          <p className="mb-2 text-xs font-medium text-[#CBD5E1] auth-label-dark lg-p-muted">Suku Cadang &amp; Pelumas Resmi</p>
           <div className="flex flex-wrap gap-1.5">
             {merek.map((nama, index) => (
               <span

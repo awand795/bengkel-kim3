@@ -82,19 +82,48 @@ export interface Pelanggan {
 export interface Kendaraan {
   id: number;
   no_polisi: string;
+  policeno?: string;
   id_pelanggan?: number;
+  member_id?: number;
+  memberid?: number;
   nama_perusahaan?: string;
   nama_pemilik?: string;
-  jenis_armada: 'Truk' | 'Mobil' | 'Pickup' | 'Lainnya';
+  jenis_armada?: string;
   merk: string;
   model: string;
+  type?: string;
   tahun?: number;
+  year?: number;
   no_rangka?: string;
+  chassisno?: string;
   no_mesin?: string;
+  machineno?: string;
+  no_inventaris?: string;
+  unit_name?: string;
+  expired?: string;
   asuransi?: string;
   masa_berlaku_asuransi?: string;
+  note?: string;
+  description?: string;
   status_aktif: boolean;
+  active?: boolean;
   foto_kendaraan?: string;
+}
+
+export interface MasterBrand {
+  id: number;
+  brandcode?: string;
+  brandname: string;
+}
+
+export interface MasterType {
+  id: number;
+  typename: string;
+  typecode?: string;
+  modelid?: number;
+  modelname?: string;
+  brandid?: number;
+  brandname?: string;
 }
 
 export interface DokumenKendaraan {

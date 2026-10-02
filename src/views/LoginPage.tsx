@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { api } from '../api/client';
+import { api, getApiErrorMessage } from '../api/client';
 import { isValidEmail } from '../utils/validation';
 import { 
   Lock, 
@@ -170,7 +170,8 @@ export const LoginPage: React.FC = () => {
         email: cleanEmail,
         password: regForm.password,
         nama_lengkap: tipeMitra === 'perusahaan' ? cleanPerusahaan : cleanNama,
-        nama_pic: tipeMitra === 'perusahaan' ? cleanNama : undefined,
+        nama_perusahaan: tipeMitra === 'perusahaan' ? cleanPerusahaan : cleanNama,
+        nama_pic: cleanNama,
         no_telepon: cleanPhone,
       });
       if (res.success || res.data?.id) {
@@ -182,7 +183,7 @@ export const LoginPage: React.FC = () => {
         }, 2500);
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Pendaftaran gagal. Email atau nomor HP mungkin sudah terdaftar.';
+      const msg = getApiErrorMessage(err, 'Pendaftaran gagal. Email atau nomor HP mungkin sudah terdaftar.');
       setErrorMsg(msg);
     } finally {
       setIsLoading(false);
@@ -592,11 +593,11 @@ export const LoginPage: React.FC = () => {
           {/* Profil perusahaan ringkas (mobile): panel kiri disembunyikan di < lg */}
           <div className="lg:hidden mt-6 text-center">
             <p className="text-xs text-ink-muted">
-              Distributor Resmi Nasional Suku Cadang &amp; Pelumas Otomotif · Sejak 2000
+              Bengkel Spesialis Perawatan &amp; Perbaikan Armada Truk · KIM III
             </p>
             <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-ink-muted">
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span>Palembang, Sumatera Selatan</span>
+              <span>KIM III Mabar, Medan, Sumatera Utara</span>
             </div>
           </div>
         </div>

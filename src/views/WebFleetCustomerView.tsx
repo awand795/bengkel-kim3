@@ -6,6 +6,7 @@ import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerj
 import { PaginationBar } from '../components/common/PaginationBar';
 import { useAppStore } from '../store/useAppStore';
 import { usePpnRate } from '../hooks/usePpnRate';
+import { usePagination } from '../hooks/usePagination';
 import { realtimeHub } from '../services/realtimeService';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
@@ -20,12 +21,15 @@ import { StatCard } from '../components/common/StatCard';
 import { EmptyState } from '../components/common/EmptyState';
 import { SectionHeader } from '../components/common/SectionHeader';
 import { FilterChips } from '../components/common/FilterChips';
+import { PlateChip } from '../components/common/PlateChip';
+import { RupiahCell } from '../components/common/RupiahCell';
 import { 
   Truck, 
   Calendar, 
   CheckCircle2, 
   FileText, 
   Clock, 
+  Lock,
   Download, 
   Plus, 
   ShieldCheck, 
@@ -1211,14 +1215,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Edit & hapus unit kendaraan dari menu Daftar Kendaraan
   const [editArmadaData, setEditArmadaData] = useState<Kendaraan | null>(null);
   const [editArmadaForm, setEditArmadaForm] = useState({
-    jenis_armada: 'Truk',
+    no_polisi: '',
+    no_inventaris: '',
+    unit_name: '',
     merk: '',
     model: '',
+    type: '',
+    jenis_armada: 'Truk',
     tahun: new Date().getFullYear(),
     no_rangka: '',
     no_mesin: '',
+    expired: '',
     asuransi: '',
     masa_berlaku_asuransi: '',
+    note: '',
+    description: '',
     foto_kendaraan: '',
   });
   const [hapusArmadaTarget, setHapusArmadaTarget] = useState<Kendaraan | null>(null);
@@ -1258,12 +1269,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryFn: api.getKendaraan,
   });
 
-  const { data: bookingList } = useQuery({
+  const { data: masterMerkList = [] } = useQuery({
+    queryKey: ['master-merk-list'],
+    queryFn: api.getMasterMerk,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const { data: masterTipeList = [] } = useQuery({
+    queryKey: ['master-tipe-list'],
+    queryFn: () => api.getMasterTipe(),
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const { data: bookingList, isLoading: isLoadingBooking } = useQuery({
     queryKey: ['booking-list'],
     queryFn: api.getBooking,
   });
 
-  const { data: spkList } = useQuery({
+  const { data: spkList, isLoading: spkLoading } = useQuery({
     queryKey: ['spk-list'],
     queryFn: api.getSpkList,
     refetchInterval: 8000,
@@ -1606,20 +1629,80 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return `${a.tanggal_booking} ${a.jam_booking}`.localeCompare(`${b.tanggal_booking} ${b.jam_booking}`);
   });
 
+  // ── Booking Saya: DateTile component ─────────────────────────────────────────
+  const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+  const BookingDateTile = ({ dateStr }: { dateStr?: string }) => {
+    if (!dateStr) {
+      return (
+        <div className="w-[52px] h-[52px] rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 border border-[#DDE5FB] dark:border-blue-900/50 flex items-center justify-center shrink-0">
+          <Calendar className="w-5 h-5 text-[#12388F] dark:text-blue-300" />
+        </div>
+      );
+    }
+
+    const parts = dateStr.split('-');
+    let month = '';
+    let day = '';
+    if (parts.length === 3) {
+      const monthNum = parseInt(parts[1], 10);
+      const dayNum = parseInt(parts[2], 10);
+      if (!isNaN(monthNum) && !isNaN(dayNum) && monthNum >= 1 && monthNum <= 12) {
+        month = MONTH_NAMES[monthNum - 1];
+        day = String(dayNum);
+      }
+    }
+
+    if (!month || !day) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        month = MONTH_NAMES[d.getMonth()] || '';
+        day = String(d.getDate());
+      }
+    }
+
+    if (!month || !day) {
+      return (
+        <div className="w-[52px] h-[52px] rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 border border-[#DDE5FB] dark:border-blue-900/50 flex items-center justify-center shrink-0">
+          <Calendar className="w-5 h-5 text-[#12388F] dark:text-blue-300" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-[52px] h-[52px] rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 border border-[#DDE5FB] dark:border-blue-900/50 flex flex-col items-center justify-center shrink-0 select-none shadow-2xs">
+        <span className="text-[10px] font-bold text-[#64748B] dark:text-slate-400 tracking-wider leading-none uppercase">
+          {month}
+        </span>
+        <span className="text-[20px] font-extrabold text-[#12388F] dark:text-blue-300 leading-tight tabular-nums mt-0.5">
+          {day}
+        </span>
+      </div>
+    );
+  };
+
   // ── Booking Saya: hanya menampilkan booking yang Aktif (Booked) ──────────────
-  const [bookingViewPage, setBookingViewPage] = useState(1);
-  const [bookingViewLimit, setBookingViewLimit] = useState(10);
   const bookingAktifList = myBookingSorted.filter((b) => getBookingEffectiveStatus(b) === 'Booked');
   const bookingFiltered = bookingAktifList;
-  const bookingViewTotalPages = Math.max(1, Math.ceil(bookingFiltered.length / bookingViewLimit));
-  const bookingViewSafePage = Math.min(bookingViewPage, bookingViewTotalPages);
+
+  const {
+    page: bookingViewPage,
+    limit: bookingViewLimit,
+    safePage: bookingViewSafePage,
+    totalPages: bookingViewTotalPages,
+    offset: bookingViewOffset,
+    setPage: setBookingViewPage,
+    setLimit: setBookingViewLimit,
+  } = usePagination({
+    total: bookingFiltered.length,
+    defaultLimit: 10,
+    maxLimit: 200,
+    storageKey: 'booking',
+  });
+
   const bookingViewRows = bookingFiltered.slice(
-    (bookingViewSafePage - 1) * bookingViewLimit,
-    bookingViewSafePage * bookingViewLimit
+    bookingViewOffset,
+    bookingViewOffset + bookingViewLimit
   );
-  React.useEffect(() => {
-    setBookingViewPage(1);
-  }, [bookingViewLimit]);
 
   // Jadwal Booking Terdekat: hanya yang masih Booked DAN jadwalnya belum lewat.
   // Booking yang sudah check-in (Diproses), Selesai, Dibatalkan, atau terlewat
@@ -1679,17 +1762,34 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       );
     }
     const st = getCancelState(b);
+    const isDisabled = !st.allowed || batalkanBookingMutation.isPending;
+    const tooltipText = st.allowed ? 'Batalkan booking ini' : st.reason;
+
+    if (isDisabled) {
+      return (
+        <span title={tooltipText} className="inline-block">
+          <button
+            type="button"
+            disabled
+            className={`${
+              compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'
+            } rounded-xl font-bold border border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-800 text-[#94A3B8] dark:text-slate-500 cursor-not-allowed inline-flex items-center gap-1.5`}
+          >
+            <Lock className="w-3 h-3 text-[#94A3B8] dark:text-slate-500" />
+            <span>Batalkan</span>
+          </button>
+        </span>
+      );
+    }
+
     return (
       <button
         type="button"
-        disabled={!st.allowed || batalkanBookingMutation.isPending}
-        title={st.allowed ? 'Batalkan booking ini' : st.reason}
+        title={tooltipText}
         onClick={() => setCancelBookingTarget(b)}
-        className={`${compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'} rounded-xl font-bold transition-all ${
-          st.allowed
-            ? 'bg-status-red-bg text-status-red hover:bg-status-red hover:text-white border border-status-red/30 cursor-pointer'
-            : 'bg-surface text-ink-subtle border border-border cursor-not-allowed'
-        } disabled:opacity-60`}
+        className={`${
+          compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'
+        } rounded-xl font-bold transition-all border border-[#FECACA] dark:border-red-900/50 text-[#DC2626] dark:text-red-400 bg-transparent hover:bg-[#FEF2F2] dark:hover:bg-red-950/40 cursor-pointer inline-flex items-center gap-1`}
       >
         Batalkan
       </button>
@@ -1864,36 +1964,49 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [openTambahArmadaModal, setOpenTambahArmadaModal] = useState(false);
   const [armadaForm, setArmadaForm] = useState({
     no_polisi: '',
+    no_inventaris: '',
+    unit_name: '',
     jenis_armada: 'Truk',
+    type: '',
     merk: '',
     model: '',
     tahun: new Date().getFullYear(),
     nama_pemilik: currentUser || '',
     no_rangka: '',
     no_mesin: '',
+    expired: '',
     asuransi: '',
     masa_berlaku_asuransi: '',
+    note: '',
+    description: '',
     foto_kendaraan: '',
   });
 
   const tambahArmadaMutation = useMutation({
     mutationFn: async (data: typeof armadaForm) => {
+      if (!isVerifiedByAdmin) {
+        throw new Error('Akun belum terverifikasi oleh admin POS.');
+      }
       // Plat dinormalisasi (primary key walk-in); konflik pemilik ditolak server.
       const plat = normalizePlat(data.no_polisi);
       if (!plat) throw new Error('Nomor polisi wajib diisi.');
       const res = await api.tambahKendaraan({
         no_polisi: plat,
+        no_inventaris: data.no_inventaris || undefined,
+        unit_name: data.unit_name || undefined,
         jenis_armada: data.jenis_armada as any,
+        type: data.type || data.jenis_armada || undefined,
         merk: data.merk,
         model: data.model,
         tahun: Number(data.tahun) || new Date().getFullYear(),
         nama_pemilik: data.nama_pemilik || authUser?.nama_perusahaan || authUser?.nama_lengkap || 'Customer Fleet',
-        no_rangka: data.no_rangka,
-        no_mesin: data.no_mesin,
-        asuransi: data.asuransi,
-        masa_berlaku_asuransi: data.masa_berlaku_asuransi || undefined,
-        // Endpoint /kim3/kendaraan-tambah memakai :foto_kendaraan_base64_data,
-        // Dynamic API otomatis memetakan param `foto_kendaraan` (data URI).
+        no_rangka: data.no_rangka || undefined,
+        no_mesin: data.no_mesin || undefined,
+        expired: data.expired || data.masa_berlaku_asuransi || undefined,
+        asuransi: data.asuransi || undefined,
+        masa_berlaku_asuransi: data.masa_berlaku_asuransi || data.expired || undefined,
+        note: data.note || undefined,
+        description: data.description || undefined,
         foto_kendaraan: data.foto_kendaraan || undefined,
         id_pelanggan: myPelangganId || undefined,
       });
@@ -1933,15 +2046,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       setOpenTambahArmadaModal(false);
       setArmadaForm({
         no_polisi: '',
+        no_inventaris: '',
+        unit_name: '',
         jenis_armada: 'Truk',
+        type: '',
         merk: '',
         model: '',
         tahun: new Date().getFullYear(),
         nama_pemilik: currentUser || '',
         no_rangka: '',
         no_mesin: '',
+        expired: '',
         asuransi: '',
         masa_berlaku_asuransi: '',
+        note: '',
+        description: '',
         foto_kendaraan: '',
       });
     },
@@ -1953,15 +2072,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const editArmadaMutation = useMutation({
     mutationFn: (data: typeof editArmadaForm) =>
       api.updateKendaraan({
-        no_polisi: editArmadaData?.no_polisi || '',
+        no_polisi: editArmadaData?.no_polisi || data.no_polisi || '',
+        no_inventaris: data.no_inventaris || undefined,
+        unit_name: data.unit_name || undefined,
         jenis_armada: data.jenis_armada as any,
+        type: data.type || data.jenis_armada || undefined,
         merk: data.merk,
         model: data.model,
         tahun: Number(data.tahun) || undefined,
-        no_rangka: data.no_rangka,
-        no_mesin: data.no_mesin,
-        asuransi: data.asuransi,
-        masa_berlaku_asuransi: data.masa_berlaku_asuransi || undefined,
+        no_rangka: data.no_rangka || undefined,
+        no_mesin: data.no_mesin || undefined,
+        expired: data.expired || data.masa_berlaku_asuransi || undefined,
+        asuransi: data.asuransi || undefined,
+        masa_berlaku_asuransi: data.masa_berlaku_asuransi || data.expired || undefined,
+        note: data.note || undefined,
+        description: data.description || undefined,
         foto_kendaraan: data.foto_kendaraan || undefined,
       }),
     onSuccess: () => {
@@ -1998,6 +2123,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   const tambahDokumenMutation = useMutation({
     mutationFn: async (data: typeof dokumenForm) => {
+      if (!isVerifiedByAdmin) {
+        throw new Error('Akun belum terverifikasi oleh admin POS.');
+      }
       return api.tambahDokumen({
         no_polisi: data.no_polisi,
         nama_dokumen: data.nama_dokumen,
@@ -2045,7 +2173,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </span>
               </div>
               <p className="text-sm text-amber-900 dark:text-amber-100/90 mt-1 leading-relaxed font-medium">
-                Akun kemitraan Anda saat ini menunggu verifikasi data oleh admin sistem POS. Anda belum dapat melakukan booking service atau menambahkan armada kendaraan baru sampai akun selesai diverifikasi oleh admin.
+                Akun kemitraan Anda saat ini menunggu verifikasi data oleh admin sistem POS. Anda belum dapat melakukan booking service, menambahkan armada kendaraan baru, atau mengunggah dokumen sampai akun selesai diverifikasi oleh admin.
               </p>
             </div>
           </div>
@@ -2187,16 +2315,61 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </span>
             </div>
 
-            {bookingFiltered.length > 0 ? (
+            {isLoadingBooking ? (
+              <div className="space-y-[10px]">
+                {[1, 2, 3].map((n) => (
+                  <div
+                    key={n}
+                    className="rounded-2xl p-4 border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs animate-pulse"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                      <div className="w-[52px] h-[52px] rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0" />
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-28 h-6 rounded-md bg-slate-200 dark:bg-slate-800" />
+                          <div className="w-20 h-5 rounded-full bg-slate-200 dark:bg-slate-800" />
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="w-24 h-6 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                          <div className="w-40 h-6 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-20 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            ) : bookingFiltered.length > 0 ? (
               <>
-                <div className="space-y-2.5">
-                  {bookingViewRows.map((b) => {
+                <div className="space-y-[10px]">
+                  {bookingViewRows.map((b, idx) => {
                     const effStatus = getBookingEffectiveStatus(b);
+                    const staggerDelay = Math.min(idx, 10) * 25;
                     return (
                       <ListItemCard
                         key={b.id}
-                        title={formatPlat(b.no_polisi)}
-                        subtitle={`${b.jenis_layanan} • Jadwal: ${b.tanggal_booking} ${b.jam_booking} WIB`}
+                        className="rounded-2xl p-4 border-[#E2E8F0] dark:border-border hover:border-[#12388F]/25 hover:bg-[#FAFBFF] dark:hover:bg-slate-800/40 shadow-2xs hover:shadow-xs transition-all duration-150 animate-booking-row"
+                        style={{
+                          animationDelay: `${staggerDelay}ms`,
+                        }}
+                        leading={<BookingDateTile dateStr={b.tanggal_booking} />}
+                        title={
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <PlateChip plat={b.no_polisi} />
+                          </div>
+                        }
+                        subtitle={
+                          <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                            <span className="inline-flex items-center gap-1.5 text-xs text-[#475569] dark:text-slate-300 bg-[#F1F5F9] dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-[#E2E8F0] dark:border-slate-700/60 font-medium">
+                              <Wrench className="w-3.5 h-3.5 text-[#64748B] dark:text-slate-400 shrink-0" />
+                              <span>{b.jenis_layanan}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 text-xs text-[#475569] dark:text-slate-300 bg-[#F1F5F9] dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-[#E2E8F0] dark:border-slate-700/60 font-medium">
+                              <Clock className="w-3.5 h-3.5 text-[#64748B] dark:text-slate-400 shrink-0" />
+                              <span>Jadwal: {b.tanggal_booking} {b.jam_booking} WIB</span>
+                            </span>
+                          </div>
+                        }
                         badge={<StatusBadge status={effStatus} size="sm" />}
                         actions={<BookingCancelButton b={b} />}
                       />
@@ -2209,8 +2382,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   totalRecords={bookingFiltered.length}
                   limit={bookingViewLimit}
                   label="booking"
+                  maxLimit={200}
                   onPageChange={setBookingViewPage}
-                  onLimitChange={(l) => setBookingViewLimit(l)}
+                  onLimitChange={setBookingViewLimit}
                 />
               </>
             ) : (
@@ -2428,8 +2602,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             <p className="text-xs text-ink-muted font-medium">Belum ada kendaraan terdaftar untuk akun fleet Anda.</p>
                             <button
                               type="button"
-                              onClick={() => setOpenTambahArmadaModal(true)}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                              disabled={!isVerifiedByAdmin}
+                              onClick={() => {
+                                if (!isVerifiedByAdmin) {
+                                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                                  return;
+                                }
+                                setOpenTambahArmadaModal(true);
+                              }}
+                              className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl transition ${
+                                !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                              }`}
+                              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
                             >
                               <Plus className="w-3.5 h-3.5" /> Daftarkan Truk Sekarang
                             </button>
@@ -2734,14 +2918,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           className="w-[88px] h-[88px] rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-dashed border-[#CBD5E1] dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0 text-[#94A3B8] cursor-pointer hover:border-[#12388F] hover:text-[#12388F] transition-colors"
                           onClick={() => {
                             setEditArmadaForm({
-                              jenis_armada: k.jenis_armada || 'Truk',
+                              no_polisi: k.no_polisi,
+                              no_inventaris: k.no_inventaris || '',
+                              unit_name: k.unit_name || '',
                               merk: k.merk || '',
                               model: k.model || '',
-                              tahun: k.tahun || new Date().getFullYear(),
-                              no_rangka: k.no_rangka || '',
-                              no_mesin: k.no_mesin || '',
+                              type: k.type || k.jenis_armada || '',
+                              jenis_armada: k.jenis_armada || k.type || 'Truk',
+                              tahun: k.tahun || k.year || new Date().getFullYear(),
+                              no_rangka: k.no_rangka || k.chassisno || '',
+                              no_mesin: k.no_mesin || k.machineno || '',
+                              expired: k.expired ? String(k.expired).slice(0, 10) : (k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : ''),
                               asuransi: k.asuransi || '',
-                              masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '',
+                              masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : (k.expired ? String(k.expired).slice(0, 10) : ''),
+                              note: k.note || '',
+                              description: k.description || '',
                               foto_kendaraan: '',
                             });
                             setEditArmadaData(k);
@@ -2771,10 +2962,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           )}
                         </div>
                         <h3 className="text-sm font-bold text-[#0F172A] dark:text-white truncate">
-                          {k.merk} {k.model}
+                          {k.unit_name ? `${k.unit_name} — ${k.merk} ${k.model}` : `${k.merk} ${k.model}`}
                         </h3>
                         <p className="text-[11px] text-[#64748B] dark:text-slate-400">
-                          {k.jenis_armada || 'Truk'} • Pemilik: {k.nama_pemilik || currentUser || 'Perusahaan'}
+                          {k.type || k.jenis_armada || 'Truk'} • Pemilik: {k.nama_pemilik || currentUser || 'Perusahaan'}
                         </p>
                       </div>
                     </div>
@@ -2782,33 +2973,29 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     {/* Zona 2: Spesifikasi Grid Label Kecil di Atas Nilai */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 py-3 xl:py-0 border-y xl:border-y-0 xl:border-l xl:border-r border-[#F1F5F9] dark:border-slate-800 xl:px-6 flex-1 min-w-0">
                       <div>
-                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Jenis:</span>
-                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.jenis_armada || 'Truk'}</span>
+                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Tipe / Varian:</span>
+                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.type || k.jenis_armada || 'Truk'}</span>
                       </div>
                       <div>
                         <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Tahun:</span>
-                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.tahun || '-'}</span>
+                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.tahun || k.year || '-'}</span>
                       </div>
                       <div>
                         <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">No. Rangka:</span>
-                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={k.no_rangka || '-'}>
-                          {k.no_rangka || '-'}
+                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={k.no_rangka || k.chassisno || '-'}>
+                          {k.no_rangka || k.chassisno || '-'}
                         </span>
                       </div>
                       <div>
                         <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">No. Mesin:</span>
-                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={k.no_mesin || '-'}>
-                          {k.no_mesin || '-'}
+                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={k.no_mesin || k.machineno || '-'}>
+                          {k.no_mesin || k.machineno || '-'}
                         </span>
                       </div>
-                      <div>
-                        <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Asuransi:</span>
-                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.asuransi || '-'}</span>
-                      </div>
-                      <div>
+                      <div className="col-span-2 sm:col-span-1">
                         <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Masa Berlaku:</span>
                         <div>
-                          {renderDocExpiryBadge(k.masa_berlaku_asuransi)}
+                          {renderDocExpiryBadge(k.expired || k.masa_berlaku_asuransi)}
                         </div>
                       </div>
                     </div>
@@ -2839,30 +3026,48 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         type="button"
                         onClick={() => {
                           setEditArmadaForm({
-                            jenis_armada: k.jenis_armada || 'Truk',
+                            no_polisi: k.no_polisi,
+                            no_inventaris: k.no_inventaris || '',
+                            unit_name: k.unit_name || '',
                             merk: k.merk || '',
                             model: k.model || '',
-                            tahun: k.tahun || new Date().getFullYear(),
-                            no_rangka: k.no_rangka || '',
-                            no_mesin: k.no_mesin || '',
+                            type: k.type || k.jenis_armada || '',
+                            jenis_armada: k.jenis_armada || k.type || 'Truk',
+                            tahun: k.tahun || k.year || new Date().getFullYear(),
+                            no_rangka: k.no_rangka || k.chassisno || '',
+                            no_mesin: k.no_mesin || k.machineno || '',
+                            expired: k.expired ? String(k.expired).slice(0, 10) : (k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : ''),
                             asuransi: k.asuransi || '',
-                            masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : '',
+                            masa_berlaku_asuransi: k.masa_berlaku_asuransi ? String(k.masa_berlaku_asuransi).slice(0, 10) : (k.expired ? String(k.expired).slice(0, 10) : ''),
+                            note: k.note || '',
+                            description: k.description || '',
                             foto_kendaraan: k.foto_kendaraan || '',
                           });
                           setEditArmadaData(k);
                         }}
-                        className="p-2 rounded-lg border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised text-[#475569] dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
+                        className={`p-2 rounded-lg border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised text-[#475569] dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white transition-colors ${
+                          !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
                         aria-label={`Edit unit ${k.no_polisi}`}
-                        title="Edit spesifikasi unit"
+                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : 'Edit spesifikasi unit'}
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => setHapusArmadaTarget(k)}
-                        className="p-2 rounded-lg border border-transparent hover:border-red-200 dark:hover:border-red-900/40 bg-transparent hover:bg-[#FEE2E2] dark:hover:bg-rose-950/40 text-[#DC2626] transition-colors cursor-pointer"
+                        disabled={!isVerifiedByAdmin}
+                        onClick={() => {
+                          if (!isVerifiedByAdmin) {
+                            toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                            return;
+                          }
+                          setHapusArmadaTarget(k);
+                        }}
+                        className={`p-2 rounded-lg border border-transparent hover:border-red-200 dark:hover:border-red-900/40 bg-transparent hover:bg-[#FEE2E2] dark:hover:bg-rose-950/40 text-[#DC2626] transition-colors ${
+                          !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
                         aria-label={`Hapus unit ${k.no_polisi}`}
-                        title="Hapus unit kendaraan"
+                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : 'Hapus unit kendaraan'}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -2918,8 +3123,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
               <button
                 type="button"
-                onClick={() => setOpenTambahArmadaModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                disabled={!isVerifiedByAdmin}
+                onClick={() => {
+                  if (!isVerifiedByAdmin) {
+                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                    return;
+                  }
+                  setOpenTambahArmadaModal(true);
+                }}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition ${
+                  !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
+                title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
               >
                 <Plus className="w-4 h-4" /> Daftarkan Unit Sekarang
               </button>
@@ -2938,13 +3153,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
             <button
               type="button"
+              disabled={!isVerifiedByAdmin}
               onClick={() => {
+                if (!isVerifiedByAdmin) {
+                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                  return;
+                }
                 if (myKendaraanList.length > 0) {
                   setDokumenForm(prev => ({ ...prev, no_polisi: myKendaraanList[0].no_polisi }));
                 }
                 setOpenTambahDokumenModal(true);
               }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer shrink-0"
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 ${
+                !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
+              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
             >
               <Plus className="w-4 h-4" />
               <span>Unggah Dokumen Baru</span>
@@ -3065,7 +3288,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               {/* Pagination menempel di footer container tabel */}
-              <div className="bg-[#F8FAFC] dark:bg-surface border-t border-[#E2E8F0] dark:border-border px-4 py-2">
+              <div className="bg-[#F8FAFC] dark:bg-surface px-4 pb-3">
                 <PaginationBar
                   page={dokumenSafePage}
                   totalPages={dokumenTotalPages}
@@ -3073,7 +3296,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   limit={dokumenLimit}
                   label="dokumen"
                   onPageChange={setDokumenPage}
-                  onLimitChange={(l) => setDokumenLimit(l)}
+                  onLimitChange={(l) => {
+                    setDokumenLimit(l);
+                    setDokumenPage(1);
+                  }}
                 />
               </div>
             </div>
@@ -3090,13 +3316,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
               <button
                 type="button"
+                disabled={!isVerifiedByAdmin}
                 onClick={() => {
+                  if (!isVerifiedByAdmin) {
+                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                    return;
+                  }
                   if (myKendaraanList.length > 0) {
                     setDokumenForm(prev => ({ ...prev, no_polisi: myKendaraanList[0].no_polisi }));
                   }
                   setOpenTambahDokumenModal(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl transition ${
+                  !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
+                title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
               >
                 <Plus className="w-3.5 h-3.5" /> Unggah Dokumen Baru
               </button>
@@ -3267,203 +3501,247 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 6: HISTORY SERVICE */}
       {fleetMenu === 'history' && (
-        <div className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-5 shadow-xs">
-          <div className="border-b border-[#E2E8F0] dark:border-border pb-3 mb-4">
+        <div className="space-y-6">
+          <div>
             <h2 className="text-base font-bold text-ink">Riwayat Kendaraan (History)</h2>
             <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Bengkel KIM 3</p>
           </div>
 
-          {/* Toolbar Search & Status Filter */}
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-[#F8FAFC] dark:bg-surface p-2.5 sm:p-3 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md w-full">
-              <Search className="w-4 h-4 text-[#64748B] dark:text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={historySearch}
-                onChange={(e) => setHistorySearch(e.target.value)}
-                placeholder="Cari no. SPK, no. polisi, keluhan, atau status..."
-                aria-label="Cari riwayat service"
-                className="h-10 w-full pl-9 pr-9 rounded-lg border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised text-xs text-[#0F172A] dark:text-ink placeholder:text-[#94A3B8] focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 focus:outline-hidden transition"
-              />
-              {historySearch && (
-                <button
-                  type="button"
-                  onClick={() => setHistorySearch('')}
-                  aria-label="Bersihkan pencarian riwayat"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-[#64748B] hover:text-[#0F172A] dark:hover:text-white transition cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-            <div className="shrink-0 overflow-x-auto">
-              <FilterChips
-                options={[
-                  { id: 'semua', label: 'Semua', count: mySpkList.length },
-                  { id: 'sedang-diservis', label: 'Sedang Diservis', count: mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length },
-                  { id: 'selesai', label: 'Selesai', count: mySpkList.filter(s => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed').length },
-                ]}
-                selectedId={historyStatusFilter}
-                onChange={(id) => setHistoryStatusFilter(id as 'semua' | 'sedang-diservis' | 'selesai')}
-              />
-            </div>
-          </div>
-
-          {historyRows.length > 0 ? (
-            <div className="rounded-xl border border-[#E2E8F0] dark:border-border overflow-hidden bg-white dark:bg-surface-raised shadow-xs">
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F8FAFC] dark:bg-surface text-[11px] uppercase tracking-wide text-[#64748B] dark:text-ink-subtle font-semibold border-b border-[#E2E8F0] dark:border-border sticky top-0">
-                    <tr>
-                      <th className="py-3 px-3 font-semibold">No. Booking / SPK</th>
-                      <th className="py-3 px-3 font-semibold">Kendaraan</th>
-                      <th className="py-3 px-3 font-semibold">Layanan</th>
-                      <th className="py-3 px-3 font-semibold">Tanggal Masuk</th>
-                      <th className="py-3 px-3 font-semibold text-right">Biaya</th>
-                      <th className="py-3 px-3 font-semibold">Status</th>
-                      <th className="py-3 px-3 font-semibold text-center">Detail</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F1F5F9] dark:divide-border">
-                    {historyRows.map((spk) => (
-                      <tr key={spk.id} onClick={() => setHistoryDetail(spk)} className="hover:bg-[#F8FAFF] dark:hover:bg-slate-800/40 transition-colors cursor-pointer group">
-                        <td className="py-3.5 px-3 font-mono font-bold text-[#12388F] dark:text-blue-400 border-l-2 border-transparent group-hover:border-[#12388F] transition-colors">{spk.no_spk}</td>
-                        <td className="py-3.5 px-3">
-                          <span className="inline-flex px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-[#F1F5F9] dark:bg-surface text-[#0F172A] dark:text-ink border border-[#E2E8F0] dark:border-border">
-                            {formatPlat(spk.no_polisi)}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-3 text-[#475569] dark:text-ink-muted">{spk.keluhan_customer}</td>
-                        <td className="py-3.5 px-3 font-mono text-[#64748B] dark:text-ink-muted">{new Date(spk.created_at).toLocaleDateString('id-ID')}</td>
-                        <td className="py-3.5 px-3 font-mono font-bold text-[#0F172A] dark:text-ink text-right tabular-nums">Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}</td>
-                        <td className="py-3.5 px-3">
-                          <StatusBadge status={spk.status_spk} size="sm" />
-                        </td>
-                        <td className="py-3.5 px-3 text-center">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setHistoryDetail(spk);
-                            }}
-                            title={`Lihat detail tracking ${spk.no_spk}`}
-                            aria-label={`Lihat detail tracking ${spk.no_spk}`}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-[#12388F] text-[#12388F] dark:text-blue-400 hover:bg-[#12388F] hover:text-white dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold transition-colors cursor-pointer"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span className="hidden xl:inline">Detail</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* Satu kartu tunggal */}
+          <div className="bg-white dark:bg-surface-raised rounded-2xl border border-[#E2E8F0] dark:border-border shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden">
+            {/* Toolbar: Tab di kiri, pencarian di kanan */}
+            <div className="px-5 pt-4 border-b border-[#E2E8F0] dark:border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Tab Filter Status */}
+              <div className="order-2 md:order-1">
+                <FilterChips
+                  variant="tabs"
+                  options={[
+                    { id: 'semua', label: 'Semua', count: mySpkList.length },
+                    { id: 'sedang-diservis', label: 'Sedang Diservis', count: mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length },
+                    { id: 'selesai', label: 'Selesai', count: mySpkList.filter(s => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed').length },
+                  ]}
+                  selectedId={historyStatusFilter}
+                  onChange={(id) => setHistoryStatusFilter(id as 'semua' | 'sedang-diservis' | 'selesai')}
+                />
               </div>
 
-              {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
-              <div className="block md:hidden p-3 space-y-2.5">
-                {historyRows.map((spk) => (
-                  <div key={spk.id} onClick={() => setHistoryDetail(spk)} className="rounded-xl border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface p-3.5 cursor-pointer hover:border-[#12388F]/40 transition-colors">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-mono text-xs font-bold text-[#12388F] dark:text-blue-400">{spk.no_spk}</div>
-                        <div className="mt-1">
-                          <span className="inline-flex px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-[#F1F5F9] dark:bg-surface-raised text-[#0F172A] dark:text-ink border border-[#E2E8F0] dark:border-border">
-                            {formatPlat(spk.no_polisi)}
-                          </span>
-                        </div>
-                      </div>
-                      <StatusBadge status={spk.status_spk} size="sm" />
-                    </div>
-
-                    <div className="mt-2.5 pt-2.5 border-t border-[#E2E8F0] dark:border-border space-y-1.5">
-                      <p className="text-xs text-[#475569] dark:text-ink-muted leading-relaxed">{spk.keluhan_customer}</p>
-                      <div className="flex items-center justify-between text-xs text-[#64748B] dark:text-ink-subtle">
-                        <span>Tanggal Masuk</span>
-                        <span className="font-mono font-semibold text-[#0F172A] dark:text-ink-muted">
-                          {new Date(spk.created_at).toLocaleDateString('id-ID')}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-[#64748B] dark:text-ink-subtle">
-                        <span>Biaya</span>
-                        <span className="font-mono font-bold text-[#0F172A] dark:text-ink tabular-nums">
-                          Rp {Number(spk.estimasi_biaya || 0).toLocaleString('id-ID')}
-                        </span>
-                      </div>
-                    </div>
-
+              {/* Pencarian (Mobile: di atas, MD+: di kanan) */}
+              <div className="order-1 md:order-2 pb-3 md:pb-3 w-full md:w-80">
+                <div className="relative group/search">
+                  <Search className="w-4 h-4 text-[#94A3B8] group-focus-within/search:text-[#12388F] dark:group-focus-within/search:text-blue-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors" />
+                  <input
+                    type="text"
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    placeholder="Cari no. SPK, no. polisi, keluhan, atau status..."
+                    aria-label="Cari riwayat service"
+                    className="h-10 w-full pl-9 pr-9 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-900 text-[13px] text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] focus:bg-white dark:focus:bg-slate-900 focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 focus:outline-none transition-all"
+                  />
+                  {historySearch && (
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setHistoryDetail(spk);
-                      }}
-                      className="mt-2.5 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-[#12388F] text-[#12388F] dark:text-blue-400 hover:bg-[#12388F] hover:text-white font-semibold text-xs transition-colors"
+                      onClick={() => setHistorySearch('')}
+                      aria-label="Bersihkan pencarian riwayat"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-white transition cursor-pointer"
                     >
-                      <FileText className="w-3.5 h-3.5" />
-                      Lihat Detail Service
+                      <X className="w-3.5 h-3.5" />
                     </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {spkLoading ? (
+              <div className="divide-y divide-[#EEF2F7] dark:divide-slate-800 p-5 space-y-4">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <div key={n} className="flex items-center justify-between gap-4 py-3 animate-pulse">
+                    <div className="w-24 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="w-20 h-6 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                    <div className="w-44 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="w-24 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="w-20 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
+                    <div className="w-24 h-6 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                    <div className="w-16 h-8 bg-slate-200 dark:bg-slate-800 rounded-lg" />
                   </div>
                 ))}
               </div>
+            ) : historyRows.length > 0 ? (
+              <>
+                {/* Desktop Table: langsung di dalam kartu */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F8FAFC] dark:bg-slate-800/60 border-y border-[#E2E8F0] dark:border-border sticky top-0 z-10">
+                      <tr>
+                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">No. Booking / SPK</th>
+                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">Kendaraan</th>
+                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">Layanan</th>
+                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">Tanggal Masuk</th>
+                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400 text-right">Biaya</th>
+                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">Status</th>
+                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400 text-center">Detail</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#EEF2F7] dark:divide-slate-800">
+                      {historyRows.map((spk) => (
+                        <tr
+                          key={spk.id}
+                          tabIndex={0}
+                          onClick={() => setHistoryDetail(spk)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setHistoryDetail(spk);
+                            }
+                          }}
+                          className="hover:bg-[#F8FAFF] dark:hover:bg-slate-800/50 transition-colors duration-150 cursor-pointer group focus-visible:outline-none focus-visible:bg-[#F8FAFF] dark:focus-visible:bg-slate-800/50"
+                        >
+                          <td className="px-5 py-4 font-mono text-[13px] font-semibold text-[#12388F] dark:text-blue-400 group-hover:[box-shadow:inset_3px_0_0_#12388F] group-focus-visible:[box-shadow:inset_3px_0_0_#12388F] transition-[box-shadow]">
+                            {spk.no_spk}
+                          </td>
+                          <td className="px-5 py-4">
+                            <PlateChip plat={spk.no_polisi} />
+                          </td>
+                          <td className="px-5 py-4 text-[13px] text-[#334155] dark:text-slate-300 max-w-[260px] line-clamp-2" title={spk.keluhan_customer}>
+                            {spk.keluhan_customer}
+                          </td>
+                          <td className="px-5 py-4 text-[13px] text-[#475569] dark:text-slate-400 tabular-nums">
+                            {new Date(spk.created_at).toLocaleDateString('id-ID')}
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <RupiahCell amount={spk.estimasi_biaya} />
+                          </td>
+                          <td className="px-5 py-4">
+                            <StatusBadge status={spk.status_spk} size="sm" />
+                          </td>
+                          <td className="px-5 py-4 text-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHistoryDetail(spk);
+                              }}
+                              title={`Lihat detail tracking ${spk.no_spk}`}
+                              aria-label={`Lihat detail tracking ${spk.no_spk}`}
+                              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#EEF2FF] hover:bg-[#12388F] text-[#12388F] hover:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Detail</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-              {/* Pagination menempel di footer container tabel */}
-              <div className="bg-[#F8FAFC] dark:bg-surface border-t border-[#E2E8F0] dark:border-border px-4 py-2">
+                {/* Mobile: stacked card list */}
+                <div className="block md:hidden p-4 space-y-3">
+                  {historyRows.map((spk) => (
+                    <div
+                      key={spk.id}
+                      onClick={() => setHistoryDetail(spk)}
+                      className="rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800/60 p-4 transition-colors hover:border-[#12388F]/40 cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-bold text-[#12388F] dark:text-blue-400">
+                          {spk.no_spk}
+                        </span>
+                        <StatusBadge status={spk.status_spk} size="sm" />
+                      </div>
+
+                      <div className="mt-2.5">
+                        <PlateChip plat={spk.no_polisi} />
+                      </div>
+
+                      <p className="mt-2 text-xs text-[#334155] dark:text-slate-300 leading-relaxed line-clamp-2" title={spk.keluhan_customer}>
+                        {spk.keluhan_customer}
+                      </p>
+
+                      <div className="mt-3 pt-3 border-t border-[#EEF2F7] dark:border-slate-700 grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="block text-[11px] text-[#64748B] dark:text-slate-400 mb-0.5">Tanggal Masuk</span>
+                          <span className="text-[13px] text-[#475569] dark:text-slate-200 font-medium tabular-nums">
+                            {new Date(spk.created_at).toLocaleDateString('id-ID')}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="block text-[11px] text-[#64748B] dark:text-slate-400 mb-0.5">Biaya</span>
+                          <RupiahCell amount={spk.estimasi_biaya} />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setHistoryDetail(spk);
+                        }}
+                        className="mt-3 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-[#EEF2FF] hover:bg-[#12388F] text-[#12388F] hover:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Lihat Detail Service</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer Pagination langsung di dasar kartu */}
                 <PaginationBar
                   page={historySafePage}
                   totalPages={historyTotalPages}
                   totalRecords={historyFiltered.length}
                   limit={historyLimit}
                   label="riwayat service"
+                  className="px-5 py-3 bg-[#FAFBFD] dark:bg-slate-900/40"
                   onPageChange={setHistoryPage}
                   onLimitChange={(l) => {
                     setHistoryLimit(l);
                     setHistoryPage(1);
                   }}
                 />
+              </>
+            ) : historySearch.trim() ? (
+              <div className="py-12 px-4 text-center space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 text-[#12388F] dark:text-blue-400 flex items-center justify-center mx-auto">
+                  <Search className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-ink">Riwayat Tidak Ditemukan</h3>
+                  <p className="text-xs text-ink-muted mt-1">
+                    Tidak ada riwayat service yang cocok dengan pencarian{' '}
+                    <span className="font-semibold text-ink">"{historySearch}"</span>.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setHistorySearch('')}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink hover:bg-[#F8FAFC] dark:hover:bg-surface-raised text-xs font-semibold rounded-lg transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" /> Bersihkan Pencarian
+                </button>
               </div>
-            </div>
-          ) : historySearch.trim() ? (
-            <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] dark:border-border rounded-xl bg-[#F8FAFC] dark:bg-surface space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border text-[#64748B] flex items-center justify-center mx-auto">
-                <Search className="w-6 h-6" />
+            ) : (
+              <div className="py-12 px-4 text-center space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 text-[#12388F] dark:text-blue-400 flex items-center justify-center mx-auto">
+                  <Wrench className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-ink">
+                    {historyStatusFilter === 'sedang-diservis'
+                      ? 'Tidak Ada Unit Sedang Diservis'
+                      : historyStatusFilter === 'selesai'
+                      ? 'Belum Ada Riwayat Selesai'
+                      : 'Belum Ada Riwayat Service'}
+                  </h3>
+                  <p className="text-xs text-ink-muted mt-1 max-w-md mx-auto">
+                    {historyStatusFilter === 'sedang-diservis'
+                      ? 'Saat ini seluruh kendaraan Anda beroperasi prima dan tidak ada unit yang sedang dalam proses pengerjaan di bengkel.'
+                      : 'Seluruh riwayat pengerjaan service kendaraan Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-ink">Riwayat Tidak Ditemukan</h3>
-                <p className="text-xs text-ink-muted mt-1">
-                  Tidak ada riwayat service yang cocok dengan pencarian{' '}
-                  <span className="font-semibold text-ink">"{historySearch}"</span>.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setHistorySearch('')}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink hover:bg-[#F1F5F9] dark:hover:bg-surface-raised text-xs font-semibold rounded-lg transition cursor-pointer"
-              >
-                <X className="w-4 h-4" /> Bersihkan Pencarian
-              </button>
-            </div>
-          ) : (
-            <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] dark:border-border rounded-xl bg-[#F8FAFC] dark:bg-surface space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mx-auto">
-                <Wrench className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-ink">
-                  {historyStatusFilter === 'sedang-diservis'
-                    ? 'Tidak Ada Unit Sedang Diservis'
-                    : historyStatusFilter === 'selesai'
-                    ? 'Belum Ada Riwayat Selesai'
-                    : 'Belum Ada Riwayat Service'}
-                </h3>
-                <p className="text-xs text-ink-muted mt-1">
-                  {historyStatusFilter === 'sedang-diservis'
-                    ? 'Saat ini seluruh kendaraan Anda beroperasi prima dan tidak ada unit yang sedang dalam proses pengerjaan di bengkel.'
-                    : 'Seluruh riwayat pengerjaan service kendaraan Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.'}
-                </p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -3556,38 +3834,35 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                 <div>
                   <label className="block text-xs font-bold text-ink-muted mb-1">
-                    Jenis Kendaraan <span className="text-status-red">*</span>
+                    Nama Unit / Panggilan
                   </label>
-                  <select
-                    value={armadaForm.jenis_armada}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, jenis_armada: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
-                  >
-                    <option value="Truk">Truk Engkel / Box</option>
-                    <option value="Tronton">Tronton / Wingbox</option>
-                    <option value="Trailer">Trailer / Kontainer</option>
-                    <option value="Pick Up">Pick Up Operasional</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Fuso Wingbox Medan-Aceh"
+                    value={armadaForm.unit_name}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, unit_name: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-ink-muted mb-1">Merk</label>
                   <select
                     value={armadaForm.merk}
                     onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
                   >
                     <option value="">-- Pilih Merk --</option>
-                    <option value="Hino">Hino</option>
-                    <option value="Mitsubishi Fuso">Mitsubishi Fuso</option>
-                    <option value="Isuzu">Isuzu</option>
-                    <option value="Toyota Dyna">Toyota Dyna</option>
-                    <option value="Mercedes-Benz">Mercedes-Benz</option>
-                    <option value="Volvo">Volvo</option>
-                    <option value="Lainnya">Lainnya</option>
+                    {masterMerkList.map((m) => (
+                      <option key={m.id} value={m.brandname}>
+                        {m.brandname}
+                      </option>
+                    ))}
+                    {armadaForm.merk && !masterMerkList.some((m) => m.brandname.toLowerCase() === armadaForm.merk.toLowerCase()) && (
+                      <option value={armadaForm.merk}>{armadaForm.merk}</option>
+                    )}
                   </select>
                 </div>
 
@@ -3598,19 +3873,68 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     placeholder="Contoh: Dutro 130HD"
                     value={armadaForm.model}
                     onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">
+                    Tipe / Bentuk Kendaraan
+                  </label>
+                  <select
+                    value={armadaForm.type || armadaForm.jenis_armada}
+                    onChange={(e) => setArmadaForm({ ...armadaForm, type: e.target.value, jenis_armada: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
+                  >
+                    <option value="">-- Pilih Tipe Kendaraan --</option>
+                    {armadaForm.merk && masterTipeList.filter((t) => t.brandname?.toLowerCase() === armadaForm.merk.toLowerCase()).length > 0 && (
+                      <optgroup label={`Tipe Sesuai Merk (${armadaForm.merk})`}>
+                        {masterTipeList
+                          .filter((t) => t.brandname?.toLowerCase() === armadaForm.merk.toLowerCase())
+                          .map((t) => (
+                            <option key={`merk-tipe-${t.id}`} value={t.typename}>
+                              {t.typename} {t.modelname ? `(${t.modelname})` : ''}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="Tipe / Bentuk Karoseri Armada">
+                      {['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].map((b) => (
+                        <option key={`common-${b}`} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Tipe Kendaraan Lainnya">
+                      {Array.from(new Set(masterTipeList.map((t) => t.typename).filter(Boolean))).map((tn) => (
+                        <option key={`pos-type-${tn}`} value={tn}>
+                          {tn}
+                        </option>
+                      ))}
+                    </optgroup>
+                    {(armadaForm.type || armadaForm.jenis_armada) &&
+                      !masterTipeList.some((t) => t.typename?.toLowerCase() === (armadaForm.type || armadaForm.jenis_armada).toLowerCase()) &&
+                      !['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].some(
+                        (b) => b.toLowerCase() === (armadaForm.type || armadaForm.jenis_armada).toLowerCase()
+                      ) && (
+                        <option value={armadaForm.type || armadaForm.jenis_armada}>
+                          {armadaForm.type || armadaForm.jenis_armada}
+                        </option>
+                      )}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-ink-muted mb-1">Tahun Pembuatan</label>
                   <input
                     type="number"
-                    min="1995"
+                    min="1990"
                     max={new Date().getFullYear() + 1}
                     value={armadaForm.tahun}
                     onChange={(e) => setArmadaForm({ ...armadaForm, tahun: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -3639,27 +3963,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Nama Asuransi (Opsional)</label>
-                  <input
-                    type="text"
-                    placeholder="Asuransi Astra / Sinarmas"
-                    value={armadaForm.asuransi}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, asuransi: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku Asuransi</label>
-                  <input
-                    type="date"
-                    value={armadaForm.masa_berlaku_asuransi}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, masa_berlaku_asuransi: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku (Pajak/STNK/Asuransi)</label>
+                <input
+                  type="date"
+                  value={armadaForm.expired || armadaForm.masa_berlaku_asuransi}
+                  onChange={(e) => setArmadaForm({ ...armadaForm, expired: e.target.value, masa_berlaku_asuransi: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
+                />
               </div>
 
               <div>
@@ -3684,8 +3995,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </button>
                 <button
                   type="submit"
-                  disabled={tambahArmadaMutation.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                  disabled={tambahArmadaMutation.isPending || !isVerifiedByAdmin}
+                  className={`px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition flex items-center gap-1.5 ${
+                    !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                  title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
                 >
                   <Plus className="w-4 h-4" />
                   <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Kendaraan'}</span>
@@ -3820,8 +4134,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </button>
                 <button
                   type="submit"
-                  disabled={tambahDokumenMutation.isPending}
-                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                  disabled={tambahDokumenMutation.isPending || !isVerifiedByAdmin}
+                  className={`px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition flex items-center gap-1.5 ${
+                    !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                  title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
                 >
                   <Plus className="w-4 h-4" />
                   <span>{tambahDokumenMutation.isPending ? 'Menyimpan...' : 'Simpan Dokumen'}</span>
@@ -3868,32 +4185,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               }}
               className="px-6 sm:px-8 py-6 sm:py-7 overflow-y-auto space-y-5 flex-1"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Jenis Kendaraan</label>
-                  <select
-                    value={editArmadaForm.jenis_armada}
-                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, jenis_armada: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
-                  >
-                    <option value="Truk">Truk Engkel / Box</option>
-                    <option value="Tronton">Tronton / Wingbox</option>
-                    <option value="Trailer">Trailer / Kontainer</option>
-                    <option value="Pick Up">Pick Up Operasional</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Tahun Pembuatan</label>
-                  <input
-                    type="number"
-                    min="1995"
-                    max={new Date().getFullYear() + 1}
-                    value={editArmadaForm.tahun}
-                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, tahun: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-ink-muted mb-1">
+                  Nama Unit / Panggilan
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Fuso Wingbox Medan-Aceh"
+                  value={editArmadaForm.unit_name}
+                  onChange={(e) => setEditArmadaForm({ ...editArmadaForm, unit_name: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -3905,13 +4207,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
                   >
                     <option value="">-- Pilih Merk --</option>
-                    <option value="Hino">Hino</option>
-                    <option value="Mitsubishi Fuso">Mitsubishi Fuso</option>
-                    <option value="Isuzu">Isuzu</option>
-                    <option value="Toyota Dyna">Toyota Dyna</option>
-                    <option value="Mercedes-Benz">Mercedes-Benz</option>
-                    <option value="Volvo">Volvo</option>
-                    <option value="Lainnya">Lainnya</option>
+                    {masterMerkList.map((m) => (
+                      <option key={m.id} value={m.brandname}>
+                        {m.brandname}
+                      </option>
+                    ))}
+                    {editArmadaForm.merk && !masterMerkList.some((m) => m.brandname.toLowerCase() === editArmadaForm.merk.toLowerCase()) && (
+                      <option value={editArmadaForm.merk}>{editArmadaForm.merk}</option>
+                    )}
                   </select>
                 </div>
                 <div>
@@ -3922,6 +4225,67 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     value={editArmadaForm.model}
                     onChange={(e) => setEditArmadaForm({ ...editArmadaForm, model: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">
+                    Tipe / Bentuk Kendaraan
+                  </label>
+                  <select
+                    value={editArmadaForm.type || editArmadaForm.jenis_armada}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, type: e.target.value, jenis_armada: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
+                  >
+                    <option value="">-- Pilih Tipe Kendaraan --</option>
+                    {editArmadaForm.merk && masterTipeList.filter((t) => t.brandname?.toLowerCase() === editArmadaForm.merk.toLowerCase()).length > 0 && (
+                      <optgroup label={`Tipe Sesuai Merk (${editArmadaForm.merk})`}>
+                        {masterTipeList
+                          .filter((t) => t.brandname?.toLowerCase() === editArmadaForm.merk.toLowerCase())
+                          .map((t) => (
+                            <option key={`edit-merk-tipe-${t.id}`} value={t.typename}>
+                              {t.typename} {t.modelname ? `(${t.modelname})` : ''}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="Tipe / Bentuk Karoseri Armada">
+                      {['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].map((b) => (
+                        <option key={`edit-common-${b}`} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Tipe Kendaraan Lainnya">
+                      {Array.from(new Set(masterTipeList.map((t) => t.typename).filter(Boolean))).map((tn) => (
+                        <option key={`edit-pos-type-${tn}`} value={tn}>
+                          {tn}
+                        </option>
+                      ))}
+                    </optgroup>
+                    {(editArmadaForm.type || editArmadaForm.jenis_armada) &&
+                      !masterTipeList.some((t) => t.typename?.toLowerCase() === (editArmadaForm.type || editArmadaForm.jenis_armada).toLowerCase()) &&
+                      !['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].some(
+                        (b) => b.toLowerCase() === (editArmadaForm.type || editArmadaForm.jenis_armada).toLowerCase()
+                      ) && (
+                        <option value={editArmadaForm.type || editArmadaForm.jenis_armada}>
+                          {editArmadaForm.type || editArmadaForm.jenis_armada}
+                        </option>
+                      )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-ink-muted mb-1">Tahun Pembuatan</label>
+                  <input
+                    type="number"
+                    min="1990"
+                    max={new Date().getFullYear() + 1}
+                    value={editArmadaForm.tahun}
+                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, tahun: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -3949,26 +4313,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Nama Asuransi</label>
-                  <input
-                    type="text"
-                    placeholder="Asuransi Astra / Sinarmas"
-                    value={editArmadaForm.asuransi}
-                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, asuransi: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku Asuransi</label>
-                  <input
-                    type="date"
-                    value={editArmadaForm.masa_berlaku_asuransi}
-                    onChange={(e) => setEditArmadaForm({ ...editArmadaForm, masa_berlaku_asuransi: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku (Pajak/STNK/Asuransi)</label>
+                <input
+                  type="date"
+                  value={editArmadaForm.expired || editArmadaForm.masa_berlaku_asuransi}
+                  onChange={(e) => setEditArmadaForm({ ...editArmadaForm, expired: e.target.value, masa_berlaku_asuransi: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
+                />
               </div>
 
               <div>

@@ -7,20 +7,23 @@ export interface ListItemCardProps {
   badge?: React.ReactNode;
   chips?: React.ReactNode[];
   icon?: React.ComponentType<{ className?: string }>;
+  /** Komponen leading kustom (misal DateTile), menggantikan tile icon standar */
+  leading?: React.ReactNode;
   onClick?: () => void;
   selected?: boolean;
   className?: string;
   actions?: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
 /**
  * ListItemCard - KIM3 Bengkel Design System
  * Clean modern list item card:
- * - 40px icon tile in #EEF2FF with navy #12388F icon
+ * - 40px icon tile in #EEF2FF with navy #12388F icon (or custom `leading`)
  * - Row 1: Title + status badge
  * - Row 2: Subtitle / meta row
- * - Right: Chevron indicator
- * - Hover: translate-y -1px, border navy 30%, subtle shadow
+ * - Right: Chevron indicator / actions
+ * - Hover: translate-y -1px, border navy, subtle shadow
  */
 export const ListItemCard: React.FC<ListItemCardProps> = ({
   title,
@@ -28,10 +31,12 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({
   badge,
   chips,
   icon: Icon,
+  leading,
   onClick,
   selected = false,
   className = '',
   actions,
+  style,
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.key === 'Enter' || e.key === ' ') && onClick) {
@@ -46,7 +51,8 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className={`group bg-white dark:bg-surface-raised rounded-xl p-4 border transition-all relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
+      style={style}
+      className={`group bg-white dark:bg-surface-raised rounded-xl p-4 border transition-all duration-150 relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
         selected
           ? 'border-[#12388F] ring-2 ring-[#12388F]/20 shadow-xs'
           : 'border-[#E2E8F0] dark:border-border hover:-translate-y-[1px] hover:border-[#12388F]/30 hover:shadow-xs'
@@ -58,22 +64,24 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({
     >
       {/* Main Info */}
       <div className="flex items-center gap-3.5 min-w-0 flex-1">
-        {Icon && (
+        {leading ? (
+          <div className="shrink-0">{leading}</div>
+        ) : Icon ? (
           <div className="w-10 h-10 rounded-xl bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-300 flex items-center justify-center shrink-0">
             <Icon className="w-5 h-5 text-[#12388F] dark:text-blue-300" />
           </div>
-        )}
+        ) : null}
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-sm font-bold text-[#0F172A] dark:text-white truncate leading-tight">
+            <div className="text-sm font-bold text-[#0F172A] dark:text-white truncate leading-tight flex items-center gap-2">
               {title}
-            </span>
+            </div>
             {badge && <div className="shrink-0">{badge}</div>}
           </div>
           {subtitle && (
-            <p className="text-xs text-[#64748B] dark:text-slate-400 truncate font-medium">
+            <div className="text-xs text-[#64748B] dark:text-slate-400 font-medium">
               {subtitle}
-            </p>
+            </div>
           )}
 
           {/* Optional small chips */}

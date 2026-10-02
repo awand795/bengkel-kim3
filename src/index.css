@@ -28,6 +28,52 @@
   .focus\:ring-accent:focus {
     --tw-ring-color: var(--color-accent, #12388F);
   }
+
+  @keyframes bookingFadeSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-booking-row {
+    animation: bookingFadeSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-booking-row {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+
+  @keyframes popoverScaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-popover-in {
+    animation: popoverScaleIn 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-popover-in {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
 }
 
 @layer base {
@@ -222,12 +268,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 .auth-page {
   --auth-label-dark: #CBD5E1;
   --auth-text-dark: #E2E8F0;
-  --auth-title-dark: #FFFFFF;
+  --auth-title-dark: #F1F5F9;
   --auth-text-muted: #475569;
   --auth-placeholder: #64748B;
   --auth-input-border: #CBD5E1;
   --auth-bg-right: #E8EEF5;
-  --auth-amber: #FBBF24;
+  --auth-amber: #F2C14E;
   --auth-amber-hover: #F59E0B;
   --auth-navy: #12388F;
   --auth-navy-hover: #0D2A6B;
@@ -250,42 +296,42 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 .auth-page .auth-title-dark {
-  color: var(--auth-title-dark, #FFFFFF);
+  color: var(--auth-title-dark, #F1F5F9);
 }
 
 .auth-page .auth-icon-box {
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  color: var(--auth-amber, #FBBF24);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--auth-amber, #F2C14E);
   backdrop-filter: blur(8px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-page .group:hover .auth-icon-box {
-  background: var(--auth-amber, #FBBF24);
+  background: var(--auth-amber, #F2C14E);
   border-color: var(--auth-amber-hover, #F59E0B);
   color: #0B1F4D;
-  box-shadow: 0 0 14px rgba(251, 191, 36, 0.50);
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
 .auth-page .auth-chip {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #F1F5F9;
   backdrop-filter: blur(8px);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12);
   font-weight: 500;
   transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, transform 0.2s, color 0.2s;
 }
 
 .auth-page .auth-chip:hover {
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.40);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.26);
   color: #FFFFFF;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 .auth-page .auth-subtitle {
@@ -329,8 +375,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 }
 
 @keyframes login-fade-up {
-  from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
-  to { opacity: 1; transform: none; filter: none; }
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
 }
 
 .login-reveal {
@@ -349,17 +395,17 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 
 .login-aurora-a {
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(18, 56, 143, 0.40), transparent 70%);
+  background: radial-gradient(circle, rgba(18, 56, 143, 0.16), transparent 70%);
   filter: blur(52px);
-  animation: login-drift-a 18s ease-in-out infinite alternate;
+  animation: none;
   display: block;
 }
 
 .login-aurora-b {
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.12), transparent 70%);
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.05), transparent 70%);
   filter: blur(60px);
-  animation: login-drift-b 22s ease-in-out infinite alternate;
+  animation: none;
   display: block;
 }
 
@@ -381,8 +427,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   height: 3.5px;
   width: 52px;
   border-radius: 9999px;
-  background: linear-gradient(90deg, #F59E0B, #FBBF24);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+  background: linear-gradient(90deg, #F59E0B, #F2C14E);
+  box-shadow: none;
   margin-bottom: 16px;
   animation: login-line-grow 700ms 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -438,53 +484,53 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 
 /* Kelas warna semantik panel login KIM3 */
 .lg-text-bright { 
-  color: var(--lg-p-accent-text, #FBBF24); 
-  font-weight: 700;
+  color: var(--lg-p-accent-text, #F2C14E); 
+  font-weight: 600;
   letter-spacing: 0.16em;
 }
 
 .lg-dot-warm { 
-  background: var(--lg-p-accent, #FBBF24); 
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.70);
+  background: var(--lg-p-accent, #F2C14E); 
+  box-shadow: none;
 }
 
 .lg-icon-box {
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  color: #FBBF24;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #F2C14E;
   backdrop-filter: blur(8px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .group:hover .lg-icon-box {
-  background: #FBBF24;
+  background: #F2C14E;
   border-color: #F59E0B;
   color: #0B1F4D;
-  box-shadow: 0 0 14px rgba(251, 191, 36, 0.50);
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
 .lg-chip {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #F1F5F9;
   backdrop-filter: blur(8px);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12);
   font-weight: 500;
   transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, transform 0.2s, color 0.2s;
 }
 
 .lg-chip:hover {
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.40);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.26);
   color: #FFFFFF;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 .lg-edge-light {
-  background-image: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.15), transparent);
+  background-image: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.08), transparent);
 }
 
 /* Teks panel kiri */

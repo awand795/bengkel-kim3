@@ -1,6 +1,8 @@
 import axios from 'axios';
 import {
   Kendaraan,
+  MasterBrand,
+  MasterType,
   DokumenKendaraan,
   BookingService,
   SpkService,
@@ -174,15 +176,28 @@ export const formatPlat = (nopol?: string | null): string => {
 
 export const getApiErrorMessage = (err: any, fallback = 'Terjadi kesalahan.'): string => {
   const data = err?.response?.data;
+  let rawMsg = '';
   if (data) {
-    if (typeof data.message === 'string' && data.message.trim()) return data.message;
-    if (Array.isArray(data.errors) && data.errors.length > 0) {
-      return data.errors.map((e: any) => (typeof e === 'string' ? e : JSON.stringify(e))).join('; ');
+    if (typeof data.message === 'string' && data.message.trim()) rawMsg = data.message;
+    else if (Array.isArray(data.errors) && data.errors.length > 0) {
+      rawMsg = data.errors.map((e: any) => (typeof e === 'string' ? e : JSON.stringify(e))).join('; ');
+    } else if (typeof data.error === 'string' && data.error.trim()) {
+      rawMsg = data.error;
     }
-    if (typeof data.error === 'string' && data.error.trim()) return data.error;
   }
-  if (typeof err?.message === 'string' && err.message.trim()) return err.message;
-  return fallback;
+  if (!rawMsg && typeof err?.message === 'string' && err.message.trim()) {
+    rawMsg = err.message;
+  }
+  if (!rawMsg) return fallback;
+
+  if (rawMsg.includes('pengguna_email_key') || (rawMsg.includes('duplicate key') && rawMsg.includes('email'))) {
+    return 'Pendaftaran gagal. Email ini sudah terdaftar di sistem.';
+  }
+  if (rawMsg.includes('check_email_format')) {
+    return 'Format email tidak valid. Pastikan penulisan email sudah benar.';
+  }
+
+  return rawMsg;
 };
 
 export const uploadFotoFile = async (
@@ -228,16 +243,50 @@ export const api = {
   getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
     fetchList<Kendaraan>('/kim3/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
-    const res = await apiClient.post('/kim3/kendaraan-tambah', data);
+    const payload = {
+      ...data,
+      foto_kendaraan_base64_data: data.foto_kendaraan || undefined,
+    };
+    const res = await apiClient.post('/kim3/kendaraan-tambah', payload);
     return res.data;
   },
   updateKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
-    const res = await apiClient.post('/kim3/kendaraan-update', data);
+    const payload = {
+      ...data,
+      foto_kendaraan_base64_data: data.foto_kendaraan || undefined,
+    };
+    const res = await apiClient.post('/kim3/kendaraan-update', payload);
     return res.data;
   },
   hapusKendaraan: async (no_polisi: string): Promise<any> => {
     const res = await apiClient.post('/kim3/hapus-kendaraan', { no_polisi });
     return res.data;
+  },
+
+  // Master Merk Kendaraan (sch_pos.tbl_member_asset_brand via sch_fleet.v_pos_asset_brand)
+  getMasterMerk: async (): Promise<MasterBrand[]> => {
+    try {
+      const res = await apiClient.get('/kim3/master/merk');
+      if (Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res.data?.data)) return res.data.data;
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Master Tipe Kendaraan (sch_pos.tbl_member_asset_type via sch_fleet.v_pos_asset_type)
+  getMasterTipe: async (brand?: string): Promise<MasterType[]> => {
+    try {
+      const res = await apiClient.get('/kim3/master/tipe', {
+        params: brand ? { brand } : undefined,
+      });
+      if (Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res.data?.data)) return res.data.data;
+      return [];
+    } catch {
+      return [];
+    }
   },
 
   // Dokumen Saya
@@ -324,11 +373,32 @@ export const api = {
     nama_perusahaan?: string;
     no_telepon?: string;
     peran?: string;
+    email_verification_token?: string;
   }): Promise<any> => {
-    const res = await apiClient.post('/kim3/auth/register', {
-      ...userData,
-      peran: 'Customer Fleet',
-    });
+    // Generate secure email verification token if not provided
+    const token =
+      userData.email_verification_token ||
+      (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+
+    const namaLengkap = (userData.nama_lengkap || '').trim();
+    const namaPerusahaan = (userData.nama_perusahaan || '').trim() || namaLengkap;
+    const namaPic = (userData.nama_pic || '').trim() || namaLengkap;
+    const noTelepon = (userData.no_telepon || '').trim();
+
+    const payload = {
+      email: (userData.email || '').trim().toLowerCase(),
+      password: userData.password,
+      nama_lengkap: namaLengkap,
+      nama_perusahaan: namaPerusahaan,
+      nama_pic: namaPic,
+      no_telepon: noTelepon,
+      peran: userData.peran || 'Customer Fleet',
+      email_verification_token: token,
+    };
+
+    const res = await apiClient.post('/kim3/auth/register', payload);
     return res.data;
   },
 
@@ -376,6 +446,9 @@ export const api = {
       npwp: (data as any).npwp ?? null,
       no_telepon: (data as any).no_telepon ?? null,
       foto_profil: (data as any).foto_profil ?? null,
+      email_verifikasi: (data as any).email_verifikasi,
+      nomor_hp_verifikasi: (data as any).nomor_hp_verifikasi,
+      status_no_aktif: (data as any).status_no_aktif === true,
       pos_verifikasi: (data as any).pos_verifikasi === true,
     };
   },

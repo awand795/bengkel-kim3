@@ -293,17 +293,17 @@ html.dark,
   --lg-p-text: #E2E8F0;
   --lg-p-muted: #CBD5E1;
   --lg-p-line: rgba(255, 255, 255, 0.16);
-  --lg-p-accent: #FBBF24;
-  --lg-p-accent-text: #FBBF24;
-  --lg-p-accent-rgb: 251 191 36;
+  --lg-p-accent: #F2C14E;
+  --lg-p-accent-text: #F2C14E;
+  --lg-p-accent-rgb: 242 193 78;
 }
 
-/* Panel hero kiri: gradient navy gelap (#0B1F4D ke #12388F) */
+/* Panel hero kiri: gradient navy gelap (#0B1F4D ke #0F2F7A) */
 .login-legacy-theme .bg-workshop-pattern {
   background-color: #0B1F4D;
   background-image:
-    radial-gradient(65% 55% at 20% 25%, rgba(18, 56, 143, 0.50) 0%, transparent 70%),
+    radial-gradient(65% 55% at 20% 25%, rgba(18, 56, 143, 0.24) 0%, transparent 70%),
     radial-gradient(55% 50% at 85% 85%, rgba(245, 158, 11, 0.08) 0%, transparent 65%),
-    linear-gradient(155deg, #0B1F4D 0%, #0E2760 50%, #12388F 100%);
+    linear-gradient(155deg, #0B1F4D 0%, #0E2760 50%, #0F2F7A 100%);
   background-size: auto;
 }

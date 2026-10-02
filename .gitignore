@@ -47,3 +47,6 @@ tmp/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Sub-projects
+dashboard db compare custom/
