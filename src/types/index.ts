@@ -103,6 +103,20 @@ export interface MasterType {
   brandname?: string;
 }
 
+export interface MasterJenisLayanan {
+  id: number;
+  jenis_layanan: string;
+  deskripsi: string;
+  kategori: string;
+  estimasi_durasi?: string;
+}
+
+export interface MasterKeluhan {
+  id: number;
+  keluhan: string;
+  kategori?: string;
+}
+
 export interface DokumenKendaraan {
   id: number;
   no_polisi: string;

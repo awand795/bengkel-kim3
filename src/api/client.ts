@@ -3,6 +3,8 @@ import {
   Kendaraan,
   MasterBrand,
   MasterType,
+  MasterJenisLayanan,
+  MasterKeluhan,
   DokumenKendaraan,
   BookingService,
   SpkService,
@@ -280,6 +282,30 @@ export const api = {
       const res = await apiClient.get('/kim3/master/tipe', {
         params: brand ? { brand } : undefined,
       });
+      if (Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res.data?.data)) return res.data.data;
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Master Jenis Layanan (sch_fleet.v_jenis_layanan)
+  getMasterJenisLayanan: async (): Promise<MasterJenisLayanan[]> => {
+    try {
+      const res = await apiClient.get('/kim3/master/layanan');
+      if (Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res.data?.data)) return res.data.data;
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Master Keluhan / Gejala Kendaraan (sch_fleet.v_master_keluhan)
+  getMasterKeluhan: async (): Promise<MasterKeluhan[]> => {
+    try {
+      const res = await apiClient.get('/kim3/master/keluhan');
       if (Array.isArray(res.data)) return res.data;
       if (Array.isArray(res.data?.data)) return res.data.data;
       return [];

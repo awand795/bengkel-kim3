@@ -60,7 +60,19 @@ import {
   Layers,
   AlertTriangle,
   MapPin,
-  Building2
+  Building2,
+  UserCheck,
+  Briefcase,
+  CreditCard,
+  Droplets,
+  Disc,
+  Gauge,
+  Zap,
+  Cog,
+  ClipboardCheck,
+  SlidersHorizontal,
+  Sparkles,
+  Lightbulb
 } from 'lucide-react';
 
 interface WebFleetCustomerViewProps {
@@ -1170,6 +1182,132 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   );
 };
 
+interface BookingServiceItem {
+  id?: number;
+  title: string;
+  tag: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badgeColor: string;
+  estimasi_durasi?: string;
+}
+
+const BOOKING_SERVICE_OPTIONS: BookingServiceItem[] = [
+  {
+    title: 'Service Berkala (Ganti Oli & Filter)',
+    tag: 'Perawatan Rutin',
+    description: 'Ganti oli mesin, saringan oli/solar, kuras radiator, serta pemeriksaan volume semua fluida.',
+    icon: Droplets,
+    badgeColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20',
+    estimasi_durasi: '1 Jam',
+  },
+  {
+    title: 'Perbaikan Rem & Kaki-kaki',
+    tag: 'Pengereman & Suspensi',
+    description: 'Brake pad/shoe, rotor disc, per daun, shock absorber, ball joint, tie rod & kingpin.',
+    icon: Disc,
+    badgeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+    estimasi_durasi: '2 Jam',
+  },
+  {
+    title: 'Tune Up & Performa Mesin',
+    tag: 'Performa & Emisi',
+    description: 'Kalibrasi nozzle injector, pembersihan filter udara, throttle body, busi & gurah mesin.',
+    icon: Gauge,
+    badgeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    estimasi_durasi: '2 - 3 Jam',
+  },
+  {
+    title: 'Kelistrikan & Starter / Alternator',
+    tag: 'Sistem Elektrikal',
+    description: 'Pengecekan aki (accu), dinamo starter, alternator pengisian, sekring & kabel bodi.',
+    icon: Zap,
+    badgeColor: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20',
+    estimasi_durasi: '1 - 2 Jam',
+  },
+  {
+    title: 'Overhaul Mesin / Transmisi',
+    tag: 'Perbaikan Mayor',
+    description: 'Turun mesin (top/full overhaul), penggantian kampas kopling set, transmisi & gardan.',
+    icon: Cog,
+    badgeColor: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20',
+    estimasi_durasi: '1 - 3 Hari',
+  },
+  {
+    title: 'Pemeriksaan Umum / Keluhan Khusus',
+    tag: 'Inspeksi & Diagnosa',
+    description: 'General check-up pra-kir, scan OBD diagnostic, investigasi bunyi tidak wajar atau getaran.',
+    icon: ClipboardCheck,
+    badgeColor: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+    estimasi_durasi: 'Sesuai Keluhan',
+  },
+];
+
+const BOOKING_CUSTOM_PRESETS = [
+  'Servis AC & Blower',
+  'Hidrolik & PTO Dump',
+  'Las Bak & Perbaikan Sasis',
+  'Spooring & Balancing',
+  'Ganti Kampas Kopling',
+  'Kuras Tangki Bahan Bakar',
+  'Pengecekan Kebocoran Oli',
+];
+
+const BOOKING_COMMON_COMPLAINTS = [
+  'Rem bunyi / bergetar',
+  'Tarikan mesin berat & boros',
+  'Kaki-kaki berisik di jalan rusak',
+  'Susah starter saat dingin',
+  'Rembesan oli / radiator bocor',
+  'Suhu mesin cepat overheat',
+  'Lampu indikator speedometer menyala',
+  'Kopling selip / gigi susah masuk',
+];
+
+const getServiceVisuals = (title: string, category?: string) => {
+  const t = title.toLowerCase();
+  if (t.includes('oli') || t.includes('berkala')) {
+    return {
+      icon: Droplets,
+      badgeColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20',
+      tag: category || 'Perawatan Rutin',
+    };
+  }
+  if (t.includes('rem') || t.includes('kaki')) {
+    return {
+      icon: Disc,
+      badgeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+      tag: category || 'Sasis & Kaki-kaki',
+    };
+  }
+  if (t.includes('tune up') || t.includes('performa') || t.includes('mesin')) {
+    return {
+      icon: Gauge,
+      badgeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      tag: category || 'Performa Mesin',
+    };
+  }
+  if (t.includes('listrik') || t.includes('starter') || t.includes('alternator')) {
+    return {
+      icon: Zap,
+      badgeColor: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20',
+      tag: category || 'Kelistrikan',
+    };
+  }
+  if (t.includes('overhaul') || t.includes('transmisi') || t.includes('berat')) {
+    return {
+      icon: Cog,
+      badgeColor: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20',
+      tag: category || 'Perbaikan Berat',
+    };
+  }
+  return {
+    icon: ClipboardCheck,
+    badgeColor: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+    tag: category || 'Umum & Diagnosa',
+  };
+};
+
 export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ initialMenu }) => {
   const queryClient = useQueryClient();
   const { setActiveTab, currentUser, authUser, fleetPendingPartId, setFleetPendingPartId, fleetPendingSpkId, setFleetPendingSpkId, setApprovalModalOpen } = useAppStore();
@@ -1342,16 +1480,56 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     placeholderData: (prev) => prev,
   });
 
+  // Master Jenis Layanan dari view sch_fleet.v_jenis_layanan (database DEV-POS via /kim3/master/layanan)
+  const { data: masterLayananList = [] } = useQuery({
+    queryKey: ['master-jenis-layanan'],
+    queryFn: api.getMasterJenisLayanan,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const availableServiceOptions = useMemo(() => {
+    if (masterLayananList && masterLayananList.length > 0) {
+      return masterLayananList.map((m) => {
+        const visual = getServiceVisuals(m.jenis_layanan, m.kategori);
+        return {
+          id: m.id,
+          title: m.jenis_layanan,
+          tag: m.kategori || visual.tag,
+          description: m.deskripsi,
+          estimasi_durasi: m.estimasi_durasi,
+          icon: visual.icon,
+          badgeColor: visual.badgeColor,
+        };
+      });
+    }
+    return BOOKING_SERVICE_OPTIONS;
+  }, [masterLayananList]);
+
+  // Master Keluhan Kendaraan dari view sch_fleet.v_master_keluhan (database DEV-POS via /kim3/master/keluhan)
+  const { data: masterKeluhanList = [] } = useQuery({
+    queryKey: ['master-keluhan-list'],
+    queryFn: api.getMasterKeluhan,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const availableComplaintChips = useMemo(() => {
+    if (masterKeluhanList && masterKeluhanList.length > 0) {
+      return masterKeluhanList.map((k) => k.keluhan);
+    }
+    return BOOKING_COMMON_COMPLAINTS;
+  }, [masterKeluhanList]);
+
 
 
   // Profil Customer & Kontak: form editable (tersimpan di tabel pengguna via /kim3/profil-simpan)
   const [profilEditing, setProfilEditing] = useState(false);
   const [profilForm, setProfilForm] = useState({
-    nama_perusahaan: authUser?.nama_lengkap || '',
+    nama_perusahaan: authUser?.nama_perusahaan || authUser?.nama_lengkap || '',
     alamat: authUser?.alamat || '',
     npwp: authUser?.npwp || '',
     no_telepon: authUser?.no_telepon || '',
     nama_pic: authUser?.nama_pic || '',
+    foto_profil: authUser?.foto_profil || '',
   });
   const simpanProfilMutation = useMutation({
     mutationFn: () =>
@@ -1361,7 +1539,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         alamat: profilForm.alamat.trim(),
         npwp: profilForm.npwp.trim(),
         no_telepon: profilForm.no_telepon.trim(),
-        foto_profil: authUser?.foto_profil || '',
+        foto_profil: profilForm.foto_profil || authUser?.foto_profil || '',
       }),
     onSuccess: async () => {
       const me = await api.getMe();
@@ -2646,38 +2824,83 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   id: 'layanan',
                   label: 'Pilih Layanan',
                   content: (
-                    <div className="space-y-3.5">
-                      <span className="text-xs font-bold text-ink block">Pilih jenis perbaikan atau service berkala:</span>
+                    <div className="space-y-4">
+                      {/* Section Title & Subtitle */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                            <Wrench className="w-4 h-4 text-accent" />
+                            <span>Pilih Jenis Perbaikan atau Service Berkala:</span>
+                          </label>
+                          <span className="text-[11px] text-ink-muted hidden sm:inline">
+                            Pilih salah satu kategori
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-ink-muted mt-0.5">
+                          Tentukan jenis pengerjaan armada untuk mempermudah teknisi mempersiapkan suku cadang & stall kerja.
+                        </p>
+                      </div>
+
+                      {/* Service Options Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {[
-                          'Service Berkala (Ganti Oli & Filter)',
-                          'Perbaikan Rem & Kaki-kaki',
-                          'Tune Up & Performa Mesin',
-                          'Kelistrikan & Starter / Alternator',
-                          'Overhaul Mesin / Transmisi',
-                          'Pemeriksaan Umum / Keluhan Khusus',
-                        ].map((srv) => {
-                          const isSelected = !isCustomService && bookingForm.jenis_layanan === srv;
+                        {availableServiceOptions.map((srv) => {
+                          const isSelected = !isCustomService && bookingForm.jenis_layanan === srv.title;
+                          const IconComp = srv.icon;
                           return (
                             <button
-                              key={srv}
+                              key={srv.title}
                               type="button"
                               onClick={() => {
                                 setIsCustomService(false);
-                                setBookingForm({ ...bookingForm, jenis_layanan: srv });
+                                setBookingForm({ ...bookingForm, jenis_layanan: srv.title });
                               }}
-                              className={`p-3.5 rounded-xl border-2 text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                              className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 select-none ${
                                 isSelected
-                                  ? 'border-accent bg-accent-subtle/50 text-ink font-bold shadow-xs ring-1 ring-accent/30'
-                                  : 'border-border text-ink bg-surface-raised hover:bg-surface hover:border-accent/40 font-semibold'
+                                  ? 'border-accent bg-accent/5 dark:bg-accent/15 ring-2 ring-accent/25 shadow-xs'
+                                  : 'border-border bg-surface-raised hover:bg-surface hover:border-accent/40 hover:shadow-2xs'
                               }`}
                             >
-                              <span>{srv}</span>
-                              {isSelected && <Check className="w-4 h-4 text-accent shrink-0" />}
+                              <div className="flex items-start justify-between gap-2 w-full">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <div
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${srv.badgeColor}`}
+                                  >
+                                    <IconComp className="w-4 h-4" />
+                                  </div>
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-block tracking-tight leading-tight uppercase ${srv.badgeColor}`}
+                                  >
+                                    {srv.tag}
+                                  </span>
+                                  {srv.estimasi_durasi && (
+                                    <span className="text-[10px] text-ink-muted flex items-center gap-1 font-medium bg-surface px-1.5 py-0.5 rounded border border-border">
+                                      <Clock className="w-3 h-3 text-ink-muted" />
+                                      <span>{srv.estimasi_durasi}</span>
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                                    isSelected
+                                      ? 'bg-accent text-white shadow-xs'
+                                      : 'border-2 border-border bg-surface'
+                                  }`}
+                                >
+                                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+                                </div>
+                              </div>
+
+                              <div className="w-full">
+                                <h4 className="text-xs font-bold text-ink leading-snug">{srv.title}</h4>
+                                <p className="text-[11px] text-ink-muted mt-1 leading-relaxed line-clamp-2">
+                                  {srv.description}
+                                </p>
+                              </div>
                             </button>
                           );
                         })}
 
+                        {/* 7th Card: Custom Service (Spans 2 columns on sm) */}
                         <button
                           type="button"
                           onClick={() => {
@@ -2687,52 +2910,202 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               jenis_layanan: customServiceText.trim() || 'Perbaikan Kustom',
                             });
                           }}
-                          className={`p-3.5 rounded-xl border-2 text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                          className={`sm:col-span-2 p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 select-none ${
                             isCustomService
-                              ? 'border-accent bg-accent-subtle/50 text-ink font-bold shadow-xs ring-1 ring-accent/30'
-                              : 'border-dashed border-accent/60 text-accent hover:bg-accent-subtle/40 font-bold bg-surface-raised'
+                              ? 'border-accent bg-accent/5 dark:bg-accent/15 ring-2 ring-accent/25 shadow-xs'
+                              : 'border-dashed border-accent/50 bg-accent-subtle/20 hover:bg-accent-subtle/40 hover:border-accent'
                           }`}
                         >
-                          <span className="flex items-center gap-1.5">
-                            <Plus className="w-4 h-4" /> Lainnya / Perbaikan Kustom (Ketik Sendiri)
-                          </span>
-                          <Edit3 className="w-4 h-4 shrink-0" />
+                          <div className="flex items-start justify-between gap-2 w-full">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                <SlidersHorizontal className="w-4 h-4" />
+                              </div>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 uppercase tracking-tight">
+                                Pekerjaan Kustom
+                              </span>
+                            </div>
+                            <div
+                              className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                                isCustomService
+                                  ? 'bg-accent text-white shadow-xs'
+                                  : 'border-2 border-accent/40 bg-surface'
+                              }`}
+                            >
+                              {isCustomService ? (
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                              ) : (
+                                <Plus className="w-3 h-3 text-accent" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="w-full">
+                            <h4 className="text-xs font-bold text-ink leading-snug flex items-center gap-1.5">
+                              <span>Lainnya / Perbaikan Kustom (Ketik Sendiri)</span>
+                            </h4>
+                            <p className="text-[11px] text-ink-muted mt-1 leading-relaxed">
+                              Pekerjaan spesifik armada seperti hidrolik dump truk, las bak/sasis, servis AC, instalasi perlengkapan, atau perbaikan kustom.
+                            </p>
+                          </div>
                         </button>
                       </div>
 
+                      {/* Custom Service Input with Quick Presets */}
                       {isCustomService && (
-                        <div className="p-4 rounded-xl bg-accent-subtle/30 border border-accent/40 space-y-1.5">
-                          <label className="block text-xs font-bold text-ink">
-                            Tuliskan Jenis Layanan / Perbaikan Kustom Anda: <span className="text-status-red">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            autoFocus
-                            placeholder="Contoh: Perbaikan Hidrolik Dump Truk, Las Bak, Spooring Truk, Servis AC..."
-                            value={customServiceText}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setCustomServiceText(val);
-                              setBookingForm({ ...bookingForm, jenis_layanan: val.trim() || 'Perbaikan Kustom' });
-                            }}
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-accent/50 text-xs focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
-                          />
-                          <p className="text-xs text-ink-muted">
-                            Tulis jenis pekerjaan atau modifikasi khusus yang dibutuhkan kendaraan Anda.
+                        <div className="p-3.5 sm:p-4 rounded-xl bg-accent-subtle/30 dark:bg-accent/10 border border-accent/40 space-y-2.5 app-page-transition">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                              <Edit3 className="w-3.5 h-3.5 text-accent" />
+                              <span>Tuliskan Rincian Pekerjaan Kustom Anda:</span>
+                              <span className="text-status-red">*</span>
+                            </label>
+                            <span className="text-[10px] text-accent font-semibold">Wajib diisi</span>
+                          </div>
+
+                          {/* Quick Preset Buttons */}
+                          <div className="space-y-1.5">
+                            <span className="text-[11px] text-ink-muted font-medium block">
+                              Pilihan cepat (klik untuk langsung mengisi):
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {BOOKING_CUSTOM_PRESETS.map((preset) => {
+                                const isPresetActive = customServiceText === preset;
+                                return (
+                                  <button
+                                    key={preset}
+                                    type="button"
+                                    onClick={() => {
+                                      setCustomServiceText(preset);
+                                      setBookingForm({ ...bookingForm, jenis_layanan: preset });
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                                      isPresetActive
+                                        ? 'bg-accent text-white shadow-2xs'
+                                        : 'bg-surface-raised border border-border text-ink hover:border-accent hover:text-accent'
+                                    }`}
+                                  >
+                                    <Sparkles className="w-2.5 h-2.5 opacity-70" />
+                                    <span>{preset}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="relative">
+                            <input
+                              type="text"
+                              required
+                              autoFocus
+                              placeholder="Contoh: Perbaikan Silinder Hidrolik Dump Truk, Las Dudukan Bak, Servis AC..."
+                              value={customServiceText}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setCustomServiceText(val);
+                                setBookingForm({
+                                  ...bookingForm,
+                                  jenis_layanan: val.trim() || 'Perbaikan Kustom',
+                                });
+                              }}
+                              className="w-full pl-3.5 pr-8 py-2.5 rounded-xl border border-accent/50 text-xs focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
+                            />
+                            {customServiceText && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCustomServiceText('');
+                                  setBookingForm({ ...bookingForm, jenis_layanan: 'Perbaikan Kustom' });
+                                }}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink p-1 cursor-pointer"
+                                title="Hapus teks"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-ink-muted flex items-center gap-1">
+                            <Info className="w-3.5 h-3.5 text-accent shrink-0" />
+                            <span>Service advisor kami akan mengonfirmasi detail kebutuhan teknis saat estimasi dibuat.</span>
                           </p>
                         </div>
                       )}
 
-                      <div className="mt-3">
-                        <label className="block text-xs font-bold text-ink mb-1.5">Jelaskan Keluhan Kendaraan:</label>
+                      {/* Complaint / Keluhan Kendaraan Section */}
+                      <div className="pt-2 border-t border-border/70 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                            <AlertCircle className="w-3.5 h-3.5 text-status-amber" />
+                            <span>Jelaskan Keluhan atau Gejala Kendaraan:</span>
+                            <span className="text-[11px] font-normal text-ink-muted">(Opsional)</span>
+                          </label>
+                          {bookingForm.keluhan && (
+                            <button
+                              type="button"
+                              onClick={() => setBookingForm({ ...bookingForm, keluhan: '' })}
+                              className="text-[11px] text-ink-muted hover:text-status-red flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>Bersihkan</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Quick Complaint Chips */}
+                        <div className="space-y-1">
+                          <span className="text-[11px] text-ink-muted font-medium block">
+                            Tambahkan keluhan umum secara cepat:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {availableComplaintChips.map((chip) => {
+                              const alreadyAdded = bookingForm.keluhan.includes(chip);
+                              return (
+                                <button
+                                  key={chip}
+                                  type="button"
+                                  onClick={() => {
+                                    setBookingForm((prev) => {
+                                      const trimmed = prev.keluhan.trim();
+                                      if (!trimmed) {
+                                        return { ...prev, keluhan: chip };
+                                      }
+                                      if (trimmed.includes(chip)) return prev;
+                                      return { ...prev, keluhan: `${trimmed}, ${chip}` };
+                                    });
+                                  }}
+                                  className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                                    alreadyAdded
+                                      ? 'bg-status-amber-bg text-status-amber border border-status-amber/40 font-semibold'
+                                      : 'bg-surface border border-border text-ink hover:border-status-amber/50 hover:bg-surface-raised'
+                                  }`}
+                                >
+                                  {alreadyAdded ? (
+                                    <Check className="w-3 h-3 text-status-amber" />
+                                  ) : (
+                                    <Plus className="w-3 h-3 text-ink-muted" />
+                                  )}
+                                  <span>{chip}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Textarea */}
                         <textarea
                           rows={3}
                           value={bookingForm.keluhan}
                           onChange={(e) => setBookingForm({ ...bookingForm, keluhan: e.target.value })}
-                          placeholder="Contoh: Rem bunyi saat pengereman dan tarikan mesin agak berat..."
+                          placeholder="Contoh: Rem bunyi saat pengereman mendadak, tarikan mesin agak berat saat muatan penuh..."
                           className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised text-ink font-medium leading-relaxed"
                         />
+
+                        <div className="flex items-center gap-1.5 text-[11px] text-ink-muted bg-surface/60 p-2 rounded-lg border border-border/50">
+                          <Lightbulb className="w-3.5 h-3.5 text-status-amber shrink-0" />
+                          <span>
+                            Tip: Informasi gejala bunyi atau getaran membantu mekanik menyiapkan tools diagnosa lebih dini.
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ),
@@ -3341,165 +3714,388 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </div>
       )}
 
-      {/* MENU 5: PROFIL CUSTOMER & KONTAK — editable, tersimpan di tabel pengguna */}
-      {fleetMenu === 'profil' && (
-        <div className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-6 shadow-xs max-w-2xl mx-auto space-y-6">
-          <div className="border-b border-[#E2E8F0] dark:border-border pb-3 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-base font-bold text-ink">Profil Customer & Kontak</h2>
-              <p className="text-xs text-ink-muted">Informasi perusahaan dan kontak PIC penanggung jawab — dapat diperbarui langsung di sini</p>
-            </div>
-            {!profilEditing && (
-              <button
-                type="button"
-                onClick={() => {
-                  setProfilForm({
-                    nama_perusahaan: authUser?.nama_lengkap || '',
-                    alamat: authUser?.alamat || '',
-                    npwp: authUser?.npwp || '',
-                    no_telepon: authUser?.no_telepon || '',
-                    nama_pic: authUser?.nama_pic || '',
-                  });
-                  setProfilEditing(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 hover:bg-[#12388F] hover:text-white dark:hover:bg-[#12388F] dark:hover:text-white rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer"
-              >
-                <Edit3 className="w-3.5 h-3.5" /> Edit Profil
-              </button>
-            )}
-          </div>
+      {/* MENU 5: PROFIL CUSTOMER & KONTAK */}
+      {fleetMenu === 'profil' && (() => {
+        const companyName = authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || 'Mitra Fleet';
+        const cleanName = companyName.replace(/^(PT|CV|UD|PT\.|CV\.|UD\.)\s+/i, '').trim();
+        const parts = cleanName.split(' ').filter(Boolean);
+        const companyInitials = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : cleanName.slice(0, 2).toUpperCase() || 'MF';
+        const custIdFormatted = `KIM3-CUST-${String(myPelangganId || authUser?.id_pelanggan || authUser?.id || 1).padStart(4, '0')}`;
 
-          <div className="space-y-4 text-xs">
-            <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border space-y-3.5">
-              <span className="font-bold text-xs tracking-wider uppercase text-[#64748B] dark:text-ink-subtle block">Informasi Perusahaan:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Nama Perusahaan / Entitas:</span>
-                  {profilEditing ? (
+        return (
+          <div className="max-w-4xl mx-auto space-y-5">
+            {/* Header Hero Profile Card */}
+            <div className="bg-surface-raised rounded-2xl border border-border p-5 sm:p-7 shadow-xs relative overflow-hidden">
+              {/* Ambient soft glow */}
+              <div className="absolute top-0 right-0 w-80 h-32 bg-accent/5 dark:bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
+                <div className="flex items-center gap-4 sm:gap-5">
+                  {/* Company Avatar / Logo */}
+                  <div className="relative shrink-0">
+                    {authUser?.foto_profil ? (
+                      <img
+                        src={authUser.foto_profil}
+                        alt={companyName}
+                        className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-border shadow-xs"
+                      />
+                    ) : (
+                      <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-accent to-[#0A2154] text-white flex flex-col items-center justify-center font-black text-xl sm:text-2xl shadow-xs border border-white/20 select-none">
+                        <span>{companyInitials}</span>
+                        <span className="text-[9px] font-semibold tracking-wider opacity-75 uppercase">Fleet</span>
+                      </div>
+                    )}
+                    {isVerifiedByAdmin && (
+                      <div
+                        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs border-2 border-surface-raised"
+                        title="Akun Terverifikasi Admin POS"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Company Name & Key Meta */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-lg sm:text-xl font-black text-ink tracking-tight truncate">
+                        {companyName}
+                      </h1>
+                      <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-surface border border-border text-accent">
+                        {custIdFormatted}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      {isVerifiedByAdmin ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span>Terverifikasi oleh Admin</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Menunggu Verifikasi Admin</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-ink-muted mt-2 flex items-center gap-2.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1">
+                        <User className="w-3.5 h-3.5 text-accent" />
+                        <span>PIC: <strong className="text-ink font-semibold">{authUser?.nama_pic || '-'}</strong></span>
+                      </span>
+                      <span className="text-border">•</span>
+                      <span className="inline-flex items-center gap-1 font-mono text-[11px]">
+                        <Mail className="w-3.5 h-3.5 text-ink-muted" />
+                        <span>{authUser?.email || '-'}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action: Edit Profile Button */}
+                {!profilEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfilForm({
+                        nama_perusahaan: authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '',
+                        alamat: authUser?.alamat || '',
+                        npwp: authUser?.npwp || '',
+                        no_telepon: authUser?.no_telepon || '',
+                        nama_pic: authUser?.nama_pic || '',
+                        foto_profil: authUser?.foto_profil || '',
+                      });
+                      setProfilEditing(true);
+                    }}
+                    className="px-4 py-2 bg-accent text-white hover:bg-accent-hover rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit Profil</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Metrics Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-border/80">
+                <div className="bg-surface p-3 rounded-xl border border-border/60">
+                  <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Unit Armada</span>
+                  <span className="text-lg font-black text-ink mt-0.5 block">{myKendaraanList.length} Kendaraan</span>
+                </div>
+                <div className="bg-surface p-3 rounded-xl border border-border/60">
+                  <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Service Tercatat</span>
+                  <span className="text-lg font-black text-ink mt-0.5 block">{spkList?.length || 0} Kali Servis</span>
+                </div>
+                <div className="bg-surface p-3 rounded-xl border border-border/60">
+                  <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Dokumen Digital</span>
+                  <span className="text-lg font-black text-ink mt-0.5 block">{dokumenList?.length || 0} Berkas</span>
+                </div>
+                <div className="bg-surface p-3 rounded-xl border border-border/60">
+                  <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Status Akun</span>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Aktif</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Body Section: Read-Only Overview OR Editing Mode Form */}
+            {!profilEditing ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Card 1: Informasi Entitas & Legalitas */}
+                <div className="bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-accent" />
+                      <span>Informasi Perusahaan</span>
+                    </h3>
+                    <span className="text-[10px] font-bold text-ink-muted bg-surface px-2 py-0.5 rounded border border-border">
+                      Legalitas
+                    </span>
+                  </div>
+
+                  <div className="space-y-3.5 text-xs">
+                    <div>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Nama Perusahaan / Entitas:</span>
+                      <span className="text-sm font-bold text-ink block">{companyName}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">ID Pelanggan / Kemitraan:</span>
+                      <span className="font-mono font-bold text-accent text-xs bg-accent-subtle/50 px-2 py-0.5 rounded border border-accent/20 inline-block">
+                        {custIdFormatted}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Alamat Perusahaan:</span>
+                      <div className="flex items-start gap-1.5 text-ink font-medium leading-relaxed bg-surface p-2.5 rounded-xl border border-border">
+                        <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                        <span>{authUser?.alamat || 'Alamat perusahaan belum dilengkapi.'}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <span className="text-[11px] font-medium text-ink-muted block mb-0.5">NPWP:</span>
+                        <span className="font-mono font-semibold text-xs text-ink block">
+                          {authUser?.npwp || <span className="text-ink-muted italic">-</span>}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Status Verifikasi Admin:</span>
+                        {isVerifiedByAdmin ? (
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Terverifikasi oleh Admin
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold text-amber-600 inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Belum Terverifikasi
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Kontak Penanggung Jawab / PIC */}
+                <div className="bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-accent" />
+                      <span>Kontak PIC / Penanggung Jawab</span>
+                    </h3>
+                    <span className="text-[10px] font-bold text-ink-muted bg-surface px-2 py-0.5 rounded border border-border">
+                      Operasional
+                    </span>
+                  </div>
+
+                  <div className="space-y-3.5 text-xs">
+                    <div>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Nama PIC:</span>
+                      <span className="text-sm font-bold text-ink block">{authUser?.nama_pic || '-'}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">No. Telepon / WhatsApp:</span>
+                      {authUser?.no_telepon ? (
+                        <a
+                          href={`https://wa.me/${authUser.no_telepon.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 font-mono font-bold text-xs text-accent hover:underline bg-surface px-2.5 py-1 rounded-lg border border-border"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>{authUser.no_telepon}</span>
+                        </a>
+                      ) : (
+                        <span className="text-ink-muted italic">-</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Email Login:</span>
+                      <div className="flex items-center gap-1.5 font-mono text-xs text-ink bg-surface px-2.5 py-1 rounded-lg border border-border">
+                        <Mail className="w-3.5 h-3.5 text-ink-muted" />
+                        <span>{authUser?.email || '-'}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Keamanan Akun:</span>
+                      <div className="flex items-center gap-1.5 text-xs text-ink bg-surface px-2.5 py-1.5 rounded-lg border border-border">
+                        <Lock className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="font-medium">Password Terlindungi</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Editing Form Mode */
+              <div className="bg-surface-raised rounded-2xl border border-border p-5 sm:p-7 shadow-xs space-y-5">
+                <div className="border-b border-border pb-3 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                      <Edit3 className="w-4 h-4 text-accent" />
+                      <span>Edit Profil Customer & Kontak</span>
+                    </h3>
+                    <p className="text-xs text-ink-muted mt-0.5">
+                      Perbarui data perusahaan dan kontak PIC penanggung jawab Anda.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProfilEditing(false)}
+                    className="text-ink-muted hover:text-ink p-1 rounded-lg hover:bg-surface transition cursor-pointer"
+                    title="Batal edit"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Form Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  {/* Logo / Foto Profil Perusahaan */}
+                  <div className="sm:col-span-2">
+                    <PhotoUploader
+                      label="Logo atau Foto Profil Perusahaan (Opsional)"
+                      value={profilForm.foto_profil}
+                      onChange={(url) => setProfilForm((p) => ({ ...p, foto_profil: url }))}
+                    />
+                  </div>
+
+                  {/* Nama Perusahaan */}
+                  <div>
+                    <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-accent" />
+                      <span>Nama Perusahaan / Entitas:</span>
+                      <span className="text-status-red">*</span>
+                    </label>
                     <input
+                      type="text"
+                      required
                       value={profilForm.nama_perusahaan}
                       onChange={(e) => setProfilForm((p) => ({ ...p, nama_perusahaan: e.target.value }))}
-                      placeholder="cth: PT. Andi Jaya"
-                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
+                      placeholder="Contoh: Mitra PT Tes Logistik"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-semibold transition"
                     />
-                  ) : (
-                    <span className="font-bold text-xs text-[#0F172A] dark:text-ink">{authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">ID Pelanggan / Kemitraan:</span>
-                  <span className="font-mono font-bold text-xs text-[#12388F] dark:text-blue-400">KIM3-CUST-{String(myPelangganId || authUser?.id_pelanggan || authUser?.id || 1).padStart(4, '0')}</span>
-                </div>
-                <div className="sm:col-span-2">
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Alamat Perusahaan:</span>
-                  {profilEditing ? (
-                    <textarea
-                      value={profilForm.alamat}
-                      onChange={(e) => setProfilForm((p) => ({ ...p, alamat: e.target.value }))}
-                      rows={2}
-                      placeholder="cth: Jl. Industri Raya No. 88, Medan, Sumatera Utara"
-                      className="w-full px-3 py-2 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition resize-none"
-                    />
-                  ) : (
-                    <span className="font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.alamat || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">NPWP:</span>
-                  {profilEditing ? (
-                    <input
-                      value={profilForm.npwp}
-                      onChange={(e) => setProfilForm((p) => ({ ...p, npwp: e.target.value }))}
-                      placeholder="cth: 01.234.567.8-901.000"
-                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
-                    />
-                  ) : (
-                    <span className="font-mono font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.npwp || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Status Verifikasi Admin:</span>
-                  {isVerifiedByAdmin ? (
-                    <span className="font-semibold text-status-green inline-flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Terverifikasi oleh Admin
-                    </span>
-                  ) : (
-                    <span className="font-semibold text-amber-600 inline-flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Belum Terverifikasi oleh Admin
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+                  </div>
 
-            <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border space-y-3.5">
-              <span className="font-bold text-xs tracking-wider uppercase text-[#64748B] dark:text-ink-subtle block">Kontak PIC / Penanggung Jawab:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Nama PIC:</span>
-                  {profilEditing ? (
+                  {/* Nama PIC */}
+                  <div>
+                    <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-accent" />
+                      <span>Nama PIC:</span>
+                      <span className="text-status-red">*</span>
+                    </label>
                     <input
+                      type="text"
+                      required
                       value={profilForm.nama_pic}
                       onChange={(e) => setProfilForm((p) => ({ ...p, nama_pic: e.target.value }))}
-                      placeholder="cth: Budi Santoso"
-                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
+                      placeholder="Contoh: Budi Santoso"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-semibold transition"
                     />
-                  ) : (
-                    <span className="font-bold text-xs text-[#0F172A] dark:text-ink">{authUser?.nama_pic || '-'}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">No. Telepon / WhatsApp:</span>
-                  {profilEditing ? (
+                  </div>
+
+                  {/* No Telepon / WhatsApp */}
+                  <div>
+                    <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-accent" />
+                      <span>No. Telepon / WhatsApp:</span>
+                    </label>
                     <input
+                      type="tel"
                       value={profilForm.no_telepon}
                       onChange={(e) => setProfilForm((p) => ({ ...p, no_telepon: e.target.value }))}
-                      placeholder="cth: 0812-3456-7890"
-                      className="h-10 w-full px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-lg text-xs text-[#0F172A] dark:text-ink placeholder-ink-subtle/50 focus:outline-none focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 transition"
+                      placeholder="Contoh: 0812-3456-7890"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-mono font-semibold transition"
                     />
-                  ) : (
-                    <span className="font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.no_telepon || '-'}</span>
-                  )}
+                  </div>
+
+                  {/* NPWP */}
+                  <div>
+                    <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5 text-accent" />
+                      <span>NPWP:</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={profilForm.npwp}
+                      onChange={(e) => setProfilForm((p) => ({ ...p, npwp: e.target.value }))}
+                      placeholder="Contoh: 01.234.567.8-901.000"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-mono font-semibold transition"
+                    />
+                  </div>
+
+                  {/* Alamat Perusahaan */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-accent" />
+                      <span>Alamat Perusahaan:</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={profilForm.alamat}
+                      onChange={(e) => setProfilForm((p) => ({ ...p, alamat: e.target.value }))}
+                      placeholder="Contoh: Medan Deli, Kota Medan"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-medium leading-relaxed transition"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Email Login:</span>
-                  <span className="font-mono font-semibold text-xs text-[#0F172A] dark:text-ink">{authUser?.email || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-[11px] font-medium text-[#64748B] dark:text-ink-subtle block mb-1">Tipe Akun:</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-[#DCFCE7] text-[#15803D] border border-[#BBF7D0] dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50">Mitra Fleet</span>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
+                  <button
+                    type="button"
+                    disabled={simpanProfilMutation.isPending}
+                    onClick={() => setProfilEditing(false)}
+                    className="px-4 py-2 rounded-xl border border-border bg-surface hover:bg-surface-raised text-ink text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={simpanProfilMutation.isPending || !profilForm.nama_perusahaan.trim()}
+                    onClick={() => simpanProfilMutation.mutate()}
+                    className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {simpanProfilMutation.isPending ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
+                    <span>{simpanProfilMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
-
-          {profilEditing && (
-            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end border-t border-[#E2E8F0] dark:border-border pt-4">
-              <button
-                type="button"
-                disabled={simpanProfilMutation.isPending}
-                onClick={() => setProfilEditing(false)}
-                className="min-h-[40px] px-4 py-2 bg-white dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink hover:bg-[#F1F5F9] dark:hover:bg-surface-raised rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={simpanProfilMutation.isPending || !profilForm.nama_perusahaan.trim()}
-                onClick={() => simpanProfilMutation.mutate()}
-                className="min-h-[40px] px-4 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-              >
-                {simpanProfilMutation.isPending ? (
-                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Check className="w-3.5 h-3.5" />
-                )}
-                {simpanProfilMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+        );
+      })()}
       {/* MENU 6: HISTORY SERVICE */}
       {fleetMenu === 'history' && (
         <div className="space-y-6">
