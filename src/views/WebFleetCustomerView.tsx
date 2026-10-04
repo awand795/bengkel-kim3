@@ -194,35 +194,39 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
     <div className="space-y-6">
           
             {/* Active Card */}
-            <div className="card-modern bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-accent-subtle text-accent flex items-center justify-center font-black border border-accent/20 shrink-0">
+            <div className="card-modern bg-surface-raised rounded-3xl border border-border p-5 sm:p-6 shadow-xs space-y-5 overflow-hidden">
+              <div className="relative overflow-hidden -mx-5 sm:-mx-6 -mt-5 sm:-mt-6 rounded-t-3xl bg-gradient-to-br from-[#0B1F4D] via-[#12388F] to-[#3B6FD4] text-white p-5 sm:p-6">
+                <div className="pointer-events-none absolute -right-14 -top-16 h-48 w-48 rounded-full bg-white/12 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-20 -left-10 h-44 w-44 rounded-full bg-[#60A5FA]/25 blur-3xl" />
+                <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 backdrop-blur-sm flex items-center justify-center shrink-0">
                     <Truck className="w-6 h-6" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-lg font-black font-mono text-ink tracking-wide">{formatPlat(spk.no_polisi)}</h2>
+                      <h2 className="text-lg font-black font-mono text-white tracking-wide">{formatPlat(spk.no_polisi)}</h2>
                       <StatusBadge status={spk.status_spk} size="sm" />
                     </div>
-                    <p className="text-xs text-ink-muted font-medium">{spk.nama_customer || '-'} • <span className="font-mono text-ink">{spk.no_spk}</span></p>
+                    <p className="text-xs text-white/75 font-medium">{spk.nama_customer || '-'} • <span className="font-mono text-white">{spk.no_spk}</span></p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-4 text-xs font-semibold">
-                  <div>
-                    <span className="text-ink-subtle block text-xs">Layanan:</span>
-                    <span className="text-ink font-bold">{spk.jenis_layanan || 'Service Kendaraan'}</span>
+                <div className="flex flex-wrap gap-3 text-xs font-semibold">
+                  <div className="rounded-xl bg-white/10 border border-white/20 px-3 py-2 backdrop-blur-sm min-w-[120px]">
+                    <span className="text-white/70 block text-[10px] uppercase tracking-[0.1em] font-bold">Layanan</span>
+                    <span className="text-white font-bold">{spk.jenis_layanan || 'Service Kendaraan'}</span>
                   </div>
-                  <div>
-                    <span className="text-ink-subtle block text-xs">Waktu Check In:</span>
-                    <span className="text-ink">{spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
+                  <div className="rounded-xl bg-white/10 border border-white/20 px-3 py-2 backdrop-blur-sm min-w-[120px]">
+                    <span className="text-white/70 block text-[10px] uppercase tracking-[0.1em] font-bold">Waktu Check In</span>
+                    <span className="text-white tabular-nums">{spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
                   </div>
-                  <div>
-                    <span className="text-ink-subtle block text-xs">Estimasi Selesai (ETA):</span>
-                    <span className="text-accent font-bold font-mono">{(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}</span>
-                    <span className="text-ink-subtle block text-[10px]">{labelSumberEta(etaSpk(spk).sumber)}</span>
+                  <div className="rounded-xl bg-white/10 border border-white/20 px-3 py-2 backdrop-blur-sm min-w-[120px]">
+                    <span className="text-white/70 block text-[10px] uppercase tracking-[0.1em] font-bold">Estimasi Selesai (ETA)</span>
+                    <span className="text-emerald-300 font-bold font-mono">{(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}</span>
+                    <span className="text-white/60 block text-[10px]">{labelSumberEta(etaSpk(spk).sumber)}</span>
                   </div>
+                </div>
                 </div>
               </div>
 
@@ -361,7 +365,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
               )}
 
               {/* Stepper Progress Bar (image5.png Mockup 2 Stepper) */}
-              <div className="py-6 px-2 overflow-x-auto">
+              <div className="py-5 px-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-white dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
                 <div className="flex items-start justify-between min-w-[650px]">
                   {[
                     { step: 1, title: 'Check In', desc: 'Diterima Security', done: true, waktu: spk.waktu_check_in || spk.created_at },
@@ -381,14 +385,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   ].map((s, idx) => (
                     <div key={s.step} className="flex-1 flex items-start">
                       <div className="flex flex-col items-center flex-1 text-center min-w-0">
-                        <div className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
+                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
                           s.isWaitingPart
                             ? 'bg-status-red text-white ring-4 ring-status-red/20 shadow-md scale-110'
                             : s.current 
-                            ? 'bg-accent text-white ring-4 ring-accent/20 shadow-md scale-110' 
+                            ? 'bg-gradient-to-br from-[#12388F] to-[#3B6FD4] text-white ring-4 ring-[#12388F]/25 shadow-lg scale-110' 
                             : s.done 
-                            ? 'bg-status-green text-white' 
-                            : 'bg-surface text-ink-subtle border border-border'
+                            ? 'bg-gradient-to-br from-[#16A34A] to-[#22C55E] text-white shadow-md' 
+                            : 'bg-white dark:bg-slate-900 text-ink-subtle border-2 border-dashed border-border'
                         }`}>
                           {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
                         </div>
@@ -401,7 +405,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         </div>
                       </div>
                       {idx < 5 && (
-                        <div className={`h-1 flex-1 mx-2 mt-4 rounded-full ${s.done ? 'bg-status-green' : 'bg-surface'}`}></div>
+                        <div className={`h-1 flex-1 mx-2 mt-4 rounded-full ${s.done ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E]' : 'bg-border'}`}></div>
                       )}
                     </div>
                   ))}
@@ -411,14 +415,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
               {/* 4 Detail Tabs di bawah Tracker Status Service */}
               <div className="border-t border-border pt-5 space-y-4">
                 {/* Tab Navigation */}
-                <div className="flex border-b border-border gap-2 overflow-x-auto pb-px">
+                <div className="flex gap-2 overflow-x-auto p-1 rounded-2xl bg-[#F1F5F9] dark:bg-slate-800 border border-border">
                   <button
                     type="button"
                     onClick={() => setSubTab('progress')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all border shrink-0 ${
                       subTab === 'progress'
-                        ? 'border-accent text-accent bg-accent-subtle'
-                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                        ? 'border-[#12388F]/25 bg-white dark:bg-slate-900 text-[#12388F] shadow-xs'
+                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/70 dark:hover:bg-slate-700/60'
                     }`}
                   >
                     <Clock className="w-4 h-4" />
@@ -427,10 +431,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   <button
                     type="button"
                     onClick={() => setSubTab('detail')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all border shrink-0 ${
                       subTab === 'detail'
-                        ? 'border-accent text-accent bg-accent-subtle'
-                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                        ? 'border-[#12388F]/25 bg-white dark:bg-slate-900 text-[#12388F] shadow-xs'
+                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/70 dark:hover:bg-slate-700/60'
                     }`}
                   >
                     <Package className="w-4 h-4" />
@@ -444,10 +448,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   <button
                     type="button"
                     onClick={() => setSubTab('catatan')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all border shrink-0 ${
                       subTab === 'catatan'
-                        ? 'border-accent text-accent bg-accent-subtle'
-                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                        ? 'border-[#12388F]/25 bg-white dark:bg-slate-900 text-[#12388F] shadow-xs'
+                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/70 dark:hover:bg-slate-700/60'
                     }`}
                   >
                     <FileCheck className="w-4 h-4" />
@@ -456,10 +460,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   <button
                     type="button"
                     onClick={() => setSubTab('dokumen')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-colors border-b-2 -mb-px shrink-0 ${
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all border shrink-0 ${
                       subTab === 'dokumen'
-                        ? 'border-accent text-accent bg-accent-subtle'
-                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                        ? 'border-[#12388F]/25 bg-white dark:bg-slate-900 text-[#12388F] shadow-xs'
+                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/70 dark:hover:bg-slate-700/60'
                     }`}
                   >
                     <Camera className="w-4 h-4" />
@@ -475,12 +479,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                 {/* TAB 1: Progress Pekerjaan */}
                 {subTab === 'progress' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-                    <div className="space-y-3 bg-surface/60 p-4 rounded-xl border border-border">
-                      <span className="font-bold text-ink flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-accent" />
+                    <div className="space-y-3 p-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-white dark:from-slate-800/40 dark:to-transparent">
+                      <span className="font-black text-ink flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-accent text-white flex items-center justify-center shadow-2xs shrink-0">
+                          <Clock className="w-3.5 h-3.5" />
+                        </span>
                         Timeline Riwayat Aktivitas Service:
                       </span>
-                      <div className="space-y-3 relative pl-4 border-l-2 border-border ml-2">
+                      <div className="space-y-3 relative pl-4 border-l-2 border-[#12388F]/25 dark:border-blue-400/30 ml-2">
                         <div className="relative">
                           <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
                           <div className="font-semibold text-ink">Kendaraan Masuk di Pos Security</div>
@@ -570,8 +576,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                     </div>
 
-                    <div className="space-y-3 bg-accent-subtle p-4 rounded-xl border border-accent/20">
-                      <span className="font-bold text-ink flex items-center gap-2">
+                    <div className="space-y-3 p-4 rounded-2xl border border-accent/20 bg-gradient-to-br from-accent-subtle to-transparent">
+                      <span className="font-black text-ink flex items-center gap-2">
                         <Info className="w-4 h-4 text-accent" />
                         Status Terkini & Petunjuk:
                       </span>
@@ -1849,11 +1855,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }
 
     return (
-      <div className="w-[52px] h-[52px] rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 border border-[#DDE5FB] dark:border-blue-900/50 flex flex-col items-center justify-center shrink-0 select-none shadow-2xs">
-        <span className="text-[10px] font-bold text-[#64748B] dark:text-slate-400 tracking-wider leading-none uppercase">
+      <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-[#12388F] to-[#3B6FD4] flex flex-col items-center justify-center shrink-0 select-none shadow-md shadow-[#12388F]/25 border border-white/10">
+        <span className="text-[10px] font-bold text-white/75 tracking-wider leading-none uppercase">
           {month}
         </span>
-        <span className="text-[20px] font-extrabold text-[#12388F] dark:text-blue-300 leading-tight tabular-nums mt-0.5">
+        <span className="text-[20px] font-extrabold text-white leading-tight tabular-nums mt-0.5">
           {day}
         </span>
       </div>
@@ -2485,16 +2491,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Booking Saya: Daftar booking aktif */}
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised p-5 space-y-4 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#12388F] dark:text-blue-400" /> Daftar Booking Saya
+          <div className="rounded-3xl border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-[#EEF2F7] dark:border-border bg-gradient-to-r from-[#F8FAFF] via-white to-white dark:from-slate-800/50 dark:via-surface-raised dark:to-surface-raised">
+              <h3 className="text-sm font-black text-ink flex items-center gap-2.5 tracking-tight">
+                <span className="w-8 h-8 rounded-xl bg-[#12388F] text-white flex items-center justify-center shadow-md shadow-[#12388F]/25 dark:bg-blue-950/60 dark:text-blue-300">
+                  <Calendar className="w-4 h-4" />
+                </span>
+                Daftar Booking Saya
               </h3>
-              <span className="text-xs font-semibold text-[#12388F] dark:text-blue-300 px-2.5 py-0.5 rounded-full bg-[#EEF2FF] dark:bg-blue-950/60">
+              <span className="text-[11px] font-black uppercase tracking-[0.08em] text-[#12388F] px-3 py-1 rounded-full bg-[#EEF2FF] border border-[#12388F]/15 dark:text-blue-300 dark:bg-blue-950/60 dark:border-blue-800/50">
                 {bookingAktifList.length} Booking Aktif
               </span>
             </div>
 
+            <div className="p-5 space-y-4">
             {isLoadingBooking ? (
               <div className="space-y-[10px]">
                 {[1, 2, 3].map((n) => (
@@ -2528,7 +2538,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     return (
                       <ListItemCard
                         key={b.id}
-                        className="rounded-2xl p-4 border-[#E2E8F0] dark:border-border hover:border-[#12388F]/25 hover:bg-[#FAFBFF] dark:hover:bg-slate-800/40 shadow-2xs hover:shadow-xs transition-all duration-150 animate-booking-row"
+                        className="rounded-2xl p-4 sm:p-4 border-[#E2E8F0] dark:border-border hover:border-[#12388F]/30 hover:bg-[#FAFBFF] dark:hover:bg-slate-800/40 shadow-2xs hover:shadow-md hover:-translate-y-[2px] transition-all duration-150 animate-booking-row before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-l-2xl before:content-[''] before:bg-gradient-to-b before:from-[#12388F] before:to-[#3B6FD4] hover:before:from-[#F59E0B] hover:before:to-[#F59E0B]"
                         style={{
                           animationDelay: `${staggerDelay}ms`,
                         }}
@@ -2540,12 +2550,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         }
                         subtitle={
                           <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                            <span className="inline-flex items-center gap-1.5 text-xs text-[#475569] dark:text-slate-300 bg-[#F1F5F9] dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-[#E2E8F0] dark:border-slate-700/60 font-medium">
-                              <Wrench className="w-3.5 h-3.5 text-[#64748B] dark:text-slate-400 shrink-0" />
+                            <span className="inline-flex items-center gap-1.5 text-xs text-[#334155] dark:text-slate-300 bg-[#F8FAFC] dark:bg-slate-800/80 px-3 py-1 rounded-full border border-[#E2E8F0] dark:border-slate-700/60 font-semibold">
+                              <Wrench className="w-3.5 h-3.5 text-[#12388F] dark:text-blue-400 shrink-0" />
                               <span>{b.jenis_layanan}</span>
                             </span>
-                            <span className="inline-flex items-center gap-1.5 text-xs text-[#475569] dark:text-slate-300 bg-[#F1F5F9] dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-[#E2E8F0] dark:border-slate-700/60 font-medium">
-                              <Clock className="w-3.5 h-3.5 text-[#64748B] dark:text-slate-400 shrink-0" />
+                            <span className="inline-flex items-center gap-1.5 text-xs text-[#334155] dark:text-slate-300 bg-[#FFFBEB] dark:bg-amber-950/40 px-3 py-1 rounded-full border border-[#FDE68A] dark:border-amber-900/50 font-semibold tabular-nums">
+                              <Clock className="w-3.5 h-3.5 text-[#B45309] dark:text-amber-400 shrink-0" />
                               <span>Jadwal: {b.tanggal_booking} {b.jam_booking} WIB</span>
                             </span>
                           </div>
@@ -2570,6 +2580,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             ) : (
               <EmptyState
                 icon={Calendar}
+                variant="card"
                 title="Belum Ada Booking Aktif"
                 description="Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3."
                 action={isVerifiedByAdmin ? {
@@ -2581,9 +2592,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 } : undefined}
               />
             )}
-            <p className="text-xs text-ink-subtle">
-              Kendaraan yang telah tiba dan di-check-in di gerbang otomatis diproses ke Riwayat Kendaraan (History). Pembatalan booking dapat dilakukan maksimal 10 menit sebelum jadwal.
+            <p className="text-xs text-ink-subtle leading-relaxed flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#12388F] dark:text-blue-400" />
+              <span>
+                Kendaraan yang telah tiba dan di-check-in di gerbang otomatis diproses ke Riwayat Kendaraan (History). Pembatalan booking dapat dilakukan maksimal 10 menit sebelum jadwal.
+              </span>
             </p>
+            </div>
           </div>
 
           {/* StepModal for Booking Service */}
@@ -2649,7 +2664,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   content: (
                     <div className="space-y-3.5">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs font-bold text-ink">Pilih kendaraan yang akan diservice:</span>
+                        <span className="text-xs font-bold text-ink flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-lg bg-accent-subtle text-accent border border-accent/20 flex items-center justify-center shrink-0">
+                            <Truck className="w-4 h-4" />
+                          </span>
+                          Pilih kendaraan yang akan diservice:
+                        </span>
                         <button
                           type="button"
                           disabled={!isVerifiedByAdmin}
@@ -2706,10 +2726,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             return (
                               <label
                                 key={k.id}
-                                className={`flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                                className={`flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                                   isSelected
-                                    ? 'border-accent bg-accent-subtle/50 shadow-xs ring-1 ring-accent/30'
-                                    : 'border-border hover:border-accent/40 bg-surface-raised hover:bg-surface'
+                                    ? 'border-accent bg-gradient-to-br from-accent/12 via-accent/5 to-transparent shadow-md shadow-accent/15 ring-2 ring-accent/20'
+                                    : 'border-border hover:border-accent/40 bg-surface-raised hover:bg-surface hover:-translate-y-[1px] hover:shadow-xs'
                                 }`}
                               >
                                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -2741,8 +2761,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                     </div>
                                   )}
                                   <div className="min-w-0">
-                                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-md border border-border bg-surface font-mono font-black text-xs tracking-wider text-ink mb-1">
-                                      {formatPlat(k.no_polisi)}
+                                    <div className="mb-1">
+                                      <PlateChip plat={k.no_polisi} />
                                     </div>
                                     <div className="text-xs font-bold text-ink truncate">
                                       {k.merk} {k.model} {k.tahun ? `(${k.tahun})` : ''}
@@ -2753,7 +2773,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                   </div>
                                 </div>
                                 <div className="shrink-0 pl-2">
-                                  <span className="px-2.5 py-1 rounded-lg bg-status-green-bg text-status-green font-bold text-xs border border-status-green/30 inline-flex items-center gap-1">
+                                  <span className="px-2.5 py-1 rounded-full bg-status-green-bg text-status-green font-bold text-[11px] border border-status-green/30 inline-flex items-center gap-1.5">
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                     <span>Kendaraan Aktif</span>
                                   </span>
@@ -2854,16 +2874,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 setIsCustomService(false);
                                 setBookingForm({ ...bookingForm, jenis_layanan: srv.title });
                               }}
-                              className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 select-none ${
+                              className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 select-none ${
                                 isSelected
-                                  ? 'border-accent bg-accent/5 dark:bg-accent/15 ring-2 ring-accent/25 shadow-xs'
-                                  : 'border-border bg-surface-raised hover:bg-surface hover:border-accent/40 hover:shadow-2xs'
+                                  ? 'border-accent bg-gradient-to-br from-accent/12 via-accent/5 to-transparent ring-2 ring-accent/20 shadow-md shadow-accent/15'
+                                  : 'border-border bg-surface-raised hover:bg-surface hover:border-accent/40 hover:-translate-y-[2px] hover:shadow-xs'
                               }`}
                             >
                               <div className="flex items-start justify-between gap-2 w-full">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <div
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${srv.badgeColor}`}
+                                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs ${srv.badgeColor}`}
                                   >
                                     <IconComp className="w-4 h-4" />
                                   </div>
@@ -2910,9 +2930,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               jenis_layanan: customServiceText.trim() || 'Perbaikan Kustom',
                             });
                           }}
-                          className={`sm:col-span-2 p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 select-none ${
+                          className={`sm:col-span-2 p-4 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 select-none ${
                             isCustomService
-                              ? 'border-accent bg-accent/5 dark:bg-accent/15 ring-2 ring-accent/25 shadow-xs'
+                              ? 'border-accent bg-gradient-to-br from-accent/12 via-accent/5 to-transparent ring-2 ring-accent/20 shadow-md shadow-accent/15'
                               : 'border-dashed border-accent/50 bg-accent-subtle/20 hover:bg-accent-subtle/40 hover:border-accent'
                           }`}
                         >
@@ -2953,7 +2973,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                       {/* Custom Service Input with Quick Presets */}
                       {isCustomService && (
-                        <div className="p-3.5 sm:p-4 rounded-xl bg-accent-subtle/30 dark:bg-accent/10 border border-accent/40 space-y-2.5 app-page-transition">
+                        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-accent-subtle/80 to-transparent dark:from-accent/10 border border-accent/30 space-y-2.5 app-page-transition">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-bold text-ink flex items-center gap-1.5">
                               <Edit3 className="w-3.5 h-3.5 text-accent" />
@@ -3097,10 +3117,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           value={bookingForm.keluhan}
                           onChange={(e) => setBookingForm({ ...bookingForm, keluhan: e.target.value })}
                           placeholder="Contoh: Rem bunyi saat pengereman mendadak, tarikan mesin agak berat saat muatan penuh..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised text-ink font-medium leading-relaxed"
+                          className="w-full px-3.5 py-3 rounded-2xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised text-ink font-medium leading-relaxed shadow-2xs"
                         />
 
-                        <div className="flex items-center gap-1.5 text-[11px] text-ink-muted bg-surface/60 p-2 rounded-lg border border-border/50">
+                        <div className="flex items-center gap-1.5 text-[11px] text-ink-muted bg-[#FFFBEB] dark:bg-amber-950/30 p-2.5 rounded-xl border border-[#FDE68A] dark:border-amber-900/50">
                           <Lightbulb className="w-3.5 h-3.5 text-status-amber shrink-0" />
                           <span>
                             Tip: Informasi gejala bunyi atau getaran membantu mekanik menyiapkan tools diagnosa lebih dini.
@@ -3115,9 +3135,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   label: 'Tanggal & Waktu',
                   content: (
                     <div className="space-y-4">
+                      <div className="rounded-2xl border border-accent/15 bg-gradient-to-br from-accent-subtle/80 via-accent-subtle/30 to-transparent p-4 sm:p-5">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold text-ink mb-1.5">
+                          <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-accent" />
                             Tanggal Rencana Masuk <span className="text-status-red">*</span>
                           </label>
                           <input
@@ -3152,6 +3174,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </div>
                         </div>
                       </div>
+                      </div>
                     </div>
                   ),
                 },
@@ -3160,30 +3183,37 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   label: 'Konfirmasi',
                   content: (
                     <div className="space-y-4">
-                      <div className="bg-surface p-4 sm:p-5 rounded-2xl border border-border text-xs space-y-3">
-                        <div className="font-bold text-sm text-ink border-b border-border pb-2.5 flex items-center justify-between">
-                          <span>Ringkasan Pemesanan Booking Service</span>
-                          <span className="px-2.5 py-0.5 rounded-md bg-accent-subtle text-accent text-xs font-bold border border-accent/20">Siap Konfirmasi</span>
-                        </div>
-                        <div className="flex items-center justify-between py-1.5 border-b border-border/60">
-                          <span className="text-ink-muted font-medium">Kendaraan:</span>
-                          <span className="font-mono font-black text-ink text-sm bg-surface-raised px-2.5 py-0.5 rounded-md border border-border">
-                            {formatPlat(bookingForm.no_polisi)}
+                      <div className="rounded-2xl border border-border bg-surface overflow-hidden text-xs shadow-xs">
+                        <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 bg-gradient-to-r from-[#0B1F4D] via-[#12388F] to-[#3B6FD4] text-white">
+                          <span className="font-black text-sm flex items-center gap-2">
+                            <ClipboardCheck className="w-4 h-4" />
+                            Ringkasan Pemesanan Booking Service
+                          </span>
+                          <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/25 text-[10px] font-black uppercase tracking-[0.1em]">
+                            Siap Konfirmasi
                           </span>
                         </div>
-                        <div className="flex items-center justify-between py-1.5 border-b border-border/60">
-                          <span className="text-ink-muted font-medium">Jenis Layanan:</span>
-                          <span className="font-bold text-ink">{bookingForm.jenis_layanan}</span>
-                        </div>
-                        <div className="flex items-center justify-between py-1.5 border-b border-border/60">
-                          <span className="text-ink-muted font-medium">Jadwal Masuk:</span>
-                          <span className="font-mono font-bold text-accent">{bookingForm.tanggal_booking} • Pukul {bookingForm.jam_booking} WIB</span>
-                        </div>
-                        <div className="pt-2 text-ink-muted">
-                          <span className="font-bold text-ink block mb-1">Catatan Keluhan:</span>
-                          <p className="text-ink font-medium leading-relaxed bg-surface-raised p-2.5 rounded-xl border border-border">
-                            {bookingForm.keluhan || 'Tidak ada catatan keluhan khusus.'}
-                          </p>
+                        <div className="p-4 sm:p-5 space-y-2.5">
+                          <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
+                            <span className="text-ink-muted font-semibold">Kendaraan:</span>
+                            <span className="font-mono font-black text-ink text-sm bg-surface-raised dark:bg-surface px-2.5 py-0.5 rounded-lg border border-border">
+                              {formatPlat(bookingForm.no_polisi)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
+                            <span className="text-ink-muted font-semibold">Jenis Layanan:</span>
+                            <span className="font-bold text-ink text-right">{bookingForm.jenis_layanan}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
+                            <span className="text-ink-muted font-semibold">Jadwal Masuk:</span>
+                            <span className="font-mono font-bold text-accent tabular-nums">{bookingForm.tanggal_booking} • Pukul {bookingForm.jam_booking} WIB</span>
+                          </div>
+                          <div className="pt-1.5 text-ink-muted">
+                            <span className="font-bold text-ink block mb-1">Catatan Keluhan:</span>
+                            <p className="text-ink font-medium leading-relaxed bg-white dark:bg-surface-raised p-3 rounded-xl border border-dashed border-border">
+                              {bookingForm.keluhan || 'Tidak ada catatan keluhan khusus.'}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -4105,9 +4135,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Satu kartu tunggal */}
-          <div className="bg-white dark:bg-surface-raised rounded-2xl border border-[#E2E8F0] dark:border-border shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden">
+          <div className="bg-white dark:bg-surface-raised rounded-3xl border border-[#E2E8F0] dark:border-border shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden">
             {/* Toolbar: Tab di kiri, pencarian di kanan */}
-            <div className="px-5 pt-4 border-b border-[#E2E8F0] dark:border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="px-5 pt-4 border-b border-[#EEF2F7] dark:border-border flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#F8FAFF] via-white to-white dark:from-slate-800/50 dark:via-surface-raised dark:to-surface-raised">
               {/* Tab Filter Status */}
               <div className="order-2 md:order-1">
                 <FilterChips
@@ -4132,7 +4162,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     onChange={(e) => setHistorySearch(e.target.value)}
                     placeholder="Cari no. SPK, no. polisi, keluhan, atau status..."
                     aria-label="Cari riwayat service"
-                    className="h-10 w-full pl-9 pr-9 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-900 text-[13px] text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] focus:bg-white dark:focus:bg-slate-900 focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 focus:outline-none transition-all"
+                    className="h-10 w-full pl-9 pr-9 rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 text-[13px] text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] focus:bg-white dark:focus:bg-slate-900 focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 focus:outline-none transition-all shadow-2xs"
                   />
                   {historySearch && (
                     <button
@@ -4167,18 +4197,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 {/* Desktop Table: langsung di dalam kartu */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F8FAFC] dark:bg-slate-800/60 border-y border-[#E2E8F0] dark:border-border sticky top-0 z-10">
+                    <thead className="bg-[#F1F5F9] dark:bg-slate-800/70 border-b border-[#E2E8F0] dark:border-border sticky top-0 z-10">
                       <tr>
-                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">No. Booking / SPK</th>
-                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">Kendaraan</th>
-                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">Layanan</th>
-                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">Tanggal Masuk</th>
-                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400 text-right">Biaya</th>
-                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400">Status</th>
-                        <th className="px-5 py-3 text-[11px] uppercase tracking-[0.06em] font-semibold text-[#64748B] dark:text-slate-400 text-center">Detail</th>
+                        <th className="px-5 py-3.5 text-[10px] uppercase tracking-[0.12em] font-black text-[#64748B] dark:text-slate-400">No. Booking / SPK</th>
+                        <th className="px-5 py-3.5 text-[10px] uppercase tracking-[0.12em] font-black text-[#64748B] dark:text-slate-400">Kendaraan</th>
+                        <th className="px-5 py-3.5 text-[10px] uppercase tracking-[0.12em] font-black text-[#64748B] dark:text-slate-400">Layanan</th>
+                        <th className="px-5 py-3.5 text-[10px] uppercase tracking-[0.12em] font-black text-[#64748B] dark:text-slate-400">Tanggal Masuk</th>
+                        <th className="px-5 py-3.5 text-[10px] uppercase tracking-[0.12em] font-black text-[#64748B] dark:text-slate-400 text-right">Biaya</th>
+                        <th className="px-5 py-3.5 text-[10px] uppercase tracking-[0.12em] font-black text-[#64748B] dark:text-slate-400">Status</th>
+                        <th className="px-5 py-3.5 text-[10px] uppercase tracking-[0.12em] font-black text-[#64748B] dark:text-slate-400 text-center">Detail</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#EEF2F7] dark:divide-slate-800">
+                    <tbody className="divide-y divide-[#F1F5F9] dark:divide-slate-800">
                       {historyRows.map((spk) => (
                         <tr
                           key={spk.id}
@@ -4192,16 +4222,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           }}
                           className="hover:bg-[#F8FAFF] dark:hover:bg-slate-800/50 transition-colors duration-150 cursor-pointer group focus-visible:outline-none focus-visible:bg-[#F8FAFF] dark:focus-visible:bg-slate-800/50"
                         >
-                          <td className="px-5 py-4 font-mono text-[13px] font-semibold text-[#12388F] dark:text-blue-400 group-hover:[box-shadow:inset_3px_0_0_#12388F] group-focus-visible:[box-shadow:inset_3px_0_0_#12388F] transition-[box-shadow]">
+                          <td className="px-5 py-4 font-mono text-[13px] font-bold text-[#12388F] dark:text-blue-400 group-hover:[box-shadow:inset_3px_0_0_#12388F] group-focus-visible:[box-shadow:inset_3px_0_0_#12388F] transition-[box-shadow]">
                             {spk.no_spk}
                           </td>
                           <td className="px-5 py-4">
                             <PlateChip plat={spk.no_polisi} />
                           </td>
-                          <td className="px-5 py-4 text-[13px] text-[#334155] dark:text-slate-300 max-w-[260px] line-clamp-2" title={spk.keluhan_customer}>
+                          <td className="px-5 py-4 text-[13px] text-[#334155] dark:text-slate-300 max-w-[260px] line-clamp-2 leading-relaxed" title={spk.keluhan_customer}>
                             {spk.keluhan_customer}
                           </td>
-                          <td className="px-5 py-4 text-[13px] text-[#475569] dark:text-slate-400 tabular-nums">
+                          <td className="px-5 py-4 text-[13px] text-[#475569] dark:text-slate-400 tabular-nums font-medium whitespace-nowrap">
                             {new Date(spk.created_at).toLocaleDateString('id-ID')}
                           </td>
                           <td className="px-5 py-4 text-right">
@@ -4219,7 +4249,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               }}
                               title={`Lihat detail tracking ${spk.no_spk}`}
                               aria-label={`Lihat detail tracking ${spk.no_spk}`}
-                              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#EEF2FF] hover:bg-[#12388F] text-[#12388F] hover:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full border border-[#12388F]/25 bg-white dark:bg-slate-900 text-[#12388F] hover:bg-[#12388F] hover:text-white hover:border-[#12388F] dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs"
                             >
                               <FileText className="w-3.5 h-3.5" />
                               <span>Detail</span>
@@ -4237,16 +4267,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div
                       key={spk.id}
                       onClick={() => setHistoryDetail(spk)}
-                      className="rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800/60 p-4 transition-colors hover:border-[#12388F]/40 cursor-pointer"
+                      className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800/60 p-4 transition-all hover:border-[#12388F]/40 hover:shadow-md active:scale-[0.995] cursor-pointer before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-gradient-to-b before:from-[#12388F] before:to-[#3B6FD4] before:content-['']"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-xs font-bold text-[#12388F] dark:text-blue-400">
+                        <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-[#12388F] dark:text-blue-400 bg-[#EEF2FF] dark:bg-blue-950/40 border border-[#12388F]/15 dark:border-blue-900/50 px-2.5 py-1 rounded-lg">
+                          <FileText className="w-3.5 h-3.5" />
                           {spk.no_spk}
                         </span>
                         <StatusBadge status={spk.status_spk} size="sm" />
                       </div>
 
-                      <div className="mt-2.5">
+                      <div className="mt-3">
                         <PlateChip plat={spk.no_polisi} />
                       </div>
 
@@ -4254,15 +4285,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         {spk.keluhan_customer}
                       </p>
 
-                      <div className="mt-3 pt-3 border-t border-[#EEF2F7] dark:border-slate-700 grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="block text-[11px] text-[#64748B] dark:text-slate-400 mb-0.5">Tanggal Masuk</span>
-                          <span className="text-[13px] text-[#475569] dark:text-slate-200 font-medium tabular-nums">
+                      <div className="mt-3 pt-3 border-t border-dashed border-[#E2E8F0] dark:border-slate-700 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-[#F8FAFC] dark:bg-slate-900/50 border border-[#EEF2F7] dark:border-slate-700 px-3 py-2">
+                          <span className="block text-[10px] uppercase tracking-[0.08em] font-black text-[#94A3B8] dark:text-slate-500 mb-0.5">Tanggal Masuk</span>
+                          <span className="text-[13px] text-[#334155] dark:text-slate-200 font-bold tabular-nums">
                             {new Date(spk.created_at).toLocaleDateString('id-ID')}
                           </span>
                         </div>
-                        <div className="text-right">
-                          <span className="block text-[11px] text-[#64748B] dark:text-slate-400 mb-0.5">Biaya</span>
+                        <div className="rounded-xl bg-[#F8FAFC] dark:bg-slate-900/50 border border-[#EEF2F7] dark:border-slate-700 px-3 py-2 text-right">
+                          <span className="block text-[10px] uppercase tracking-[0.08em] font-black text-[#94A3B8] dark:text-slate-500 mb-0.5">Biaya</span>
                           <RupiahCell amount={spk.estimasi_biaya} />
                         </div>
                       </div>
@@ -4273,7 +4304,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           e.stopPropagation();
                           setHistoryDetail(spk);
                         }}
-                        className="mt-3 w-full inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-[#EEF2FF] hover:bg-[#12388F] text-[#12388F] hover:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+                        className="mt-3 w-full inline-flex items-center justify-center gap-1.5 h-10 rounded-xl border border-[#12388F]/25 bg-[#EEF2FF] hover:bg-[#12388F] hover:border-[#12388F] text-[#12388F] hover:text-white dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-bold transition-colors cursor-pointer"
                       >
                         <FileText className="w-3.5 h-3.5" />
                         <span>Lihat Detail Service</span>
@@ -4298,12 +4329,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 />
               </>
             ) : historySearch.trim() ? (
-              <div className="py-12 px-4 text-center space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 text-[#12388F] dark:text-blue-400 flex items-center justify-center mx-auto">
-                  <Search className="w-6 h-6" />
+              <div className="py-14 px-6 text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#12388F] to-[#3B6FD4] text-white flex items-center justify-center mx-auto shadow-lg shadow-[#12388F]/25">
+                  <Search className="w-7 h-7" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Riwayat Tidak Ditemukan</h3>
+                  <h3 className="text-sm font-black text-ink">Riwayat Tidak Ditemukan</h3>
                   <p className="text-xs text-ink-muted mt-1">
                     Tidak ada riwayat service yang cocok dengan pencarian{' '}
                     <span className="font-semibold text-ink">"{historySearch}"</span>.
@@ -4312,18 +4343,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <button
                   type="button"
                   onClick={() => setHistorySearch('')}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink hover:bg-[#F8FAFC] dark:hover:bg-surface-raised text-xs font-semibold rounded-lg transition cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-md shadow-[#12388F]/25 transition cursor-pointer"
                 >
                   <X className="w-4 h-4" /> Bersihkan Pencarian
                 </button>
               </div>
             ) : (
-              <div className="py-12 px-4 text-center space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 text-[#12388F] dark:text-blue-400 flex items-center justify-center mx-auto">
-                  <Wrench className="w-6 h-6" />
+              <div className="py-14 px-6 text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#12388F] to-[#3B6FD4] text-white flex items-center justify-center mx-auto shadow-lg shadow-[#12388F]/25">
+                  <Wrench className="w-7 h-7" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-ink">
+                  <h3 className="text-sm font-black text-ink">
                     {historyStatusFilter === 'sedang-diservis'
                       ? 'Tidak Ada Unit Sedang Diservis'
                       : historyStatusFilter === 'selesai'

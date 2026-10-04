@@ -103,9 +103,9 @@ export const StepModal: React.FC<StepModalProps> = ({
           </div>
 
           {/* Modal Header */}
-          <div className="px-6 sm:px-8 py-5 border-b border-border flex items-start justify-between gap-3 shrink-0 bg-surface-raised">
+          <div className="px-6 sm:px-8 py-5 border-b border-border flex items-start justify-between gap-3 shrink-0 bg-gradient-to-r from-[#F8FAFF] via-white to-white dark:from-slate-800/50 dark:via-surface-raised dark:to-surface-raised">
             <div className="min-w-0">
-              <h2 id="step-modal-title" className="text-base sm:text-lg font-bold text-ink leading-snug">
+              <h2 id="step-modal-title" className="text-base sm:text-lg font-black text-ink leading-snug tracking-tight">
                 {title}
               </h2>
               {subtitle && (
@@ -135,10 +135,10 @@ export const StepModal: React.FC<StepModalProps> = ({
                       <div
                         className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${
                           isPassed
-                            ? 'bg-[#16A34A] text-white shadow-2xs'
+                            ? 'bg-gradient-to-br from-[#16A34A] to-[#22C55E] text-white shadow-md'
                             : isCurrent
-                            ? 'bg-[#12388F] text-white shadow-2xs ring-3 ring-[#12388F]/20'
-                            : 'bg-white dark:bg-surface-raised border border-[#CBD5E1] dark:border-border text-[#64748B]'
+                            ? 'bg-gradient-to-br from-[#12388F] to-[#3B6FD4] text-white shadow-lg ring-4 ring-[#12388F]/20'
+                            : 'bg-white dark:bg-surface-raised border-2 border-dashed border-[#CBD5E1] dark:border-border text-[#64748B]'
                         }`}
                       >
                         {isPassed ? <Check className="w-3.5 h-3.5" /> : idx + 1}
@@ -153,8 +153,8 @@ export const StepModal: React.FC<StepModalProps> = ({
                     </div>
                     {idx < steps.length - 1 && (
                       <div
-                        className={`flex-1 h-0.5 min-w-4 mx-2 transition-colors ${
-                          idx < stepIndex ? 'bg-[#16A34A]' : 'bg-[#CBD5E1] dark:bg-border'
+                        className={`flex-1 h-1 min-w-4 mx-2 rounded-full transition-colors ${
+                          idx < stepIndex ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E]' : 'bg-[#CBD5E1] dark:bg-border'
                         }`}
                       />
                     )}
@@ -220,7 +220,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                   type="button"
                   onClick={onSubmit}
                   disabled={!isCurrentValid || isPending}
-                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white font-semibold text-xs shadow-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#12388F] to-[#0D2A6B] hover:from-[#0D2A6B] hover:to-[#0A2154] text-white font-bold text-xs shadow-md shadow-[#12388F]/25 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isPending ? (
                     <>
@@ -236,7 +236,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                   type="button"
                   onClick={onNext}
                   disabled={!isCurrentValid || isPending}
-                  className="px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white font-semibold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#12388F] to-[#0D2A6B] hover:from-[#0D2A6B] hover:to-[#0A2154] text-white font-bold text-xs shadow-md shadow-[#12388F]/25 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>Lanjut</span>
                   <ChevronRight className="w-4 h-4" />
