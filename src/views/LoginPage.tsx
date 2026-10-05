@@ -278,25 +278,23 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    if (!cleanPhone) {
-      setErrorMsg('Nomor HP/WhatsApp wajib diisi.');
-      return;
-    }
+    let normalizedPhone = '';
+    if (cleanPhone) {
+      const digits = cleanPhone.replace(/[^0-9]/g, '');
+      normalizedPhone = digits;
+      if (normalizedPhone.startsWith('62')) {
+        normalizedPhone = '0' + normalizedPhone.substring(2);
+      }
 
-    const digits = cleanPhone.replace(/[^0-9]/g, '');
-    let normalizedPhone = digits;
-    if (normalizedPhone.startsWith('62')) {
-      normalizedPhone = '0' + normalizedPhone.substring(2);
-    }
+      if (!normalizedPhone.startsWith('08')) {
+        setErrorMsg('Nomor HP/WhatsApp tidak valid. Jika diisi, harus diawali dengan 08 atau 628.');
+        return;
+      }
 
-    if (!normalizedPhone.startsWith('08')) {
-      setErrorMsg('Nomor HP/WhatsApp tidak valid. Harus diawali dengan 08 atau 628.');
-      return;
-    }
-
-    if (normalizedPhone.length < 11 || normalizedPhone.length > 13) {
-      setErrorMsg(`Nomor HP/WhatsApp harus terdiri dari 11 sampai 13 digit angka (saat ini ${normalizedPhone.length} digit).`);
-      return;
+      if (normalizedPhone.length < 11 || normalizedPhone.length > 13) {
+        setErrorMsg(`Nomor HP/WhatsApp jika diisi harus minimal 11 sampai 13 digit angka (saat ini ${normalizedPhone.length} digit).`);
+        return;
+      }
     }
 
     const pwd = regForm.password;
@@ -718,8 +716,8 @@ export const LoginPage: React.FC = () => {
                 {/* No. WhatsApp / HP */}
                 <div>
                   <label className={LABEL_CLS} htmlFor="reg_phone">
-                    Nomor WhatsApp / HP <span className="text-status-red">*</span>{' '}
-                    <span className="text-xs font-normal text-ink-subtle">(11 - 13 digit)</span>
+                    Nomor WhatsApp / HP{' '}
+                    <span className="text-xs font-normal text-ink-subtle">(Opsional, 11 - 13 digit)</span>
                   </label>
                   <div className="relative group">
                     <div className={ICON_WRAP_CLS}>
@@ -728,14 +726,13 @@ export const LoginPage: React.FC = () => {
                     <input
                       id="reg_phone"
                       type="tel"
-                      required
                       maxLength={14}
                       value={regForm.no_telepon}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9]/g, '');
                         setRegForm({ ...regForm, no_telepon: val });
                       }}
-                      placeholder="contoh: 081234567890"
+                      placeholder="contoh: 081234567890 (opsional)"
                       className={INPUT_CLS}
                     />
                   </div>
@@ -743,9 +740,9 @@ export const LoginPage: React.FC = () => {
                     <p className={`text-xs mt-1 ${
                       regForm.no_telepon.length >= 11 && regForm.no_telepon.length <= 13 && (regForm.no_telepon.startsWith('08') || regForm.no_telepon.startsWith('628'))
                         ? 'text-status-green'
-                        : 'text-ink-subtle'
+                        : 'text-status-red'
                     }`}>
-                      {regForm.no_telepon.length} digit (harus 11 - 13 digit angka, diawali 08/628)
+                      {regForm.no_telepon.length} digit (jika diisi, harus 11 - 13 digit angka diawali 08/628)
                     </p>
                   )}
                 </div>
