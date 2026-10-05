@@ -330,7 +330,7 @@ export const LoginPage: React.FC = () => {
         password: pwd,
         nama_lengkap: tipeMitra === 'perusahaan' ? cleanPerusahaan : cleanNama,
         nama_perusahaan: tipeMitra === 'perusahaan' ? cleanPerusahaan : cleanNama,
-        nama_pic: cleanNama,
+        nama_pic: tipeMitra === 'perusahaan' ? cleanNama : '-',
         no_telepon: normalizedPhone,
       });
       if (res.success || res.data?.id) {

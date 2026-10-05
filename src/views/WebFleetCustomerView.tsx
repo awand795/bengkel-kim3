@@ -1541,7 +1541,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     mutationFn: () =>
       api.updateProfil({
         nama_lengkap: (profilForm.nama_perusahaan.trim() || authUser?.nama_lengkap || '').trim(),
-        nama_pic: profilForm.nama_pic.trim(),
+        nama_pic: (profilForm.nama_pic.trim() || '-'),
         alamat: profilForm.alamat.trim(),
         npwp: profilForm.npwp.trim(),
         no_telepon: profilForm.no_telepon.trim(),
@@ -4039,14 +4039,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-accent" />
                       <span>Nama PIC:</span>
-                      <span className="text-status-red">*</span>
+                      <span className="text-[10px] font-normal text-ink-muted">(Opsional jika Perorangan)</span>
                     </label>
                     <input
                       type="text"
-                      required
-                      value={profilForm.nama_pic}
+                      value={profilForm.nama_pic === '-' ? '' : profilForm.nama_pic}
                       onChange={(e) => setProfilForm((p) => ({ ...p, nama_pic: e.target.value }))}
-                      placeholder="Contoh: Budi Santoso"
+                      placeholder="Beri tanda - atau kosongkan jika perorangan"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-semibold transition"
                     />
                   </div>
