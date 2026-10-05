@@ -19,15 +19,9 @@ GRANT SELECT ON sch_fleet.v_pos_tbl_member TO postgres;
 GRANT SELECT ON sch_fleet.v_pos_member TO postgres;
 
 -- 4. API Builder Queries Reference (ep-kim3-auth-me & bengkel-auth-login-01)
--- Verification check snippet:
+-- Verification check snippet (Strictly reads member_fleet_id from sch_fleet.v_pos_tbl_member):
 -- EXISTS (
 --   SELECT 1 FROM sch_fleet.v_pos_tbl_member m 
---   WHERE (m.member_fleet_id = u.id)
---      OR (m.member_fleet_id IS NOT NULL 
---          AND (
---            (LENGTH(REGEXP_REPLACE(COALESCE(m.mobilenumber, ''), '[^0-9]', '', 'g')) >= 8
---             AND REGEXP_REPLACE(COALESCE(m.mobilenumber, ''), '[^0-9]', '', 'g') = REGEXP_REPLACE(COALESCE(u.no_telepon, ''), '[^0-9]', '', 'g'))
---            OR LOWER(TRIM(m.membername)) = LOWER(TRIM(u.nama_lengkap))
---          )
---      )
+--   WHERE m.member_fleet_id = u.id
+--     AND COALESCE(m.active, true) = true
 -- ) AS pos_verifikasi
