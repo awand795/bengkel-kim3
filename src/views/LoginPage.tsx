@@ -47,7 +47,10 @@ export const LoginPage: React.FC = () => {
     no_telepon: '',
     email: '',
     password: '',
+    confirm_password: '',
   });
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isEngineStarting, setIsEngineStarting] = useState(false);
@@ -265,22 +268,58 @@ export const LoginPage: React.FC = () => {
       }
     }
 
-    if (!cleanEmail || !regForm.password.trim()) {
-      setErrorMsg('Lengkapi seluruh kolom wajib bertanda bintang (*).');
+    if (!cleanEmail) {
+      setErrorMsg('Alamat email wajib diisi.');
       return;
     }
 
     if (!isValidEmail(cleanEmail)) {
-      setErrorMsg('Format email tidak valid. Masukkan domain lengkap (contoh: nama@perusahaan.com)');
+      setErrorMsg('Format email tidak valid. Masukkan alamat email yang benar (contoh: nama@perusahaan.com)');
       return;
     }
 
-    if (cleanPhone) {
-      const digits = cleanPhone.replace(/[^0-9]/g, '');
-      if (digits.length < 8) {
-        setErrorMsg('Nomor HP/WhatsApp minimal 8 digit angka.');
-        return;
-      }
+    if (!cleanPhone) {
+      setErrorMsg('Nomor HP/WhatsApp wajib diisi.');
+      return;
+    }
+
+    const digits = cleanPhone.replace(/[^0-9]/g, '');
+    let normalizedPhone = digits;
+    if (normalizedPhone.startsWith('62')) {
+      normalizedPhone = '0' + normalizedPhone.substring(2);
+    }
+
+    if (!normalizedPhone.startsWith('08')) {
+      setErrorMsg('Nomor HP/WhatsApp tidak valid. Harus diawali dengan 08 atau 628.');
+      return;
+    }
+
+    if (normalizedPhone.length < 11 || normalizedPhone.length > 13) {
+      setErrorMsg(`Nomor HP/WhatsApp harus terdiri dari 11 sampai 13 digit angka (saat ini ${normalizedPhone.length} digit).`);
+      return;
+    }
+
+    const pwd = regForm.password;
+    const confirmPwd = regForm.confirm_password;
+
+    if (!pwd || !pwd.trim()) {
+      setErrorMsg('Kata sandi wajib diisi.');
+      return;
+    }
+
+    if (pwd.length < 6) {
+      setErrorMsg('Kata sandi minimal harus 6 karakter.');
+      return;
+    }
+
+    if (!confirmPwd || !confirmPwd.trim()) {
+      setErrorMsg('Konfirmasi kata sandi wajib diisi.');
+      return;
+    }
+
+    if (pwd !== confirmPwd) {
+      setErrorMsg('Kata sandi dan konfirmasi kata sandi tidak cocok. Pastikan keduanya sama persis.');
+      return;
     }
 
     setIsLoading(true);
@@ -290,16 +329,16 @@ export const LoginPage: React.FC = () => {
     try {
       const res = await api.register({
         email: cleanEmail,
-        password: regForm.password,
+        password: pwd,
         nama_lengkap: tipeMitra === 'perusahaan' ? cleanPerusahaan : cleanNama,
         nama_perusahaan: tipeMitra === 'perusahaan' ? cleanPerusahaan : cleanNama,
         nama_pic: cleanNama,
-        no_telepon: cleanPhone,
+        no_telepon: normalizedPhone,
       });
       if (res.success || res.data?.id) {
         setSuccessMsg('Pendaftaran mitra berhasil! Tautan verifikasi telah dikirimkan ke ' + cleanEmail + '. Silakan periksa inbox/spam email Anda untuk verifikasi.');
-        setLoginIdentifier(cleanEmail || cleanPhone);
-        setPassword(regForm.password);
+        setLoginIdentifier(cleanEmail || normalizedPhone);
+        setPassword(pwd);
         setTimeout(() => {
           setActiveTab('login');
         }, 2500);
@@ -679,7 +718,8 @@ export const LoginPage: React.FC = () => {
                 {/* No. WhatsApp / HP */}
                 <div>
                   <label className={LABEL_CLS} htmlFor="reg_phone">
-                    Nomor WhatsApp / HP <span className="text-xs font-normal text-ink-subtle">(Opsional)</span>
+                    Nomor WhatsApp / HP <span className="text-status-red">*</span>{' '}
+                    <span className="text-xs font-normal text-ink-subtle">(11 - 13 digit)</span>
                   </label>
                   <div className="relative group">
                     <div className={ICON_WRAP_CLS}>
@@ -688,12 +728,26 @@ export const LoginPage: React.FC = () => {
                     <input
                       id="reg_phone"
                       type="tel"
+                      required
+                      maxLength={14}
                       value={regForm.no_telepon}
-                      onChange={(e) => setRegForm({ ...regForm, no_telepon: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setRegForm({ ...regForm, no_telepon: val });
+                      }}
                       placeholder="contoh: 081234567890"
                       className={INPUT_CLS}
                     />
                   </div>
+                  {regForm.no_telepon && (
+                    <p className={`text-xs mt-1 ${
+                      regForm.no_telepon.length >= 11 && regForm.no_telepon.length <= 13 && (regForm.no_telepon.startsWith('08') || regForm.no_telepon.startsWith('628'))
+                        ? 'text-status-green'
+                        : 'text-ink-subtle'
+                    }`}>
+                      {regForm.no_telepon.length} digit (harus 11 - 13 digit angka, diawali 08/628)
+                    </p>
+                  )}
                 </div>
 
                 {/* Kata Sandi */}
@@ -707,7 +761,7 @@ export const LoginPage: React.FC = () => {
                     </div>
                     <input
                       id="reg_pwd"
-                      type={showPassword ? 'text' : 'password'}
+                      type={showRegPassword ? 'text' : 'password'}
                       required
                       value={regForm.password}
                       onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
@@ -716,12 +770,52 @@ export const LoginPage: React.FC = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowRegPassword(!showRegPassword)}
                       className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-ink-subtle hover:text-ink cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                </div>
+
+                {/* Konfirmasi Kata Sandi */}
+                <div>
+                  <label className={LABEL_CLS} htmlFor="reg_confirm_pwd">
+                    Konfirmasi Kata Sandi <span className="text-status-red">*</span>
+                  </label>
+                  <div className="relative group">
+                    <div className={ICON_WRAP_CLS}>
+                      <ShieldCheck className="w-[18px] h-[18px]" />
+                    </div>
+                    <input
+                      id="reg_confirm_pwd"
+                      type={showRegConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={regForm.confirm_password}
+                      onChange={(e) => setRegForm({ ...regForm, confirm_password: e.target.value })}
+                      placeholder="Ulangi kata sandi Anda"
+                      className={INPUT_PWD_CLS}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-ink-subtle hover:text-ink cursor-pointer"
+                    >
+                      {showRegConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {regForm.confirm_password && regForm.password !== regForm.confirm_password && (
+                    <p className="text-xs text-status-red mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Konfirmasi kata sandi belum sama
+                    </p>
+                  )}
+                  {regForm.confirm_password && regForm.password === regForm.confirm_password && (
+                    <p className="text-xs text-status-green mt-1 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Kata sandi cocok
+                    </p>
+                  )}
                 </div>
 
                 <div className="pt-2">
