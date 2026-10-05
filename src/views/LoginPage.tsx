@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { api, getApiErrorMessage } from '../api/client';
 import { isValidEmail } from '../utils/validation';
@@ -13,7 +13,11 @@ import {
   Mail, 
   Building2, 
   MapPin, 
-  ArrowRight
+  ArrowRight,
+  ArrowLeft,
+  KeyRound,
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from '../components/common/Toast';
 import { LoginBrandPanel } from '../components/login/LoginBrandPanel';
@@ -26,11 +30,10 @@ const ICON_WRAP_CLS = 'absolute inset-y-0 left-0 pl-3.5 flex items-center pointe
 
 export const LoginPage: React.FC = () => {
   const { loginUser } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>(
+  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'forgot'>(
     typeof window !== 'undefined' && window.location.hash === '#register' ? 'register' : 'login'
   );
   const [showPassword, setShowPassword] = useState(false);
-
 
   // Login Form State: bisa berupa Email atau No. HP
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -50,6 +53,125 @@ export const LoginPage: React.FC = () => {
   const [isEngineStarting, setIsEngineStarting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Forgot Password / OTP State
+  const [forgotStep, setForgotStep] = useState<'request_otp' | 'reset_password'>('request_otp');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Timer cooldown pengiriman ulang OTP
+  useEffect(() => {
+    let timer: any;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrorMsg('Masukkan alamat email Anda.');
+      return;
+    }
+    if (!isValidEmail(cleanEmail)) {
+      setErrorMsg('Format email tidak valid. Masukkan alamat email yang benar.');
+      return;
+    }
+
+    setIsForgotLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await api.forgotPassword(cleanEmail);
+      setSuccessMsg(res.message || 'Kode OTP telah dikirim ke email Anda.');
+      setForgotStep('reset_password');
+      setResendCooldown(60);
+    } catch (err: any) {
+      setErrorMsg(getApiErrorMessage(err, 'Gagal mengirim kode OTP. Pastikan email terdaftar.'));
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || isForgotLoading) return;
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    if (!cleanEmail) return;
+
+    setIsForgotLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await api.forgotPassword(cleanEmail);
+      setSuccessMsg(res.message || 'Kode OTP baru telah dikirim ke email Anda.');
+      setResendCooldown(60);
+    } catch (err: any) {
+      setErrorMsg(getApiErrorMessage(err, 'Gagal mengirim ulang kode OTP.'));
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = forgotEmail.trim().toLowerCase();
+    const cleanOtp = forgotOtp.trim();
+
+    if (!cleanOtp) {
+      setErrorMsg('Masukkan 6 digit kode OTP yang diterima melalui email.');
+      return;
+    }
+    if (cleanOtp.length < 4) {
+      setErrorMsg('Kode OTP tidak lengkap.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setErrorMsg('Kata sandi baru minimal harus 6 karakter.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMsg('Konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+
+    setIsForgotLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await api.resetPassword({
+        email: cleanEmail,
+        otp: cleanOtp,
+        password_baru: newPassword,
+      });
+
+      toast.success(res.message || 'Kata sandi berhasil diperbarui! Silakan masuk.');
+      setLoginIdentifier(cleanEmail);
+      setPassword('');
+      setActiveTab('login');
+      setForgotStep('request_otp');
+      setForgotOtp('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setSuccessMsg(res.message || 'Kata sandi berhasil diperbarui! Silakan login dengan kata sandi baru Anda.');
+    } catch (err: any) {
+      setErrorMsg(getApiErrorMessage(err, 'Gagal mereset kata sandi. Pastikan kode OTP benar dan belum kedaluwarsa.'));
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,48 +345,76 @@ export const LoginPage: React.FC = () => {
             <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-accent via-[#2563EB] to-[#F59E0B]" />
             
             {/* Tab Navigasi Masuk / Daftar: Segmented Pill Switcher Modern */}
-            <div className="flex p-1 bg-[#F1F5F9] rounded-lg border border-[#CBD5E1]/70 mb-7">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('login');
-                  setErrorMsg(null);
-                  setSuccessMsg(null);
-                }}
-                className={`flex-1 py-2 text-sm rounded-md transition-all cursor-pointer text-center ${
-                  activeTab === 'login'
-                    ? 'bg-white text-[#12388F] shadow-xs font-bold'
-                    : 'auth-tab-inactive text-[#475569] hover:text-[#12388F] font-semibold'
-                }`}
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('register');
-                  setErrorMsg(null);
-                  setSuccessMsg(null);
-                }}
-                className={`flex-1 py-2 text-sm rounded-md transition-all cursor-pointer text-center ${
-                  activeTab === 'register'
-                    ? 'bg-white text-[#12388F] shadow-xs font-bold'
-                    : 'auth-tab-inactive text-[#475569] hover:text-[#12388F] font-semibold'
-                }`}
-              >
-                Daftar Mitra
-              </button>
-            </div>
+            {activeTab === 'forgot' ? (
+              <div className="flex items-center justify-between p-1 bg-[#F1F5F9] rounded-lg border border-[#CBD5E1]/70 mb-7 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('login');
+                    setErrorMsg(null);
+                    setSuccessMsg(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#12388F] hover:text-[#0c235c] transition-colors cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Kembali ke Halaman Login</span>
+                </button>
+                <span className="text-[11px] font-semibold text-accent px-2 py-0.5 rounded-full bg-accent-subtle border border-accent/20">
+                  Reset Sandi
+                </span>
+              </div>
+            ) : (
+              <div className="flex p-1 bg-[#F1F5F9] rounded-lg border border-[#CBD5E1]/70 mb-7">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('login');
+                    setErrorMsg(null);
+                    setSuccessMsg(null);
+                  }}
+                  className={`flex-1 py-2 text-sm rounded-md transition-all cursor-pointer text-center ${
+                    activeTab === 'login'
+                      ? 'bg-white text-[#12388F] shadow-xs font-bold'
+                      : 'auth-tab-inactive text-[#475569] hover:text-[#12388F] font-semibold'
+                  }`}
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('register');
+                    setErrorMsg(null);
+                    setSuccessMsg(null);
+                  }}
+                  className={`flex-1 py-2 text-sm rounded-md transition-all cursor-pointer text-center ${
+                    activeTab === 'register'
+                      ? 'bg-white text-[#12388F] shadow-xs font-bold'
+                      : 'auth-tab-inactive text-[#475569] hover:text-[#12388F] font-semibold'
+                  }`}
+                >
+                  Daftar Mitra
+                </button>
+              </div>
+            )}
 
             {/* Header Form */}
             <div className="mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
-                {activeTab === 'login' ? 'Login' : 'Pendaftaran Mitra Fleet'}
+                {activeTab === 'login'
+                  ? 'Login'
+                  : activeTab === 'register'
+                  ? 'Pendaftaran Mitra Fleet'
+                  : 'Lupa Kata Sandi'}
               </h2>
               <p className="auth-subtitle text-sm text-[#475569] mt-1 leading-relaxed">
                 {activeTab === 'login' 
                   ? 'Masuk dengan nomor HP atau email akun mitra fleet Anda.' 
-                  : 'Pilih tipe kemitraan dan lengkapi data untuk mendaftar akun.'}
+                  : activeTab === 'register'
+                  ? 'Pilih tipe kemitraan dan lengkapi data untuk mendaftar akun.'
+                  : forgotStep === 'request_otp'
+                  ? 'Masukkan alamat email akun Anda untuk menerima 6 digit kode OTP verifikasi.'
+                  : 'Masukkan kode OTP yang dikirimkan ke email Anda dan tentukan kata sandi baru.'}
               </p>
             </div>
 
@@ -333,7 +483,15 @@ export const LoginPage: React.FC = () => {
                     </label>
                     <button
                       type="button"
-                      onClick={() => toast.info('Untuk reset kata sandi, hubungi Helpdesk Bengkel KIM 3.')}
+                      onClick={() => {
+                        setActiveTab('forgot');
+                        setForgotStep('request_otp');
+                        setErrorMsg(null);
+                        setSuccessMsg(null);
+                        if (loginIdentifier.includes('@')) {
+                          setForgotEmail(loginIdentifier.trim());
+                        }
+                      }}
                       className="text-sm font-semibold text-[#12388F] hover:underline cursor-pointer transition-colors"
                     >
                       Lupa kata sandi?
@@ -586,6 +744,215 @@ export const LoginPage: React.FC = () => {
                   </button>
                 </div>
               </form>
+            )}
+
+            {/* =================================================================== */}
+            {/* FORM LUPA KATA SANDI (FORGOT PASSWORD / OTP)                        */}
+            {/* =================================================================== */}
+            {activeTab === 'forgot' && !isEngineStarting && (
+              <div className="login-form-swap space-y-5">
+                {forgotStep === 'request_otp' ? (
+                  <form onSubmit={handleRequestOtp} className="space-y-4">
+                    <div>
+                      <label className={LABEL_CLS} htmlFor="forgot_email">
+                        Alamat Email Akun <span className="text-status-red">*</span>
+                      </label>
+                      <div className="relative group">
+                        <div className={ICON_WRAP_CLS}>
+                          <Mail className="w-[18px] h-[18px]" />
+                        </div>
+                        <input
+                          id="forgot_email"
+                          type="email"
+                          required
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          placeholder="nama@perusahaan.com"
+                          autoComplete="email"
+                          className={INPUT_CLS}
+                        />
+                      </div>
+                      <p className="text-xs text-ink-muted mt-1.5 leading-relaxed">
+                        Kami akan mengirimkan 6 digit kode OTP verifikasi ke alamat email ini.
+                      </p>
+                    </div>
+
+                    <div className="pt-2 space-y-3">
+                      <button
+                        type="submit"
+                        disabled={Boolean(isForgotLoading)}
+                        className="login-btn relative overflow-hidden w-full py-3 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-[15px] rounded-md hover:-translate-y-px active:translate-y-0 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        {isForgotLoading ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                            <span>Mengirim Kode OTP...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Kirim Kode OTP</span>
+                            <ArrowRight className="w-[18px] h-[18px]" />
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('login');
+                          setErrorMsg(null);
+                          setSuccessMsg(null);
+                        }}
+                        className="w-full py-2.5 px-4 text-xs font-semibold text-[#475569] hover:text-[#12388F] text-center transition-colors cursor-pointer"
+                      >
+                        Batal &amp; Kembali ke Halaman Login
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    {/* Ringkasan info email tujuan */}
+                    <div className="p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-[#64748B] block">Email Tujuan OTP:</span>
+                        <span className="font-semibold text-[#0F172A]">{forgotEmail}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotStep('request_otp');
+                          setErrorMsg(null);
+                          setSuccessMsg(null);
+                        }}
+                        className="text-accent hover:underline font-semibold cursor-pointer text-xs"
+                      >
+                        Ubah Email
+                      </button>
+                    </div>
+
+                    {/* Input OTP */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className={LABEL_CLS} htmlFor="otp_code">
+                          Kode OTP (6 Digit) <span className="text-status-red">*</span>
+                        </label>
+                        <button
+                          type="button"
+                          disabled={resendCooldown > 0 || isForgotLoading}
+                          onClick={handleResendOtp}
+                          className="text-xs font-semibold text-[#12388F] hover:underline disabled:text-gray-400 disabled:no-underline cursor-pointer inline-flex items-center gap-1"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${isForgotLoading ? 'animate-spin' : ''}`} />
+                          {resendCooldown > 0 ? `Kirim Ulang (${resendCooldown}s)` : 'Kirim Ulang OTP'}
+                        </button>
+                      </div>
+                      <div className="relative group">
+                        <div className={ICON_WRAP_CLS}>
+                          <KeyRound className="w-[18px] h-[18px]" />
+                        </div>
+                        <input
+                          id="otp_code"
+                          type="text"
+                          maxLength={6}
+                          required
+                          value={forgotOtp}
+                          onChange={(e) => setForgotOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="123456"
+                          className={`${INPUT_CLS} font-mono tracking-widest text-lg font-bold text-center`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Kata Sandi Baru */}
+                    <div>
+                      <label className={LABEL_CLS} htmlFor="new_password">
+                        Kata Sandi Baru <span className="text-status-red">*</span>
+                      </label>
+                      <div className="relative group">
+                        <div className={ICON_WRAP_CLS}>
+                          <Lock className="w-[18px] h-[18px]" />
+                        </div>
+                        <input
+                          id="new_password"
+                          type={showNewPassword ? 'text' : 'password'}
+                          required
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Minimal 6 karakter"
+                          className={INPUT_PWD_CLS}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-ink-subtle hover:text-ink cursor-pointer"
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Konfirmasi Kata Sandi Baru */}
+                    <div>
+                      <label className={LABEL_CLS} htmlFor="confirm_password">
+                        Konfirmasi Kata Sandi Baru <span className="text-status-red">*</span>
+                      </label>
+                      <div className="relative group">
+                        <div className={ICON_WRAP_CLS}>
+                          <ShieldCheck className="w-[18px] h-[18px]" />
+                        </div>
+                        <input
+                          id="confirm_password"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          required
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Ketik ulang kata sandi baru"
+                          className={INPUT_PWD_CLS}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-ink-subtle hover:text-ink cursor-pointer"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 space-y-3">
+                      <button
+                        type="submit"
+                        disabled={Boolean(isForgotLoading)}
+                        className="login-btn relative overflow-hidden w-full py-3 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-[15px] rounded-md hover:-translate-y-px active:translate-y-0 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        {isForgotLoading ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                            <span>Menyimpan Kata Sandi...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Simpan Kata Sandi Baru</span>
+                            <ArrowRight className="w-[18px] h-[18px]" />
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('login');
+                          setErrorMsg(null);
+                          setSuccessMsg(null);
+                        }}
+                        className="w-full py-2.5 px-4 text-xs font-semibold text-[#475569] hover:text-[#12388F] text-center transition-colors cursor-pointer"
+                      >
+                        Batal &amp; Kembali ke Halaman Login
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             )}
 
           </div>

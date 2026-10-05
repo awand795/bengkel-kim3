@@ -432,6 +432,34 @@ export const api = {
     return res.data;
   },
 
+  forgotPassword: async (email: string): Promise<{ success: boolean; message: string; email?: string }> => {
+    const res = await apiClient.post<{ success: boolean; message: string; email?: string }>(
+      '/kim3/auth/forgot-password',
+      { email }
+    );
+    return res.data;
+  },
+
+  verifyOtp: async (email: string, otp: string): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<{ success: boolean; message: string }>(
+      '/kim3/auth/verify-otp',
+      { email, otp }
+    );
+    return res.data;
+  },
+
+  resetPassword: async (data: {
+    email: string;
+    otp: string;
+    password_baru: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<{ success: boolean; message: string }>(
+      '/kim3/auth/reset-password',
+      data
+    );
+    return res.data;
+  },
+
   refreshToken: async (token?: string): Promise<LoginResponse> => {
     const rToken = token || localStorage.getItem('bengkel_refresh_token');
     const res = await apiClient.post<LoginResponse>('/kim3/auth/refresh-token', { refresh_token: rToken });
