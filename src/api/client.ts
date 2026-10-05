@@ -550,8 +550,23 @@ export const api = {
   },
 
   // Profil Perusahaan & Akun
-  updateProfil: async (data: { nama_lengkap: string; nama_pic?: string; nama_perusahaan?: string; alamat?: string; npwp?: string; no_telepon?: string; foto_profil?: string }): Promise<any> => {
-    const res = await apiClient.post('/kim3/profil-simpan', data);
+  updateProfil: async (data: {
+    nama_lengkap: string;
+    nama_pic?: string;
+    nama_perusahaan?: string;
+    alamat?: string;
+    npwp?: string;
+    no_telepon?: string;
+    foto_profil?: string;
+    hapus_foto?: boolean | string;
+  }): Promise<any> => {
+    const payload: any = { ...data };
+    if (data.hapus_foto !== undefined) {
+      payload.hapus_foto = String(data.hapus_foto);
+    } else if ('foto_profil' in data && (data.foto_profil === '' || data.foto_profil === null)) {
+      payload.hapus_foto = 'true';
+    }
+    const res = await apiClient.post('/kim3/profil-simpan', payload);
     return res.data;
   },
 
