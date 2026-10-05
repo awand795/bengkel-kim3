@@ -194,39 +194,35 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
     <div className="space-y-6">
           
             {/* Active Card */}
-            <div className="card-modern bg-surface-raised rounded-3xl border border-border p-5 sm:p-6 shadow-xs space-y-5 overflow-hidden">
-              <div className="relative overflow-hidden -mx-5 sm:-mx-6 -mt-5 sm:-mt-6 rounded-t-3xl bg-gradient-to-br from-[#0B1F4D] via-[#12388F] to-[#3B6FD4] text-white p-5 sm:p-6">
-                <div className="pointer-events-none absolute -right-14 -top-16 h-48 w-48 rounded-full bg-white/12 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-20 -left-10 h-44 w-44 rounded-full bg-[#60A5FA]/25 blur-3xl" />
-                <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/25 backdrop-blur-sm flex items-center justify-center shrink-0">
+            <div className="card-modern bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-accent-subtle text-accent flex items-center justify-center font-black border border-accent/20 shrink-0">
                     <Truck className="w-6 h-6" />
                   </div>
-                  <div className="min-w-0">
+                  <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-lg font-black font-mono text-white tracking-wide">{formatPlat(spk.no_polisi)}</h2>
+                      <h2 className="text-lg font-black font-mono text-ink tracking-wide">{formatPlat(spk.no_polisi)}</h2>
                       <StatusBadge status={spk.status_spk} size="sm" />
                     </div>
-                    <p className="text-xs text-white/75 font-medium">{spk.nama_customer || '-'} • <span className="font-mono text-white">{spk.no_spk}</span></p>
+                    <p className="text-xs text-ink-muted font-medium">{spk.nama_customer || '-'} • <span className="font-mono text-ink">{spk.no_spk}</span></p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 text-xs font-semibold">
-                  <div className="rounded-xl bg-white/10 border border-white/20 px-3 py-2 backdrop-blur-sm min-w-[120px]">
-                    <span className="text-white/70 block text-[10px] uppercase tracking-[0.1em] font-bold">Layanan</span>
-                    <span className="text-white font-bold">{spk.jenis_layanan || 'Service Kendaraan'}</span>
+                <div className="flex flex-wrap gap-4 text-xs font-semibold">
+                  <div>
+                    <span className="text-ink-subtle block text-xs">Layanan:</span>
+                    <span className="text-ink font-bold">{spk.jenis_layanan || 'Service Kendaraan'}</span>
                   </div>
-                  <div className="rounded-xl bg-white/10 border border-white/20 px-3 py-2 backdrop-blur-sm min-w-[120px]">
-                    <span className="text-white/70 block text-[10px] uppercase tracking-[0.1em] font-bold">Waktu Check In</span>
-                    <span className="text-white tabular-nums">{spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
+                  <div>
+                    <span className="text-ink-subtle block text-xs">Waktu Check In:</span>
+                    <span className="text-ink">{spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
                   </div>
-                  <div className="rounded-xl bg-white/10 border border-white/20 px-3 py-2 backdrop-blur-sm min-w-[120px]">
-                    <span className="text-white/70 block text-[10px] uppercase tracking-[0.1em] font-bold">Estimasi Selesai (ETA)</span>
-                    <span className="text-emerald-300 font-bold font-mono">{(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}</span>
-                    <span className="text-white/60 block text-[10px]">{labelSumberEta(etaSpk(spk).sumber)}</span>
+                  <div>
+                    <span className="text-ink-subtle block text-xs">Estimasi Selesai (ETA):</span>
+                    <span className="text-accent font-bold font-mono">{(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}</span>
+                    <span className="text-ink-subtle block text-[10px]">{labelSumberEta(etaSpk(spk).sumber)}</span>
                   </div>
-                </div>
                 </div>
               </div>
 
