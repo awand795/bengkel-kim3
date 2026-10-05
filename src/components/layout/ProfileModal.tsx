@@ -47,8 +47,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     try {
       await api.updateProfil({
         nama_lengkap: nama.trim(),
+        nama_pic: authUser?.nama_pic || undefined,
+        nama_perusahaan: authUser?.nama_perusahaan || undefined,
+        alamat: authUser?.alamat || undefined,
+        npwp: authUser?.npwp || undefined,
         no_telepon: telepon.trim(),
-        foto_profil: foto || '',
+        foto_profil: foto ?? '',
       });
       await refreshProfil();
       toast.success('Profil Disimpan', 'Data profil & foto Anda telah diperbarui.');

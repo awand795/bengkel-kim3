@@ -1545,7 +1545,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         alamat: profilForm.alamat.trim(),
         npwp: profilForm.npwp.trim(),
         no_telepon: profilForm.no_telepon.trim(),
-        foto_profil: profilForm.foto_profil || authUser?.foto_profil || '',
+        foto_profil: profilForm.foto_profil ?? '',
       }),
     onSuccess: async () => {
       const me = await api.getMe();
