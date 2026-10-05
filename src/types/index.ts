@@ -149,6 +149,8 @@ export interface BookingService {
   keterangan?: string;
   status: 'Booked' | 'Check In' | 'Dibatalkan';
   prioritas: 'Normal' | 'Prioritas Booking';
+  pos_headerid?: string;
+  pos_queuenumber?: string;
   created_at: string;
 }
 
