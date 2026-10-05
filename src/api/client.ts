@@ -175,7 +175,7 @@ export const formatPlat = (nopol?: string | null): string => {
   return String(nopol).trim();
 };
 
-export const getApiErrorMessage = (err: any, fallback = 'Terjadi kesalahan.'): string => {
+export const getApiErrorMessage = (err: any, fallback = 'Terjadi kesalahan pada sistem.'): string => {
   const data = err?.response?.data;
   let rawMsg = '';
   if (data) {
@@ -191,11 +191,54 @@ export const getApiErrorMessage = (err: any, fallback = 'Terjadi kesalahan.'): s
   }
   if (!rawMsg) return fallback;
 
-  if (rawMsg.includes('pengguna_email_key') || (rawMsg.includes('duplicate key') && rawMsg.includes('email'))) {
-    return 'Pendaftaran gagal. Email ini sudah terdaftar di sistem.';
+  const lower = rawMsg.toLowerCase();
+
+  // Deteksi jika pesan mengandung query SQL, nama tabel/kolom, atau Java database exception
+  const isSqlOrTechnicalError =
+    lower.includes('bad sql grammar') ||
+    lower.includes('preparedstatementcallback') ||
+    lower.includes('psqlexception') ||
+    lower.includes('sqlexception') ||
+    lower.includes('org.postgresql') ||
+    lower.includes('org.springframework') ||
+    lower.includes('syntax error') ||
+    lower.includes('update ') ||
+    lower.includes('insert into') ||
+    lower.includes('select ') ||
+    lower.includes('delete from') ||
+    lower.includes('gen_salt') ||
+    lower.includes('crypt(') ||
+    lower.includes('relation ') ||
+    lower.includes('column ') ||
+    lower.includes('broken pipe') ||
+    lower.includes('hikari') ||
+    lower.includes('connection refused') ||
+    lower.includes('internal server error') ||
+    lower.includes('fatal:') ||
+    rawMsg.includes('[UPDATE') ||
+    rawMsg.includes('[SELECT') ||
+    rawMsg.includes('[INSERT') ||
+    rawMsg.includes('[DELETE');
+
+  if (isSqlOrTechnicalError) {
+    if (lower.includes('otp') || lower.includes('password') || lower.includes('sandi')) {
+      return 'Terjadi kendala teknis saat memproses pengaturan kata sandi. Silakan coba kembali beberapa saat lagi.';
+    }
+    return fallback || 'Terjadi kendala pada sistem. Silakan coba kembali beberapa saat lagi.';
   }
-  if (rawMsg.includes('check_email_format')) {
-    return 'Format email tidak valid. Pastikan penulisan email sudah benar.';
+
+  // Pemetaan pesan database spesifik yang sering muncul menjadi bahasa yang mudah dipahami
+  if (lower.includes('pengguna_email_key') || (lower.includes('duplicate key') && lower.includes('email'))) {
+    return 'Pendaftaran gagal. Alamat email ini sudah terdaftar di sistem.';
+  }
+  if (lower.includes('check_email_format')) {
+    return 'Format email tidak valid. Pastikan penulisan alamat email sudah benar.';
+  }
+  if (lower.includes('tidak terdaftar') || lower.includes('tidak ditemukan')) {
+    return 'Alamat email tidak terdaftar dalam sistem.';
+  }
+  if (lower.includes('otp') && (lower.includes('tidak valid') || lower.includes('kedaluwarsa') || lower.includes('kadaluarsa'))) {
+    return 'Kode OTP tidak valid atau telah kedaluwarsa. Silakan ajukan kode baru.';
   }
 
   return rawMsg;
