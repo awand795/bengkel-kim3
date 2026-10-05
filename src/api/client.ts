@@ -175,6 +175,32 @@ export const formatPlat = (nopol?: string | null): string => {
   return String(nopol).trim();
 };
 
+export const cleanField = (val?: any): string => {
+  if (val === null || val === undefined) return '';
+  const s = String(val).trim();
+  if (s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') return '';
+  return s;
+};
+
+export const formatMerkModel = (merk?: string | null, model?: string | null, fallback?: string): string => {
+  const m = cleanField(merk);
+  const mdl = cleanField(model);
+  const combined = [m, mdl].filter(Boolean).join(' ');
+  return combined || (fallback ? cleanField(fallback) : '');
+};
+
+export const formatNamaArmada = (k: { unit_name?: string | null; merk?: string | null; model?: string | null; jenis_armada?: string | null; type?: string | null }): string => {
+  const unit = cleanField(k.unit_name);
+  const modelMerk = formatMerkModel(k.merk, k.model);
+  const type = cleanField(k.type || k.jenis_armada);
+
+  if (unit && modelMerk) return `${unit} — ${modelMerk}`;
+  if (unit) return unit;
+  if (modelMerk) return modelMerk;
+  if (type) return type;
+  return 'Armada Kendaraan';
+};
+
 export const getApiErrorMessage = (err: any, fallback = 'Terjadi kesalahan pada sistem.'): string => {
   const data = err?.response?.data;
   let rawMsg = '';

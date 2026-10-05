@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, normalizePlat, formatPlat, getApiErrorMessage } from '../api/client';
+import { api, normalizePlat, formatPlat, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
@@ -2178,8 +2178,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         unit_name: data.unit_name || undefined,
         jenis_armada: data.jenis_armada as any,
         type: data.type || data.jenis_armada || undefined,
-        merk: data.merk,
-        model: data.model,
+        merk: cleanField(data.merk) || undefined,
+        model: cleanField(data.model) || undefined,
         tahun: Number(data.tahun) || new Date().getFullYear(),
         nama_pemilik: data.nama_pemilik || authUser?.nama_perusahaan || authUser?.nama_lengkap || 'Customer Fleet',
         no_rangka: data.no_rangka || undefined,
@@ -2259,8 +2259,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         unit_name: data.unit_name || undefined,
         jenis_armada: data.jenis_armada as any,
         type: data.type || data.jenis_armada || undefined,
-        merk: data.merk,
-        model: data.model,
+        merk: cleanField(data.merk) || undefined,
+        model: cleanField(data.model) || undefined,
         tahun: Number(data.tahun) || undefined,
         no_rangka: data.no_rangka || undefined,
         no_mesin: data.no_mesin || undefined,
@@ -2745,7 +2745,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                         setPreviewImage({
                                           url: k.foto_kendaraan!,
                                           title: formatPlat(k.no_polisi),
-                                          subtitle: `${k.merk} ${k.model} (${k.tahun})`,
+                                          subtitle: `${formatMerkModel(k.merk, k.model, k.unit_name || k.jenis_armada || 'Truk')}${cleanField(k.tahun) ? ` (${cleanField(k.tahun)})` : ''}`,
                                         });
                                       }}
                                       className="w-12 h-12 rounded-xl object-cover border border-border shrink-0 cursor-pointer hover:scale-105 transition-transform shadow-2xs"
@@ -2761,10 +2761,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                       <PlateChip plat={k.no_polisi} />
                                     </div>
                                     <div className="text-xs font-bold text-ink truncate">
-                                      {k.merk} {k.model} {k.tahun ? `(${k.tahun})` : ''}
+                                      {formatMerkModel(k.merk, k.model, k.unit_name || k.jenis_armada || 'Truk')} {cleanField(k.tahun) ? `(${cleanField(k.tahun)})` : ''}
                                     </div>
                                     <div className="text-[11px] text-ink-muted truncate font-medium">
-                                      {k.jenis_armada || 'Truk'}
+                                      {cleanField(k.type) || cleanField(k.jenis_armada) || 'Truk'}
                                     </div>
                                   </div>
                                 </div>
@@ -3299,7 +3299,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             setPreviewImage({
                               url: k.foto_kendaraan!,
                               title: formatPlat(k.no_polisi),
-                              subtitle: `${k.merk} ${k.model} • ${k.jenis_armada || 'Truk'} (${k.tahun || '-'})`,
+                              subtitle: `${formatNamaArmada(k)} • ${cleanField(k.jenis_armada) || cleanField(k.type) || 'Truk'}${cleanField(k.tahun) ? ` (${cleanField(k.tahun)})` : ''}`,
                             })
                           }
                           title="Klik untuk memperbesar foto unit"
@@ -3363,10 +3363,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           )}
                         </div>
                         <h3 className="text-sm font-bold text-[#0F172A] dark:text-white truncate">
-                          {k.unit_name ? `${k.unit_name} — ${k.merk} ${k.model}` : `${k.merk} ${k.model}`}
+                          {formatNamaArmada(k)}
                         </h3>
                         <p className="text-[11px] text-[#64748B] dark:text-slate-400">
-                          {k.type || k.jenis_armada || 'Truk'} • Pemilik: {k.nama_pemilik || currentUser || 'Perusahaan'}
+                          {cleanField(k.type) || cleanField(k.jenis_armada) || 'Truk'} • Pemilik: {cleanField(k.nama_pemilik) || cleanField(currentUser) || 'Perusahaan'}
                         </p>
                       </div>
                     </div>
@@ -3375,22 +3375,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 py-3 xl:py-0 border-y xl:border-y-0 xl:border-l xl:border-r border-[#F1F5F9] dark:border-slate-800 xl:px-6 flex-1 min-w-0">
                       <div>
                         <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Tipe / Varian:</span>
-                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.type || k.jenis_armada || 'Truk'}</span>
+                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{cleanField(k.type) || cleanField(k.jenis_armada) || '-'}</span>
                       </div>
                       <div>
                         <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">Tahun:</span>
-                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{k.tahun || k.year || '-'}</span>
+                        <span className="text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block">{cleanField(k.tahun) || cleanField(k.year) || '-'}</span>
                       </div>
                       <div>
                         <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">No. Rangka:</span>
-                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={k.no_rangka || k.chassisno || '-'}>
-                          {k.no_rangka || k.chassisno || '-'}
+                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={cleanField(k.no_rangka) || cleanField(k.chassisno) || '-'}>
+                          {cleanField(k.no_rangka) || cleanField(k.chassisno) || '-'}
                         </span>
                       </div>
                       <div>
                         <span className="block text-[11px] font-medium text-[#64748B] dark:text-slate-400 mb-0.5">No. Mesin:</span>
-                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={k.no_mesin || k.machineno || '-'}>
-                          {k.no_mesin || k.machineno || '-'}
+                        <span className="font-mono text-xs font-semibold text-[#0F172A] dark:text-slate-200 truncate block" title={cleanField(k.no_mesin) || cleanField(k.machineno) || '-'}>
+                          {cleanField(k.no_mesin) || cleanField(k.machineno) || '-'}
                         </span>
                       </div>
                       <div className="col-span-2 sm:col-span-1">
@@ -3588,7 +3588,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <option value="">Semua Kendaraan</option>
                 {myKendaraanList.map((k) => (
                   <option key={k.id} value={k.no_polisi}>
-                    {formatPlat(k.no_polisi)} — {k.merk} {k.model}
+                    {formatPlat(k.no_polisi)} — {formatNamaArmada(k)}
                   </option>
                 ))}
               </select>
@@ -4686,7 +4686,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <option value="">-- Pilih Nomor Polisi --</option>
                   {myKendaraanList.map((k) => (
                     <option key={k.id} value={k.no_polisi}>
-                      {formatPlat(k.no_polisi)} — {k.merk} {k.model}
+                      {formatPlat(k.no_polisi)} — {formatNamaArmada(k)}
                     </option>
                   ))}
                 </select>
@@ -4985,7 +4985,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {hapusArmadaTarget && (
         <ConfirmModal
           title="Hapus Unit Kendaraan?"
-          message={`Unit ${formatPlat(hapusArmadaTarget.no_polisi)} (${hapusArmadaTarget.merk || '-'} ${hapusArmadaTarget.model || '-'}) akan dihapus permanen dari daftar kendaraan Anda. Riwayat service & faktur tetap tersimpan.`}
+          message={`Unit ${formatPlat(hapusArmadaTarget.no_polisi)} (${formatNamaArmada(hapusArmadaTarget)}) akan dihapus permanen dari daftar kendaraan Anda. Riwayat service & faktur tetap tersimpan.`}
           confirmLabel="Ya, Hapus"
           tone="red"
           isPending={hapusArmadaMutation.isPending}
