@@ -716,8 +716,7 @@ export const LoginPage: React.FC = () => {
                 {/* No. WhatsApp / HP */}
                 <div>
                   <label className={LABEL_CLS} htmlFor="reg_phone">
-                    Nomor WhatsApp / HP{' '}
-                    <span className="text-xs font-normal text-ink-subtle">(Opsional, 11 - 13 digit)</span>
+                    Nomor WhatsApp / HP
                   </label>
                   <div className="relative group">
                     <div className={ICON_WRAP_CLS}>
@@ -732,19 +731,10 @@ export const LoginPage: React.FC = () => {
                         const val = e.target.value.replace(/[^0-9]/g, '');
                         setRegForm({ ...regForm, no_telepon: val });
                       }}
-                      placeholder="contoh: 081234567890 (opsional)"
+                      placeholder="contoh: 081234567890"
                       className={INPUT_CLS}
                     />
                   </div>
-                  {regForm.no_telepon && (
-                    <p className={`text-xs mt-1 ${
-                      regForm.no_telepon.length >= 11 && regForm.no_telepon.length <= 13 && (regForm.no_telepon.startsWith('08') || regForm.no_telepon.startsWith('628'))
-                        ? 'text-status-green'
-                        : 'text-status-red'
-                    }`}>
-                      {regForm.no_telepon.length} digit (jika diisi, harus 11 - 13 digit angka diawali 08/628)
-                    </p>
-                  )}
                 </div>
 
                 {/* Kata Sandi */}
