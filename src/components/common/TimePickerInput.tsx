@@ -11,23 +11,15 @@ interface TimePickerInputProps {
   selectedDate?: string; // YYYY-MM-DD
 }
 
-// Quick workshop recommendation slots (24 jam)
-const PRESET_SLOTS = [
-  { time: '08:30', label: '08:30 Pagi' },
-  { time: '10:30', label: '10:30 Siang' },
-  { time: '13:30', label: '13:30 Siang' },
-  { time: '15:30', label: '15:30 Sore' },
-];
-
 /**
  * TimePickerInput — ketik bebas (JJ:MM), validasi saat commit.
  * Mengetik tidak pernah diblokir; format & jam lampau dicek
- * saat blur / Enter / chip preset.
+ * saat blur / Enter.
  */
 export const TimePickerInput: React.FC<TimePickerInputProps> = ({
   value,
   onChange,
-  label = 'Pilih Jam Kedatangan (Slot)',
+  label = 'Pilih Jam Kedatangan',
   required = false,
   className = '',
   selectedDate,
@@ -120,15 +112,6 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
     onChange(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
   };
 
-  // Filter preset recommendation slots that are still valid
-  const availablePresetSlots = useMemo(() => {
-    if (!isToday) return PRESET_SLOTS;
-    return PRESET_SLOTS.filter((s) => {
-      const [sh, sm] = s.time.split(':').map(Number);
-      return sh > currentHour24 || (sh === currentHour24 && sm > currentMinutes);
-    });
-  }, [isToday, currentHour24, currentMinutes]);
-
   return (
     <div className={`${className}`}>
       {label && (
@@ -161,30 +144,6 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold text-ink-subtle px-1.5 py-0.5 rounded bg-surface border border-border pointer-events-none">
           WIB
         </span>
-      </div>
-
-      {/* Quick recommendation chips */}
-      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] text-ink-subtle font-semibold">Slot:</span>
-        {availablePresetSlots.length > 0 ? (
-          availablePresetSlots.map((slot) => (
-            <button
-              key={slot.time}
-              type="button"
-              onClick={() => onChange(slot.time)}
-              title={slot.label}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
-                value === slot.time
-                  ? 'bg-[#12388F] text-white shadow-2xs'
-                  : 'bg-white dark:bg-surface-raised text-[#334155] dark:text-slate-200 hover:bg-[#EEF2FF] hover:text-[#12388F] border border-[#CBD5E1] dark:border-border'
-              }`}
-            >
-              {slot.time}
-            </button>
-          ))
-        ) : (
-          <span className="text-[10px] text-status-amber italic">Slot reguler hari ini telah lewat</span>
-        )}
       </div>
     </div>
   );

@@ -3155,7 +3155,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </div>
                         <div>
                           <TimePickerInput
-                            label="Pilih Jam Kedatangan (Slot)"
+                            label="Pilih Jam Kedatangan"
                             required
                             selectedDate={bookingForm.tanggal_booking}
                             value={bookingForm.jam_booking}
