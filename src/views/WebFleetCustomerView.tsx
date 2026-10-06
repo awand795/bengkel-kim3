@@ -1497,7 +1497,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           id: m.id,
           title: m.jenis_layanan,
           tag: m.kategori || visual.tag,
-          description: m.deskripsi,
+          description: cleanField(m.deskripsi) || cleanField((m as any).description) || '',
           estimasi_durasi: m.estimasi_durasi,
           icon: visual.icon,
           badgeColor: visual.badgeColor,
@@ -2888,12 +2888,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                   >
                                     {srv.tag}
                                   </span>
-                                  {srv.estimasi_durasi && (
-                                    <span className="text-[10px] text-ink-muted flex items-center gap-1 font-medium bg-surface px-1.5 py-0.5 rounded border border-border">
-                                      <Clock className="w-3 h-3 text-ink-muted" />
-                                      <span>{srv.estimasi_durasi}</span>
-                                    </span>
-                                  )}
                                 </div>
                                 <div
                                   className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
@@ -2908,9 +2902,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                               <div className="w-full">
                                 <h4 className="text-xs font-bold text-ink leading-snug">{srv.title}</h4>
-                                <p className="text-[11px] text-ink-muted mt-1 leading-relaxed line-clamp-2">
-                                  {srv.description}
-                                </p>
+                                {cleanField(srv.description) && (
+                                  <p className="text-[11px] text-ink-muted mt-1 leading-relaxed line-clamp-2">
+                                    {cleanField(srv.description)}
+                                  </p>
+                                )}
                               </div>
                             </button>
                           );
