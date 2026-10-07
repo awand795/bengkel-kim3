@@ -3274,39 +3274,67 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   id: 'konfirmasi',
                   label: 'Konfirmasi',
                   content: (
-                    <div className="space-y-4">
-                      <div className="rounded-2xl border border-border bg-surface overflow-hidden text-xs shadow-xs">
-                        <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 bg-gradient-to-r from-[#0B1F4D] via-[#12388F] to-[#3B6FD4] text-white">
-                          <span className="font-black text-sm flex items-center gap-2">
-                            <ClipboardCheck className="w-4 h-4" />
-                            Ringkasan Pemesanan Booking Service
+                    <div className="overflow-hidden rounded-xl border border-[#DDE1E5] bg-white text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8EAED] px-4 py-3.5 dark:border-slate-700 sm:px-5">
+                        <div>
+                          <h3 className="text-[15px] font-bold tracking-tight text-[#252A31] dark:text-slate-100">
+                            Ringkasan booking
+                          </h3>
+                          <p className="mt-0.5 text-xs text-[#737B84] dark:text-slate-400">
+                            Pastikan kendaraan dan jadwal sudah benar.
+                          </p>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#48724B] dark:text-emerald-300">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EAF3E9] dark:bg-emerald-950">
+                            <Check className="h-3 w-3" />
                           </span>
-                          <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/25 text-[10px] font-black uppercase tracking-[0.1em]">
-                            Siap Konfirmasi
+                          Siap dikonfirmasi
+                        </span>
+                      </div>
+
+                      <div className="grid divide-y divide-[#E8EAED] dark:divide-slate-700 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                        <div className="min-w-0 px-4 py-3.5 sm:px-5">
+                          <span className="mb-2 block text-xs font-medium text-[#626B75] dark:text-slate-400">
+                            Kendaraan
+                          </span>
+                          <span className="inline-flex max-w-full items-center rounded-md border-2 border-[#424A53] bg-white px-2.5 py-1 font-mono text-base font-bold tracking-[0.08em] text-[#252A31] shadow-[0_1px_0_#C5CBD2] dark:border-slate-400 dark:bg-slate-800 dark:text-slate-100">
+                            <span className="truncate">{formatPlat(bookingForm.no_polisi)}</span>
                           </span>
                         </div>
-                        <div className="p-4 sm:p-5 space-y-2.5">
-                          <div className="flex items-center justify-between gap-3 bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
-                            <span className="text-ink-muted font-semibold">Kendaraan:</span>
-                            <span className="font-mono font-black text-ink text-sm bg-surface-raised dark:bg-surface px-2.5 py-0.5 rounded-lg border border-border">
-                              {formatPlat(bookingForm.no_polisi)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3 bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
-                            <span className="text-ink-muted font-semibold">Jenis Layanan:</span>
-                            <span className="font-bold text-ink text-right">{bookingForm.jenis_layanan}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3 bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
-                            <span className="text-ink-muted font-semibold">Jadwal Masuk:</span>
-                            <span className="font-mono font-bold text-accent tabular-nums">{bookingForm.tanggal_booking} • Pukul {bookingForm.jam_booking} WIB</span>
-                          </div>
-                          <div className="pt-1.5 text-ink-muted">
-                            <span className="font-bold text-ink block mb-1">Catatan Keluhan:</span>
-                            <p className="text-ink font-medium leading-relaxed bg-surface-raised p-3 rounded-xl border border-dashed border-border">
-                              {bookingForm.keluhan || 'Tidak ada catatan keluhan khusus.'}
-                            </p>
-                          </div>
+
+                        <div className="min-w-0 px-4 py-3.5 sm:px-5">
+                          <span className="mb-1.5 block text-xs font-medium text-[#626B75] dark:text-slate-400">
+                            Jenis layanan
+                          </span>
+                          <span className="block font-semibold leading-snug text-[#30363C] dark:text-slate-100">
+                            {bookingForm.jenis_layanan}
+                          </span>
                         </div>
+
+                        <div className="min-w-0 px-4 py-3.5 sm:px-5">
+                          <span className="mb-1.5 block text-xs font-medium text-[#626B75] dark:text-slate-400">
+                            Jadwal masuk
+                          </span>
+                          <span className="block font-semibold leading-snug tabular-nums text-[#30363C] dark:text-slate-100">
+                            {new Date(`${bookingForm.tanggal_booking}T12:00:00`).toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            })}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-[#626B75] dark:text-slate-400">
+                            Pukul {bookingForm.jam_booking} WIB
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-[#E8EAED] bg-[#F8F9FA] px-4 py-3 dark:border-slate-700 dark:bg-slate-800/50 sm:px-5">
+                        <span className="mb-1 block text-xs font-medium text-[#626B75] dark:text-slate-400">
+                          Catatan keluhan
+                        </span>
+                        <p className="leading-relaxed text-[#454C53] dark:text-slate-300">
+                          {bookingForm.keluhan || 'Tidak ada catatan keluhan khusus.'}
+                        </p>
                       </div>
                     </div>
                   ),
