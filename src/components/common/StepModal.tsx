@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { X, Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { ModalPortal } from './ModalPortal';
+import { ModalActionButton } from './ModalActionButton';
 
 export interface StepItem {
   id: string;
@@ -196,14 +197,14 @@ export const StepModal: React.FC<StepModalProps> = ({
           </div>
 
           {/* Modal Footer Sticky */}
-          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-white px-4 py-3 sm:px-6 dark:bg-surface-raised">
-            <div className="min-w-0">
+          <div className="grid shrink-0 grid-cols-2 items-center gap-2 border-t border-border bg-white px-4 py-3 sm:flex sm:justify-between sm:gap-3 sm:px-6 dark:bg-surface-raised">
+            <div className="col-span-2 min-w-0 sm:col-span-1">
               {!isFirstStep && (
                 <button
                   type="button"
                   onClick={onBack}
                   disabled={isPending}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-ink-muted shadow-sm transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-surface-raised"
+                  className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-ink-muted shadow-sm transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-surface-raised"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Kembali</span>
@@ -216,22 +217,22 @@ export const StepModal: React.FC<StepModalProps> = ({
               )}
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
+            <div className="col-span-2 flex w-full shrink-0 items-stretch gap-2 sm:w-auto">
+              <ModalActionButton
+                variant="cancel"
+                width="group"
                 onClick={onClose}
                 disabled={isPending}
-                className="cursor-pointer rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-ink-muted shadow-sm transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-surface-raised"
               >
                 Batal
-              </button>
+              </ModalActionButton>
 
               {isLastStep ? (
-                <button
-                  type="button"
+                <ModalActionButton
+                  variant="primary"
+                  width="group"
                   onClick={onSubmit}
                   disabled={!isCurrentValid || isPending}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#12388F] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPending ? (
                     <>
@@ -241,17 +242,17 @@ export const StepModal: React.FC<StepModalProps> = ({
                   ) : (
                     <span>{submitLabel}</span>
                   )}
-                </button>
+                </ModalActionButton>
               ) : (
-                <button
-                  type="button"
+                <ModalActionButton
+                  variant="primary"
+                  width="group"
                   onClick={onNext}
                   disabled={!isCurrentValid || isPending}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#12388F] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span>Lanjut</span>
                   <ChevronRight className="w-4 h-4" />
-                </button>
+                </ModalActionButton>
               )}
             </div>
           </div>

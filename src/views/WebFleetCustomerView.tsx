@@ -10,6 +10,7 @@ import { usePagination } from '../hooks/usePagination';
 import { realtimeHub } from '../services/realtimeService';
 import { ModalPortal } from '../components/common/ModalPortal';
 import { ConfirmModal } from '../components/common/ConfirmModal';
+import { ModalActionButton } from '../components/common/ModalActionButton';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { toast } from '../components/common/Toast';
 import { TimePickerInput } from '../components/common/TimePickerInput';
@@ -962,31 +963,33 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   </div>
                 </div>
 
-                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-                  <button
-                    type="button"
+                <div className="pt-2 flex flex-col gap-2 sm:flex-row">
+                  <ModalActionButton
+                    variant="success"
+                    width="responsive"
+                    className="flex-1"
                     disabled={decidingEstimasi || approvalTotal === null}
                     onClick={() => {
                       onDecideEstimasi?.(spk, true);
                       setShowEstimasiWizard(false);
                     }}
-                    className="flex-1 py-3 px-4 rounded-xl bg-status-green hover:bg-status-green/90 text-white font-bold text-xs shadow-md shadow-status-green/20 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Setujui Estimasi (Mulai Service)</span>
-                  </button>
-                  <button
-                    type="button"
+                  </ModalActionButton>
+                  <ModalActionButton
+                    variant="danger"
+                    width="responsive"
+                    className="flex-1"
                     disabled={decidingEstimasi}
                     onClick={() => {
                       onDecideEstimasi?.(spk, false);
                       setShowEstimasiWizard(false);
                     }}
-                    className="flex-1 py-3 px-4 rounded-xl bg-status-red hover:bg-status-red/90 text-white font-bold text-xs shadow-md shadow-status-red/20 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
                   >
                     <XCircle className="w-4 h-4" />
                     <span>Tolak Estimasi</span>
-                  </button>
+                  </ModalActionButton>
                 </div>
               </div>
             ),
@@ -3675,11 +3678,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 4: DOKUMEN SAYA — berkas kendaraan + faktur otomatis (service & beli part) */}
       {fleetMenu === 'dokumen' && (
-        <div className="bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E8F0] dark:border-border pb-3 mb-4">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border bg-white px-4 py-4 dark:bg-surface-raised sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
-              <h2 className="text-base font-bold text-ink">Dokumen Saya</h2>
-              <p className="text-xs text-ink-muted">Berkas legalitas kendaraan (STNK, BPKB, KIR, Asuransi)</p>
+              <h2 className="text-base font-bold tracking-tight text-ink">Dokumen Saya</h2>
+              <p className="mt-0.5 text-xs text-ink-muted">Berkas legalitas kendaraan dan masa berlakunya</p>
             </div>
             <button
               type="button"
@@ -3694,7 +3697,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }
                 setOpenTambahDokumenModal(true);
               }}
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 ${
+              className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#12388F] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 ${
                 !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
               }`}
               title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
@@ -3705,14 +3708,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Filter kendaraan (plat nomor) dalam toolbar */}
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-surface p-2.5 sm:p-3 mb-4 flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <div className="flex flex-col gap-2.5 border-b border-border bg-[#F8FAFC] p-3 dark:bg-slate-900/40 sm:flex-row sm:items-center">
             <div className="relative sm:max-w-xs w-full">
-              <Search className="w-4 h-4 text-[#64748B] dark:text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
               <select
                 value={dokumenFilterPlat}
                 onChange={(e) => setDokumenFilterPlat(e.target.value)}
                 aria-label="Filter dokumen per kendaraan"
-                className="h-10 w-full pl-9 pr-8 rounded-lg border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised text-xs text-[#0F172A] dark:text-ink font-medium focus:border-[#12388F] focus:ring-2 focus:ring-[#12388F]/20 focus:outline-hidden appearance-none cursor-pointer"
+                className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-border bg-white pl-9 pr-8 text-xs font-medium text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 dark:bg-surface-raised"
               >
                 <option value="">Semua Kendaraan</option>
                 {myKendaraanList.map((k) => (
@@ -3721,13 +3724,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-[#64748B] dark:text-ink-subtle absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
             </div>
             {dokumenFilterPlat && (
               <button
                 type="button"
                 onClick={() => setDokumenFilterPlat('')}
-                className="h-10 inline-flex items-center gap-1.5 px-3 bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border text-[#475569] dark:text-ink-muted hover:text-[#0F172A] hover:bg-[#F1F5F9] dark:hover:bg-surface rounded-lg text-xs font-semibold transition cursor-pointer"
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-ink-muted transition hover:bg-surface dark:bg-surface-raised"
               >
                 <X className="w-3.5 h-3.5" /> Reset
               </button>
@@ -3735,43 +3738,45 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {dokumenRows.length > 0 ? (
-            <div className="rounded-xl border border-[#E2E8F0] dark:border-border overflow-hidden bg-surface-raised shadow-xs">
+            <div className="overflow-hidden bg-surface-raised">
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-surface text-[11px] uppercase tracking-wide text-[#64748B] dark:text-ink-subtle font-semibold border-b border-[#E2E8F0] dark:border-border sticky top-0">
+                  <thead className="border-b border-border bg-[#F8FAFC] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-subtle dark:bg-slate-900/40">
                     <tr>
-                      <th className="py-3 px-3 font-semibold">Nama Dokumen</th>
-                      <th className="py-3 px-3 font-semibold">Jenis</th>
-                      <th className="py-3 px-3 font-semibold">No. Polisi</th>
-                      <th className="py-3 px-3 font-semibold">Masa Berlaku</th>
-                      <th className="py-3 px-3 font-semibold text-right">Aksi</th>
+                      <th className="px-5 py-3 font-semibold">Nama Dokumen</th>
+                      <th className="px-4 py-3 font-semibold">Jenis</th>
+                      <th className="px-4 py-3 font-semibold">No. Polisi</th>
+                      <th className="px-4 py-3 font-semibold">Masa Berlaku</th>
+                      <th className="px-5 py-3 text-right font-semibold">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F1F5F9] dark:divide-border">
+                  <tbody className="divide-y divide-border/70">
                     {dokumenRows.map((item) => (
-                      <tr key={`doc-${item.id}`} className="hover:bg-[#F8FAFF] dark:hover:bg-slate-800/40 transition-colors group">
-                        <td className="py-3.5 px-3 font-semibold text-[#0F172A] dark:text-ink border-l-2 border-transparent group-hover:border-[#12388F] transition-colors">{item.nama_dokumen}</td>
-                        <td className="py-3.5 px-3">
-                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#F1F5F9] dark:bg-surface text-[#475569] dark:text-ink-muted">
+                      <tr key={`doc-${item.id}`} className="transition-colors hover:bg-surface/70">
+                        <td className="max-w-[280px] px-5 py-3.5 font-semibold text-ink">
+                          <span className="block truncate">{item.nama_dokumen}</span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="inline-flex rounded-md border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink-muted">
                             {item.jenis_dokumen}
                           </span>
                         </td>
-                        <td className="py-3.5 px-3">
-                          <span className="inline-flex px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-[#F1F5F9] dark:bg-surface text-[#0F172A] dark:text-ink border border-[#E2E8F0] dark:border-border">
+                        <td className="px-4 py-3.5">
+                          <span className="inline-flex rounded-md border border-border bg-white px-2.5 py-1 font-mono text-xs font-bold text-ink dark:bg-surface">
                             {formatPlat(item.no_polisi)}
                           </span>
                         </td>
-                        <td className="py-3.5 px-3">
+                        <td className="px-4 py-3.5">
                           {renderDocExpiryBadge(item.masa_berlaku)}
                         </td>
-                        <td className="py-3.5 px-3 text-right">
+                        <td className="px-5 py-3.5 text-right">
                           <a
                             href={item.file_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-[#12388F] text-[#12388F] dark:text-blue-400 hover:bg-[#12388F] hover:text-white dark:hover:bg-[#12388F] dark:hover:text-white text-xs font-semibold transition-colors"
+                            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-white px-3 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
                           >
-                            <Download className="w-3.5 h-3.5" /> Unduh
+                            <Download className="h-3.5 w-3.5" /> Unduh
                           </a>
                         </td>
                       </tr>
@@ -3781,24 +3786,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
-              <div className="block md:hidden p-3 space-y-2.5">
+              <div className="block space-y-2.5 p-3 md:hidden">
                 {dokumenRows.map((item) => (
-                  <div key={`doc-${item.id}`} className="rounded-xl border border-[#E2E8F0] dark:border-border bg-surface p-3.5">
+                  <div key={`doc-${item.id}`} className="rounded-xl border border-border bg-white p-3.5 dark:bg-surface">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="text-sm font-bold text-[#0F172A] dark:text-ink leading-snug">{item.nama_dokumen}</div>
+                        <div className="text-sm font-bold leading-snug text-ink">{item.nama_dokumen}</div>
                         <div className="mt-1">
-                          <span className="inline-flex px-2 py-0.5 rounded-md font-mono text-xs font-bold bg-[#F1F5F9] dark:bg-surface-raised text-[#0F172A] dark:text-ink border border-[#E2E8F0] dark:border-border">
+                          <span className="inline-flex rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-xs font-bold text-ink">
                             {formatPlat(item.no_polisi)}
                           </span>
                         </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-xs font-semibold shrink-0 bg-[#F1F5F9] dark:bg-surface-raised text-[#475569] dark:text-ink-muted">
+                      <span className="shrink-0 rounded-md border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink-muted">
                         {item.jenis_dokumen}
                       </span>
                     </div>
 
-                    <div className="mt-2.5 pt-2.5 border-t border-[#E2E8F0] dark:border-border flex items-center justify-between text-xs text-[#64748B] dark:text-ink-subtle">
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs text-ink-subtle">
                       <span>Masa Berlaku</span>
                       <div>
                         {renderDocExpiryBadge(item.masa_berlaku)}
@@ -3809,7 +3814,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       href={item.file_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-3 w-full min-h-[40px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-[#12388F] text-[#12388F] dark:text-blue-400 hover:bg-[#12388F] hover:text-white active:bg-[#12388F] active:text-white text-xs font-semibold transition-colors"
+                      className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-[#F1F5F9] px-3 py-2 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#E7EDF5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
                     >
                       <Download className="w-3.5 h-3.5" /> Unduh Dokumen
                     </a>
@@ -3818,7 +3823,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               {/* Pagination menempel di footer container tabel */}
-              <div className="bg-surface px-4 pb-3">
+              <div className="border-t border-border bg-white px-4 pb-3 dark:bg-surface-raised">
                 <PaginationBar
                   page={dokumenSafePage}
                   totalPages={dokumenTotalPages}
@@ -3834,8 +3839,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
           ) : (
-            <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] dark:border-border rounded-xl bg-surface space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mx-auto">
+            <div className="space-y-3 border-t border-border bg-surface px-5 py-10 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF0F7] text-[#34517C] dark:bg-blue-950/40 dark:text-blue-300">
                 <FileText className="w-6 h-6" />
               </div>
               <div>
@@ -3857,7 +3862,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   }
                   setOpenTambahDokumenModal(true);
                 }}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl transition ${
+                className={`inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#12388F] px-4 text-xs font-bold text-white transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 ${
                   !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
                 title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
@@ -4222,20 +4227,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
-                  <button
-                    type="button"
+                <div className="flex flex-col justify-end gap-2 border-t border-border pt-4 sm:flex-row">
+                  <ModalActionButton
+                    variant="cancel"
+                    width="responsive"
                     disabled={simpanProfilMutation.isPending}
                     onClick={() => setProfilEditing(false)}
-                    className="px-4 py-2 rounded-xl border border-border bg-surface hover:bg-surface-raised text-ink text-xs font-semibold transition cursor-pointer disabled:opacity-50"
                   >
                     Batal
-                  </button>
-                  <button
-                    type="button"
+                  </ModalActionButton>
+                  <ModalActionButton
+                    variant="primary"
+                    width="responsive"
                     disabled={simpanProfilMutation.isPending || !profilForm.nama_perusahaan.trim()}
                     onClick={() => simpanProfilMutation.mutate()}
-                    className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {simpanProfilMutation.isPending ? (
                       <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -4243,7 +4248,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <Check className="w-3.5 h-3.5" />
                     )}
                     <span>{simpanProfilMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
-                  </button>
+                  </ModalActionButton>
                 </div>
               </div>
             )}
@@ -4762,24 +4767,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-surface-raised px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
-                  <button
-                    type="button"
+                  <ModalActionButton
+                    variant="cancel"
+                    width="responsive"
                     onClick={() => setOpenTambahArmadaModal(false)}
-                    className="rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-ink-muted transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:bg-surface"
                   >
                     Batal
-                  </button>
-                  <button
+                  </ModalActionButton>
+                  <ModalActionButton
                     type="submit"
+                    variant="primary"
+                    width="responsive"
                     disabled={tambahArmadaMutation.isPending || !isVerifiedByAdmin}
-                    className={`flex items-center justify-center gap-2 rounded-lg bg-[#12388F] px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-accent/20 transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
-                      !isVerifiedByAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-                    }`}
                     title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
                   >
                     <Plus className="h-4 w-4" />
                     <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Kendaraan'}</span>
-                  </button>
+                  </ModalActionButton>
                 </div>
               </form>
             </div>
@@ -4792,25 +4796,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {openTambahDokumenModal && (
         <ModalPortal onClose={() => setOpenTambahDokumenModal(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm app-backdrop-in">
-            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-lg w-full max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in my-auto">
-            {/* Modal Header */}
-            <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#CCFBF1] text-[#0F766E] dark:bg-teal-950/40 dark:text-teal-300 flex items-center justify-center">
-                  <FileText className="w-5 h-5" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm app-backdrop-in sm:p-6">
+            <div className="my-auto flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-2xl app-modal-in">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-surface-raised px-5 py-3 sm:px-7">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-ink-muted">
+                  <FileText className="h-4 w-4" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-ink">Unggah Dokumen Digital Kendaraan</h3>
-                  <p className="text-xs text-ink-muted">Simpan arsip STNK, KIR, BPKB, atau polis asuransi unit</p>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold tracking-tight text-ink sm:text-base">Unggah Dokumen Kendaraan</h3>
+                  <p className="mt-0.5 text-[11px] text-ink-muted">Simpan arsip legalitas untuk unit kendaraan Anda</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setOpenTambahDokumenModal(false)}
-                className="p-1.5 rounded-xl text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
+                aria-label="Tutup unggah dokumen"
+                className="shrink-0 rounded-lg p-1.5 text-ink-subtle transition hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
@@ -4824,17 +4828,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }
                 tambahDokumenMutation.mutate(dokumenForm);
               }}
-              className="px-6 sm:px-8 py-6 sm:py-7 overflow-y-auto space-y-5 flex-1"
+              className="flex min-h-0 flex-1 flex-col"
             >
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-7">
+              <section aria-labelledby="dokumen-upload-info" className="space-y-4">
+                <div className="border-b border-border pb-2">
+                  <h4 id="dokumen-upload-info" className="text-xs font-bold text-ink">Informasi dokumen</h4>
+                  <p className="mt-0.5 text-[11px] text-ink-subtle">Pilih unit, jenis berkas, dan masa berlakunya</p>
+                </div>
               <div>
-                <label className="block text-xs font-bold text-ink-muted mb-1">
+                <label className="mb-1.5 block text-xs font-semibold text-ink-muted">
                   Pilih Unit Kendaraan <span className="text-status-red">*</span>
                 </label>
                 <select
                   required
                   value={dokumenForm.no_polisi}
                   onChange={(e) => setDokumenForm({ ...dokumenForm, no_polisi: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
+                  className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent"
                 >
                   <option value="">-- Pilih Nomor Polisi --</option>
                   {myKendaraanList.map((k) => (
@@ -4845,15 +4855,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">
+                  <label className="mb-1.5 block text-xs font-semibold text-ink-muted">
                     Jenis Dokumen <span className="text-status-red">*</span>
                   </label>
                   <select
                     value={dokumenForm.jenis_dokumen}
                     onChange={(e) => setDokumenForm({ ...dokumenForm, jenis_dokumen: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
+                    className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="STNK">STNK (Pajak Tahunan / 5 Tahunan)</option>
                     <option value="KIR">KIR (Uji Berkala Dishub)</option>
@@ -4864,18 +4874,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku Dokumen</label>
+                  <label className="mb-1.5 block text-xs font-semibold text-ink-muted">Masa Berlaku Dokumen</label>
                   <input
                     type="date"
                     value={dokumenForm.masa_berlaku}
                     onChange={(e) => setDokumenForm({ ...dokumenForm, masa_berlaku: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
+                    className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
               </div>
 
+              </section>
+              <section aria-labelledby="dokumen-upload-detail" className="space-y-4">
+                <div className="border-b border-border pb-2">
+                  <h4 id="dokumen-upload-detail" className="text-xs font-bold text-ink">Detail berkas</h4>
+                  <p className="mt-0.5 text-[11px] text-ink-subtle">Beri nama yang mudah dikenali saat dicari kembali</p>
+                </div>
               <div>
-                <label className="block text-xs font-bold text-ink-muted mb-1">
+                <label className="mb-1.5 block text-xs font-semibold text-ink-muted">
                   Nama Dokumen / Keterangan Berkas <span className="text-status-red">*</span>
                 </label>
                 <input
@@ -4884,41 +4900,42 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   placeholder="Contoh: STNK Pajak Berlaku s/d Mei 2027"
                   value={dokumenForm.nama_dokumen}
                   onChange={(e) => setDokumenForm({ ...dokumenForm, nama_dokumen: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
+                  className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-ink-muted mb-1">Catatan Tambahan (Opsional)</label>
+                <label className="mb-1.5 block text-xs font-semibold text-ink-muted">Catatan Tambahan (Opsional)</label>
                 <input
                   type="text"
                   placeholder="Catatan nomor seri atau barcode dokumen"
                   value={dokumenForm.keterangan}
                   onChange={(e) => setDokumenForm({ ...dokumenForm, keterangan: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
+                  className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
+              </div>
+              </section>
               </div>
 
               {/* Modal Footer */}
-              <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
+              <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-surface-raised px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+                <ModalActionButton
+                  variant="cancel"
+                  width="responsive"
                   onClick={() => setOpenTambahDokumenModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border text-xs font-bold text-[#334155] dark:text-ink-muted bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised transition cursor-pointer"
                 >
                   Batal
-                </button>
-                <button
+                </ModalActionButton>
+                <ModalActionButton
                   type="submit"
+                  variant="primary"
+                  width="responsive"
                   disabled={tambahDokumenMutation.isPending || !isVerifiedByAdmin}
-                  className={`px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition flex items-center gap-1.5 ${
-                    !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  }`}
                   title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
                 >
                   <Plus className="w-4 h-4" />
                   <span>{tambahDokumenMutation.isPending ? 'Menyimpan...' : 'Simpan Dokumen'}</span>
-                </button>
+                </ModalActionButton>
               </div>
             </form>
           </div>
@@ -5123,21 +5140,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-surface-raised px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
-                  <button
-                    type="button"
+                  <ModalActionButton
+                    variant="cancel"
+                    width="responsive"
                     onClick={() => setEditArmadaData(null)}
-                    className="rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-ink-muted transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:bg-surface"
                   >
                     Batal
-                  </button>
-                  <button
+                  </ModalActionButton>
+                  <ModalActionButton
                     type="submit"
+                    variant="primary"
+                    width="responsive"
                     disabled={editArmadaMutation.isPending}
-                    className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#12388F] px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-accent/20 transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Check className="h-4 w-4" />
                     <span>{editArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
-                  </button>
+                  </ModalActionButton>
                 </div>
               </form>
             </div>

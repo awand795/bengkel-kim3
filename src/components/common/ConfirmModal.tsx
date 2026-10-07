@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { ModalPortal } from './ModalPortal';
+import { ModalActionButton } from './ModalActionButton';
 
 interface ConfirmModalProps {
   title: string;
@@ -19,17 +20,17 @@ const TONE = {
   red: {
     iconBox: 'bg-status-red-bg text-status-red',
     Icon: AlertTriangle,
-    button: 'bg-[#DC2626] hover:bg-[#B91C1C] shadow-red-500/20',
+    buttonVariant: 'danger' as const,
   },
   green: {
     iconBox: 'bg-status-green-bg text-status-green',
     Icon: CheckCircle2,
-    button: 'bg-status-green hover:bg-status-green/90 shadow-status-green/20',
+    buttonVariant: 'success' as const,
   },
   amber: {
     iconBox: 'bg-status-amber-bg text-status-amber',
     Icon: Info,
-    button: 'bg-status-amber hover:bg-status-amber/90 shadow-status-amber/20',
+    buttonVariant: 'warning' as const,
   },
 } as const;
 
@@ -69,22 +70,22 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-              type="button"
+            <ModalActionButton
+              variant="cancel"
+              width="group"
               onClick={onClose}
               disabled={isPending}
-              className="flex-1 py-2.5 rounded-md border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised text-[#334155] dark:text-slate-200 font-bold text-xs transition-colors disabled:opacity-50"
             >
               {cancelLabel}
-            </button>
-            <button
-              type="button"
+            </ModalActionButton>
+            <ModalActionButton
+              variant={t.buttonVariant}
+              width="group"
               onClick={onConfirm}
               disabled={isPending}
-              className={`flex-1 py-2.5 rounded-md text-white font-bold text-xs shadow-md transition-all disabled:opacity-50 ${t.button}`}
             >
               {isPending ? 'Memproses...' : confirmLabel}
-            </button>
+            </ModalActionButton>
           </div>
         </div>
       </div>

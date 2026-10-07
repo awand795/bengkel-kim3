@@ -3,6 +3,7 @@ import { X, User, Mail, Phone, Lock, Eye, EyeOff, Camera, CheckCircle2 } from 'l
 import { useAppStore } from '../../store/useAppStore';
 import { api } from '../../api/client';
 import { ModalPortal } from '../common/ModalPortal';
+import { ModalActionButton } from '../common/ModalActionButton';
 import { PhotoUploader } from '../common/PhotoUploader';
 import { toast } from '../common/Toast';
 
@@ -187,10 +188,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
               <span className="ml-auto shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Mitra Fleet</span>
             </div>
 
-            <button
+            <ModalActionButton
               type="submit"
+              variant="primary"
+              width="full"
               disabled={saving}
-              className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover active:bg-accent-active text-white font-semibold text-sm rounded-lg shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -203,7 +205,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   <span>Simpan Profil</span>
                 </>
               )}
-            </button>
+            </ModalActionButton>
           </form>
 
           {/* Ganti Kata Sandi */}
@@ -254,10 +256,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                 <span>Tampilkan kata sandi</span>
               </label>
             </div>
-            <button
+            <ModalActionButton
               type="submit"
+              variant="secondary"
+              width="full"
               disabled={changingPwd}
-              className="w-full py-2.5 px-4 bg-surface-raised border border-border hover:border-accent hover:text-accent text-ink font-semibold text-sm rounded-md shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {changingPwd ? (
                 <>
@@ -270,7 +273,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   <span>Ubah Kata Sandi</span>
                 </>
               )}
-            </button>
+            </ModalActionButton>
           </form>
           </div>
         </div>
