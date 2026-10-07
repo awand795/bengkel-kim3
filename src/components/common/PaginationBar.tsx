@@ -44,14 +44,14 @@ const DEFAULT_LIMIT_OPTIONS = [10, 25, 50, 100];
  * Generate pagination array with 1 ... n-1 n n+1 ... total pattern for desktop
  */
 const getDesktopPaginationItems = (current: number, total: number): DesktopPaginationItem[] => {
-  if (total <= 7) {
+  if (total <= 5) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
-  if (current <= 4) {
-    return [1, 2, 3, 4, 5, 'ellipsis-end', total];
+  if (current <= 3) {
+    return [1, 2, 3, 4, 'ellipsis-end', total];
   }
-  if (current >= total - 3) {
-    return [1, 'ellipsis-start', total - 4, total - 3, total - 2, total - 1, total];
+  if (current >= total - 2) {
+    return [1, 'ellipsis-start', total - 3, total - 2, total - 1, total];
   }
   return [1, 'ellipsis-start', current - 1, current, current + 1, 'ellipsis-end', total];
 };
@@ -473,20 +473,20 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
 
   return (
     <div
-      className={`flex flex-col gap-3 pt-4 border-t border-[#E2E8F0] dark:border-slate-800 ${className}`}
+      className={`flex flex-col gap-3 border-t border-border pt-3 ${className}`}
     >
       {/* ── Desktop View (>= 640px) ────────────────────────────────────────── */}
-      <div className="hidden sm:flex sm:items-center sm:justify-between gap-4">
+      <div className="hidden sm:flex sm:items-center sm:justify-between gap-3 lg:gap-4">
         {/* Sisi Kiri: Ringkasan | Divider | "Baris:" Dropdown trigger */}
         <div
-          className={`flex items-center gap-4 flex-wrap ${
+          className={`flex items-center gap-3 flex-wrap lg:gap-4 ${
             isLoading ? 'opacity-60 pointer-events-none' : ''
           }`}
         >
           {/* Ringkasan: Tanpa kata 'Menampilkan' */}
           <span
             aria-live="polite"
-            className="text-[13px] text-[#475569] dark:text-slate-400 select-none"
+            className="select-none text-xs text-[#52647E] dark:text-slate-400"
           >
             <span className="font-semibold text-[#0F172A] dark:text-white tabular-nums">
               {from}
@@ -510,7 +510,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
 
           {/* "Baris:" + Single Dropdown Button (Desktop) */}
           <div className="inline-flex items-center gap-2">
-            <span className="text-[13px] text-[#64748B] dark:text-slate-400 select-none">
+            <span className="select-none text-xs text-ink-subtle">
               Baris:
             </span>
             <button
@@ -521,7 +521,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
               aria-haspopup="listbox"
               aria-expanded={isOpen}
               aria-label="Jumlah baris per halaman"
-              className={`h-9 px-3 rounded-lg border transition-all inline-flex items-center gap-2 text-[13px] font-semibold tabular-nums cursor-pointer focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:border-[#12388F] focus:outline-none ${
+              className={`h-8 px-2.5 rounded-md border transition-all inline-flex items-center gap-2 text-xs font-semibold tabular-nums cursor-pointer focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:border-[#12388F] focus:outline-none ${
                 !isPresetActive
                   ? 'bg-[#EEF2FF] border-[#12388F]/40 text-[#12388F] dark:bg-blue-950/40 dark:border-blue-500/50 dark:text-blue-300'
                   : 'border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 text-[#0F172A] dark:text-white hover:border-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-slate-800'
@@ -540,7 +540,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
         {/* Sisi Kanan: Navigasi Halaman (HANYA tampil jika safeTotalPages > 1) */}
         {safeTotalPages > 1 && (
           <div
-            className={`flex items-center gap-1 shrink-0 ${
+            className={`flex items-center gap-0.5 shrink-0 ${
               isLoading ? 'opacity-60 pointer-events-none' : ''
             }`}
           >
@@ -551,7 +551,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
                 onClick={() => onPageChange(1)}
                 disabled={currentPage <= 1 || isLoading}
                 aria-label="Halaman pertama"
-                className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 text-[#475569] dark:text-slate-300 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-45 disabled:bg-[#F8FAFC] dark:disabled:bg-slate-800/60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none"
+                className="hidden xl:inline-flex w-8 h-8 items-center justify-center rounded-md border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 text-[#52647E] dark:text-slate-300 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-45 disabled:bg-[#F8FAFC] dark:disabled:bg-slate-800/60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none"
               >
                 <ChevronsLeft className="w-3.5 h-3.5" />
               </button>
@@ -563,10 +563,10 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage <= 1 || isLoading}
               aria-label="Halaman sebelumnya"
-              className="h-9 px-3 inline-flex items-center justify-center gap-1.5 text-[13px] font-medium text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-45 disabled:bg-[#F8FAFC] dark:disabled:bg-slate-800/60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none"
+              className="h-8 px-2 inline-flex items-center justify-center gap-1 rounded-md text-xs font-medium text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-45 disabled:bg-[#F8FAFC] dark:disabled:bg-slate-800/60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Sebelumnya</span>
+              <span className="hidden lg:inline">Sebelumnya</span>
             </button>
 
             {/* Nomor-nomor halaman terpisah */}
@@ -575,7 +575,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
                 return (
                   <span
                     key={`ellipsis-${idx}`}
-                    className="w-9 h-9 flex items-center justify-center text-[#94A3B8] font-bold text-xs select-none"
+                    className="flex h-8 w-5 items-center justify-center text-xs font-bold text-[#94A3B8] select-none xl:w-8"
                   >
                     …
                   </span>
@@ -589,9 +589,9 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
                   onClick={() => onPageChange(item)}
                   disabled={isLoading}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`w-9 h-9 flex items-center justify-center text-[13px] tabular-nums rounded-lg transition-colors cursor-pointer border-none focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none ${
+                  className={`w-8 h-8 flex items-center justify-center text-xs tabular-nums rounded-md transition-colors cursor-pointer border-none focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none ${
                     isActive
-                      ? 'bg-[#12388F] text-white font-semibold shadow-[0_2px_6px_rgba(18,56,143,0.28)]'
+                      ? 'bg-[#34517C] text-white font-semibold'
                       : 'text-[#334155] dark:text-slate-200 font-medium hover:bg-[#F1F5F9] dark:hover:bg-slate-800'
                   }`}
                 >
@@ -606,9 +606,9 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage >= safeTotalPages || isLoading}
               aria-label="Halaman berikutnya"
-              className="h-9 px-3 inline-flex items-center justify-center gap-1.5 text-[13px] font-medium text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-45 disabled:bg-[#F8FAFC] dark:disabled:bg-slate-800/60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none"
+              className="h-8 px-2 inline-flex items-center justify-center gap-1 rounded-md text-xs font-medium text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-45 disabled:bg-[#F8FAFC] dark:disabled:bg-slate-800/60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none"
             >
-              <span>Berikutnya</span>
+              <span className="hidden lg:inline">Berikutnya</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
 
@@ -619,7 +619,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
                 onClick={() => onPageChange(safeTotalPages)}
                 disabled={currentPage >= safeTotalPages || isLoading}
                 aria-label="Halaman terakhir"
-                className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 text-[#475569] dark:text-slate-300 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-45 disabled:bg-[#F8FAFC] dark:disabled:bg-slate-800/60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none"
+                className="hidden xl:inline-flex w-8 h-8 items-center justify-center rounded-md border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-900 text-[#52647E] dark:text-slate-300 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-45 disabled:bg-[#F8FAFC] dark:disabled:bg-slate-800/60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#12388F]/20 focus-visible:outline-none"
               >
                 <ChevronsRight className="w-3.5 h-3.5" />
               </button>
@@ -629,7 +629,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
             {shouldShowJump && (
               <form
                 onSubmit={handleJumpSubmit}
-                className="ml-1 h-9 rounded-lg border border-[#E2E8F0] dark:border-slate-700 inline-flex items-center overflow-hidden bg-white dark:bg-slate-900 shadow-2xs focus-within:ring-2 focus-within:ring-[#12388F]/20 focus-within:border-[#12388F]"
+                className="ml-1 hidden h-8 rounded-md border border-[#E2E8F0] dark:border-slate-700 xl:inline-flex items-center overflow-hidden bg-white dark:bg-slate-900 shadow-2xs focus-within:ring-2 focus-within:ring-[#12388F]/20 focus-within:border-[#12388F]"
               >
                 <span className="text-xs text-[#64748B] dark:text-slate-400 bg-[#F8FAFC] dark:bg-slate-800 px-3 h-full flex items-center select-none font-medium border-r border-[#E2E8F0] dark:border-slate-700">
                   Ke halaman

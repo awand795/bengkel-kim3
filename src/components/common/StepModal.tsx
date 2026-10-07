@@ -87,7 +87,7 @@ export const StepModal: React.FC<StepModalProps> = ({
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="fixed inset-0 z-50 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 app-backdrop-in">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-2.5 backdrop-blur-sm app-backdrop-in sm:p-5">
         <div
           ref={dialogRef}
           role="dialog"
@@ -95,57 +95,62 @@ export const StepModal: React.FC<StepModalProps> = ({
           aria-labelledby="step-modal-title"
           tabIndex={-1}
           onKeyDown={handleKeyDown}
-          className={`app-modal-in bg-surface-raised w-full ${sizeClasses} rounded-2xl shadow-2xl border border-border flex flex-col h-[88dvh] sm:h-[640px] max-h-[90dvh] sm:max-h-[85vh] overflow-hidden focus:outline-none my-auto`}
+          className={`app-modal-in my-auto flex max-h-[94dvh] w-full ${sizeClasses} flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-2xl focus:outline-none sm:max-h-[min(760px,92dvh)]`}
         >
           {/* Mobile Drag Handle */}
-          <div className="sm:hidden pt-2.5 pb-1 flex justify-center shrink-0">
+          <div className="flex shrink-0 justify-center pb-1 pt-2.5 sm:hidden">
             <span className="w-10 h-1 rounded-full bg-border" />
           </div>
 
           {/* Modal Header */}
-          <div className="px-6 sm:px-8 py-5 border-b border-border flex items-start justify-between gap-3 shrink-0 bg-gradient-to-r from-[#F8FAFF] via-white to-white dark:from-slate-800/50 dark:via-surface-raised dark:to-surface-raised">
-            <div className="min-w-0">
-              <h2 id="step-modal-title" className="text-base sm:text-lg font-black text-ink leading-snug tracking-tight">
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border bg-white px-4 py-3.5 sm:px-6 sm:py-4 dark:bg-surface-raised">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="mt-0.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#DCE5F5] bg-[#F5F8FD] text-[#34517C] sm:flex dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300">
+                <span className="text-xs font-bold tabular-nums">{String(stepIndex + 1).padStart(2, '0')}</span>
+              </div>
+              <div className="min-w-0">
+              <h2 id="step-modal-title" className="text-sm font-bold leading-snug tracking-tight text-ink sm:text-base">
                 {title}
               </h2>
               {subtitle && (
-                <p className="text-xs text-ink-muted mt-1 leading-normal">{subtitle}</p>
+                <p className="mt-0.5 text-[11px] leading-normal text-ink-muted sm:text-xs">{subtitle}</p>
               )}
+              </div>
             </div>
             <button
               type="button"
               onClick={onClose}
               aria-label="Tutup"
-              className="p-1.5 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface transition-colors cursor-pointer shrink-0"
+              className="shrink-0 rounded-lg p-1.5 text-ink-subtle transition-colors hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Horizontal Stepper */}
-          <div className="px-6 sm:px-8 py-3.5 border-b border-border bg-surface shrink-0">
+          <div className="shrink-0 border-b border-border bg-[#F8FAFC] px-4 py-3 sm:px-6 dark:bg-slate-900/40">
             {/* Desktop Stepper */}
-            <div className="hidden sm:flex items-center justify-between gap-2 overflow-x-auto py-0.5">
+            <div className="hidden items-center gap-2 overflow-x-auto py-0.5 sm:flex">
               {steps.map((st, idx) => {
                 const isPassed = idx < stepIndex;
                 const isCurrent = idx === stepIndex;
                 return (
                   <React.Fragment key={st.id}>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex shrink-0 items-center gap-2">
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
                           isPassed
-                            ? 'bg-gradient-to-br from-[#16A34A] to-[#22C55E] text-white shadow-md'
+                            ? 'bg-[#15803D] text-white'
                             : isCurrent
-                            ? 'bg-gradient-to-br from-[#12388F] to-[#3B6FD4] text-white shadow-lg ring-4 ring-[#12388F]/20'
-                            : 'bg-white dark:bg-surface-raised border-2 border-dashed border-[#CBD5E1] dark:border-border text-[#64748B]'
+                            ? 'bg-[#34517C] text-white ring-4 ring-[#34517C]/10'
+                            : 'border border-[#D5DDE8] bg-white text-[#738198] dark:border-border dark:bg-surface-raised'
                         }`}
                       >
-                        {isPassed ? <Check className="w-3.5 h-3.5" /> : idx + 1}
+                        {isPassed ? <Check className="h-3.5 w-3.5" /> : idx + 1}
                       </div>
                       <span
-                        className={`text-xs whitespace-nowrap ${
-                          isCurrent ? 'text-ink font-bold' : isPassed ? 'text-ink font-semibold' : 'text-ink-muted font-medium'
+                        className={`whitespace-nowrap text-[11px] ${
+                          isCurrent ? 'font-bold text-ink' : isPassed ? 'font-semibold text-ink-muted' : 'font-medium text-ink-subtle'
                         }`}
                       >
                         {st.label}
@@ -153,8 +158,8 @@ export const StepModal: React.FC<StepModalProps> = ({
                     </div>
                     {idx < steps.length - 1 && (
                       <div
-                        className={`flex-1 h-1 min-w-4 mx-2 rounded-full transition-colors ${
-                          idx < stepIndex ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E]' : 'bg-[#CBD5E1] dark:bg-border'
+                        className={`h-px min-w-4 flex-1 transition-colors ${
+                          idx < stepIndex ? 'bg-[#15803D]/60' : 'bg-[#D5DDE8] dark:bg-border'
                         }`}
                       />
                     )}
@@ -164,18 +169,19 @@ export const StepModal: React.FC<StepModalProps> = ({
             </div>
 
             {/* Mobile Stepper (Progress Bar & Step Indicator) */}
-            <div className="sm:hidden space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-accent">
-                  Langkah {stepIndex + 1} dari {steps.length}: <span className="text-ink font-bold">{activeStep?.label}</span>
+            <div className="space-y-2 sm:hidden">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="font-semibold text-ink">
+                  {String(stepIndex + 1).padStart(2, '0')} <span className="text-ink-subtle">/ {String(steps.length).padStart(2, '0')}</span>
+                  <span className="ml-2">{activeStep?.label}</span>
                 </span>
-                <span className="text-ink-muted font-medium text-xs">
+                <span className="text-[10px] font-semibold tabular-nums text-ink-subtle">
                   {Math.round(((stepIndex + 1) / steps.length) * 100)}%
                 </span>
               </div>
-              <div className="w-full h-1.5 rounded-full bg-border overflow-hidden">
+              <div className="h-1 w-full overflow-hidden rounded-full bg-border">
                 <div
-                  className="h-full bg-accent transition-all duration-300 rounded-full"
+                  className="h-full rounded-full bg-[#34517C] transition-all duration-300"
                   style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
                 />
               </div>
@@ -183,34 +189,39 @@ export const StepModal: React.FC<StepModalProps> = ({
           </div>
 
           {/* Modal Body with internal scroll */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 sm:py-7 space-y-5 bg-surface-raised">
+          <div className="min-h-0 flex-1 overflow-y-auto bg-surface-raised px-4 py-4 sm:px-6 sm:py-5">
             <div key={activeStep?.id || stepIndex} className="app-page-transition">
               {activeStep?.content}
             </div>
           </div>
 
           {/* Modal Footer Sticky */}
-          <div className="px-6 sm:px-8 py-5 sm:py-6 border-t border-border bg-surface flex items-center justify-between gap-3 shrink-0">
-            <div>
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-white px-4 py-3 sm:px-6 dark:bg-surface-raised">
+            <div className="min-w-0">
               {!isFirstStep && (
                 <button
                   type="button"
                   onClick={onBack}
                   disabled={isPending}
-                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface-raised hover:bg-[#F1F5F9] dark:hover:bg-surface text-[#334155] dark:text-slate-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-ink-muted shadow-sm transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-surface-raised"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Kembali</span>
                 </button>
               )}
+              {isFirstStep && (
+                <span className="hidden text-[11px] font-medium text-ink-subtle sm:inline">
+                  Langkah {stepIndex + 1} dari {steps.length}
+                </span>
+              )}
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isPending}
-                className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border bg-white dark:bg-surface-raised hover:bg-[#F1F5F9] dark:hover:bg-surface text-[#334155] dark:text-slate-200 font-medium text-xs transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
+                className="cursor-pointer rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-ink-muted shadow-sm transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-surface-raised"
               >
                 Batal
               </button>
@@ -220,7 +231,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                   type="button"
                   onClick={onSubmit}
                   disabled={!isCurrentValid || isPending}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#12388F] to-[#0D2A6B] hover:from-[#0D2A6B] hover:to-[#0A2154] text-white font-bold text-xs shadow-md shadow-[#12388F]/25 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#12388F] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPending ? (
                     <>
@@ -236,7 +247,7 @@ export const StepModal: React.FC<StepModalProps> = ({
                   type="button"
                   onClick={onNext}
                   disabled={!isCurrentValid || isPending}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#12388F] to-[#0D2A6B] hover:from-[#0D2A6B] hover:to-[#0A2154] text-white font-bold text-xs shadow-md shadow-[#12388F]/25 flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#12388F] px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span>Lanjut</span>
                   <ChevronRight className="w-4 h-4" />
