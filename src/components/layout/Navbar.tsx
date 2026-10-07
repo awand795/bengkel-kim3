@@ -45,7 +45,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white dark:bg-surface-raised border-b border-[#E2E8F0] dark:border-border font-sans safe-top shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <header className="sticky top-0 z-40 bg-surface-raised border-b border-[#E2E8F0] dark:border-border font-sans safe-top shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         {/* Mobile Header (< 768px) */}
         <div className="flex md:hidden items-center justify-between px-3 h-14">
           <div className="flex items-center">

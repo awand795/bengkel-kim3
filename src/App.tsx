@@ -110,7 +110,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="app-layout min-h-screen bg-[#F8FAFC] dark:bg-surface flex flex-col font-sans text-ink pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+    <div className="app-layout min-h-screen bg-surface flex flex-col font-sans text-ink pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
       {/* Top App Header */}
       <Navbar />
 
@@ -119,7 +119,7 @@ export const App: React.FC = () => {
         <Sidebar />
 
         {/* Main Content Area */}
-        <main className="dashboard-page flex-1 overflow-y-auto max-h-[calc(100vh-60px)] bg-[#F8FAFC] dark:bg-surface">
+        <main className="dashboard-page flex-1 overflow-y-auto max-h-[calc(100vh-60px)] bg-surface">
           <div className="max-w-[1400px] mx-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
             <div key={activeTab} className="app-page-transition w-full">
               {renderActiveView()}

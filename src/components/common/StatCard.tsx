@@ -110,7 +110,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           onClick();
         }
       }}
-      className={`bg-white dark:bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 sm:p-5 relative flex flex-col justify-between overflow-hidden shadow-xs transition-all duration-200 hover:-translate-y-[2px] hover:shadow-md ${
+      className={`bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 sm:p-5 relative flex flex-col justify-between overflow-hidden shadow-xs transition-all duration-200 hover:-translate-y-[2px] hover:shadow-md ${
         theme.hoverBorder
       } ${
         active

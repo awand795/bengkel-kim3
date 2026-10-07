@@ -47,7 +47,7 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-64 bg-white dark:bg-surface-raised border-r border-[#E2E8F0] dark:border-border hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-60px)] py-5 px-4 font-sans overflow-y-auto">
+    <aside className="w-64 bg-surface-raised border-r border-[#E2E8F0] dark:border-border hidden md:flex flex-col justify-between shrink-0 min-h-[calc(100vh-60px)] py-5 px-4 font-sans overflow-y-auto">
       <div>
         <nav className="space-y-1">
           {navigationItems.map((item) => {
@@ -80,7 +80,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Bottom Assistance Card & Copyright as shown in Mockup image5.png */}
       <div className="space-y-4 pt-6">
-        <div className="p-4 rounded-xl bg-[#F8FAFC] dark:bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] space-y-2.5 shadow-2xs">
+        <div className="p-4 rounded-xl bg-surface border border-[#E2E8F0] dark:border-border text-[#475569] space-y-2.5 shadow-2xs">
           <div className="text-xs font-bold text-[#0F172A] dark:text-white flex items-center gap-1.5">
             <HelpCircle className="w-4 h-4 text-[#12388F] dark:text-blue-400" />
             <span>Butuh Bantuan?</span>

@@ -361,7 +361,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
               )}
 
               {/* Stepper Progress Bar (image5.png Mockup 2 Stepper) */}
-              <div className="py-5 px-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-white dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
+              <div className="py-5 px-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-surface-raised dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
                 <div className="flex items-start justify-between min-w-[650px]">
                   {[
                     { step: 1, title: 'Check In', desc: 'Diterima Security', done: true, waktu: spk.waktu_check_in || spk.created_at },
@@ -475,7 +475,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                 {/* TAB 1: Progress Pekerjaan */}
                 {subTab === 'progress' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-                    <div className="space-y-3 p-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-white dark:from-slate-800/40 dark:to-transparent">
+                    <div className="space-y-3 p-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-surface-raised dark:from-slate-800/40 dark:to-transparent">
                       <span className="font-black text-ink flex items-center gap-2">
                         <span className="w-6 h-6 rounded-lg bg-accent text-white flex items-center justify-center shadow-2xs shrink-0">
                           <Clock className="w-3.5 h-3.5" />
@@ -1955,7 +1955,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             disabled
             className={`${
               compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'
-            } rounded-xl font-bold border border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-800 text-[#94A3B8] dark:text-slate-500 cursor-not-allowed inline-flex items-center gap-1.5`}
+            } rounded-xl font-bold border border-[#E2E8F0] dark:border-slate-700 bg-surface dark:bg-slate-800 text-[#94A3B8] dark:text-slate-500 cursor-not-allowed inline-flex items-center gap-1.5`}
           >
             <Lock className="w-3 h-3 text-[#94A3B8] dark:text-slate-500" />
             <span>Batalkan</span>
@@ -2367,16 +2367,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         <div className="space-y-6">
           {/* Welcome Banner */}
           <div
-            style={{ background: 'linear-gradient(120deg, #1D4ED8 0%, #2563EB 55%, #3B82F6 100%)' }}
-            className="rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border-0 text-white"
+            className="rounded-xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border-0 bg-[#1D4ED8] text-white dark:bg-[#1B42B8]"
           >
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.18] border border-white/30 text-xs font-semibold text-white mb-2 shadow-2xs">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/25 text-white text-xs font-semibold mb-2 shadow-2xs">
                 <Truck className="w-3.5 h-3.5 text-white" />
                 Portal Monitoring Fleet KIM 3 Medan
               </div>
               <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
-              <p className="text-xs text-[#E0EAFF] mt-1 max-w-xl leading-relaxed font-normal">
+              <p className="text-xs text-white/80 mt-1 max-w-xl leading-relaxed font-normal">
                 Pantau status perbaikan kendaraan, jadwalkan booking perawatan berkala, serta kelola dokumen perizinan STNK & KIR secara realtime.
               </p>
             </div>
@@ -2392,7 +2391,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   setFleetMenu('booking');
                   setActiveTab('fleet-booking');
                 }}
-                className={`px-4 py-2.5 bg-white hover:bg-[#EFF6FF] active:bg-[#DBEAFE] text-[#1D4ED8] text-xs font-semibold rounded-xl border-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-[1px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-[#2563EB] flex items-center gap-2 ${
+                className={`px-4 py-2.5 bg-white hover:bg-[#EFF6FF] active:bg-[#DBEAFE] text-[#1D4ED8] text-xs font-semibold rounded-xl border-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-[1px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-[#1D4ED8] flex items-center gap-2 ${
                   !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
                 title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
@@ -2487,8 +2486,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Booking Saya: Daftar booking aktif */}
-          <div className="rounded-3xl border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-[#EEF2F7] dark:border-border bg-gradient-to-r from-[#F8FAFF] via-white to-white dark:from-slate-800/50 dark:via-surface-raised dark:to-surface-raised">
+          <div className="rounded-3xl border border-[#E2E8F0] dark:border-border bg-surface-raised overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-[#EEF2F7] dark:border-border bg-gradient-to-r from-[#F8FAFF] via-surface-raised to-surface-raised dark:from-slate-800/50 dark:via-surface-raised dark:to-surface-raised">
               <h3 className="text-sm font-black text-ink flex items-center gap-2.5 tracking-tight">
                 <span className="w-8 h-8 rounded-xl bg-[#12388F] text-white flex items-center justify-center shadow-md shadow-[#12388F]/25 dark:bg-blue-950/60 dark:text-blue-300">
                   <Calendar className="w-4 h-4" />
@@ -2506,7 +2505,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 {[1, 2, 3].map((n) => (
                   <div
                     key={n}
-                    className="rounded-2xl p-4 border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface-raised flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs animate-pulse"
+                    className="rounded-2xl p-4 border border-[#E2E8F0] dark:border-border bg-surface-raised flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs animate-pulse"
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
                       <div className="w-[52px] h-[52px] rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0" />
@@ -2534,7 +2533,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     return (
                       <ListItemCard
                         key={b.id}
-                        className="rounded-2xl p-4 sm:p-4 border-[#E2E8F0] dark:border-border hover:border-[#12388F]/30 hover:bg-[#FAFBFF] dark:hover:bg-slate-800/40 shadow-2xs hover:shadow-md hover:-translate-y-[2px] transition-all duration-150 animate-booking-row before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-l-2xl before:content-[''] before:bg-gradient-to-b before:from-[#12388F] before:to-[#3B6FD4] hover:before:from-[#F59E0B] hover:before:to-[#F59E0B]"
+                        className="rounded-2xl p-4 sm:p-4 border-[#E2E8F0] dark:border-border hover:border-[#12388F]/30 hover:bg-[#EEF4FF] dark:hover:bg-slate-800/40 shadow-2xs hover:shadow-md hover:-translate-y-[2px] transition-all duration-150 animate-booking-row before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-l-2xl before:content-[''] before:bg-gradient-to-b before:from-[#12388F] before:to-[#3B6FD4] hover:before:from-[#F59E0B] hover:before:to-[#F59E0B]"
                         style={{
                           animationDelay: `${staggerDelay}ms`,
                         }}
@@ -2546,7 +2545,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         }
                         subtitle={
                           <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                            <span className="inline-flex items-center gap-1.5 text-xs text-[#334155] dark:text-slate-300 bg-[#F8FAFC] dark:bg-slate-800/80 px-3 py-1 rounded-full border border-[#E2E8F0] dark:border-slate-700/60 font-semibold">
+                            <span className="inline-flex items-center gap-1.5 text-xs text-[#334155] dark:text-slate-300 bg-surface dark:bg-slate-800/80 px-3 py-1 rounded-full border border-[#E2E8F0] dark:border-slate-700/60 font-semibold">
                               <Wrench className="w-3.5 h-3.5 text-[#12388F] dark:text-blue-400 shrink-0" />
                               <span>{b.jenis_layanan}</span>
                             </span>
@@ -3186,23 +3185,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </span>
                         </div>
                         <div className="p-4 sm:p-5 space-y-2.5">
-                          <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
+                          <div className="flex items-center justify-between gap-3 bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
                             <span className="text-ink-muted font-semibold">Kendaraan:</span>
                             <span className="font-mono font-black text-ink text-sm bg-surface-raised dark:bg-surface px-2.5 py-0.5 rounded-lg border border-border">
                               {formatPlat(bookingForm.no_polisi)}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
+                          <div className="flex items-center justify-between gap-3 bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
                             <span className="text-ink-muted font-semibold">Jenis Layanan:</span>
                             <span className="font-bold text-ink text-right">{bookingForm.jenis_layanan}</span>
                           </div>
-                          <div className="flex items-center justify-between gap-3 bg-white dark:bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
+                          <div className="flex items-center justify-between gap-3 bg-surface-raised border border-border/70 rounded-xl px-3.5 py-2.5">
                             <span className="text-ink-muted font-semibold">Jadwal Masuk:</span>
                             <span className="font-mono font-bold text-accent tabular-nums">{bookingForm.tanggal_booking} • Pukul {bookingForm.jam_booking} WIB</span>
                           </div>
                           <div className="pt-1.5 text-ink-muted">
                             <span className="font-bold text-ink block mb-1">Catatan Keluhan:</span>
-                            <p className="text-ink font-medium leading-relaxed bg-white dark:bg-surface-raised p-3 rounded-xl border border-dashed border-border">
+                            <p className="text-ink font-medium leading-relaxed bg-surface-raised p-3 rounded-xl border border-dashed border-border">
                               {bookingForm.keluhan || 'Tidak ada catatan keluhan khusus.'}
                             </p>
                           </div>
@@ -3252,7 +3251,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Pencarian kendaraan dalam toolbar */}
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-[#F8FAFC] dark:bg-slate-900/40 p-2.5 sm:p-3 mb-4">
+          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-surface dark:bg-slate-900/40 p-2.5 sm:p-3 mb-4">
             <div className="relative">
               <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
@@ -3284,7 +3283,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 return (
                   <div
                     key={k.id}
-                    className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-4 sm:p-5 hover:border-[#12388F]/30 hover:shadow-xs transition-all flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-6 shadow-2xs"
+                    className="bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-4 sm:p-5 hover:border-[#12388F]/30 hover:shadow-xs transition-all flex flex-col xl:flex-row xl:items-center justify-between gap-4 sm:gap-6 shadow-2xs"
                   >
                     {/* Zona 1: Foto 88px, Plat Chip & Identitas Utama */}
                     <div className="flex items-start sm:items-center gap-4 min-w-[240px] sm:min-w-[280px]">
@@ -3542,7 +3541,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
       {/* MENU 4: DOKUMEN SAYA — berkas kendaraan + faktur otomatis (service & beli part) */}
       {fleetMenu === 'dokumen' && (
-        <div className="bg-white dark:bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-5 shadow-xs">
+        <div className="bg-surface-raised rounded-xl border border-[#E2E8F0] dark:border-border p-5 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E8F0] dark:border-border pb-3 mb-4">
             <div>
               <h2 className="text-base font-bold text-ink">Dokumen Saya</h2>
@@ -3572,7 +3571,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Filter kendaraan (plat nomor) dalam toolbar */}
-          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-[#F8FAFC] dark:bg-surface p-2.5 sm:p-3 mb-4 flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <div className="rounded-xl border border-[#E2E8F0] dark:border-border bg-surface p-2.5 sm:p-3 mb-4 flex flex-col sm:flex-row sm:items-center gap-2.5">
             <div className="relative sm:max-w-xs w-full">
               <Search className="w-4 h-4 text-[#64748B] dark:text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
@@ -3602,10 +3601,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {dokumenRows.length > 0 ? (
-            <div className="rounded-xl border border-[#E2E8F0] dark:border-border overflow-hidden bg-white dark:bg-surface-raised shadow-xs">
+            <div className="rounded-xl border border-[#E2E8F0] dark:border-border overflow-hidden bg-surface-raised shadow-xs">
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F8FAFC] dark:bg-surface text-[11px] uppercase tracking-wide text-[#64748B] dark:text-ink-subtle font-semibold border-b border-[#E2E8F0] dark:border-border sticky top-0">
+                  <thead className="bg-surface text-[11px] uppercase tracking-wide text-[#64748B] dark:text-ink-subtle font-semibold border-b border-[#E2E8F0] dark:border-border sticky top-0">
                     <tr>
                       <th className="py-3 px-3 font-semibold">Nama Dokumen</th>
                       <th className="py-3 px-3 font-semibold">Jenis</th>
@@ -3650,7 +3649,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
               <div className="block md:hidden p-3 space-y-2.5">
                 {dokumenRows.map((item) => (
-                  <div key={`doc-${item.id}`} className="rounded-xl border border-[#E2E8F0] dark:border-border bg-white dark:bg-surface p-3.5">
+                  <div key={`doc-${item.id}`} className="rounded-xl border border-[#E2E8F0] dark:border-border bg-surface p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="text-sm font-bold text-[#0F172A] dark:text-ink leading-snug">{item.nama_dokumen}</div>
@@ -3685,7 +3684,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               {/* Pagination menempel di footer container tabel */}
-              <div className="bg-[#F8FAFC] dark:bg-surface px-4 pb-3">
+              <div className="bg-surface px-4 pb-3">
                 <PaginationBar
                   page={dokumenSafePage}
                   totalPages={dokumenTotalPages}
@@ -3701,7 +3700,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
           ) : (
-            <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] dark:border-border rounded-xl bg-[#F8FAFC] dark:bg-surface space-y-3">
+            <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] dark:border-border rounded-xl bg-surface space-y-3">
               <div className="w-12 h-12 rounded-xl bg-[#EEF2FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-400 flex items-center justify-center mx-auto">
                 <FileText className="w-6 h-6" />
               </div>
@@ -4126,9 +4125,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Satu kartu tunggal */}
-          <div className="bg-white dark:bg-surface-raised rounded-3xl border border-[#E2E8F0] dark:border-border shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden">
+          <div className="bg-surface-raised rounded-3xl border border-[#E2E8F0] dark:border-border shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden">
             {/* Toolbar: Tab di kiri, pencarian di kanan */}
-            <div className="px-5 pt-4 border-b border-[#EEF2F7] dark:border-border flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#F8FAFF] via-white to-white dark:from-slate-800/50 dark:via-surface-raised dark:to-surface-raised">
+            <div className="px-5 pt-4 border-b border-[#EEF2F7] dark:border-border flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#F8FAFF] via-surface-raised to-surface-raised dark:from-slate-800/50 dark:via-surface-raised dark:to-surface-raised">
               {/* Tab Filter Status */}
               <div className="order-2 md:order-1">
                 <FilterChips
@@ -4258,7 +4257,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div
                       key={spk.id}
                       onClick={() => setHistoryDetail(spk)}
-                      className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800/60 p-4 transition-all hover:border-[#12388F]/40 hover:shadow-md active:scale-[0.995] cursor-pointer before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-gradient-to-b before:from-[#12388F] before:to-[#3B6FD4] before:content-['']"
+                      className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] dark:border-slate-700 bg-surface-raised dark:bg-slate-800/60 p-4 transition-all hover:border-[#12388F]/40 hover:shadow-md active:scale-[0.995] cursor-pointer before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-gradient-to-b before:from-[#12388F] before:to-[#3B6FD4] before:content-['']"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-[#12388F] dark:text-blue-400 bg-[#EEF2FF] dark:bg-blue-950/40 border border-[#12388F]/15 dark:border-blue-900/50 px-2.5 py-1 rounded-lg">
@@ -4277,13 +4276,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       </p>
 
                       <div className="mt-3 pt-3 border-t border-dashed border-[#E2E8F0] dark:border-slate-700 grid grid-cols-2 gap-2 text-xs">
-                        <div className="rounded-xl bg-[#F8FAFC] dark:bg-slate-900/50 border border-[#EEF2F7] dark:border-slate-700 px-3 py-2">
+                        <div className="rounded-xl bg-surface dark:bg-slate-900/50 border border-border dark:border-slate-700 px-3 py-2">
                           <span className="block text-[10px] uppercase tracking-[0.08em] font-black text-[#94A3B8] dark:text-slate-500 mb-0.5">Tanggal Masuk</span>
                           <span className="text-[13px] text-[#334155] dark:text-slate-200 font-bold tabular-nums">
                             {new Date(spk.created_at).toLocaleDateString('id-ID')}
                           </span>
                         </div>
-                        <div className="rounded-xl bg-[#F8FAFC] dark:bg-slate-900/50 border border-[#EEF2F7] dark:border-slate-700 px-3 py-2 text-right">
+                        <div className="rounded-xl bg-surface dark:bg-slate-900/50 border border-border dark:border-slate-700 px-3 py-2 text-right">
                           <span className="block text-[10px] uppercase tracking-[0.08em] font-black text-[#94A3B8] dark:text-slate-500 mb-0.5">Biaya</span>
                           <RupiahCell amount={spk.estimasi_biaya} />
                         </div>
@@ -4311,7 +4310,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   totalRecords={historyFiltered.length}
                   limit={historyLimit}
                   label="riwayat service"
-                  className="px-5 py-3 bg-[#FAFBFD] dark:bg-slate-900/40"
+                  className="px-5 py-3 bg-surface dark:bg-slate-900/40"
                   onPageChange={setHistoryPage}
                   onLimitChange={(l) => {
                     setHistoryLimit(l);

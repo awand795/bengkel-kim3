@@ -52,7 +52,7 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({
       onClick={onClick}
       onKeyDown={handleKeyDown}
       style={style}
-      className={`group bg-white dark:bg-surface-raised rounded-xl p-4 border transition-all duration-150 relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
+      className={`group bg-surface-raised rounded-xl p-4 border transition-all duration-150 relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
         selected
           ? 'border-[#12388F] ring-2 ring-[#12388F]/20 shadow-xs'
           : 'border-[#E2E8F0] dark:border-border hover:-translate-y-[1px] hover:border-[#12388F]/30 hover:shadow-xs'
@@ -112,7 +112,7 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({
           </div>
         )}
         {onClick && (
-          <div className="w-7 h-7 rounded-lg bg-[#F8FAFC] dark:bg-slate-800 flex items-center justify-center text-[#64748B] group-hover:text-[#12388F] dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-surface dark:bg-slate-800 flex items-center justify-center text-[#64748B] group-hover:text-[#12388F] dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0">
             <ChevronRight className="w-4 h-4" />
           </div>
         )}

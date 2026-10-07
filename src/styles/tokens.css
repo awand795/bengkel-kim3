@@ -9,7 +9,7 @@
   --color-ink-subtle: #64748B;
 
   --color-surface: #EEF2F7;
-  --color-surface-raised: #FFFFFF;
+  --color-surface-raised: #F8FAFC;
   --color-surface-dark: #0B1F4D;
   --color-border-dark: #1E2D4A;
 
@@ -50,8 +50,8 @@
   --color-ink-muted: #475569;        /* Slate 600 — teks sekunder / label */
   --color-ink-subtle: #64748B;       /* Slate 500 — teks tersier / placeholder */
 
-  --color-surface: #F8FAFC;          /* Latar belakang halaman konten utama */
-  --color-surface-raised: #FFFFFF;   /* Panel & kartu putih bersih */
+  --color-surface: #EEF2F7;          /* Latar halaman konten utama — putih lembut anti-silau */
+  --color-surface-raised: #F8FAFC;   /* Panel, kartu, sidebar & navbar — putih halus */
   --color-surface-dark: #0B1F4D;     /* Navy gelap — hero / sidebar */
 
   --color-accent: #12388F;           /* Primary (brand) navy tua senada logo KIM3 Bengkel */
