@@ -45,6 +45,7 @@ SELECT
     mu.memberid,
     m.id AS member_id,
     m.member_fleet_id,
+    m.member_fleet_id AS id_pelanggan,
     m.mobilenumber AS member_mobilenumber,
     m.membername AS member_membername,
     m.membername AS nama_perusahaan,

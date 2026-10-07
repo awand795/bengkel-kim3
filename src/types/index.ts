@@ -61,6 +61,7 @@ export interface Kendaraan {
   no_polisi: string;
   policeno?: string;
   id_pelanggan?: number;
+  member_fleet_id?: number;
   member_id?: number;
   memberid?: number;
   nama_perusahaan?: string;

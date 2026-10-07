@@ -1612,19 +1612,28 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Multi-tenant Customer Scoping:
   // Pelanggan ID & Nama Perusahaan dari sesi login akun mitra aktif
-  const myPelangganId = authUser?.id_pelanggan || null;
+  const myPelangganId = authUser?.id_pelanggan || authUser?.id || null;
   const myCompanyName = (authUser?.nama_perusahaan || authUser?.nama_lengkap || '').toLowerCase().trim();
 
   // Status Verifikasi POS / Admin
   const isVerifiedByAdmin = authUser?.pos_verifikasi === true;
 
-  // Predikat kepemilikan kendaraan (guard tambahan di atas filter tenant SQL)
+  // Predikat kepemilikan kendaraan (guard berbasis relasi ID murni dengan fallback)
   const isMyKendaraan = (k: Kendaraan) => {
-    if (myPelangganId && k.id_pelanggan === myPelangganId) return true;
-    if (myCompanyName && (
-      (k.nama_pemilik && k.nama_pemilik.toLowerCase().trim() === myCompanyName) ||
-      (k.nama_perusahaan && k.nama_perusahaan.toLowerCase().trim() === myCompanyName)
-    )) return true;
+    // 1. Relasi Strict by ID: id_pelanggan atau member_fleet_id sama dengan ID pengguna yang login
+    const targetUserId = authUser?.id || myPelangganId;
+    if (targetUserId) {
+      if (k.id_pelanggan === targetUserId || k.member_fleet_id === targetUserId) {
+        return true;
+      }
+    }
+    // 2. Fallback sekunder jika data unit belum terisi id_pelanggan / member_fleet_id
+    if (!k.id_pelanggan && !k.member_fleet_id && myCompanyName) {
+      return (
+        (k.nama_pemilik && k.nama_pemilik.toLowerCase().trim() === myCompanyName) ||
+        (k.nama_perusahaan && k.nama_perusahaan.toLowerCase().trim() === myCompanyName)
+      );
+    }
     return false;
   };
 
