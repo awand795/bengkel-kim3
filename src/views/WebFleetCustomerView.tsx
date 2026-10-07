@@ -4401,231 +4401,255 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {openTambahArmadaModal && (
         <ModalPortal onClose={() => setOpenTambahArmadaModal(false)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 sm:py-8 md:py-10 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm app-backdrop-in">
-            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-xl w-full max-h-[90dvh] sm:max-h-[85vh] flex flex-col overflow-hidden app-modal-in my-auto">
-            {/* Modal Header */}
-            <div className="px-6 sm:px-8 py-5 border-b border-border flex items-center justify-between bg-surface shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#E0E7FF] text-[#12388F] dark:bg-blue-950/40 dark:text-blue-300 flex items-center justify-center">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-ink">Tambah Unit Kendaraan Baru</h3>
-                  <p className="text-xs text-ink-muted">Daftarkan kendaraan operasional ke database Bengkel KIM 3</p>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/60 backdrop-blur-sm app-backdrop-in">
+            <div className="bg-surface-raised rounded-2xl border border-border shadow-2xl max-w-2xl w-full max-h-[92dvh] flex flex-col overflow-hidden app-modal-in my-auto">
+              <div className="shrink-0 border-b border-border bg-surface-raised px-5 py-3 sm:px-7">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-ink-muted">
+                      <Truck className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold tracking-tight text-ink sm:text-base">Tambah Unit Kendaraan Baru</h3>
+                      <p className="mt-0.5 text-[11px] leading-snug text-ink-muted">
+                        Daftarkan kendaraan operasional ke database Bengkel KIM 3
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setOpenTambahArmadaModal(false)}
+                    aria-label="Tutup modal"
+                    className="shrink-0 rounded-lg p-1.5 text-ink-subtle transition hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpenTambahArmadaModal(false)}
-                className="p-1.5 rounded-xl text-ink-subtle hover:text-ink-muted hover:bg-surface transition cursor-pointer"
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!armadaForm.no_polisi.trim()) {
+                    toast.warning('Nomor Polisi wajib diisi.');
+                    return;
+                  }
+                  tambahArmadaMutation.mutate(armadaForm);
+                }}
+                className="flex min-h-0 flex-1 flex-col"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+                <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+                  <section aria-labelledby="armada-identitas-heading">
+                    <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
+                      <div>
+                        <h4 id="armada-identitas-heading" className="text-xs font-bold text-ink">Identitas kendaraan</h4>
+                        <p className="mt-0.5 text-[11px] text-ink-subtle">Informasi utama untuk mengenali unit</p>
+                      </div>
+                      <span className="text-[10px] font-medium text-ink-subtle"><span className="text-status-red">*</span> Wajib diisi</span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="armada-no-polisi" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          No. Polisi <span className="text-status-red">*</span>
+                        </label>
+                        <input
+                          id="armada-no-polisi"
+                          type="text"
+                          required
+                          placeholder="Contoh: BK 9999 XX"
+                          value={armadaForm.no_polisi}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, no_polisi: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="armada-unit-name" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Nama Unit / Panggilan
+                        </label>
+                        <input
+                          id="armada-unit-name"
+                          type="text"
+                          placeholder="Contoh: Fuso Wingbox Medan-Aceh"
+                          value={armadaForm.unit_name}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, unit_name: e.target.value })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        />
+                      </div>
+                    </div>
+                  </section>
 
-            {/* Modal Body */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!armadaForm.no_polisi.trim()) {
-                  toast.warning('Nomor Polisi wajib diisi.');
-                  return;
-                }
-                tambahArmadaMutation.mutate(armadaForm);
-              }}
-              className="px-6 sm:px-8 py-6 sm:py-7 overflow-y-auto space-y-5 flex-1"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">
-                    No. Polisi <span className="text-status-red">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: BK 9999 XX"
-                    value={armadaForm.no_polisi}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, no_polisi: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">
-                    Nama Unit / Panggilan
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Fuso Wingbox Medan-Aceh"
-                    value={armadaForm.unit_name}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, unit_name: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Merk</label>
-                  <select
-                    value={armadaForm.merk}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
-                  >
-                    <option value="">-- Pilih Merk --</option>
-                    {masterMerkList.map((m) => (
-                      <option key={m.id} value={m.brandname}>
-                        {m.brandname}
-                      </option>
-                    ))}
-                    {armadaForm.merk && !masterMerkList.some((m) => m.brandname.toLowerCase() === armadaForm.merk.toLowerCase()) && (
-                      <option value={armadaForm.merk}>{armadaForm.merk}</option>
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Model / Seri</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Dutro 130HD"
-                    value={armadaForm.model}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">
-                    Tipe / Bentuk Kendaraan
-                  </label>
-                  <select
-                    value={armadaForm.type || armadaForm.jenis_armada}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, type: e.target.value, jenis_armada: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-semibold focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised"
-                  >
-                    <option value="">-- Pilih Tipe Kendaraan --</option>
-                    {armadaForm.merk && masterTipeList.filter((t) => t.brandname?.toLowerCase() === armadaForm.merk.toLowerCase()).length > 0 && (
-                      <optgroup label={`Tipe Sesuai Merk (${armadaForm.merk})`}>
-                        {masterTipeList
-                          .filter((t) => t.brandname?.toLowerCase() === armadaForm.merk.toLowerCase())
-                          .map((t) => (
-                            <option key={`merk-tipe-${t.id}`} value={t.typename}>
-                              {t.typename} {t.modelname ? `(${t.modelname})` : ''}
-                            </option>
+                  <section aria-labelledby="armada-spesifikasi-heading">
+                    <div className="mb-3 border-b border-border pb-2">
+                      <h4 id="armada-spesifikasi-heading" className="text-xs font-bold text-ink">Spesifikasi unit</h4>
+                      <p className="mt-0.5 text-[11px] text-ink-subtle">Merk, model, dan bentuk kendaraan</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="armada-merk" className="mb-1.5 block text-xs font-semibold text-ink-muted">Merk</label>
+                        <select
+                          id="armada-merk"
+                          value={armadaForm.merk}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value })}
+                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        >
+                          <option value="">-- Pilih Merk --</option>
+                          {masterMerkList.map((m) => (
+                            <option key={m.id} value={m.brandname}>{m.brandname}</option>
                           ))}
-                      </optgroup>
-                    )}
-                    <optgroup label="Tipe / Bentuk Karoseri Armada">
-                      {['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].map((b) => (
-                        <option key={`common-${b}`} value={b}>
-                          {b}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Tipe Kendaraan Lainnya">
-                      {Array.from(new Set(masterTipeList.map((t) => t.typename).filter(Boolean))).map((tn) => (
-                        <option key={`pos-type-${tn}`} value={tn}>
-                          {tn}
-                        </option>
-                      ))}
-                    </optgroup>
-                    {(armadaForm.type || armadaForm.jenis_armada) &&
-                      !masterTipeList.some((t) => t.typename?.toLowerCase() === (armadaForm.type || armadaForm.jenis_armada).toLowerCase()) &&
-                      !['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].some(
-                        (b) => b.toLowerCase() === (armadaForm.type || armadaForm.jenis_armada).toLowerCase()
-                      ) && (
-                        <option value={armadaForm.type || armadaForm.jenis_armada}>
-                          {armadaForm.type || armadaForm.jenis_armada}
-                        </option>
-                      )}
-                  </select>
+                          {armadaForm.merk && !masterMerkList.some((m) => m.brandname.toLowerCase() === armadaForm.merk.toLowerCase()) && (
+                            <option value={armadaForm.merk}>{armadaForm.merk}</option>
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="armada-model" className="mb-1.5 block text-xs font-semibold text-ink-muted">Model / Seri</label>
+                        <input
+                          id="armada-model"
+                          type="text"
+                          placeholder="Contoh: Dutro 130HD"
+                          value={armadaForm.model}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="armada-type" className="mb-1.5 block text-xs font-semibold text-ink-muted">Tipe / Bentuk Kendaraan</label>
+                        <select
+                          id="armada-type"
+                          value={armadaForm.type || armadaForm.jenis_armada}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, type: e.target.value, jenis_armada: e.target.value })}
+                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        >
+                          <option value="">-- Pilih Tipe Kendaraan --</option>
+                          {armadaForm.merk && masterTipeList.filter((t) => t.brandname?.toLowerCase() === armadaForm.merk.toLowerCase()).length > 0 && (
+                            <optgroup label={`Tipe Sesuai Merk (${armadaForm.merk})`}>
+                              {masterTipeList
+                                .filter((t) => t.brandname?.toLowerCase() === armadaForm.merk.toLowerCase())
+                                .map((t) => (
+                                  <option key={`merk-tipe-${t.id}`} value={t.typename}>
+                                    {t.typename} {t.modelname ? `(${t.modelname})` : ''}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          )}
+                          <optgroup label="Tipe / Bentuk Karoseri Armada">
+                            {['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].map((b) => (
+                              <option key={`common-${b}`} value={b}>{b}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Tipe Kendaraan Lainnya">
+                            {Array.from(new Set(masterTipeList.map((t) => t.typename).filter(Boolean))).map((tn) => (
+                              <option key={`pos-type-${tn}`} value={tn}>{tn}</option>
+                            ))}
+                          </optgroup>
+                          {(armadaForm.type || armadaForm.jenis_armada) &&
+                            !masterTipeList.some((t) => t.typename?.toLowerCase() === (armadaForm.type || armadaForm.jenis_armada).toLowerCase()) &&
+                            !['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].some(
+                              (b) => b.toLowerCase() === (armadaForm.type || armadaForm.jenis_armada).toLowerCase()
+                            ) && (
+                              <option value={armadaForm.type || armadaForm.jenis_armada}>
+                                {armadaForm.type || armadaForm.jenis_armada}
+                              </option>
+                            )}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="armada-tahun" className="mb-1.5 block text-xs font-semibold text-ink-muted">Tahun Pembuatan</label>
+                        <input
+                          id="armada-tahun"
+                          type="number"
+                          min="1990"
+                          max={new Date().getFullYear() + 1}
+                          value={armadaForm.tahun}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, tahun: Number(e.target.value) })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section aria-labelledby="armada-dokumen-heading">
+                    <div className="mb-3 border-b border-border pb-2">
+                      <h4 id="armada-dokumen-heading" className="text-xs font-bold text-ink">Identitas teknis & masa berlaku</h4>
+                      <p className="mt-0.5 text-[11px] text-ink-subtle">Nomor kendaraan dan pengingat dokumen</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="armada-no-rangka" className="mb-1.5 block text-xs font-semibold text-ink-muted">Nomor Rangka (VIN)</label>
+                        <input
+                          id="armada-no-rangka"
+                          type="text"
+                          placeholder="MHKHINO..."
+                          value={armadaForm.no_rangka}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, no_rangka: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="armada-no-mesin" className="mb-1.5 block text-xs font-semibold text-ink-muted">Nomor Mesin</label>
+                        <input
+                          id="armada-no-mesin"
+                          type="text"
+                          placeholder="J08E-..."
+                          value={armadaForm.no_mesin}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, no_mesin: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label htmlFor="armada-expired" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Masa Berlaku (Pajak/STNK/Asuransi)
+                        </label>
+                        <input
+                          id="armada-expired"
+                          type="date"
+                          value={armadaForm.expired || armadaForm.masa_berlaku_asuransi}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, expired: e.target.value, masa_berlaku_asuransi: e.target.value })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section aria-labelledby="armada-foto-heading">
+                    <div className="mb-3 border-b border-border pb-2">
+                      <h4 id="armada-foto-heading" className="text-xs font-bold text-ink">Foto unit <span className="font-normal text-ink-subtle">(opsional)</span></h4>
+                      <p className="mt-0.5 text-[11px] text-ink-subtle">Tambahkan foto agar unit mudah dikenali</p>
+                    </div>
+                    <PhotoUploader
+                      label=""
+                      value={armadaForm.foto_kendaraan}
+                      onChange={(url) => setArmadaForm({ ...armadaForm, foto_kendaraan: url })}
+                    />
+                    <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
+                      Foto tersimpan otomatis dengan kompresi. Maks. 15 MB; JPG, PNG, atau WebP. Foto tampil di daftar setelah unit disimpan.
+                    </p>
+                  </section>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Tahun Pembuatan</label>
-                  <input
-                    type="number"
-                    min="1990"
-                    max={new Date().getFullYear() + 1}
-                    value={armadaForm.tahun}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, tahun: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
-                  />
+                <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-surface-raised px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+                  <button
+                    type="button"
+                    onClick={() => setOpenTambahArmadaModal(false)}
+                    className="rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-ink-muted transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:bg-surface"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={tambahArmadaMutation.isPending || !isVerifiedByAdmin}
+                    className={`flex items-center justify-center gap-2 rounded-lg bg-[#12388F] px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-accent/20 transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                      !isVerifiedByAdmin ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                    }`}
+                    title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Kendaraan'}</span>
+                  </button>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Nomor Rangka (VIN)</label>
-                  <input
-                    type="text"
-                    placeholder="MHKHINO..."
-                    value={armadaForm.no_rangka}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, no_rangka: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden uppercase"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-ink-muted mb-1">Nomor Mesin</label>
-                  <input
-                    type="text"
-                    placeholder="J08E-..."
-                    value={armadaForm.no_mesin}
-                    onChange={(e) => setArmadaForm({ ...armadaForm, no_mesin: e.target.value.toUpperCase() })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden uppercase"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-ink-muted mb-1">Masa Berlaku (Pajak/STNK/Asuransi)</label>
-                <input
-                  type="date"
-                  value={armadaForm.expired || armadaForm.masa_berlaku_asuransi}
-                  onChange={(e) => setArmadaForm({ ...armadaForm, expired: e.target.value, masa_berlaku_asuransi: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-border text-xs font-mono focus:ring-2 focus:ring-accent focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <PhotoUploader
-                  label="Foto Unit Kendaraan (Opsional)"
-                  value={armadaForm.foto_kendaraan}
-                  onChange={(url) => setArmadaForm({ ...armadaForm, foto_kendaraan: url })}
-                />
-                <p className="text-xs text-ink-subtle mt-1">
-                  Foto tersimpan otomatis ke database (kompresi otomatis, maks. 15MB). Tampil di daftar kendaraan setelah unit disimpan.
-                </p>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setOpenTambahArmadaModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] dark:border-border text-xs font-bold text-[#334155] dark:text-ink-muted bg-white dark:bg-surface hover:bg-[#F1F5F9] dark:hover:bg-surface-raised transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={tambahArmadaMutation.isPending || !isVerifiedByAdmin}
-                  className={`px-5 py-2.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold shadow-md shadow-accent/20 transition flex items-center gap-1.5 ${
-                    !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  }`}
-                  title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Kendaraan'}</span>
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
         </ModalPortal>
       )}
 
