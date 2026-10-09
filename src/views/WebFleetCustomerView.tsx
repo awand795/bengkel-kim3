@@ -664,8 +664,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/70 dark:hover:bg-slate-700/60'
                     }`}
                   >
-                    <Camera className="w-4 h-4" />
-                    Dokumen & Foto Kendaraan
+                    <FileText className="w-4 h-4" />
+                    Dokumen
                     {activeArmadaDocs.length > 0 && (
                       <span className="px-1.5 py-0.5 text-xs rounded-full bg-surface text-ink-muted">
                         {activeArmadaDocs.length}
@@ -914,71 +914,11 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   </div>
                 )}
 
-                {/* TAB 4: Dokumen & Foto Kendaraan */}
+                {/* TAB 4: Dokumen Kendaraan */}
                 {subTab === 'dokumen' && (
                   <div className="space-y-4 pt-1 text-xs">
-                    {/* Foto Kendaraan (Before / After) */}
-                    <div className="space-y-2">
-                      <span className="font-bold text-ink block">Dokumentasi Visual Kendaraan (Foto Fisik):</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="border border-border rounded-xl p-3 bg-surface space-y-2 text-center">
-                          <div className="text-xs font-semibold text-ink-muted">Foto Masuk Pos Security</div>
-                          <div className="h-32 bg-surface rounded-xl flex flex-col items-center justify-center text-ink-subtle gap-1 overflow-hidden">
-                            {(spk as any).foto_kendaraan_masuk ? (
-                              <img
-                                src={(spk as any).foto_kendaraan_masuk}
-                                alt="Kendaraan Masuk"
-                                onClick={() =>
-                                  setPreviewImage({
-                                    url: (spk as any).foto_kendaraan_masuk,
-                                    title: formatPlat(spk.no_polisi),
-                                    subtitle: `Foto Masuk Pos Security • SPK: ${spk.no_spk}`,
-                                  })
-                                }
-                                className="h-full w-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
-                                title="Klik untuk memperbesar foto"
-                              />
-                            ) : (
-                              <>
-                                <Camera className="w-6 h-6" />
-                                <span className="text-xs">Tersimpan di Security Log</span>
-                              </>
-                            )}
-                          </div>
-                          <div className="text-xs text-ink-muted">Tampak Depan & Nopol</div>
-                        </div>
-
-                        <div className="border border-border rounded-xl p-3 bg-surface space-y-2 text-center">
-                          <div className="text-xs font-semibold text-ink-muted">Foto Sebelum Pengerjaan</div>
-                          <div className="h-32 bg-surface rounded-xl flex flex-col items-center justify-center text-ink-subtle gap-1">
-                            <Camera className="w-6 h-6" />
-                            <span className="text-xs">Kondisi Awal Komponen</span>
-                          </div>
-                          <div className="text-xs text-ink-muted">Dokumentasi SA / Mekanik</div>
-                        </div>
-
-                        <div className="border border-border rounded-xl p-3 bg-surface space-y-2 text-center">
-                          <div className="text-xs font-semibold text-ink-muted">Foto Setelah Pengerjaan</div>
-                          <div className="h-32 bg-surface rounded-xl flex flex-col items-center justify-center text-ink-subtle gap-1">
-                            {spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' ? (
-                              <>
-                                <CheckCircle2 className="w-6 h-6 text-status-green" />
-                                <span className="text-xs text-status-green font-medium">Verifikasi QC Disetujui</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="w-6 h-6 text-ink-subtle" />
-                                <span className="text-xs">Menunggu Pekerjaan Selesai</span>
-                              </>
-                            )}
-                          </div>
-                          <div className="text-xs text-ink-muted">Inspeksi Akhir Foreman</div>
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Dokumen Terkait Kendaraan */}
-                    <div className="space-y-2 pt-2 border-t border-border">
+                    <div className="space-y-2">
                       <span className="font-bold text-ink block">Berkas & Dokumen Kendaraan Ini:</span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface-raised hover:border-accent/30 transition-colors">
