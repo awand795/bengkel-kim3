@@ -201,6 +201,7 @@ export interface SpkService {
   foto_odometer?: string;
   foto_stnk?: string;
   foto_kir?: string;
+  foto_kendaraan?: string;
   keluhan_customer?: string;
   cek_body?: string;
   cek_mesin?: string;

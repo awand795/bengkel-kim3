@@ -213,12 +213,22 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
     return doc?.file_url || null;
   }, [myDokumenList, spk?.no_polisi]);
 
-  const fotoKendaraan =
+  const rawFotoKendaraan =
     matchingKendaraan?.foto_kendaraan ||
-    (spk as any).foto_kendaraan ||
+    spk.foto_kendaraan ||
     (spk as any).foto_kendaraan_masuk ||
     armadaFotoDokumen ||
     null;
+
+  const fotoKendaraan = (() => {
+    if (!rawFotoKendaraan || typeof rawFotoKendaraan !== 'string') return null;
+    const trimmed = rawFotoKendaraan.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
+      return trimmed;
+    }
+    return `data:image/jpeg;base64,${trimmed}`;
+  })();
 
   const unitDesc = matchingKendaraan
     ? `${formatMerkModel(matchingKendaraan.merk, matchingKendaraan.model, matchingKendaraan.unit_name || matchingKendaraan.jenis_armada || 'Truk')}${cleanField(matchingKendaraan.tahun) ? ` (${cleanField(matchingKendaraan.tahun)})` : ''}`
@@ -4718,7 +4728,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         {historyDetail && (
           <SpkTrackingDetail
             spk={historyDetail}
-            kendaraanList={kendaraanList || (armadaPageData as any)?.data}
+            kendaraanList={kendaraanList || armadaPageData?.rows || (armadaPageData as any)?.data}
             pekerjaanList={pekerjaanList}
             partSpkList={partSpkList}
             myDokumenList={myDokumenList}
