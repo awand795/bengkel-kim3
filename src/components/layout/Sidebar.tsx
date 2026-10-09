@@ -23,12 +23,11 @@ export const Sidebar: React.FC = () => {
 
   const navigationItems: NavItem[] = [
     { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Truck },
     { id: 'fleet-booking', label: 'Booking Service', icon: Calendar },
     { id: 'fleet-history', label: 'History Service', icon: Receipt },
     { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
-    { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Truck },
-    { id: 'fleet-profil', label: 'Profil Perusahaan', icon: Building2 },
-    { id: 'fleet-bantuan', label: 'Bantuan', icon: HelpCircle },
+    { id: 'fleet-profil', label: 'Profil', icon: Building2 },
   ];
 
   const isTabActive = (tabId: string) => {
