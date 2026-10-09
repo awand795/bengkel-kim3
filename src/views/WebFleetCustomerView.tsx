@@ -248,13 +248,13 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
             {/* Active Card */}
             <div className="card-modern bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-5">
               {/* Top Summary Header */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-5">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 border-b border-border pb-5">
                 {/* Left: Vehicle & SPK Identifier */}
-                <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                <div className="flex items-center gap-4 sm:gap-5 min-w-0 flex-1">
                   {/* Foto Kendaraan Asli Pengguna atau Fallback Icon */}
                   {fotoKendaraan ? (
                     <div
-                      className="group/thumb relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-border bg-slate-100 dark:bg-slate-800 shadow-xs"
+                      className="group/thumb relative w-20 h-20 sm:w-24 sm:h-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-border bg-slate-100 dark:bg-slate-800 shadow-xs"
                       onClick={() =>
                         setPreviewImage({
                           url: fotoKendaraan,
@@ -270,126 +270,129 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/25 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
-                        <Maximize2 className="w-4 h-4 text-white drop-shadow-md" />
+                        <Maximize2 className="w-5 h-5 text-white drop-shadow-md" />
                       </div>
                     </div>
                   ) : (
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#12388F]/10 via-[#3B6FD4]/10 to-[#12388F]/5 text-accent flex flex-col items-center justify-center border border-accent/25 shrink-0 shadow-2xs">
-                      <Truck className="w-6 h-6 sm:w-7 sm:h-7" />
-                      <span className="text-[9px] font-bold text-accent/70 uppercase tracking-wider mt-0.5">Unit</span>
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#12388F]/10 via-[#3B6FD4]/10 to-[#12388F]/5 text-accent flex flex-col items-center justify-center border border-accent/25 shrink-0 shadow-2xs">
+                      <Truck className="w-8 h-8 sm:w-9 sm:h-9" />
+                      <span className="text-[10px] font-bold text-accent/70 uppercase tracking-wider mt-1">Unit</span>
                     </div>
                   )}
 
                   {/* Detail Info Unit, Mitra & SPK */}
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    {/* Baris 1: Plat Nomor, Status SPK, & Model Unit */}
+                  <div className="min-w-0 flex-1 flex flex-col justify-center space-y-1.5">
+                    {/* Baris 1: Plat Nomor, Status SPK, & Dokumen SPK */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <PlateChip plat={spk.no_polisi} />
                       <StatusBadge status={spk.status_spk} size="sm" />
-                      {unitDesc && (
-                        <span className="hidden sm:inline-flex items-center text-xs font-medium text-ink-muted bg-surface dark:bg-slate-800/60 px-2.5 py-1 rounded-lg border border-border shadow-2xs">
-                          {unitDesc}
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-surface border border-border text-ink shadow-2xs">
+                        <FileText className="w-3 h-3 text-ink-subtle shrink-0" />
+                        <span>{spk.no_spk}</span>
+                      </span>
                     </div>
 
                     {/* Baris 2: Pekerjaan Utama / Keluhan Servis (e.g., Ganti oli) */}
-                    {(spk.keluhan_customer || spk.jenis_layanan) && (
-                      <div className="flex items-center gap-2 pt-0.5">
-                        <span className="text-sm font-bold text-ink tracking-tight">
-                          {spk.keluhan_customer || spk.jenis_layanan}
-                        </span>
-                      </div>
-                    )}
+                    <div className="pt-0.5">
+                      <h3
+                        className="text-base sm:text-lg font-bold text-ink tracking-tight truncate leading-snug"
+                        title={spk.keluhan_customer || spk.jenis_layanan || 'Service Kendaraan'}
+                      >
+                        {spk.keluhan_customer || spk.jenis_layanan || 'Service Kendaraan'}
+                      </h3>
+                    </div>
 
-                    {/* Baris 3: Mitra & Nomor SPK (Tersusun Rapi dalam Kapsul Terpisah Tanpa Titik Gantung) */}
-                    <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                    {/* Baris 3: Mitra Perusahaan & Model Unit Armada */}
+                    <div className="flex items-center gap-2 text-xs text-ink-muted flex-wrap pt-0.5">
                       {spk.nama_customer && (
-                        <div
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-2xs max-w-[280px]"
+                        <span
+                          className="inline-flex items-center gap-1.5 font-medium text-ink bg-slate-100 dark:bg-slate-800/80 px-2.5 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700/80 truncate max-w-[240px] shadow-2xs"
                           title={spk.nama_customer}
                         >
                           <Building className="w-3.5 h-3.5 text-accent shrink-0" />
                           <span className="truncate">{spk.nama_customer}</span>
-                        </div>
+                        </span>
                       )}
-                      <div className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-ink bg-surface dark:bg-slate-800/60 px-2.5 py-1 rounded-lg border border-border shrink-0 shadow-2xs">
-                        <FileText className="w-3.5 h-3.5 text-ink-subtle shrink-0" />
-                        <span>{spk.no_spk}</span>
-                      </div>
+                      {unitDesc && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted bg-surface dark:bg-slate-800/60 px-2 py-0.5 rounded-md border border-border shadow-2xs">
+                          <Truck className="w-3 h-3 text-ink-subtle shrink-0" />
+                          <span className="truncate max-w-[200px]">{unitDesc}</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Right: Key Meta Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 shrink-0">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 shrink-0 lg:max-w-xl w-full xl:w-auto">
                   {/* Chip 1: Layanan */}
-                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
-                    <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                      <Wrench className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs min-h-[72px]">
+                    <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <Wrench className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-0.5">Layanan</span>
-                      <span className="text-xs font-bold text-ink truncate block" title={spk.jenis_layanan || 'Service Kendaraan'}>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-1">Layanan</span>
+                      <span className="text-xs font-bold text-ink truncate block leading-tight" title={spk.jenis_layanan || 'Service Kendaraan'}>
                         {spk.jenis_layanan || 'Service Kendaraan'}
                       </span>
+                      <span className="text-[10px] text-ink-muted block mt-0.5 truncate leading-tight">Perawatan Unit</span>
                     </div>
                   </div>
 
                   {/* Chip 2: Waktu Check In */}
-                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                      <Calendar className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs min-h-[72px]">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Calendar className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-0.5">Waktu Check In</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-1">Waktu Check In</span>
                       {(() => {
                         const t = spk.waktu_check_in || spk.created_at;
                         if (!t || isNaN(new Date(t).getTime())) {
-                          return <span className="text-xs font-medium text-ink-muted block">-</span>;
+                          return <span className="text-xs font-bold text-ink block leading-tight">-</span>;
                         }
                         const d = new Date(t);
                         const tgl = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                         const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
                         return (
-                          <div className="leading-tight">
-                            <span className="text-xs font-semibold text-ink block">{tgl}</span>
-                            <span className="text-xs font-semibold text-ink-muted block mt-0.5">{jam}</span>
-                          </div>
+                          <>
+                            <span className="text-xs font-bold text-ink block leading-tight truncate">{tgl}</span>
+                            <span className="text-[10px] font-semibold text-ink-muted block mt-0.5 leading-tight">{jam}</span>
+                          </>
                         );
                       })()}
                     </div>
                   </div>
 
                   {/* Chip 3: Estimasi Selesai (ETA) / Status Selesai */}
-                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs min-h-[72px]">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                       spk.status_spk === 'Selesai'
                         ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
                         : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
                     }`}>
                       {spk.status_spk === 'Selesai' ? (
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <CheckCircle2 className="w-4 h-4" />
                       ) : (
-                        <Clock className="w-3.5 h-3.5" />
+                        <Clock className="w-4 h-4" />
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-0.5">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-1">
                         {spk.status_spk === 'Selesai' ? 'Pengerjaan' : 'Estimasi (ETA)'}
                       </span>
                       {spk.status_spk === 'Selesai' ? (
-                        <div className="leading-tight">
-                          <span className="text-xs font-bold text-status-green block">Selesai</span>
-                          <span className="text-[10px] text-ink-subtle">Inspeksi Lulus</span>
-                        </div>
+                        <>
+                          <span className="text-xs font-bold text-status-green block leading-tight">Selesai</span>
+                          <span className="text-[10px] text-ink-muted block mt-0.5 leading-tight">Inspeksi Lulus</span>
+                        </>
                       ) : (
-                        <div className="leading-tight">
-                          <span className="text-xs font-mono font-bold text-accent block">
+                        <>
+                          <span className="text-xs font-mono font-bold text-accent block leading-tight truncate">
                             {(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}
                           </span>
-                          <span className="text-[10px] text-ink-subtle block truncate">{labelSumberEta(etaSpk(spk).sumber)}</span>
-                        </div>
+                          <span className="text-[10px] text-ink-muted block mt-0.5 leading-tight truncate">{labelSumberEta(etaSpk(spk).sumber)}</span>
+                        </>
                       )}
                     </div>
                   </div>
