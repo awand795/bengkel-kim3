@@ -446,7 +446,7 @@ export const LoginPage: React.FC = () => {
               </h2>
               <p className="auth-subtitle text-sm text-[#475569] mt-1 leading-relaxed">
                 {activeTab === 'login' 
-                  ? 'Masuk dengan nomor HP atau email akun mitra fleet Anda.' 
+                  ? 'Masuk dengan nomor HP atau email akun Anda.' 
                   : activeTab === 'register'
                   ? 'Pilih tipe kemitraan dan lengkapi data untuk mendaftar akun.'
                   : forgotStep === 'request_otp'
