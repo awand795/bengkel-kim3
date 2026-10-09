@@ -1717,8 +1717,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
 
 
+  // Deteksi cerdas tipe akun: Jika ada nama_pic, bukan '-', dan bukan nama perusahaan itu sendiri => Perusahaan/Entitas
+  const isPerusahaanAccount = useMemo(() => {
+    const pic = (authUser?.nama_pic || '').trim();
+    if (!pic || pic === '-') return false;
+    const comp = (authUser?.nama_perusahaan || authUser?.nama_lengkap || '').trim().toLowerCase();
+    return pic.toLowerCase() !== comp;
+  }, [authUser]);
+
   // Profil Customer & Kontak: form editable (tersimpan di tabel pengguna via /kim3/profil-simpan)
   const [profilEditing, setProfilEditing] = useState(false);
+  const [profilTipeAkun, setProfilTipeAkun] = useState<'perusahaan' | 'pribadi'>('perusahaan');
   const [profilForm, setProfilForm] = useState({
     nama_perusahaan: authUser?.nama_perusahaan || authUser?.nama_lengkap || '',
     alamat: authUser?.alamat || '',
@@ -1731,7 +1740,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     mutationFn: () =>
       api.updateProfil({
         nama_lengkap: (profilForm.nama_perusahaan.trim() || authUser?.nama_lengkap || '').trim(),
-        nama_pic: (profilForm.nama_pic.trim() || '-'),
+        nama_pic: profilTipeAkun === 'pribadi' ? '-' : (profilForm.nama_pic.trim() || '-'),
         alamat: profilForm.alamat.trim(),
         npwp: profilForm.npwp.trim(),
         no_telepon: profilForm.no_telepon.trim(),
@@ -1746,7 +1755,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         /* abaikan */
       }
       setProfilEditing(false);
-      toast.success('Profil Disimpan', 'Data perusahaan & kontak Anda telah diperbarui.');
+      toast.success(
+        'Profil Disimpan',
+        profilTipeAkun === 'perusahaan'
+          ? 'Data perusahaan & kontak Anda telah diperbarui.'
+          : 'Data profil pribadi Anda telah diperbarui.'
+      );
     },
     onError: (err) => toast.error('Gagal Menyimpan', getApiErrorMessage(err)),
   });
@@ -3899,7 +3913,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     ) : (
                       <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-accent to-[#0A2154] text-white flex flex-col items-center justify-center font-black text-xl sm:text-2xl shadow-xs border border-white/20 select-none">
                         <span>{companyInitials}</span>
-                        <span className="text-[9px] font-semibold tracking-wider opacity-75 uppercase">Fleet</span>
+                        <span className="text-[9px] font-semibold tracking-wider opacity-75 uppercase">
+                          {isPerusahaanAccount ? 'Fleet' : 'User'}
+                        </span>
                       </div>
                     )}
                     {isVerifiedByAdmin && (
@@ -3938,11 +3954,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     </div>
 
                     <div className="text-xs text-ink-muted mt-2 flex items-center gap-2.5 flex-wrap">
-                      <span className="inline-flex items-center gap-1">
-                        <User className="w-3.5 h-3.5 text-accent" />
-                        <span>PIC: <strong className="text-ink font-semibold">{authUser?.nama_pic || '-'}</strong></span>
-                      </span>
-                      <span className="text-border">•</span>
+                      {isPerusahaanAccount && (
+                        <>
+                          <span className="inline-flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 text-accent" />
+                            <span>PIC: <strong className="text-ink font-semibold">{authUser?.nama_pic || '-'}</strong></span>
+                          </span>
+                          <span className="text-border">•</span>
+                        </>
+                      )}
                       <span className="inline-flex items-center gap-1 font-mono text-[11px]">
                         <Mail className="w-3.5 h-3.5 text-ink-muted" />
                         <span>{authUser?.email || '-'}</span>
@@ -3956,6 +3976,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <button
                     type="button"
                     onClick={() => {
+                      setProfilTipeAkun(isPerusahaanAccount ? 'perusahaan' : 'pribadi');
                       setProfilForm({
                         nama_perusahaan: authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '',
                         alamat: authUser?.alamat || '',
@@ -4001,36 +4022,44 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             {/* Body Section: Read-Only Overview OR Editing Mode Form */}
             {!profilEditing ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Card 1: Informasi Entitas & Legalitas */}
+                {/* Card 1: Informasi Entitas & Legalitas / Pelanggan */}
                 <div className="bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-3">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-accent" />
-                      <span>Informasi Perusahaan</span>
+                      {isPerusahaanAccount ? <Building2 className="w-4 h-4 text-accent" /> : <User className="w-4 h-4 text-accent" />}
+                      <span>{isPerusahaanAccount ? 'Informasi Perusahaan' : 'Informasi Pelanggan'}</span>
                     </h3>
                     <span className="text-[10px] font-bold text-ink-muted bg-surface px-2 py-0.5 rounded border border-border">
-                      Legalitas
+                      {isPerusahaanAccount ? 'Legalitas' : 'Pribadi'}
                     </span>
                   </div>
 
                   <div className="space-y-3.5 text-xs">
                     <div>
-                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Nama Perusahaan / Entitas:</span>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">
+                        {isPerusahaanAccount ? 'Nama Perusahaan / Entitas:' : 'Nama Lengkap:'}
+                      </span>
                       <span className="text-sm font-bold text-ink block">{companyName}</span>
                     </div>
 
                     <div>
-                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">ID Pelanggan / Kemitraan:</span>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">
+                        {isPerusahaanAccount ? 'ID Pelanggan / Kemitraan:' : 'ID Pelanggan:'}
+                      </span>
                       <span className="font-mono font-bold text-accent text-xs bg-accent-subtle/50 px-2 py-0.5 rounded border border-accent/20 inline-block">
                         {custIdFormatted}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Alamat Perusahaan:</span>
+                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">
+                        {isPerusahaanAccount ? 'Alamat Perusahaan:' : 'Alamat Domisili:'}
+                      </span>
                       <div className="flex items-start gap-1.5 text-ink font-medium leading-relaxed bg-surface p-2.5 rounded-xl border border-border">
                         <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                        <span>{authUser?.alamat || 'Alamat perusahaan belum dilengkapi.'}</span>
+                        <span>
+                          {authUser?.alamat || (isPerusahaanAccount ? 'Alamat perusahaan belum dilengkapi.' : 'Alamat domisili belum dilengkapi.')}
+                        </span>
                       </div>
                     </div>
 
@@ -4057,23 +4086,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   </div>
                 </div>
 
-                {/* Card 2: Kontak Penanggung Jawab / PIC */}
+                {/* Card 2: Kontak PIC / Kontak Pelanggan */}
                 <div className="bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b border-border pb-3">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-accent" />
-                      <span>Kontak PIC / Penanggung Jawab</span>
+                      {isPerusahaanAccount ? <UserCheck className="w-4 h-4 text-accent" /> : <Phone className="w-4 h-4 text-accent" />}
+                      <span>{isPerusahaanAccount ? 'Kontak PIC / Penanggung Jawab' : 'Kontak Pelanggan'}</span>
                     </h3>
                     <span className="text-[10px] font-bold text-ink-muted bg-surface px-2 py-0.5 rounded border border-border">
-                      Operasional
+                      {isPerusahaanAccount ? 'Operasional' : 'Pribadi'}
                     </span>
                   </div>
 
                   <div className="space-y-3.5 text-xs">
-                    <div>
-                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Nama PIC:</span>
-                      <span className="text-sm font-bold text-ink block">{authUser?.nama_pic || '-'}</span>
-                    </div>
+                    {isPerusahaanAccount && (
+                      <div>
+                        <span className="text-[11px] font-medium text-ink-muted block mb-0.5">Nama PIC:</span>
+                        <span className="text-sm font-bold text-ink block">{authUser?.nama_pic || '-'}</span>
+                      </div>
+                    )}
 
                     <div>
                       <span className="text-[11px] font-medium text-ink-muted block mb-0.5">No. Telepon / WhatsApp:</span>
@@ -4120,7 +4151,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <span>Edit Profil Customer & Kontak</span>
                     </h3>
                     <p className="text-xs text-ink-muted mt-0.5">
-                      Perbarui data perusahaan dan kontak PIC penanggung jawab Anda.
+                      {profilTipeAkun === 'perusahaan'
+                        ? 'Perbarui data perusahaan dan kontak PIC penanggung jawab Anda.'
+                        : 'Perbarui data pribadi dan nomor kontak Anda.'}
                     </p>
                   </div>
                   <button
@@ -4135,20 +4168,51 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                 {/* Form Fields */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  {/* Logo / Foto Profil Perusahaan */}
+                  {/* Pilihan Tipe Akun */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-ink mb-1.5">Tipe Akun:</label>
+                    <div className="grid grid-cols-2 gap-3 max-w-md">
+                      <button
+                        type="button"
+                        onClick={() => setProfilTipeAkun('perusahaan')}
+                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                          profilTipeAkun === 'perusahaan'
+                            ? 'bg-accent text-white border-accent shadow-xs'
+                            : 'bg-surface text-ink-muted border-border hover:bg-surface-raised'
+                        }`}
+                      >
+                        <Building2 className="w-4 h-4" />
+                        <span>Perusahaan / Mitra</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProfilTipeAkun('pribadi')}
+                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+                          profilTipeAkun === 'pribadi'
+                            ? 'bg-accent text-white border-accent shadow-xs'
+                            : 'bg-surface text-ink-muted border-border hover:bg-surface-raised'
+                        }`}
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Pribadi / Perorangan</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Logo / Foto Profil */}
                   <div className="sm:col-span-2">
                     <PhotoUploader
-                      label="Logo atau Foto Profil Perusahaan (Opsional)"
+                      label={profilTipeAkun === 'perusahaan' ? 'Logo atau Foto Profil Perusahaan (Opsional)' : 'Foto Profil (Opsional)'}
                       value={profilForm.foto_profil}
                       onChange={(url) => setProfilForm((p) => ({ ...p, foto_profil: url }))}
                     />
                   </div>
 
-                  {/* Nama Perusahaan */}
-                  <div>
+                  {/* Nama Perusahaan / Nama Lengkap */}
+                  <div className={profilTipeAkun === 'pribadi' ? 'sm:col-span-2' : ''}>
                     <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-accent" />
-                      <span>Nama Perusahaan / Entitas:</span>
+                      {profilTipeAkun === 'perusahaan' ? <Building2 className="w-3.5 h-3.5 text-accent" /> : <User className="w-3.5 h-3.5 text-accent" />}
+                      <span>{profilTipeAkun === 'perusahaan' ? 'Nama Perusahaan / Entitas:' : 'Nama Lengkap:'}</span>
                       <span className="text-status-red">*</span>
                     </label>
                     <input
@@ -4156,26 +4220,28 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       required
                       value={profilForm.nama_perusahaan}
                       onChange={(e) => setProfilForm((p) => ({ ...p, nama_perusahaan: e.target.value }))}
-                      placeholder="Contoh: Mitra PT Tes Logistik"
+                      placeholder={profilTipeAkun === 'perusahaan' ? 'Contoh: Mitra PT Tes Logistik' : 'Contoh: Budi Santoso'}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-semibold transition"
                     />
                   </div>
 
-                  {/* Nama PIC */}
-                  <div>
-                    <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-accent" />
-                      <span>Nama PIC:</span>
-                      <span className="text-[10px] font-normal text-ink-muted">(Opsional jika Perorangan)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={profilForm.nama_pic === '-' ? '' : profilForm.nama_pic}
-                      onChange={(e) => setProfilForm((p) => ({ ...p, nama_pic: e.target.value }))}
-                      placeholder="Beri tanda - atau kosongkan jika perorangan"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-semibold transition"
-                    />
-                  </div>
+                  {/* Nama PIC (Hanya jika Perusahaan) */}
+                  {profilTipeAkun === 'perusahaan' && (
+                    <div>
+                      <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-accent" />
+                        <span>Nama PIC:</span>
+                        <span className="text-status-red">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={profilForm.nama_pic === '-' ? '' : profilForm.nama_pic}
+                        onChange={(e) => setProfilForm((p) => ({ ...p, nama_pic: e.target.value }))}
+                        placeholder="Contoh: Budi Santoso"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-semibold transition"
+                      />
+                    </div>
+                  )}
 
                   {/* No Telepon / WhatsApp */}
                   <div>
@@ -4197,6 +4263,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
                       <CreditCard className="w-3.5 h-3.5 text-accent" />
                       <span>NPWP:</span>
+                      {profilTipeAkun === 'pribadi' && <span className="text-[10px] font-normal text-ink-muted">(Opsional)</span>}
                     </label>
                     <input
                       type="text"
@@ -4207,17 +4274,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     />
                   </div>
 
-                  {/* Alamat Perusahaan */}
+                  {/* Alamat */}
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-accent" />
-                      <span>Alamat Perusahaan:</span>
+                      <span>{profilTipeAkun === 'perusahaan' ? 'Alamat Perusahaan:' : 'Alamat Domisili:'}</span>
                     </label>
                     <textarea
                       rows={2}
                       value={profilForm.alamat}
                       onChange={(e) => setProfilForm((p) => ({ ...p, alamat: e.target.value }))}
-                      placeholder="Contoh: Medan Deli, Kota Medan"
+                      placeholder={profilTipeAkun === 'perusahaan' ? 'Contoh: Medan Deli, Kota Medan' : 'Contoh: Jl. Gatot Subroto No. 12, Medan'}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-medium leading-relaxed transition"
                     />
                   </div>
@@ -4239,12 +4306,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     disabled={simpanProfilMutation.isPending || !profilForm.nama_perusahaan.trim()}
                     onClick={() => simpanProfilMutation.mutate()}
                   >
-                    {simpanProfilMutation.isPending ? (
-                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <Check className="w-3.5 h-3.5" />
-                    )}
-                    <span>{simpanProfilMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                    <span>{simpanProfilMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
                   </ModalActionButton>
                 </div>
               </div>
