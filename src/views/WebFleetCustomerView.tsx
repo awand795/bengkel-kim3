@@ -264,8 +264,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
                         return (
                           <div className="leading-tight">
-                            <span className="text-xs font-bold text-ink block">{tgl}</span>
-                            <span className="text-[11px] font-mono text-ink-muted">{jam}</span>
+                            <span className="text-xs font-semibold text-ink block">{tgl}</span>
+                            <span className="text-xs font-semibold text-ink-muted block mt-0.5">{jam}</span>
                           </div>
                         );
                       })()}
@@ -515,15 +515,15 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                 ? 'bg-blue-50/90 border-blue-200/80 text-blue-900 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-200'
                                 : 'bg-surface border-border text-ink-subtle'
                             }`}>
-                              <span className="text-[10px] font-sans font-semibold text-slate-600 dark:text-slate-300 leading-none">
+                              <span className="text-[11px] font-semibold leading-tight text-center">
                                 {wt.tanggal}
                               </span>
-                              <span className="text-[11px] font-mono font-bold mt-1 leading-none text-emerald-700 dark:text-emerald-300">
+                              <span className="text-[11px] font-semibold leading-tight text-center mt-0.5">
                                 {wt.jam}
                               </span>
                             </div>
                           ) : (
-                            <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed border-border text-ink-subtle/50 text-[10px] font-mono w-full max-w-[115px] flex items-center justify-center">
+                            <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed border-border text-ink-subtle/50 text-[11px] font-mono w-full max-w-[115px] flex items-center justify-center">
                               —
                             </div>
                           )}
