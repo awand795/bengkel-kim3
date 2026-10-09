@@ -3239,46 +3239,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           )}
                         </div>
 
-                        {/* Quick Complaint Chips */}
-                        <div className="space-y-1">
-                          <span className="text-[11px] text-ink-muted font-medium block">
-                            Tambahkan keluhan umum secara cepat:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {availableComplaintChips.map((chip) => {
-                              const alreadyAdded = bookingForm.keluhan.includes(chip);
-                              return (
-                                <button
-                                  key={chip}
-                                  type="button"
-                                  onClick={() => {
-                                    setBookingForm((prev) => {
-                                      const trimmed = prev.keluhan.trim();
-                                      if (!trimmed) {
-                                        return { ...prev, keluhan: chip };
-                                      }
-                                      if (trimmed.includes(chip)) return prev;
-                                      return { ...prev, keluhan: `${trimmed}, ${chip}` };
-                                    });
-                                  }}
-                                  className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
-                                    alreadyAdded
-                                      ? 'bg-status-amber-bg text-status-amber border border-status-amber/40 font-semibold'
-                                      : 'bg-surface border border-border text-ink hover:border-status-amber/50 hover:bg-surface-raised'
-                                  }`}
-                                >
-                                  {alreadyAdded ? (
-                                    <Check className="w-3 h-3 text-status-amber" />
-                                  ) : (
-                                    <Plus className="w-3 h-3 text-ink-muted" />
-                                  )}
-                                  <span>{chip}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
                         {/* Textarea */}
                         <textarea
                           rows={3}
