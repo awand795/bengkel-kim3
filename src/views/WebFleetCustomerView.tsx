@@ -94,6 +94,7 @@ interface SpkTrackingDetailProps {
   decidingEstimasi?: boolean;
   onApproveTambahan?: (id: number, keputusan: 'Disetujui' | 'Ditolak') => void;
   onDecideEstimasi?: (spk: SpkService, setuju: boolean) => void;
+  kendaraanList?: Kendaraan[];
 }
 
 /**
@@ -117,6 +118,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   decidingEstimasi,
   onApproveTambahan,
   onDecideEstimasi,
+  kendaraanList,
 }) => {
   const [subTab, setSubTab] = useState<'progress' | 'detail' | 'catatan' | 'dokumen'>('progress');
 
@@ -191,6 +193,37 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   const [tambahanWizardStep, setTambahanWizardStep] = useState(0);
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
+  // Cari data armada kendaraan pengguna yang cocok dengan nomor polisi SPK
+  const matchingKendaraan = useMemo(() => {
+    if (!spk?.no_polisi || !kendaraanList || kendaraanList.length === 0) return null;
+    const cleanPlat = normalizePlat(spk.no_polisi);
+    return kendaraanList.find((k) => normalizePlat(k.no_polisi) === cleanPlat) || null;
+  }, [spk?.no_polisi, kendaraanList]);
+
+  // Foto asli unit kendaraan: prioritas dari foto profil unit armada, fallback foto masuk SPK/dokumen
+  const armadaFotoDokumen = useMemo(() => {
+    if (!myDokumenList || !spk?.no_polisi) return null;
+    const cleanPlat = normalizePlat(spk.no_polisi);
+    const doc = myDokumenList.find(
+      (d) =>
+        normalizePlat(d.no_polisi) === cleanPlat &&
+        (d.nama_dokumen?.toLowerCase().includes('foto') ||
+          d.file_url?.match(/\.(jpe?g|png|webp)($|\?)/i))
+    );
+    return doc?.file_url || null;
+  }, [myDokumenList, spk?.no_polisi]);
+
+  const fotoKendaraan =
+    matchingKendaraan?.foto_kendaraan ||
+    (spk as any).foto_kendaraan ||
+    (spk as any).foto_kendaraan_masuk ||
+    armadaFotoDokumen ||
+    null;
+
+  const unitDesc = matchingKendaraan
+    ? `${formatMerkModel(matchingKendaraan.merk, matchingKendaraan.model, matchingKendaraan.unit_name || matchingKendaraan.jenis_armada || 'Truk')}${cleanField(matchingKendaraan.tahun) ? ` (${cleanField(matchingKendaraan.tahun)})` : ''}`
+    : '';
+
   // Keputusan estimasi dikirim dari mana pun (kartu alert / wizard / modal riwayat):
   // tutup wizard agar tombol Setujui/Tolak tak bisa diklik dua kali.
   React.useEffect(() => {
@@ -207,27 +240,64 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
               {/* Top Summary Header */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-5">
                 {/* Left: Vehicle & SPK Identifier */}
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#12388F]/10 to-[#3B6FD4]/10 text-accent flex items-center justify-center font-black border border-accent/25 shrink-0 shadow-2xs">
-                    <Truck className="w-6 h-6" />
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                  {/* Foto Kendaraan Asli Pengguna atau Fallback Icon */}
+                  {fotoKendaraan ? (
+                    <div
+                      className="group/thumb relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-border bg-slate-100 dark:bg-slate-800 shadow-xs"
+                      onClick={() =>
+                        setPreviewImage({
+                          url: fotoKendaraan,
+                          title: formatPlat(spk.no_polisi),
+                          subtitle: unitDesc || `Kendaraan SPK ${spk.no_spk}`,
+                        })
+                      }
+                      title="Klik untuk memperbesar foto unit kendaraan"
+                    >
+                      <img
+                        src={fotoKendaraan}
+                        alt={formatPlat(spk.no_polisi)}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/25 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+                        <Maximize2 className="w-4 h-4 text-white drop-shadow-md" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#12388F]/10 via-[#3B6FD4]/10 to-[#12388F]/5 text-accent flex flex-col items-center justify-center border border-accent/25 shrink-0 shadow-2xs">
+                      <Truck className="w-6 h-6 sm:w-7 sm:h-7" />
+                      <span className="text-[9px] font-bold text-accent/70 uppercase tracking-wider mt-0.5">Unit</span>
+                    </div>
+                  )}
+
+                  {/* Detail Info Unit, Mitra & SPK */}
+                  <div className="min-w-0 flex-1 space-y-2">
+                    {/* Baris 1: Plat Nomor, Status SPK, & Model Unit */}
+                    <div className="flex items-center gap-2 flex-wrap">
                       <PlateChip plat={spk.no_polisi} />
                       <StatusBadge status={spk.status_spk} size="sm" />
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-ink-muted flex-wrap">
-                      {spk.nama_customer && (
-                        <span className="font-medium text-ink inline-flex items-center gap-1 truncate max-w-[200px]" title={spk.nama_customer}>
-                          <Building className="w-3.5 h-3.5 text-ink-subtle shrink-0" />
-                          <span className="truncate">{spk.nama_customer}</span>
+                      {unitDesc && (
+                        <span className="hidden sm:inline-flex items-center text-xs font-medium text-ink-muted bg-surface dark:bg-slate-800/60 px-2.5 py-1 rounded-lg border border-border shadow-2xs">
+                          {unitDesc}
                         </span>
                       )}
-                      {spk.nama_customer && <span className="text-ink-subtle">•</span>}
-                      <span className="inline-flex items-center gap-1 font-mono font-semibold px-2 py-0.5 rounded-md bg-surface border border-border text-ink">
-                        <FileText className="w-3 h-3 text-ink-subtle shrink-0" />
-                        {spk.no_spk}
-                      </span>
+                    </div>
+
+                    {/* Baris 2: Mitra & Nomor SPK (Tersusun Rapi dalam Kapsul Terpisah Tanpa Titik Gantung) */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {spk.nama_customer && (
+                        <div
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-2xs max-w-[280px]"
+                          title={spk.nama_customer}
+                        >
+                          <Building className="w-3.5 h-3.5 text-accent shrink-0" />
+                          <span className="truncate">{spk.nama_customer}</span>
+                        </div>
+                      )}
+                      <div className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-ink bg-surface dark:bg-slate-800/60 px-2.5 py-1 rounded-lg border border-border shrink-0 shadow-2xs">
+                        <FileText className="w-3.5 h-3.5 text-ink-subtle shrink-0" />
+                        <span>{spk.no_spk}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4648,6 +4718,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         {historyDetail && (
           <SpkTrackingDetail
             spk={historyDetail}
+            kendaraanList={kendaraanList || (armadaPageData as any)?.data}
             pekerjaanList={pekerjaanList}
             partSpkList={partSpkList}
             myDokumenList={myDokumenList}
