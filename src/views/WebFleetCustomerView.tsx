@@ -2466,7 +2466,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <StatCard
-              title="Booking Terjadwal"
+              title="Booking Aktif"
               value={upcomingBookings.length}
               subtitle="Antrian Masuk"
               icon={Calendar}
@@ -2477,7 +2477,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               }}
             />
             <StatCard
-              title="Total Kendaraan Truk"
+              title="Total Kendaraan"
               value={myKendaraanList.length}
               subtitle="Unit Terdaftar"
               icon={Truck}
