@@ -281,7 +281,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   )}
 
                   {/* Detail Info Unit, Mitra & SPK */}
-                  <div className="min-w-0 flex-1 space-y-2">
+                  <div className="min-w-0 flex-1 space-y-1.5">
                     {/* Baris 1: Plat Nomor, Status SPK, & Model Unit */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <PlateChip plat={spk.no_polisi} />
@@ -293,8 +293,17 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       )}
                     </div>
 
-                    {/* Baris 2: Mitra & Nomor SPK (Tersusun Rapi dalam Kapsul Terpisah Tanpa Titik Gantung) */}
-                    <div className="flex items-center gap-2 flex-wrap">
+                    {/* Baris 2: Pekerjaan Utama / Keluhan Servis (e.g., Ganti oli) */}
+                    {(spk.keluhan_customer || spk.jenis_layanan) && (
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className="text-sm font-bold text-ink tracking-tight">
+                          {spk.keluhan_customer || spk.jenis_layanan}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Baris 3: Mitra & Nomor SPK (Tersusun Rapi dalam Kapsul Terpisah Tanpa Titik Gantung) */}
+                    <div className="flex items-center gap-2 flex-wrap pt-0.5">
                       {spk.nama_customer && (
                         <div
                           className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-2xs max-w-[280px]"
@@ -4721,8 +4730,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         open={!!historyDetail}
         onClose={() => setHistoryDetail(null)}
         title={historyDetail ? `Detail Riwayat Service` : 'Detail Service'}
-        subtitle={historyDetail ? `${formatPlat(historyDetail.no_polisi)} • ${historyDetail.keluhan_customer || 'Service Kendaraan'}` : undefined}
-        badge={historyDetail ? <StatusBadge status={historyDetail.status_spk} /> : undefined}
+        subtitle={historyDetail ? `No. Dokumen: ${historyDetail.no_spk}` : undefined}
+        badge={undefined}
         size="xl"
       >
         {historyDetail && (
