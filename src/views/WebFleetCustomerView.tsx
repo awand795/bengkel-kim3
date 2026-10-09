@@ -3062,66 +3062,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   content: (
                     <div className="space-y-4">
                       <div className="rounded-xl border border-border bg-white p-3.5 shadow-sm sm:p-4 dark:bg-surface-raised">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#52647E] dark:text-blue-300">Jenis pekerjaan</p>
-                            <h3 className="mt-0.5 text-sm font-bold tracking-tight text-ink">Apa yang perlu dikerjakan?</h3>
-                            <p className="mt-0.5 text-[11px] text-ink-muted">Pilih layanan paling sesuai. Service advisor akan membantu memastikan detailnya.</p>
-                          </div>
-                          <span className="w-fit rounded-md bg-[#F2F5F9] px-2 py-1 text-[10px] font-semibold tabular-nums text-ink-muted dark:bg-slate-800">
-                            {visibleBookingServiceOptions.length} dari {filteredBookingServiceOptions.length} pilihan
-                          </span>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#52647E] dark:text-blue-300">Jenis pekerjaan</p>
+                          <h3 className="mt-0.5 text-sm font-bold tracking-tight text-ink">Apa yang perlu dikerjakan?</h3>
+                          <p className="mt-0.5 text-[11px] text-ink-muted">Pilih layanan paling sesuai.</p>
                         </div>
 
-                        <div className="relative mt-3">
-                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
-                          <input
-                            type="search"
-                            value={bookingServiceSearch}
-                            onChange={(e) => setBookingServiceSearch(e.target.value)}
-                            placeholder="Cari layanan, misalnya ganti oli atau rem..."
-                            aria-label="Cari jenis layanan"
-                            className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-9 text-xs text-ink placeholder:text-ink-subtle focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-hidden dark:bg-surface"
-                          />
-                          {bookingServiceSearch && (
-                            <button
-                              type="button"
-                              onClick={() => setBookingServiceSearch('')}
-                              aria-label="Bersihkan pencarian layanan"
-                              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-ink-subtle hover:bg-surface hover:text-ink"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="-mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
-                          {bookingServiceCategories.map((category) => {
-                            const selected = bookingServiceCategory === category;
-                            const count = category === 'Semua'
-                              ? availableServiceOptions.length
-                              : availableServiceOptions.filter((srv) => getBookingServiceGroup(srv) === category).length;
-                            return (
-                              <button
-                                key={category}
-                                type="button"
-                                onClick={() => setBookingServiceCategory(category)}
-                                aria-pressed={selected}
-                                className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                                  selected
-                                    ? 'border-[#34517C] bg-[#34517C] text-white'
-                                    : 'border-border bg-white text-ink-muted hover:border-[#B8C7DC] hover:bg-[#F7F9FC] dark:bg-surface-raised'
-                                }`}
-                              >
-                                {category}
-                                <span className={`tabular-nums ${selected ? 'text-white/75' : 'text-ink-subtle'}`}>{count}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <div className="mt-2 space-y-1.5">
-                        {visibleBookingServiceOptions.length > 0 ? visibleBookingServiceOptions.map((srv) => {
+                        <div className="mt-3 space-y-1.5">
+                        {availableServiceOptions.map((srv) => {
                           const isSelected = !isCustomService && bookingForm.jenis_layanan === srv.title;
                           const IconComp = srv.icon;
                           return (
@@ -3158,33 +3106,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               </span>
                             </button>
                           );
-                        }) : (
-                          <div className="rounded-lg border border-dashed border-border bg-[#F8FAFC] px-4 py-6 text-center dark:bg-surface">
-                            <p className="text-xs font-semibold text-ink">Layanan tidak ditemukan</p>
-                            <p className="mt-1 text-[11px] text-ink-muted">Coba kata kunci lain atau pilih kategori Semua.</p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setBookingServiceSearch('');
-                                setBookingServiceCategory('Semua');
-                              }}
-                              className="mt-2 text-[11px] font-semibold text-[#34517C] hover:underline"
-                            >
-                              Tampilkan semua layanan
-                            </button>
-                          </div>
-                        )}
+                        })}
                         </div>
-                        {bookingServiceCategory === 'Semua' && !bookingServiceSearch.trim() && filteredBookingServiceOptions.length > 5 && (
-                          <button
-                            type="button"
-                            onClick={() => setShowAllBookingServices((visible) => !visible)}
-                            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[11px] font-semibold text-[#34517C] transition hover:border-[#B8C7DC] hover:bg-[#F7F9FC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:text-blue-300"
-                          >
-                            {showAllBookingServices ? 'Tampilkan lebih sedikit' : `Lihat ${filteredBookingServiceOptions.length - visibleBookingServiceOptions.length} layanan lainnya`}
-                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAllBookingServices ? 'rotate-180' : ''}`} />
-                          </button>
-                        )}
                       </div>
 
                       <button
