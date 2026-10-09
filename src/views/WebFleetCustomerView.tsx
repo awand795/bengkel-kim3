@@ -3107,117 +3107,81 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             </button>
                           );
                         })}
+
+                        {/* Opsi Layanan Lainnya (Kustom) */}
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            aria-pressed={isCustomService}
+                            onClick={() => {
+                              setIsCustomService(true);
+                              setBookingForm({
+                                ...bookingForm,
+                                jenis_layanan: customServiceText.trim() || 'Perbaikan Kustom',
+                              });
+                            }}
+                            className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                              isCustomService
+                                ? 'border-[#34517C] bg-[#F4F7FC] dark:bg-blue-950/20'
+                                : 'border-border bg-white hover:border-[#B8C7DC] hover:bg-[#FAFBFD] dark:bg-surface-raised dark:hover:bg-surface'
+                            }`}
+                          >
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#DCE5F5] bg-white text-[#34517C] dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300">
+                              <SlidersHorizontal className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="truncate text-xs font-bold leading-snug text-ink">Layanan lainnya</h4>
+                              <p className="mt-0.5 line-clamp-1 text-[10px] leading-relaxed text-ink-muted">
+                                {isCustomService && customServiceText.trim() ? customServiceText : 'Tuliskan kebutuhan perbaikan khusus yang tidak ada pada daftar.'}
+                              </p>
+                            </div>
+                            <span className="hidden shrink-0 rounded-md border border-border bg-white px-2 py-1 text-[9px] font-semibold text-ink-subtle sm:inline dark:bg-surface-raised">
+                              Kustom
+                            </span>
+                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                              isCustomService ? 'border-[#34517C] bg-[#34517C] text-white' : 'border-[#CBD5E1] text-transparent dark:border-slate-600'
+                            }`}>
+                              <Check className="h-3 w-3" />
+                            </span>
+                          </button>
+
+                          {/* Jika Layanan Lainnya terpilih, user baru input ketik sendiri */}
+                          {isCustomService && (
+                            <div className="relative pt-1">
+                              <input
+                                type="text"
+                                required
+                                autoFocus
+                                placeholder="Ketik jenis layanan atau perbaikan yang Anda butuhkan..."
+                                value={customServiceText}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setCustomServiceText(val);
+                                  setBookingForm({
+                                    ...bookingForm,
+                                    jenis_layanan: val.trim() || 'Perbaikan Kustom',
+                                  });
+                                }}
+                                className="w-full pl-3.5 pr-8 py-2.5 rounded-lg border border-accent/50 text-xs focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
+                              />
+                              {customServiceText && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCustomServiceText('');
+                                    setBookingForm({ ...bookingForm, jenis_layanan: 'Perbaikan Kustom' });
+                                  }}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink p-1 cursor-pointer"
+                                  title="Hapus teks"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         </div>
                       </div>
-
-                      <button
-                          type="button"
-                          onClick={() => {
-                            setIsCustomService(true);
-                            setBookingForm({
-                              ...bookingForm,
-                              jenis_layanan: customServiceText.trim() || 'Perbaikan Kustom',
-                            });
-                          }}
-                          className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                            isCustomService
-                              ? 'border-[#34517C] bg-[#F4F7FC] dark:bg-blue-950/20'
-                              : 'border-[#D5DDE8] bg-[#F8FAFC] hover:border-[#B8C7DC] hover:bg-[#F5F8FD] dark:bg-surface'
-                          }`}
-                        >
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#DCE5F5] bg-white text-[#34517C] dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300">
-                            <SlidersHorizontal className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-xs font-bold leading-snug text-ink">Layanan lainnya</h4>
-                            <p className="mt-0.5 text-[10px] leading-relaxed text-ink-muted">Tuliskan kebutuhan spesifik yang tidak ada di pilihan layanan.</p>
-                          </div>
-                          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                            isCustomService ? 'border-[#34517C] bg-[#34517C] text-white' : 'border-[#CBD5E1] text-transparent dark:border-slate-600'
-                          }`}>
-                            <Check className="h-3 w-3" />
-                          </span>
-                      </button>
-
-                      {/* Custom Service Input with Quick Presets */}
-                      {isCustomService && (
-                        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-accent-subtle/80 to-transparent dark:from-accent/10 border border-accent/30 space-y-2.5 app-page-transition">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold text-ink flex items-center gap-1.5">
-                              <Edit3 className="w-3.5 h-3.5 text-accent" />
-                              <span>Tuliskan Rincian Pekerjaan Kustom Anda:</span>
-                              <span className="text-status-red">*</span>
-                            </label>
-                            <span className="text-[10px] text-accent font-semibold">Wajib diisi</span>
-                          </div>
-
-                          {/* Quick Preset Buttons */}
-                          <div className="space-y-1.5">
-                            <span className="text-[11px] text-ink-muted font-medium block">
-                              Pilihan cepat (klik untuk langsung mengisi):
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {BOOKING_CUSTOM_PRESETS.map((preset) => {
-                                const isPresetActive = customServiceText === preset;
-                                return (
-                                  <button
-                                    key={preset}
-                                    type="button"
-                                    onClick={() => {
-                                      setCustomServiceText(preset);
-                                      setBookingForm({ ...bookingForm, jenis_layanan: preset });
-                                    }}
-                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
-                                      isPresetActive
-                                        ? 'bg-accent text-white shadow-2xs'
-                                        : 'bg-surface-raised border border-border text-ink hover:border-accent hover:text-accent'
-                                    }`}
-                                  >
-                                    <Sparkles className="w-2.5 h-2.5 opacity-70" />
-                                    <span>{preset}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div className="relative">
-                            <input
-                              type="text"
-                              required
-                              autoFocus
-                              placeholder="Contoh: Perbaikan Silinder Hidrolik Dump Truk, Las Dudukan Bak, Servis AC..."
-                              value={customServiceText}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setCustomServiceText(val);
-                                setBookingForm({
-                                  ...bookingForm,
-                                  jenis_layanan: val.trim() || 'Perbaikan Kustom',
-                                });
-                              }}
-                              className="w-full pl-3.5 pr-8 py-2.5 rounded-xl border border-accent/50 text-xs focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
-                            />
-                            {customServiceText && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomServiceText('');
-                                  setBookingForm({ ...bookingForm, jenis_layanan: 'Perbaikan Kustom' });
-                                }}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink p-1 cursor-pointer"
-                                title="Hapus teks"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-ink-muted flex items-center gap-1">
-                            <Info className="w-3.5 h-3.5 text-accent shrink-0" />
-                            <span>Service advisor kami akan mengonfirmasi detail kebutuhan teknis saat estimasi dibuat.</span>
-                          </p>
-                        </div>
-                      )}
 
                       {/* Complaint / Keluhan Kendaraan Section */}
                       <div className="pt-2 border-t border-border/70 space-y-2">
