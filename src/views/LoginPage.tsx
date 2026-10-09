@@ -672,7 +672,7 @@ export const LoginPage: React.FC = () => {
                   /* Field Khusus Perorangan */
                   <div>
                     <label className={LABEL_CLS} htmlFor="reg_nama">
-                      Nama Lengkap Pemilik Kendaraan <span className="text-status-red">*</span>
+                      Nama Lengkap <span className="text-status-red">*</span>
                     </label>
                     <div className="relative group">
                       <div className={ICON_WRAP_CLS}>
