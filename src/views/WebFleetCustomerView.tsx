@@ -1771,7 +1771,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Helper: Cek apakah kendaraan dari jadwal booking ini sudah di-check in atau terbit SPK
   const isBookingCheckedIn = useCallback((b: BookingService): boolean => {
     if (b.status === 'Check In') return true;
-    if (b.status === 'Dibatalkan') return false;
+    if (b.status === 'Dibatalkan' || b.status === 'Booking Canceled' || b.is_canceled) return false;
 
     const bPlate = normalizePlat(b.no_polisi);
     const hasSpk = (spkList || []).some((s) => {
@@ -1788,8 +1788,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, [spkList]);
 
   // Status operasional booking: 'Check In' bila sudah terbit SPK / berstatus Check In
-  const getBookingEffectiveStatus = useCallback((b: BookingService): 'Booked' | 'Check In' | 'Dibatalkan' => {
-    if (b.status === 'Dibatalkan') return 'Dibatalkan';
+  const getBookingEffectiveStatus = useCallback((b: BookingService): 'Booked' | 'Check In' | 'Booking Canceled' => {
+    if (b.status === 'Booking Canceled' || b.status === 'Dibatalkan' || b.is_canceled) return 'Booking Canceled';
     if (b.status === 'Check In' || isBookingCheckedIn(b)) return 'Check In';
     return 'Booked';
   }, [isBookingCheckedIn]);
@@ -1866,8 +1866,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const myBookingSorted = [...myBookingList].sort((a, b) => {
     const aStat = getBookingEffectiveStatus(a);
     const bStat = getBookingEffectiveStatus(b);
-    if (aStat === 'Dibatalkan' && bStat !== 'Dibatalkan') return 1;
-    if (bStat === 'Dibatalkan' && aStat !== 'Dibatalkan') return -1;
+    if (aStat === 'Booking Canceled' && bStat !== 'Booking Canceled') return 1;
+    if (bStat === 'Booking Canceled' && aStat !== 'Booking Canceled') return -1;
     if (aStat === 'Check In' && bStat === 'Booked') return 1;
     if (bStat === 'Check In' && aStat === 'Booked') return -1;
     return `${a.tanggal_booking} ${a.jam_booking}`.localeCompare(`${b.tanggal_booking} ${b.jam_booking}`);
@@ -1991,10 +1991,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Terkunci bila aturan H-10 menit / status tidak memungkinkan.
   const BookingCancelButton = ({ b, compact = false }: { b: BookingService; compact?: boolean }) => {
     const effStatus = getBookingEffectiveStatus(b);
-    if (effStatus === 'Dibatalkan') {
+    if (effStatus === 'Booking Canceled' || effStatus === ('Dibatalkan' as any)) {
       return (
         <span className="text-xs px-2.5 py-1 rounded-xl bg-surface text-ink-subtle border border-border font-bold">
-          Dibatalkan
+          Booking Canceled
         </span>
       );
     }

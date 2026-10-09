@@ -148,7 +148,10 @@ export interface BookingService {
   keluhan?: string;
   catatan?: string;
   keterangan?: string;
-  status: 'Booked' | 'Check In' | 'Dibatalkan';
+  status: 'Booked' | 'Check In' | 'Dibatalkan' | 'Booking Canceled';
+  is_canceled?: boolean;
+  cancelat?: string;
+  cancelby?: string;
   prioritas: 'Normal' | 'Prioritas Booking';
   created_at: string;
 }

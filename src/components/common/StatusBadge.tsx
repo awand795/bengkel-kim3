@@ -61,6 +61,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'unpaid':
       case 'ditolak':
       case 'dibatalkan':
+      case 'booking canceled':
+      case 'canceled':
       case 'tidak sesuai':
         return 'bg-[#FEE2E2] text-[#DC2626] border-[#FCA5A5]/40 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/50';
 
