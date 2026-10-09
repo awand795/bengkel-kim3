@@ -204,40 +204,105 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
           
             {/* Active Card */}
             <div className="card-modern bg-surface-raised rounded-2xl border border-border p-5 sm:p-6 shadow-xs space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-accent-subtle text-accent flex items-center justify-center font-black border border-accent/20 shrink-0">
+              {/* Top Summary Header */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-5">
+                {/* Left: Vehicle & SPK Identifier */}
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#12388F]/10 to-[#3B6FD4]/10 text-accent flex items-center justify-center font-black border border-accent/25 shrink-0 shadow-2xs">
                     <Truck className="w-6 h-6" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-lg font-black font-mono text-ink tracking-wide">{formatPlat(spk.no_polisi)}</h2>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <PlateChip plat={spk.no_polisi} />
                       <StatusBadge status={spk.status_spk} size="sm" />
                     </div>
-                    <p className="text-xs text-ink-muted font-medium">{spk.nama_customer || '-'} • <span className="font-mono text-ink">{spk.no_spk}</span></p>
+                    <div className="flex items-center gap-2 text-xs text-ink-muted flex-wrap">
+                      {spk.nama_customer && (
+                        <span className="font-medium text-ink inline-flex items-center gap-1 truncate max-w-[200px]" title={spk.nama_customer}>
+                          <Building className="w-3.5 h-3.5 text-ink-subtle shrink-0" />
+                          <span className="truncate">{spk.nama_customer}</span>
+                        </span>
+                      )}
+                      {spk.nama_customer && <span className="text-ink-subtle">•</span>}
+                      <span className="inline-flex items-center gap-1 font-mono font-semibold px-2 py-0.5 rounded-md bg-surface border border-border text-ink">
+                        <FileText className="w-3 h-3 text-ink-subtle shrink-0" />
+                        {spk.no_spk}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-4 text-xs font-semibold">
-                  <div>
-                    <span className="text-ink-subtle block text-xs">Layanan:</span>
-                    <span className="text-ink font-bold">{spk.jenis_layanan || 'Service Kendaraan'}</span>
+                {/* Right: Key Meta Stat Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 shrink-0">
+                  {/* Chip 1: Layanan */}
+                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                    <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <Wrench className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-0.5">Layanan</span>
+                      <span className="text-xs font-bold text-ink truncate block" title={spk.jenis_layanan || 'Service Kendaraan'}>
+                        {spk.jenis_layanan || 'Service Kendaraan'}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-ink-subtle block text-xs">Waktu Check In:</span>
-                    <span className="text-ink font-semibold">
+
+                  {/* Chip 2: Waktu Check In */}
+                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-0.5">Waktu Check In</span>
                       {(() => {
                         const t = spk.waktu_check_in || spk.created_at;
-                        if (!t || isNaN(new Date(t).getTime())) return '-';
+                        if (!t || isNaN(new Date(t).getTime())) {
+                          return <span className="text-xs font-medium text-ink-muted block">-</span>;
+                        }
                         const d = new Date(t);
-                        return `${d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} • ${d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+                        const tgl = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+                        return (
+                          <div className="leading-tight">
+                            <span className="text-xs font-bold text-ink block">{tgl}</span>
+                            <span className="text-[11px] font-mono text-ink-muted">{jam}</span>
+                          </div>
+                        );
                       })()}
-                    </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-ink-subtle block text-xs">Estimasi Selesai (ETA):</span>
-                    <span className="text-accent font-bold font-mono">{(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}</span>
-                    <span className="text-ink-subtle block text-[10px]">{labelSumberEta(etaSpk(spk).sumber)}</span>
+
+                  {/* Chip 3: Estimasi Selesai (ETA) / Status Selesai */}
+                  <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      spk.status_spk === 'Selesai'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                    }`}>
+                      {spk.status_spk === 'Selesai' ? (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      ) : (
+                        <Clock className="w-3.5 h-3.5" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-ink-subtle block leading-none mb-0.5">
+                        {spk.status_spk === 'Selesai' ? 'Pengerjaan' : 'Estimasi (ETA)'}
+                      </span>
+                      {spk.status_spk === 'Selesai' ? (
+                        <div className="leading-tight">
+                          <span className="text-xs font-bold text-status-green block">Selesai</span>
+                          <span className="text-[10px] text-ink-subtle">Inspeksi Lulus</span>
+                        </div>
+                      ) : (
+                        <div className="leading-tight">
+                          <span className="text-xs font-mono font-bold text-accent block">
+                            {(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}
+                          </span>
+                          <span className="text-[10px] text-ink-subtle block truncate">{labelSumberEta(etaSpk(spk).sumber)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -376,9 +441,9 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                 </div>
               )}
 
-              {/* Stepper Progress Bar (image5.png Mockup 2 Stepper) */}
-              <div className="py-5 px-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-surface-raised dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
-                <div className="flex items-start justify-between min-w-[720px]">
+              {/* Stepper Progress Bar */}
+              <div className="py-6 px-4 sm:px-6 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] via-surface-raised to-surface-raised dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
+                <div className="flex items-start justify-between min-w-[780px] relative">
                   {[
                     { step: 1, title: 'Check In', desc: 'Diterima Security', done: true, waktu: spk.waktu_check_in || spk.created_at },
                     { 
@@ -394,44 +459,78 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai', waktu: spk.waktu_fir_closed },
                     { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: spk.status_spk === 'Selesai' || activeInvoiceLunas, waktu: activeInvoice?.tanggal_invoice || (spk.status_spk === 'Selesai' ? spk.waktu_fir_closed : null) },
                     { step: 6, title: 'Check Out', desc: 'Kendaraan Keluar', done: !!spk.waktu_check_out, waktu: spk.waktu_check_out },
-                  ].map((s, idx) => (
-                    <div key={s.step} className="flex-1 flex items-start">
-                      <div className="flex flex-col items-center flex-1 text-center min-w-0">
-                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-xs mb-1.5 transition-all ${
-                          s.isWaitingPart
-                            ? 'bg-status-red text-white ring-4 ring-status-red/20 shadow-md scale-110'
-                            : s.current 
-                            ? 'bg-gradient-to-br from-[#12388F] to-[#3B6FD4] text-white ring-4 ring-[#12388F]/25 shadow-lg scale-110' 
-                            : s.done 
-                            ? 'bg-gradient-to-br from-[#16A34A] to-[#22C55E] text-white shadow-md' 
-                            : 'bg-white dark:bg-slate-900 text-ink-subtle border-2 border-dashed border-border'
-                        }`}>
-                          {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
-                        </div>
-                        <div className={`text-xs font-bold leading-tight ${s.isWaitingPart ? 'text-status-red' : s.current ? 'text-accent' : s.done ? 'text-status-green' : 'text-ink'}`}>
-                          {s.title}
-                        </div>
-                        <div className="text-xs text-ink-subtle mt-0.5">{s.desc}</div>
-                        {(() => {
-                          const wt = s.waktu ? fmtWaktuStep(s.waktu as string) : null;
-                          if (!wt) return <div className="text-[11px] font-mono text-ink-subtle/60 mt-1 leading-tight">—</div>;
-                          return (
-                            <div className={`mt-1 leading-tight ${s.done ? 'text-status-green' : s.current ? 'text-accent' : 'text-ink-subtle/60'}`}>
-                              <div className="text-[10px] font-sans font-medium text-ink-muted">
+                  ].map((s, idx, arr) => {
+                    const isLast = idx === arr.length - 1;
+                    const nextStep = !isLast ? arr[idx + 1] : null;
+                    const lineDone = s.done && (nextStep?.done || nextStep?.current);
+                    const wt = s.waktu ? fmtWaktuStep(s.waktu as string) : null;
+
+                    return (
+                      <div key={s.step} className="flex-1 flex items-start relative min-w-[125px]">
+                        {/* Connecting Line to next step */}
+                        {!isLast && (
+                          <div 
+                            className={`absolute top-5 left-1/2 right-[-50%] h-[2.5px] rounded-full transition-all -z-0 ${
+                              lineDone 
+                                ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E]' 
+                                : s.done
+                                ? 'bg-emerald-300/60 dark:bg-emerald-800/40'
+                                : 'bg-slate-200 dark:bg-slate-700/60'
+                            }`}
+                          />
+                        )}
+
+                        <div className="flex flex-col items-center flex-1 text-center min-w-0 z-10 px-1">
+                          {/* Step Circle */}
+                          <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-xs mb-2 transition-all ring-4 ring-white dark:ring-slate-900 shadow-xs ${
+                            s.isWaitingPart
+                              ? 'bg-status-red text-white ring-status-red/20 shadow-md scale-105'
+                              : s.current 
+                              ? 'bg-gradient-to-br from-[#12388F] to-[#3B6FD4] text-white ring-[#12388F]/25 shadow-md scale-105' 
+                              : s.done 
+                              ? 'bg-gradient-to-br from-[#16A34A] to-[#22C55E] text-white shadow-sm' 
+                              : 'bg-white dark:bg-slate-900 text-ink-subtle border-2 border-dashed border-border'
+                          }`}>
+                            {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
+                          </div>
+
+                          {/* Step Title */}
+                          <div className={`text-xs font-bold leading-tight truncate max-w-full ${
+                            s.isWaitingPart ? 'text-status-red' : s.current ? 'text-accent' : s.done ? 'text-status-green' : 'text-ink'
+                          }`}>
+                            {s.title}
+                          </div>
+
+                          {/* Step Description */}
+                          <div className="text-[11px] text-ink-muted mt-0.5 leading-tight truncate max-w-full">
+                            {s.desc}
+                          </div>
+
+                          {/* Step Time Capsule Badge */}
+                          {wt ? (
+                            <div className={`mt-2 w-full max-w-[115px] px-2 py-1.5 rounded-xl border flex flex-col items-center justify-center transition-all shadow-2xs ${
+                              s.done
+                                ? 'bg-emerald-50/90 border-emerald-200/80 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-200'
+                                : s.current
+                                ? 'bg-blue-50/90 border-blue-200/80 text-blue-900 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-200'
+                                : 'bg-surface border-border text-ink-subtle'
+                            }`}>
+                              <span className="text-[10px] font-sans font-semibold text-slate-600 dark:text-slate-300 leading-none">
                                 {wt.tanggal}
-                              </div>
-                              <div className="text-[11px] font-mono font-semibold">
+                              </span>
+                              <span className="text-[11px] font-mono font-bold mt-1 leading-none text-emerald-700 dark:text-emerald-300">
                                 {wt.jam}
-                              </div>
+                              </span>
                             </div>
-                          );
-                        })()}
+                          ) : (
+                            <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed border-border text-ink-subtle/50 text-[10px] font-mono w-full max-w-[115px] flex items-center justify-center">
+                              —
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {idx < 5 && (
-                        <div className={`h-1 flex-1 mx-2 mt-4 rounded-full ${s.done ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E]' : 'bg-border'}`}></div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -4541,8 +4640,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       <DetailModal
         open={!!historyDetail}
         onClose={() => setHistoryDetail(null)}
-        title={historyDetail ? `Detail Service ${historyDetail.no_spk}` : 'Detail Service'}
-        subtitle={historyDetail ? `${formatPlat(historyDetail.no_polisi)} • ${historyDetail.keluhan_customer || ''}` : undefined}
+        title={historyDetail ? `Detail Riwayat Service` : 'Detail Service'}
+        subtitle={historyDetail ? `${formatPlat(historyDetail.no_polisi)} • ${historyDetail.keluhan_customer || 'Service Kendaraan'}` : undefined}
         badge={historyDetail ? <StatusBadge status={historyDetail.status_spk} /> : undefined}
         size="xl"
       >
