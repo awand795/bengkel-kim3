@@ -4779,8 +4779,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     disabled={tambahArmadaMutation.isPending || !isVerifiedByAdmin}
                     title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
                   >
-                    <Plus className="h-4 w-4" />
-                    <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Unit Kendaraan'}</span>
+                    <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
                   </ModalActionButton>
                 </div>
               </form>
@@ -4931,8 +4930,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   disabled={tambahDokumenMutation.isPending || !isVerifiedByAdmin}
                   title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>{tambahDokumenMutation.isPending ? 'Menyimpan...' : 'Simpan Dokumen'}</span>
+                  <span>{tambahDokumenMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
                 </ModalActionButton>
               </div>
             </form>
@@ -5151,8 +5149,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     width="responsive"
                     disabled={editArmadaMutation.isPending}
                   >
-                    <Check className="h-4 w-4" />
-                    <span>{editArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                    <span>{editArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
                   </ModalActionButton>
                 </div>
               </form>
