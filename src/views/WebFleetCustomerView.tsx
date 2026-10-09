@@ -1724,7 +1724,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Profil Customer & Kontak: form editable (tersimpan di tabel pengguna via /kim3/profil-simpan)
   const [profilEditing, setProfilEditing] = useState(false);
-  const [profilTipeAkun, setProfilTipeAkun] = useState<'perusahaan' | 'pribadi'>('perusahaan');
   const [profilForm, setProfilForm] = useState({
     nama_perusahaan: authUser?.nama_perusahaan || authUser?.nama_lengkap || '',
     alamat: authUser?.alamat || '',
@@ -1737,7 +1736,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     mutationFn: () =>
       api.updateProfil({
         nama_lengkap: (profilForm.nama_perusahaan.trim() || authUser?.nama_lengkap || '').trim(),
-        nama_pic: profilTipeAkun === 'pribadi' ? '-' : (profilForm.nama_pic.trim() || '-'),
+        nama_pic: isPerusahaanAccount ? (profilForm.nama_pic.trim() || '-') : '-',
         alamat: profilForm.alamat.trim(),
         npwp: profilForm.npwp.trim(),
         no_telepon: profilForm.no_telepon.trim(),
@@ -1754,7 +1753,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       setProfilEditing(false);
       toast.success(
         'Profil Disimpan',
-        profilTipeAkun === 'perusahaan'
+        isPerusahaanAccount
           ? 'Data perusahaan & kontak Anda telah diperbarui.'
           : 'Data profil pribadi Anda telah diperbarui.'
       );
@@ -3973,7 +3972,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <button
                     type="button"
                     onClick={() => {
-                      setProfilTipeAkun(isPerusahaanAccount ? 'perusahaan' : 'pribadi');
                       setProfilForm({
                         nama_perusahaan: authUser?.nama_perusahaan || authUser?.nama_lengkap || currentUser || '',
                         alamat: authUser?.alamat || '',
@@ -4145,10 +4143,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div>
                     <h3 className="text-sm font-bold text-ink flex items-center gap-2">
                       <Edit3 className="w-4 h-4 text-accent" />
-                      <span>Edit Profil Customer & Kontak</span>
+                      <span>{isPerusahaanAccount ? 'Edit Profil Perusahaan & Kontak PIC' : 'Edit Profil Pribadi'}</span>
                     </h3>
                     <p className="text-xs text-ink-muted mt-0.5">
-                      {profilTipeAkun === 'perusahaan'
+                      {isPerusahaanAccount
                         ? 'Perbarui data perusahaan dan kontak PIC penanggung jawab Anda.'
                         : 'Perbarui data pribadi dan nomor kontak Anda.'}
                     </p>
@@ -4165,51 +4163,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                 {/* Form Fields */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  {/* Pilihan Tipe Akun */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-ink mb-1.5">Tipe Akun:</label>
-                    <div className="grid grid-cols-2 gap-3 max-w-md">
-                      <button
-                        type="button"
-                        onClick={() => setProfilTipeAkun('perusahaan')}
-                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
-                          profilTipeAkun === 'perusahaan'
-                            ? 'bg-accent text-white border-accent shadow-xs'
-                            : 'bg-surface text-ink-muted border-border hover:bg-surface-raised'
-                        }`}
-                      >
-                        <Building2 className="w-4 h-4" />
-                        <span>Perusahaan / Mitra</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setProfilTipeAkun('pribadi')}
-                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
-                          profilTipeAkun === 'pribadi'
-                            ? 'bg-accent text-white border-accent shadow-xs'
-                            : 'bg-surface text-ink-muted border-border hover:bg-surface-raised'
-                        }`}
-                      >
-                        <User className="w-4 h-4" />
-                        <span>Pribadi / Perorangan</span>
-                      </button>
-                    </div>
-                  </div>
-
                   {/* Logo / Foto Profil */}
                   <div className="sm:col-span-2">
                     <PhotoUploader
-                      label={profilTipeAkun === 'perusahaan' ? 'Logo atau Foto Profil Perusahaan (Opsional)' : 'Foto Profil (Opsional)'}
+                      label={isPerusahaanAccount ? 'Logo atau Foto Profil Perusahaan (Opsional)' : 'Foto Profil (Opsional)'}
                       value={profilForm.foto_profil}
                       onChange={(url) => setProfilForm((p) => ({ ...p, foto_profil: url }))}
                     />
                   </div>
 
                   {/* Nama Perusahaan / Nama Lengkap */}
-                  <div className={profilTipeAkun === 'pribadi' ? 'sm:col-span-2' : ''}>
+                  <div className={!isPerusahaanAccount ? 'sm:col-span-2' : ''}>
                     <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
-                      {profilTipeAkun === 'perusahaan' ? <Building2 className="w-3.5 h-3.5 text-accent" /> : <User className="w-3.5 h-3.5 text-accent" />}
-                      <span>{profilTipeAkun === 'perusahaan' ? 'Nama Perusahaan / Entitas:' : 'Nama Lengkap:'}</span>
+                      {isPerusahaanAccount ? <Building2 className="w-3.5 h-3.5 text-accent" /> : <User className="w-3.5 h-3.5 text-accent" />}
+                      <span>{isPerusahaanAccount ? 'Nama Perusahaan / Entitas:' : 'Nama Lengkap:'}</span>
                       <span className="text-status-red">*</span>
                     </label>
                     <input
@@ -4217,13 +4184,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       required
                       value={profilForm.nama_perusahaan}
                       onChange={(e) => setProfilForm((p) => ({ ...p, nama_perusahaan: e.target.value }))}
-                      placeholder={profilTipeAkun === 'perusahaan' ? 'Contoh: Mitra PT Tes Logistik' : 'Contoh: Budi Santoso'}
+                      placeholder={isPerusahaanAccount ? 'Contoh: Mitra PT Tes Logistik' : 'Contoh: Budi Santoso'}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-semibold transition"
                     />
                   </div>
 
                   {/* Nama PIC (Hanya jika Perusahaan) */}
-                  {profilTipeAkun === 'perusahaan' && (
+                  {isPerusahaanAccount && (
                     <div>
                       <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5 text-accent" />
@@ -4259,8 +4226,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div>
                     <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
                       <CreditCard className="w-3.5 h-3.5 text-accent" />
-                      <span>NPWP:</span>
-                      {profilTipeAkun === 'pribadi' && <span className="text-[10px] font-normal text-ink-muted">(Opsional)</span>}
+                      <span>{isPerusahaanAccount ? 'NPWP Perusahaan:' : 'NPWP:'}</span>
+                      {!isPerusahaanAccount && <span className="text-[10px] font-normal text-ink-muted">(Opsional)</span>}
                     </label>
                     <input
                       type="text"
@@ -4275,13 +4242,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-accent" />
-                      <span>{profilTipeAkun === 'perusahaan' ? 'Alamat Perusahaan:' : 'Alamat Domisili:'}</span>
+                      <span>{isPerusahaanAccount ? 'Alamat Perusahaan:' : 'Alamat Domisili:'}</span>
                     </label>
                     <textarea
                       rows={2}
                       value={profilForm.alamat}
                       onChange={(e) => setProfilForm((p) => ({ ...p, alamat: e.target.value }))}
-                      placeholder={profilTipeAkun === 'perusahaan' ? 'Contoh: Medan Deli, Kota Medan' : 'Contoh: Jl. Gatot Subroto No. 12, Medan'}
+                      placeholder={isPerusahaanAccount ? 'Contoh: Medan Deli, Kota Medan' : 'Contoh: Jl. Gatot Subroto No. 12, Medan'}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent bg-surface text-ink font-medium leading-relaxed transition"
                     />
                   </div>
