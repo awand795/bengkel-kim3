@@ -795,9 +795,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         <div className="font-medium text-ink">Estimasi Selesai:</div>
                         <div>{(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam kerja (${labelSumberEta(e.sumber)})` : 'Hari ini, estimasi 2-3 jam kerja'; })()}</div>
                       </div>
-                      <div className="text-xs text-ink-muted pt-1">
-                        Pembaruan status sistem berjalan realtime tanpa perlu konfirmasi manual via chat/telepon.
-                      </div>
                     </div>
                   </div>
                 )}
