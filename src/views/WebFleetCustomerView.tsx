@@ -4746,7 +4746,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       </div>
                       <div className="sm:col-span-2">
                         <label htmlFor="armada-expired" className="mb-1.5 block text-xs font-semibold text-ink-muted">
-                          Masa Berlaku (Pajak/STNK/Asuransi)
+                          Masa Berlaku STNK
                         </label>
                         <input
                           id="armada-expired"
