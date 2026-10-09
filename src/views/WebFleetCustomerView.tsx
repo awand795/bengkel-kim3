@@ -2381,7 +2381,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const tambahArmadaMutation = useMutation({
     mutationFn: async (data: typeof armadaForm) => {
       if (!isVerifiedByAdmin) {
-        throw new Error('Akun belum terverifikasi oleh admin POS.');
+        throw new Error('Akun belum terverifikasi oleh admin.');
       }
       // Plat dinormalisasi (primary key walk-in); konflik pemilik ditolak server.
       const plat = normalizePlat(data.no_polisi);
@@ -2520,7 +2520,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const tambahDokumenMutation = useMutation({
     mutationFn: async (data: typeof dokumenForm) => {
       if (!isVerifiedByAdmin) {
-        throw new Error('Akun belum terverifikasi oleh admin POS.');
+        throw new Error('Akun belum terverifikasi oleh admin.');
       }
       return api.tambahDokumen({
         no_polisi: data.no_polisi,
@@ -2565,11 +2565,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   Akun Belum Terverifikasi oleh Admin
                 </h4>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-200 dark:bg-amber-500/30 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-500/40">
-                  Menunggu Approval POS
+                  Menunggu Approval Admin
                 </span>
               </div>
               <p className="text-sm text-amber-900 dark:text-amber-100/90 mt-1 leading-relaxed font-medium">
-                Akun kemitraan Anda saat ini menunggu verifikasi data oleh admin sistem POS. Anda belum dapat melakukan booking service, menambahkan armada kendaraan baru, atau mengunggah dokumen sampai akun selesai diverifikasi oleh admin.
+                Akun kemitraan Anda saat ini menunggu verifikasi data oleh admin. Anda belum dapat melakukan booking service, menambahkan armada kendaraan baru, atau mengunggah dokumen sampai akun selesai diverifikasi oleh admin.
               </p>
             </div>
           </div>
@@ -3031,7 +3031,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               disabled={!isVerifiedByAdmin}
                               onClick={() => {
                                 if (!isVerifiedByAdmin) {
-                                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
                                   return;
                                 }
                                 setOpenTambahArmadaModal(true);
@@ -3039,7 +3039,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl transition ${
                                 !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                               }`}
-                              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
+                              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
                             >
                               <Plus className="w-3.5 h-3.5" /> Daftarkan Truk Sekarang
                             </button>
@@ -3586,7 +3586,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                         }`}
                         aria-label={`Edit unit ${k.no_polisi}`}
-                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : 'Edit spesifikasi unit'}
+                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : 'Edit spesifikasi unit'}
                       >
                         <Edit3 className="h-3.5 w-3.5" />
                         <span>Edit</span>
@@ -3596,7 +3596,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         disabled={!isVerifiedByAdmin}
                         onClick={() => {
                           if (!isVerifiedByAdmin) {
-                            toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                            toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
                             return;
                           }
                           setHapusArmadaTarget(k);
@@ -3605,7 +3605,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                         }`}
                         aria-label={`Hapus unit ${k.no_polisi}`}
-                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : 'Hapus unit kendaraan'}
+                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : 'Hapus unit kendaraan'}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         <span>Hapus</span>
@@ -3667,7 +3667,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 disabled={!isVerifiedByAdmin}
                 onClick={() => {
                   if (!isVerifiedByAdmin) {
-                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
                     return;
                   }
                   setOpenTambahArmadaModal(true);
@@ -3675,7 +3675,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 className={`inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold rounded-xl shadow-xs transition ${
                   !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
-                title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
+                title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
               >
                 <Plus className="w-4 h-4" /> Daftarkan Unit Sekarang
               </button>
@@ -3697,7 +3697,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               disabled={!isVerifiedByAdmin}
               onClick={() => {
                 if (!isVerifiedByAdmin) {
-                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
                   return;
                 }
                 if (myKendaraanList.length > 0) {
@@ -3708,7 +3708,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#12388F] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 ${
                 !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
               }`}
-              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
+              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
             >
               <Plus className="w-4 h-4" />
               <span>Unggah Dokumen Baru</span>
@@ -3862,7 +3862,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 disabled={!isVerifiedByAdmin}
                 onClick={() => {
                   if (!isVerifiedByAdmin) {
-                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin POS.');
+                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
                     return;
                   }
                   if (myKendaraanList.length > 0) {
@@ -3873,7 +3873,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 className={`inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#12388F] px-4 text-xs font-bold text-white transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 ${
                   !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                 }`}
-                title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
+                title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
               >
                 <Plus className="w-3.5 h-3.5" /> Unggah Dokumen Baru
               </button>
@@ -3918,7 +3918,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     {isVerifiedByAdmin && (
                       <div
                         className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs border-2 border-surface-raised"
-                        title="Akun Terverifikasi Admin POS"
+                        title="Akun Terverifikasi Admin"
                       >
                         <Check className="w-3.5 h-3.5 stroke-[3]" />
                       </div>
@@ -4836,7 +4836,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     variant="primary"
                     width="responsive"
                     disabled={tambahArmadaMutation.isPending || !isVerifiedByAdmin}
-                    title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
+                    title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
                   >
                     <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
                   </ModalActionButton>
@@ -4987,7 +4987,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   variant="primary"
                   width="responsive"
                   disabled={tambahDokumenMutation.isPending || !isVerifiedByAdmin}
-                  title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin POS' : undefined}
+                  title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
                 >
                   <span>{tambahDokumenMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
                 </ModalActionButton>
