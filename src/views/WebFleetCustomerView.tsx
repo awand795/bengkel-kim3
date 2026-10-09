@@ -140,6 +140,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
     iso && !isNaN(new Date(iso).getTime())
       ? new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
       : '';
+  const fmtWaktuStep = (iso?: string | null): { tanggal: string; jam: string } | null => {
+    if (!iso || isNaN(new Date(iso).getTime())) return null;
+    const d = new Date(iso);
+    return {
+      tanggal: d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
+      jam: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+    };
+  };
   const fmtWaktuFull = (iso?: string | null): string => {
     if (!iso || isNaN(new Date(iso).getTime())) return '';
     const d = new Date(iso);
@@ -217,7 +225,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   </div>
                   <div>
                     <span className="text-ink-subtle block text-xs">Waktu Check In:</span>
-                    <span className="text-ink">{spk.created_at ? new Date(spk.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}</span>
+                    <span className="text-ink font-semibold">
+                      {(() => {
+                        const t = spk.waktu_check_in || spk.created_at;
+                        if (!t || isNaN(new Date(t).getTime())) return '-';
+                        const d = new Date(t);
+                        return `${d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} • ${d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+                      })()}
+                    </span>
                   </div>
                   <div>
                     <span className="text-ink-subtle block text-xs">Estimasi Selesai (ETA):</span>
@@ -363,7 +378,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
 
               {/* Stepper Progress Bar (image5.png Mockup 2 Stepper) */}
               <div className="py-5 px-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-surface-raised dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
-                <div className="flex items-start justify-between min-w-[650px]">
+                <div className="flex items-start justify-between min-w-[720px]">
                   {[
                     { step: 1, title: 'Check In', desc: 'Diterima Security', done: true, waktu: spk.waktu_check_in || spk.created_at },
                     { 
@@ -397,9 +412,20 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           {s.title}
                         </div>
                         <div className="text-xs text-ink-subtle mt-0.5">{s.desc}</div>
-                        <div className={`text-[11px] font-mono mt-0.5 leading-tight ${s.done ? 'text-status-green' : s.current ? 'text-accent' : 'text-ink-subtle/60'}`}>
-                          {s.waktu ? fmtJam(s.waktu as string) : '—'}
-                        </div>
+                        {(() => {
+                          const wt = s.waktu ? fmtWaktuStep(s.waktu as string) : null;
+                          if (!wt) return <div className="text-[11px] font-mono text-ink-subtle/60 mt-1 leading-tight">—</div>;
+                          return (
+                            <div className={`mt-1 leading-tight ${s.done ? 'text-status-green' : s.current ? 'text-accent' : 'text-ink-subtle/60'}`}>
+                              <div className="text-[10px] font-sans font-medium text-ink-muted">
+                                {wt.tanggal}
+                              </div>
+                              <div className="text-[11px] font-mono font-semibold">
+                                {wt.jam}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                       {idx < 5 && (
                         <div className={`h-1 flex-1 mx-2 mt-4 rounded-full ${s.done ? 'bg-gradient-to-r from-[#16A34A] to-[#22C55E]' : 'bg-border'}`}></div>
