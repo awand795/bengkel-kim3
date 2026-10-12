@@ -2674,7 +2674,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-ink">Booking Service Kendaraan Perusahaan</h2>
+              <h2 className="text-base font-bold text-ink">Booking Service</h2>
               <p className="text-xs text-ink-muted">Jadwalkan service kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3</p>
             </div>
             <button
