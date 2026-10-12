@@ -20,7 +20,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'dashboard': { title: 'Dashboard', subtitle: 'Web Fleet Customer' },
   'fleet-booking': { title: 'Booking Service', subtitle: 'Pemesanan Jadwal Servis' },
   'fleet-status': { title: 'Status Service', subtitle: 'Live Tracking Perawatan' },
-  'fleet-history': { title: 'History Service', subtitle: 'Riwayat Servis Kendaraan' },
+  'fleet-history': { title: 'Riwayat Service', subtitle: 'Riwayat Servis Kendaraan' },
   'fleet-kendaraan': { title: 'Kendaraan Saya', subtitle: 'Kelola Data Armada' },
   'fleet-dokumen': { title: 'Dokumen Saya', subtitle: 'Berkas Legalitas Kendaraan' },
   'fleet-profil': { title: 'Profil Perusahaan', subtitle: 'Informasi Mitra' },

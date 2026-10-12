@@ -4282,7 +4282,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {fleetMenu === 'history' && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-base font-bold text-ink">Riwayat Kendaraan (History)</h2>
+            <h2 className="text-base font-bold text-ink">Riwayat Service</h2>
             <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Bengkel KIM 3</p>
           </div>
 

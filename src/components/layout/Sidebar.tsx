@@ -25,7 +25,7 @@ export const Sidebar: React.FC = () => {
     { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Truck },
     { id: 'fleet-booking', label: 'Booking Service', icon: Calendar },
-    { id: 'fleet-history', label: 'History Service', icon: Receipt },
+    { id: 'fleet-history', label: 'Riwayat Service', icon: Receipt },
     { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
     { id: 'fleet-profil', label: 'Profil', icon: Building2 },
   ];
