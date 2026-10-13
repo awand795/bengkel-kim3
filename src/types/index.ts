@@ -433,5 +433,5 @@ export interface Notifikasi {
   urgency?: 'urgent' | 'warning' | 'info' | 'success';
   is_read: boolean;
   read_at?: string | null;
-  created_at: string;
+  created_at: string | number;
 }

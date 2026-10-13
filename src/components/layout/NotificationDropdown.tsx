@@ -20,19 +20,28 @@ import { toast } from '../common/Toast';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { Notifikasi } from '../../types';
 
-// Helper to format ISO or SQL timestamp to Indonesian relative or friendly string
-function formatNotificationTime(dateStr?: string | null): string {
-  if (!dateStr) return 'Baru saja';
+// Helper to format ISO, SQL timestamp, or UNIX epoch millisecond to Indonesian friendly string
+function formatNotificationTime(dateVal?: string | number | null): string {
+  if (dateVal === null || dateVal === undefined || dateVal === '') return 'Baru saja';
   try {
-    const date = new Date(dateStr.replace(' ', 'T'));
-    if (isNaN(date.getTime())) return dateStr;
+    let date: Date;
+    // Cek jika epoch timestamp number atau string angka (seperti 1791860222431)
+    if (typeof dateVal === 'number' || (!isNaN(Number(dateVal)) && !String(dateVal).includes('-') && !String(dateVal).includes(':'))) {
+      date = new Date(Number(dateVal));
+    } else {
+      const cleanStr = String(dateVal).replace(' ', 'T');
+      date = new Date(cleanStr);
+    }
+
+    if (isNaN(date.getTime())) return 'Baru saja';
 
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMins / 60);
 
-    if (diffMins < 1) return 'Baru saja';
+    // Tangani kemungkinan waktu sedikit lebih maju karena drift jam server/klien
+    if (diffMs < 0 || diffMins < 1) return 'Baru saja';
     if (diffMins < 60) return `${diffMins} menit lalu`;
     if (diffHours < 24) {
       return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
@@ -44,7 +53,7 @@ function formatNotificationTime(dateStr?: string | null): string {
       minute: '2-digit',
     }) + ' WIB';
   } catch {
-    return dateStr;
+    return 'Baru saja';
   }
 }
 
