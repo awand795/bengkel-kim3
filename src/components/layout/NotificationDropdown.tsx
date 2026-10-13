@@ -142,6 +142,27 @@ export const NotificationDropdown: React.FC = () => {
     return () => unsubscribe();
   }, [authUser, queryClient]);
 
+  // Deteksi jika ada notifikasi verifikasi baru yang belum dibaca dari backend
+  const lastNotifIdsRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (isLoading || !notifikasiList.length) return;
+
+    // Cek apakah ada notifikasi verifikasi baru yang belum dibaca
+    const verifNotif = notifikasiList.find(
+      (n) =>
+        !n.is_read &&
+        n.title.toLowerCase().includes('terverifikasi') &&
+        !lastNotifIdsRef.current.has(n.id)
+    );
+
+    if (verifNotif) {
+      toast.success(verifNotif.title, verifNotif.pesan);
+      realtimeHub.playChime('success');
+    }
+
+    lastNotifIdsRef.current = new Set(notifikasiList.map((n) => n.id));
+  }, [notifikasiList, isLoading]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

@@ -56,6 +56,27 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // Deteksi live jika akun belum diverifikasi lalu di-approve oleh admin POS di background
+  useEffect(() => {
+    if (!isLoggedIn || !authUser || authUser.pos_verifikasi) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const me = await api.getMe();
+        if (me.pos_verifikasi) {
+          useAppStore.setState({ authUser: me });
+          try {
+            localStorage.setItem('bengkel_auth_user', JSON.stringify(me));
+          } catch {}
+        }
+      } catch {
+        // Abaikan kegagalan jaringan sesaat
+      }
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [isLoggedIn, authUser?.pos_verifikasi]);
+
   // Jika sedang memverifikasi sesi pada reload, cegah flash antarmuka internal
   if (isVerifyingSession) {
     return (
