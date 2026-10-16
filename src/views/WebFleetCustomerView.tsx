@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, normalizePlat, formatPlat, isValidPlatIndonesia, formatPlatIndonesia, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
+import { api, normalizePlat, formatPlat, isValidPlatIndonesia, formatPlatIndonesia, getLocalDateStr, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
@@ -1495,7 +1495,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [bookingForm, setBookingForm] = useState({
     no_polisi: '',
     jenis_layanan: 'Service Berkala (Ganti Oli & Filter)',
-    tanggal_booking: new Date().toISOString().slice(0, 10),
+    tanggal_booking: getLocalDateStr(1),
     jam_booking: '08:30',
     keluhan: '',
     catatan: '',
@@ -2305,18 +2305,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Booking Mutation
   const createBookingMutation = useMutation({
     mutationFn: async () => {
-      const now = new Date();
-      const todayStr = now.toISOString().slice(0, 10);
-      if (bookingForm.tanggal_booking < todayStr) {
-        throw new Error('Tanggal rencana masuk tidak boleh di masa lampau.');
+      const minBookingDate = getLocalDateStr(1);
+      if (!bookingForm.tanggal_booking) {
+        throw new Error('Tanggal rencana masuk wajib dipilih.');
       }
-      if (bookingForm.tanggal_booking === todayStr) {
-        const [h, m] = (bookingForm.jam_booking || '00:00').split(':').map(Number);
-        const curH = now.getHours();
-        const curM = now.getMinutes();
-        if (h < curH || (h === curH && m <= curM)) {
-          throw new Error(`Jam kedatangan untuk hari ini tidak boleh di jam yang sudah terlewat.`);
-        }
+      if (bookingForm.tanggal_booking < minBookingDate) {
+        throw new Error(`Pemesanan jadwal booking service wajib minimal H+1 dari hari ini (mulai ${minBookingDate}).`);
       }
 
       const bookNo = `BK${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
@@ -2348,6 +2342,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       );
       setOpenBookingModal(false);
       setBookingStep(1);
+      setBookingForm({
+        no_polisi: '',
+        jenis_layanan: 'Service Berkala (Ganti Oli & Filter)',
+        tanggal_booking: getLocalDateStr(1),
+        jam_booking: '08:30',
+        keluhan: '',
+        catatan: '',
+      });
       setFleetMenu('booking');
       setActiveTab('fleet-booking');
     },
@@ -2428,8 +2430,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         expired: data.expired || data.masa_berlaku_asuransi || undefined,
         asuransi: data.asuransi ? data.asuransi.trim().toUpperCase() : undefined,
         masa_berlaku_asuransi: data.masa_berlaku_asuransi || data.expired || undefined,
-        note: data.note ? data.note.trim().toUpperCase() : undefined,
-        description: data.description ? data.description.trim().toUpperCase() : undefined,
+        note: data.note ? data.note.trim() : undefined,
+        description: data.description ? data.description.trim() : undefined,
         foto_kendaraan: data.foto_kendaraan || undefined,
         id_pelanggan: myPelangganId || undefined,
       });
@@ -2528,8 +2530,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         expired: data.expired || data.masa_berlaku_asuransi || undefined,
         asuransi: data.asuransi ? data.asuransi.trim().toUpperCase() : undefined,
         masa_berlaku_asuransi: data.masa_berlaku_asuransi || data.expired || undefined,
-        note: data.note ? data.note.trim().toUpperCase() : undefined,
-        description: data.description ? data.description.trim().toUpperCase() : undefined,
+        note: data.note ? data.note.trim() : undefined,
+        description: data.description ? data.description.trim() : undefined,
         foto_kendaraan: data.foto_kendaraan || undefined,
       });
     },
@@ -2735,6 +2737,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   return;
                 }
                 setBookingStep(1);
+                const minDate = getLocalDateStr(1);
+                setBookingForm((prev) => ({
+                  ...prev,
+                  tanggal_booking: !prev.tanggal_booking || prev.tanggal_booking < minDate ? minDate : prev.tanggal_booking,
+                }));
                 setOpenBookingModal(true);
               }}
               className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs transition shrink-0 ${
@@ -2855,6 +2862,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   label: '+ Buat Booking Baru',
                   onClick: () => {
                     setBookingStep(1);
+                    const minDate = getLocalDateStr(1);
+                    setBookingForm((prev) => ({
+                      ...prev,
+                      tanggal_booking: !prev.tanggal_booking || prev.tanggal_booking < minDate ? minDate : prev.tanggal_booking,
+                    }));
                     setOpenBookingModal(true);
                   },
                 } : undefined}
@@ -2895,27 +2907,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   }
                   setBookingStep(3);
                 } else if (bookingStep === 3) {
-                  const now = new Date();
-                  const todayStr = now.toISOString().slice(0, 10);
+                  const minBookingDate = getLocalDateStr(1);
                   if (!bookingForm.tanggal_booking) {
                     toast.error('Tanggal Belum Dipilih', 'Silakan pilih tanggal rencana masuk.');
                     return;
                   }
-                  if (bookingForm.tanggal_booking < todayStr) {
-                    toast.error('Tanggal Tidak Valid', 'Tanggal rencana masuk tidak boleh di masa lampau.');
+                  if (bookingForm.tanggal_booking < minBookingDate) {
+                    toast.error(
+                      'Tanggal Tidak Valid',
+                      `Pemesanan booking service wajib minimal H+1 dari hari ini (mulai ${minBookingDate}).`
+                    );
                     return;
-                  }
-                  if (bookingForm.tanggal_booking === todayStr) {
-                    const [h, m] = (bookingForm.jam_booking || '00:00').split(':').map(Number);
-                    const curH = now.getHours();
-                    const curM = now.getMinutes();
-                    if (h < curH || (h === curH && m <= curM)) {
-                      toast.error(
-                        'Jam Tidak Valid',
-                        `Jam kedatangan untuk hari ini tidak boleh di jam yang sudah terlewat (${String(curH).padStart(2, '0')}:${String(curM).padStart(2, '0')} WIB).`
-                      );
-                      return;
-                    }
                   }
                   setBookingStep(4);
                 }
@@ -3291,25 +3293,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <div>
                           <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-accent" />
-                            Tanggal Rencana Masuk <span className="text-status-red">*</span>
+                            Tanggal Rencana Masuk <span className="text-status-red">* (Minimal H+1)</span>
                           </label>
                           <input
                             type="date"
-                            min={new Date().toISOString().slice(0, 10)}
+                            min={getLocalDateStr(1)}
                             value={bookingForm.tanggal_booking}
                             onChange={(e) => {
-                              const todayStr = new Date().toISOString().slice(0, 10);
-                              if (e.target.value && e.target.value < todayStr) {
-                                toast.warning('Tanggal Tidak Valid', 'Tanggal rencana masuk tidak boleh di masa lampau.');
-                                setBookingForm({ ...bookingForm, tanggal_booking: todayStr });
+                              const minDate = getLocalDateStr(1);
+                              if (e.target.value && e.target.value < minDate) {
+                                toast.warning('Tanggal Tidak Valid', 'Pemesanan booking service wajib minimal H+1 dari hari ini (mulai besok).');
+                                setBookingForm({ ...bookingForm, tanggal_booking: minDate });
                                 return;
                               }
                               setBookingForm({ ...bookingForm, tanggal_booking: e.target.value });
                             }}
                             className="w-full px-3.5 py-2.5 rounded-xl border border-border font-mono text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
                           />
-                          <div className="text-xs text-ink-muted mt-1.5 font-medium">
-                            Pilih hari ini atau tanggal kedatangan berikutnya
+                          <div className="mt-2 rounded-lg bg-amber-500/10 border border-amber-500/25 p-2.5 text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
+                            <span className="font-bold">Catatan:</span> Pemesanan booking service wajib dilakukan minimal H+1 dari hari ini (mulai besok) untuk persiapan jadwal dan ketersediaan mekanik / stall bengkel.
                           </div>
                         </div>
                         <div>
@@ -3595,7 +3597,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
                             return;
                           }
-                          setBookingForm({ ...bookingForm, no_polisi: k.no_polisi });
+                          const minDate = getLocalDateStr(1);
+                          setBookingForm((prev) => ({
+                            ...prev,
+                            no_polisi: k.no_polisi,
+                            tanggal_booking: !prev.tanggal_booking || prev.tanggal_booking < minDate ? minDate : prev.tanggal_booking,
+                          }));
                           setFleetMenu('booking');
                           setActiveTab('fleet-booking');
                         }}

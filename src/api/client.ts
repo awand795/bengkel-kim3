@@ -206,6 +206,18 @@ export const cleanField = (val?: any): string => {
   return s;
 };
 
+/**
+ * Mengambil tanggal lokal sistem (YYYY-MM-DD) dengan offset hari (misal 1 untuk besok / H+1).
+ */
+export const getLocalDateStr = (offsetDays = 0): string => {
+  const d = new Date();
+  if (offsetDays) d.setDate(d.getDate() + offsetDays);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const formatMerkModel = (merk?: string | null, model?: string | null, fallback?: string): string => {
   const m = cleanField(merk);
   const mdl = cleanField(model);
@@ -373,8 +385,8 @@ export const api = {
       no_rangka: data.no_rangka ? String(data.no_rangka).trim().toUpperCase() : undefined,
       no_mesin: data.no_mesin ? String(data.no_mesin).trim().toUpperCase() : undefined,
       asuransi: data.asuransi ? String(data.asuransi).trim().toUpperCase() : undefined,
-      note: data.note ? String(data.note).trim().toUpperCase() : undefined,
-      description: data.description ? String(data.description).trim().toUpperCase() : undefined,
+      note: data.note ? String(data.note).trim() : undefined,
+      description: data.description ? String(data.description).trim() : undefined,
       foto_kendaraan_base64_data: data.foto_kendaraan || undefined,
     };
     const res = await apiClient.post('/kim3/kendaraan-tambah', payload);
@@ -391,8 +403,8 @@ export const api = {
       no_rangka: data.no_rangka !== undefined ? (data.no_rangka ? String(data.no_rangka).trim().toUpperCase() : '') : undefined,
       no_mesin: data.no_mesin !== undefined ? (data.no_mesin ? String(data.no_mesin).trim().toUpperCase() : '') : undefined,
       asuransi: data.asuransi !== undefined ? (data.asuransi ? String(data.asuransi).trim().toUpperCase() : '') : undefined,
-      note: data.note !== undefined ? (data.note ? String(data.note).trim().toUpperCase() : '') : undefined,
-      description: data.description !== undefined ? (data.description ? String(data.description).trim().toUpperCase() : '') : undefined,
+      note: data.note !== undefined ? (data.note ? String(data.note).trim() : '') : undefined,
+      description: data.description !== undefined ? (data.description ? String(data.description).trim() : '') : undefined,
       foto_kendaraan_base64_data: data.foto_kendaraan || undefined,
     };
     const res = await apiClient.post('/kim3/kendaraan-update', payload);
@@ -469,6 +481,10 @@ export const api = {
   getBookingPage: (query: ListQuery = {}): Promise<PaginatedResult<BookingService>> =>
     fetchList<BookingService>('/kim3/booking', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahBooking: async (data: Partial<BookingService>): Promise<any> => {
+    const minBookingDate = getLocalDateStr(1);
+    if (data.tanggal_booking && data.tanggal_booking < minBookingDate) {
+      throw new Error(`Pemesanan jadwal booking service wajib minimal H+1 dari hari ini (mulai ${minBookingDate}).`);
+    }
     const res = await apiClient.post('/kim3/booking-tambah', data);
     return res.data;
   },
