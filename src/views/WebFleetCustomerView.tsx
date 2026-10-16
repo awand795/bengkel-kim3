@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, normalizePlat, formatPlat, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
+import { api, normalizePlat, formatPlat, isValidPlatIndonesia, formatPlatIndonesia, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart } from '../types';
 import { PaginationBar } from '../components/common/PaginationBar';
@@ -2382,26 +2382,54 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       if (!isVerifiedByAdmin) {
         throw new Error('Akun belum terverifikasi oleh admin.');
       }
+      const rawPlat = (data.no_polisi || '').trim().toUpperCase();
+      if (!rawPlat) {
+        throw new Error('Nomor polisi wajib diisi.');
+      }
+      if (!isValidPlatIndonesia(rawPlat)) {
+        throw new Error('Format nomor polisi tidak sesuai standar plat Indonesia (contoh: BK 1234 ABC).');
+      }
+
+      const merkUpper = cleanField(data.merk).toUpperCase();
+      if (!merkUpper) {
+        throw new Error('Merk kendaraan wajib diisi.');
+      }
+
+      const modelUpper = cleanField(data.model).toUpperCase();
+      if (!modelUpper) {
+        throw new Error('Model / seri kendaraan wajib diisi.');
+      }
+
+      const typeUpper = cleanField(data.type || data.jenis_armada).toUpperCase();
+      if (!typeUpper) {
+        throw new Error('Tipe / bentuk kendaraan wajib diisi.');
+      }
+
+      const tahunNum = Number(data.tahun);
+      if (!tahunNum || tahunNum < 1970 || tahunNum > new Date().getFullYear() + 1) {
+        throw new Error('Tahun pembuatan kendaraan tidak valid.');
+      }
+
       // Plat dinormalisasi (primary key walk-in); konflik pemilik ditolak server.
-      const plat = normalizePlat(data.no_polisi);
-      if (!plat) throw new Error('Nomor polisi wajib diisi.');
+      const formattedPlat = formatPlatIndonesia(rawPlat);
+      const plat = normalizePlat(formattedPlat);
       const res = await api.tambahKendaraan({
-        no_polisi: plat,
-        no_inventaris: data.no_inventaris || undefined,
-        unit_name: data.unit_name || undefined,
-        jenis_armada: data.jenis_armada as any,
-        type: data.type || data.jenis_armada || undefined,
-        merk: cleanField(data.merk) || undefined,
-        model: cleanField(data.model) || undefined,
-        tahun: Number(data.tahun) || new Date().getFullYear(),
+        no_polisi: formattedPlat,
+        no_inventaris: data.no_inventaris ? data.no_inventaris.trim().toUpperCase() : undefined,
+        unit_name: data.unit_name ? data.unit_name.trim().toUpperCase() : undefined,
+        jenis_armada: typeUpper as any,
+        type: typeUpper,
+        merk: merkUpper,
+        model: modelUpper,
+        tahun: tahunNum,
         nama_pemilik: data.nama_pemilik || authUser?.nama_perusahaan || authUser?.nama_lengkap || 'Customer Fleet',
-        no_rangka: data.no_rangka || undefined,
-        no_mesin: data.no_mesin || undefined,
+        no_rangka: data.no_rangka ? data.no_rangka.trim().toUpperCase() : undefined,
+        no_mesin: data.no_mesin ? data.no_mesin.trim().toUpperCase() : undefined,
         expired: data.expired || data.masa_berlaku_asuransi || undefined,
-        asuransi: data.asuransi || undefined,
+        asuransi: data.asuransi ? data.asuransi.trim().toUpperCase() : undefined,
         masa_berlaku_asuransi: data.masa_berlaku_asuransi || data.expired || undefined,
-        note: data.note || undefined,
-        description: data.description || undefined,
+        note: data.note ? data.note.trim().toUpperCase() : undefined,
+        description: data.description ? data.description.trim().toUpperCase() : undefined,
         foto_kendaraan: data.foto_kendaraan || undefined,
         id_pelanggan: myPelangganId || undefined,
       });
@@ -2465,25 +2493,46 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Edit Kendaraan Mutation (server guard: customer hanya unit miliknya)
   const editArmadaMutation = useMutation({
-    mutationFn: (data: typeof editArmadaForm) =>
-      api.updateKendaraan({
+    mutationFn: (data: typeof editArmadaForm) => {
+      const merkUpper = cleanField(data.merk).toUpperCase();
+      if (!merkUpper) {
+        throw new Error('Merk kendaraan wajib diisi.');
+      }
+
+      const modelUpper = cleanField(data.model).toUpperCase();
+      if (!modelUpper) {
+        throw new Error('Model / seri kendaraan wajib diisi.');
+      }
+
+      const typeUpper = cleanField(data.type || data.jenis_armada).toUpperCase();
+      if (!typeUpper) {
+        throw new Error('Tipe / bentuk kendaraan wajib diisi.');
+      }
+
+      const tahunNum = Number(data.tahun);
+      if (!tahunNum || tahunNum < 1970 || tahunNum > new Date().getFullYear() + 1) {
+        throw new Error('Tahun pembuatan kendaraan tidak valid.');
+      }
+
+      return api.updateKendaraan({
         no_polisi: editArmadaData?.no_polisi || data.no_polisi || '',
-        no_inventaris: data.no_inventaris || undefined,
-        unit_name: data.unit_name || undefined,
-        jenis_armada: data.jenis_armada as any,
-        type: data.type || data.jenis_armada || undefined,
-        merk: cleanField(data.merk) || undefined,
-        model: cleanField(data.model) || undefined,
-        tahun: Number(data.tahun) || undefined,
-        no_rangka: data.no_rangka || undefined,
-        no_mesin: data.no_mesin || undefined,
+        no_inventaris: data.no_inventaris ? data.no_inventaris.trim().toUpperCase() : undefined,
+        unit_name: data.unit_name ? data.unit_name.trim().toUpperCase() : undefined,
+        jenis_armada: typeUpper as any,
+        type: typeUpper,
+        merk: merkUpper,
+        model: modelUpper,
+        tahun: tahunNum,
+        no_rangka: data.no_rangka ? data.no_rangka.trim().toUpperCase() : undefined,
+        no_mesin: data.no_mesin ? data.no_mesin.trim().toUpperCase() : undefined,
         expired: data.expired || data.masa_berlaku_asuransi || undefined,
-        asuransi: data.asuransi || undefined,
+        asuransi: data.asuransi ? data.asuransi.trim().toUpperCase() : undefined,
         masa_berlaku_asuransi: data.masa_berlaku_asuransi || data.expired || undefined,
-        note: data.note || undefined,
-        description: data.description || undefined,
+        note: data.note ? data.note.trim().toUpperCase() : undefined,
+        description: data.description ? data.description.trim().toUpperCase() : undefined,
         foto_kendaraan: data.foto_kendaraan || undefined,
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
       queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
@@ -4593,8 +4642,31 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!armadaForm.no_polisi.trim()) {
-                    toast.warning('Nomor Polisi wajib diisi.');
+                  const rawPlat = armadaForm.no_polisi.trim().toUpperCase();
+                  if (!rawPlat) {
+                    toast.warning('Nomor polisi wajib diisi.');
+                    return;
+                  }
+                  if (!isValidPlatIndonesia(rawPlat)) {
+                    toast.warning('Format plat nomor tidak valid! Gunakan standar plat Indonesia (contoh: BK 1234 ABC atau B 1234 CD).');
+                    return;
+                  }
+                  if (!cleanField(armadaForm.merk)) {
+                    toast.warning('Merk kendaraan wajib dipilih / diisi.');
+                    return;
+                  }
+                  if (!cleanField(armadaForm.model)) {
+                    toast.warning('Model / seri kendaraan wajib diisi.');
+                    return;
+                  }
+                  const tipeVal = cleanField(armadaForm.type || armadaForm.jenis_armada);
+                  if (!tipeVal) {
+                    toast.warning('Tipe / bentuk kendaraan wajib dipilih / diisi.');
+                    return;
+                  }
+                  const tahunVal = Number(armadaForm.tahun);
+                  if (!tahunVal || tahunVal < 1970 || tahunVal > new Date().getFullYear() + 1) {
+                    toast.warning('Tahun pembuatan kendaraan tidak valid.');
                     return;
                   }
                   tambahArmadaMutation.mutate(armadaForm);
@@ -4613,17 +4685,33 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <label htmlFor="armada-no-polisi" className="mb-1.5 block text-xs font-semibold text-ink-muted">
-                          No. Polisi <span className="text-status-red">*</span>
+                          No. Polisi (Standar Indonesia) <span className="text-status-red">*</span>
                         </label>
                         <input
                           id="armada-no-polisi"
                           type="text"
                           required
-                          placeholder="Contoh: BK 9999 XX"
+                          placeholder="Contoh: BK 9999 XX atau B 1234 CD"
                           value={armadaForm.no_polisi}
                           onChange={(e) => setArmadaForm({ ...armadaForm, no_polisi: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          className={`w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:outline-hidden focus:ring-2 ${
+                            armadaForm.no_polisi.trim()
+                              ? isValidPlatIndonesia(armadaForm.no_polisi)
+                                ? 'border-emerald-500/60 focus:border-emerald-500 focus:ring-emerald-500/30'
+                                : 'border-rose-500/70 focus:border-rose-500 focus:ring-rose-500/30'
+                              : 'border-border focus:ring-accent'
+                          }`}
                         />
+                        {armadaForm.no_polisi.trim().length > 0 && !isValidPlatIndonesia(armadaForm.no_polisi) && (
+                          <p className="mt-1 text-[11px] text-rose-500 leading-tight">
+                            Format tidak sesuai standar Indonesia: 1-2 huruf wilayah, 1-4 angka (tanpa diawali 0), 1-3 huruf seri (contoh: BK 1234 ABC).
+                          </p>
+                        )}
+                        {armadaForm.no_polisi.trim().length > 0 && isValidPlatIndonesia(armadaForm.no_polisi) && (
+                          <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3 inline" /> Format plat valid ({formatPlatIndonesia(armadaForm.no_polisi)})
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label htmlFor="armada-unit-name" className="mb-1.5 block text-xs font-semibold text-ink-muted">
@@ -4634,8 +4722,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           type="text"
                           placeholder="Contoh: Fuso Wingbox Medan-Aceh"
                           value={armadaForm.unit_name}
-                          onChange={(e) => setArmadaForm({ ...armadaForm, unit_name: e.target.value })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          onChange={(e) => setArmadaForm({ ...armadaForm, unit_name: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         />
                       </div>
                     </div>
@@ -4644,84 +4732,96 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <section aria-labelledby="armada-spesifikasi-heading">
                     <div className="mb-3 border-b border-border pb-2">
                       <h4 id="armada-spesifikasi-heading" className="text-xs font-bold text-ink">Spesifikasi unit</h4>
-                      <p className="mt-0.5 text-[11px] text-ink-subtle">Merk, model, dan bentuk kendaraan</p>
+                      <p className="mt-0.5 text-[11px] text-ink-subtle">Merk, model, bentuk kendaraan, dan tahun pembuatan</p>
                     </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
-                        <label htmlFor="armada-merk" className="mb-1.5 block text-xs font-semibold text-ink-muted">Merk</label>
+                        <label htmlFor="armada-merk" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Merk <span className="text-status-red">*</span>
+                        </label>
                         <select
                           id="armada-merk"
+                          required
                           value={armadaForm.merk}
-                          onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value })}
-                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         >
-                          <option value="">-- Pilih Merk --</option>
+                          <option value="">-- PILIH MERK KENDARAAN --</option>
                           {masterMerkList.map((m) => (
-                            <option key={m.id} value={m.brandname}>{m.brandname}</option>
+                            <option key={m.id} value={m.brandname.toUpperCase()}>{m.brandname.toUpperCase()}</option>
                           ))}
-                          {armadaForm.merk && !masterMerkList.some((m) => m.brandname.toLowerCase() === armadaForm.merk.toLowerCase()) && (
-                            <option value={armadaForm.merk}>{armadaForm.merk}</option>
+                          {armadaForm.merk && !masterMerkList.some((m) => m.brandname.toUpperCase() === armadaForm.merk.toUpperCase()) && (
+                            <option value={armadaForm.merk.toUpperCase()}>{armadaForm.merk.toUpperCase()}</option>
                           )}
                         </select>
                       </div>
                       <div>
-                        <label htmlFor="armada-model" className="mb-1.5 block text-xs font-semibold text-ink-muted">Model / Seri</label>
+                        <label htmlFor="armada-model" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Model / Seri <span className="text-status-red">*</span>
+                        </label>
                         <input
                           id="armada-model"
                           type="text"
-                          placeholder="Contoh: Dutro 130HD"
+                          required
+                          placeholder="Contoh: DUTRO 130HD"
                           value={armadaForm.model}
-                          onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         />
                       </div>
                       <div>
-                        <label htmlFor="armada-type" className="mb-1.5 block text-xs font-semibold text-ink-muted">Tipe / Bentuk Kendaraan</label>
+                        <label htmlFor="armada-type" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Tipe / Bentuk Kendaraan <span className="text-status-red">*</span>
+                        </label>
                         <select
                           id="armada-type"
+                          required
                           value={armadaForm.type || armadaForm.jenis_armada}
-                          onChange={(e) => setArmadaForm({ ...armadaForm, type: e.target.value, jenis_armada: e.target.value })}
-                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          onChange={(e) => setArmadaForm({ ...armadaForm, type: e.target.value.toUpperCase(), jenis_armada: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         >
-                          <option value="">-- Pilih Tipe Kendaraan --</option>
-                          {armadaForm.merk && masterTipeList.filter((t) => t.brandname?.toLowerCase() === armadaForm.merk.toLowerCase()).length > 0 && (
-                            <optgroup label={`Tipe Sesuai Merk (${armadaForm.merk})`}>
+                          <option value="">-- PILIH TIPE KENDARAAN --</option>
+                          {armadaForm.merk && masterTipeList.filter((t) => t.brandname?.toUpperCase() === armadaForm.merk.toUpperCase()).length > 0 && (
+                            <optgroup label={`TIPE SESUAI MERK (${armadaForm.merk})`}>
                               {masterTipeList
-                                .filter((t) => t.brandname?.toLowerCase() === armadaForm.merk.toLowerCase())
+                                .filter((t) => t.brandname?.toUpperCase() === armadaForm.merk.toUpperCase())
                                 .map((t) => (
-                                  <option key={`merk-tipe-${t.id}`} value={t.typename}>
-                                    {t.typename} {t.modelname ? `(${t.modelname})` : ''}
+                                  <option key={`merk-tipe-${t.id}`} value={t.typename.toUpperCase()}>
+                                    {t.typename.toUpperCase()} {t.modelname ? `(${t.modelname.toUpperCase()})` : ''}
                                   </option>
                                 ))}
                             </optgroup>
                           )}
-                          <optgroup label="Tipe / Bentuk Karoseri Armada">
-                            {['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].map((b) => (
+                          <optgroup label="TIPE / BENTUK KAROSERI ARMADA">
+                            {['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL'].map((b) => (
                               <option key={`common-${b}`} value={b}>{b}</option>
                             ))}
                           </optgroup>
-                          <optgroup label="Tipe Kendaraan Lainnya">
+                          <optgroup label="TIPE KENDARAAN LAINNYA">
                             {Array.from(new Set(masterTipeList.map((t) => t.typename).filter(Boolean))).map((tn) => (
-                              <option key={`pos-type-${tn}`} value={tn}>{tn}</option>
+                              <option key={`pos-type-${tn}`} value={tn.toUpperCase()}>{tn.toUpperCase()}</option>
                             ))}
                           </optgroup>
                           {(armadaForm.type || armadaForm.jenis_armada) &&
-                            !masterTipeList.some((t) => t.typename?.toLowerCase() === (armadaForm.type || armadaForm.jenis_armada).toLowerCase()) &&
-                            !['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].some(
-                              (b) => b.toLowerCase() === (armadaForm.type || armadaForm.jenis_armada).toLowerCase()
+                            !masterTipeList.some((t) => t.typename?.toUpperCase() === (armadaForm.type || armadaForm.jenis_armada).toUpperCase()) &&
+                            !['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL'].some(
+                              (b) => b === (armadaForm.type || armadaForm.jenis_armada).toUpperCase()
                             ) && (
-                              <option value={armadaForm.type || armadaForm.jenis_armada}>
-                                {armadaForm.type || armadaForm.jenis_armada}
+                              <option value={(armadaForm.type || armadaForm.jenis_armada).toUpperCase()}>
+                                {(armadaForm.type || armadaForm.jenis_armada).toUpperCase()}
                               </option>
                             )}
                         </select>
                       </div>
                       <div>
-                        <label htmlFor="armada-tahun" className="mb-1.5 block text-xs font-semibold text-ink-muted">Tahun Pembuatan</label>
+                        <label htmlFor="armada-tahun" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Tahun Pembuatan <span className="text-status-red">*</span>
+                        </label>
                         <input
                           id="armada-tahun"
                           type="number"
-                          min="1990"
+                          required
+                          min="1970"
                           max={new Date().getFullYear() + 1}
                           value={armadaForm.tahun}
                           onChange={(e) => setArmadaForm({ ...armadaForm, tahun: Number(e.target.value) })}
@@ -4802,8 +4902,33 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     type="submit"
                     variant="primary"
                     width="responsive"
-                    disabled={tambahArmadaMutation.isPending || !isVerifiedByAdmin}
-                    title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
+                    disabled={
+                      tambahArmadaMutation.isPending ||
+                      !isVerifiedByAdmin ||
+                      !armadaForm.no_polisi.trim() ||
+                      !isValidPlatIndonesia(armadaForm.no_polisi) ||
+                      !cleanField(armadaForm.merk) ||
+                      !cleanField(armadaForm.model) ||
+                      !cleanField(armadaForm.type || armadaForm.jenis_armada) ||
+                      !armadaForm.tahun
+                    }
+                    title={
+                      !isVerifiedByAdmin
+                        ? 'Akun belum terverifikasi oleh admin'
+                        : !armadaForm.no_polisi.trim()
+                        ? 'Nomor polisi wajib diisi'
+                        : !isValidPlatIndonesia(armadaForm.no_polisi)
+                        ? 'Format nomor polisi harus standar Indonesia (contoh: BK 1234 ABC)'
+                        : !cleanField(armadaForm.merk)
+                        ? 'Merk kendaraan wajib diisi'
+                        : !cleanField(armadaForm.model)
+                        ? 'Model / seri kendaraan wajib diisi'
+                        : !cleanField(armadaForm.type || armadaForm.jenis_armada)
+                        ? 'Tipe kendaraan wajib diisi'
+                        : !armadaForm.tahun
+                        ? 'Tahun pembuatan wajib diisi'
+                        : undefined
+                    }
                   >
                     <span>{tambahArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
                   </ModalActionButton>
@@ -4999,6 +5124,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  if (!cleanField(editArmadaForm.merk)) {
+                    toast.warning('Merk kendaraan wajib dipilih / diisi.');
+                    return;
+                  }
+                  if (!cleanField(editArmadaForm.model)) {
+                    toast.warning('Model / seri kendaraan wajib diisi.');
+                    return;
+                  }
+                  const tipeVal = cleanField(editArmadaForm.type || editArmadaForm.jenis_armada);
+                  if (!tipeVal) {
+                    toast.warning('Tipe / bentuk kendaraan wajib dipilih / diisi.');
+                    return;
+                  }
+                  const tahunVal = Number(editArmadaForm.tahun);
+                  if (!tahunVal || tahunVal < 1970 || tahunVal > new Date().getFullYear() + 1) {
+                    toast.warning('Tahun pembuatan kendaraan tidak valid.');
+                    return;
+                  }
                   editArmadaMutation.mutate(editArmadaForm);
                 }}
                 className="flex min-h-0 flex-1 flex-col"
@@ -5017,34 +5160,40 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           type="text"
                           placeholder="Contoh: Fuso Wingbox Medan-Aceh"
                           value={editArmadaForm.unit_name}
-                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, unit_name: e.target.value })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, unit_name: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         />
                       </div>
                       <div>
-                        <label htmlFor="edit-armada-merk" className="mb-1.5 block text-xs font-semibold text-ink-muted">Merk</label>
+                        <label htmlFor="edit-armada-merk" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Merk <span className="text-status-red">*</span>
+                        </label>
                         <select
                           id="edit-armada-merk"
+                          required
                           value={editArmadaForm.merk}
-                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, merk: e.target.value })}
-                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, merk: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         >
-                          <option value="">-- Pilih Merk --</option>
-                          {masterMerkList.map((m) => <option key={m.id} value={m.brandname}>{m.brandname}</option>)}
-                          {editArmadaForm.merk && !masterMerkList.some((m) => m.brandname.toLowerCase() === editArmadaForm.merk.toLowerCase()) && (
-                            <option value={editArmadaForm.merk}>{editArmadaForm.merk}</option>
+                          <option value="">-- PILIH MERK --</option>
+                          {masterMerkList.map((m) => <option key={m.id} value={m.brandname.toUpperCase()}>{m.brandname.toUpperCase()}</option>)}
+                          {editArmadaForm.merk && !masterMerkList.some((m) => m.brandname.toUpperCase() === editArmadaForm.merk.toUpperCase()) && (
+                            <option value={editArmadaForm.merk.toUpperCase()}>{editArmadaForm.merk.toUpperCase()}</option>
                           )}
                         </select>
                       </div>
                       <div>
-                        <label htmlFor="edit-armada-model" className="mb-1.5 block text-xs font-semibold text-ink-muted">Model / Seri</label>
+                        <label htmlFor="edit-armada-model" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Model / Seri <span className="text-status-red">*</span>
+                        </label>
                         <input
                           id="edit-armada-model"
                           type="text"
-                          placeholder="Contoh: Dutro 130HD"
+                          required
+                          placeholder="Contoh: DUTRO 130HD"
                           value={editArmadaForm.model}
-                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, model: e.target.value })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, model: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         />
                       </div>
                     </div>
@@ -5057,44 +5206,50 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
-                        <label htmlFor="edit-armada-type" className="mb-1.5 block text-xs font-semibold text-ink-muted">Tipe / Bentuk Kendaraan</label>
+                        <label htmlFor="edit-armada-type" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Tipe / Bentuk Kendaraan <span className="text-status-red">*</span>
+                        </label>
                         <select
                           id="edit-armada-type"
+                          required
                           value={editArmadaForm.type || editArmadaForm.jenis_armada}
-                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, type: e.target.value, jenis_armada: e.target.value })}
-                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, type: e.target.value.toUpperCase(), jenis_armada: e.target.value.toUpperCase() })}
+                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         >
-                          <option value="">-- Pilih Tipe Kendaraan --</option>
-                          {editArmadaForm.merk && masterTipeList.filter((t) => t.brandname?.toLowerCase() === editArmadaForm.merk.toLowerCase()).length > 0 && (
-                            <optgroup label={`Tipe Sesuai Merk (${editArmadaForm.merk})`}>
+                          <option value="">-- PILIH TIPE KENDARAAN --</option>
+                          {editArmadaForm.merk && masterTipeList.filter((t) => t.brandname?.toUpperCase() === editArmadaForm.merk.toUpperCase()).length > 0 && (
+                            <optgroup label={`TIPE SESUAI MERK (${editArmadaForm.merk})`}>
                               {masterTipeList
-                                .filter((t) => t.brandname?.toLowerCase() === editArmadaForm.merk.toLowerCase())
-                                .map((t) => <option key={`edit-merk-tipe-${t.id}`} value={t.typename}>{t.typename} {t.modelname ? `(${t.modelname})` : ''}</option>)}
+                                .filter((t) => t.brandname?.toUpperCase() === editArmadaForm.merk.toUpperCase())
+                                .map((t) => <option key={`edit-merk-tipe-${t.id}`} value={t.typename.toUpperCase()}>{t.typename.toUpperCase()} {t.modelname ? `(${t.modelname.toUpperCase()})` : ''}</option>)}
                             </optgroup>
                           )}
-                          <optgroup label="Tipe / Bentuk Karoseri Armada">
-                            {['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].map((b) => (
+                          <optgroup label="TIPE / BENTUK KAROSERI ARMADA">
+                            {['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL'].map((b) => (
                               <option key={`edit-common-${b}`} value={b}>{b}</option>
                             ))}
                           </optgroup>
-                          <optgroup label="Tipe Kendaraan Lainnya">
+                          <optgroup label="TIPE KENDARAAN LAINNYA">
                             {Array.from(new Set(masterTipeList.map((t) => t.typename).filter(Boolean))).map((tn) => (
-                              <option key={`edit-pos-type-${tn}`} value={tn}>{tn}</option>
+                              <option key={`edit-pos-type-${tn}`} value={tn.toUpperCase()}>{tn.toUpperCase()}</option>
                             ))}
                           </optgroup>
                           {(editArmadaForm.type || editArmadaForm.jenis_armada) &&
-                            !masterTipeList.some((t) => t.typename?.toLowerCase() === (editArmadaForm.type || editArmadaForm.jenis_armada).toLowerCase()) &&
-                            !['Box', 'Wingbox', 'Bak Terbuka', 'Dump Truck', 'Tangki', 'Trailer', 'Tronton', 'Pick Up', 'Dutro', 'Truk Engkel'].some(
-                              (b) => b.toLowerCase() === (editArmadaForm.type || editArmadaForm.jenis_armada).toLowerCase()
-                            ) && <option value={editArmadaForm.type || editArmadaForm.jenis_armada}>{editArmadaForm.type || editArmadaForm.jenis_armada}</option>}
+                            !masterTipeList.some((t) => t.typename?.toUpperCase() === (editArmadaForm.type || editArmadaForm.jenis_armada).toUpperCase()) &&
+                            !['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL'].some(
+                              (b) => b === (editArmadaForm.type || editArmadaForm.jenis_armada).toUpperCase()
+                            ) && <option value={(editArmadaForm.type || editArmadaForm.jenis_armada).toUpperCase()}>{(editArmadaForm.type || editArmadaForm.jenis_armada).toUpperCase()}</option>}
                         </select>
                       </div>
                       <div>
-                        <label htmlFor="edit-armada-tahun" className="mb-1.5 block text-xs font-semibold text-ink-muted">Tahun Pembuatan</label>
+                        <label htmlFor="edit-armada-tahun" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Tahun Pembuatan <span className="text-status-red">*</span>
+                        </label>
                         <input
                           id="edit-armada-tahun"
                           type="number"
-                          min="1990"
+                          required
+                          min="1970"
                           max={new Date().getFullYear() + 1}
                           value={editArmadaForm.tahun}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, tahun: Number(e.target.value) })}
@@ -5173,7 +5328,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     type="submit"
                     variant="primary"
                     width="responsive"
-                    disabled={editArmadaMutation.isPending}
+                    disabled={
+                      editArmadaMutation.isPending ||
+                      !cleanField(editArmadaForm.merk) ||
+                      !cleanField(editArmadaForm.model) ||
+                      !cleanField(editArmadaForm.type || editArmadaForm.jenis_armada) ||
+                      !editArmadaForm.tahun
+                    }
                   >
                     <span>{editArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
                   </ModalActionButton>

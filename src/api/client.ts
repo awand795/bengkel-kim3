@@ -165,6 +165,30 @@ const fetchList = async <T,>(url: string, query: ListQuery = {}): Promise<Pagina
 export const normalizePlat = (nopol: string | null | undefined): string =>
   (nopol || '').toUpperCase().replace(/\s+/g, '');
 
+/**
+ * Regex standar plat nomor Indonesia (TNKB):
+ * - 1 atau 2 huruf kode wilayah (misal: B, D, BK, BL, AD, L, dll)
+ * - 1 sampai 4 digit nomor polisi (1-9999, tidak diawali 0)
+ * - 1 sampai 3 huruf seri sub-wilayah (misal: A, RR, ABC, dll)
+ */
+export const PLAT_INDONESIA_REGEX = /^([A-Z]{1,2})\s*([1-9][0-9]{0,3})\s*([A-Z]{1,3})$/;
+
+export const isValidPlatIndonesia = (nopol?: string | null): boolean => {
+  if (!nopol) return false;
+  const clean = String(nopol).trim().toUpperCase();
+  return PLAT_INDONESIA_REGEX.test(clean);
+};
+
+export const formatPlatIndonesia = (nopol?: string | null): string => {
+  if (!nopol) return '';
+  const clean = String(nopol).trim().toUpperCase();
+  const match = clean.match(PLAT_INDONESIA_REGEX);
+  if (match) {
+    return `${match[1]} ${match[2]} ${match[3]}`;
+  }
+  return clean;
+};
+
 export const formatPlat = (nopol?: string | null): string => {
   if (!nopol) return '-';
   const clean = String(nopol).trim().toUpperCase().replace(/\s+/g, '');
@@ -313,8 +337,44 @@ export const api = {
   getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
     fetchList<Kendaraan>('/kim3/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
+    const rawPlat = String(data.no_polisi || '').trim().toUpperCase();
+    if (!rawPlat) {
+      throw new Error('Nomor polisi wajib diisi.');
+    }
+    if (!isValidPlatIndonesia(rawPlat)) {
+      throw new Error('Format nomor polisi tidak sesuai standar plat Indonesia (contoh: BK 1234 ABC).');
+    }
+    const merk = cleanField(data.merk).toUpperCase();
+    if (!merk) {
+      throw new Error('Merk kendaraan wajib diisi.');
+    }
+    const model = cleanField(data.model).toUpperCase();
+    if (!model) {
+      throw new Error('Model kendaraan wajib diisi.');
+    }
+    const type = cleanField(data.type || data.jenis_armada).toUpperCase();
+    if (!type) {
+      throw new Error('Tipe / bentuk kendaraan wajib diisi.');
+    }
+    const tahun = Number(data.tahun);
+    if (!tahun || tahun < 1970 || tahun > new Date().getFullYear() + 1) {
+      throw new Error('Tahun pembuatan kendaraan tidak valid.');
+    }
+
     const payload = {
       ...data,
+      no_polisi: formatPlatIndonesia(rawPlat),
+      merk,
+      model,
+      type,
+      jenis_armada: type as any,
+      tahun,
+      unit_name: data.unit_name ? String(data.unit_name).trim().toUpperCase() : undefined,
+      no_rangka: data.no_rangka ? String(data.no_rangka).trim().toUpperCase() : undefined,
+      no_mesin: data.no_mesin ? String(data.no_mesin).trim().toUpperCase() : undefined,
+      asuransi: data.asuransi ? String(data.asuransi).trim().toUpperCase() : undefined,
+      note: data.note ? String(data.note).trim().toUpperCase() : undefined,
+      description: data.description ? String(data.description).trim().toUpperCase() : undefined,
       foto_kendaraan_base64_data: data.foto_kendaraan || undefined,
     };
     const res = await apiClient.post('/kim3/kendaraan-tambah', payload);
@@ -323,6 +383,16 @@ export const api = {
   updateKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
     const payload = {
       ...data,
+      merk: data.merk !== undefined ? cleanField(data.merk).toUpperCase() : undefined,
+      model: data.model !== undefined ? cleanField(data.model).toUpperCase() : undefined,
+      type: (data.type || data.jenis_armada) !== undefined ? cleanField(data.type || data.jenis_armada).toUpperCase() : undefined,
+      jenis_armada: (data.type || data.jenis_armada) !== undefined ? cleanField(data.type || data.jenis_armada).toUpperCase() as any : undefined,
+      unit_name: data.unit_name !== undefined ? (data.unit_name ? String(data.unit_name).trim().toUpperCase() : '') : undefined,
+      no_rangka: data.no_rangka !== undefined ? (data.no_rangka ? String(data.no_rangka).trim().toUpperCase() : '') : undefined,
+      no_mesin: data.no_mesin !== undefined ? (data.no_mesin ? String(data.no_mesin).trim().toUpperCase() : '') : undefined,
+      asuransi: data.asuransi !== undefined ? (data.asuransi ? String(data.asuransi).trim().toUpperCase() : '') : undefined,
+      note: data.note !== undefined ? (data.note ? String(data.note).trim().toUpperCase() : '') : undefined,
+      description: data.description !== undefined ? (data.description ? String(data.description).trim().toUpperCase() : '') : undefined,
       foto_kendaraan_base64_data: data.foto_kendaraan || undefined,
     };
     const res = await apiClient.post('/kim3/kendaraan-update', payload);
