@@ -80,29 +80,35 @@ export const LoginBrandPanel: React.FC = () => {
       {/* Satu grup konten, terpusat vertikal & horizontal */}
       <div className="relative z-10 w-full max-w-md xl:max-w-lg flex flex-col">
 
-        {/* Logo chip */}
-        <div className="mb-8 login-reveal" style={{ animationDelay: '0ms' }}>
-          <div className="bg-[#0A0D14] p-3 px-4 rounded-2xl inline-flex items-center border border-white/10 shadow-xl shadow-black/40">
+        {/* Header Identitas Brand: Logo + Headline Bersebelahan */}
+        <div className="mb-6 flex items-center gap-4 xl:gap-5 login-reveal" style={{ animationDelay: '0ms' }}>
+          {/* Logo Chip */}
+          <div className="bg-[#0A0D14] p-2.5 px-3.5 rounded-2xl shrink-0 inline-flex items-center border border-white/10 shadow-xl shadow-black/40">
             <img
               src={LOGO_SRC}
               alt="Master Truck One Stop Services"
-              className="h-12 xl:h-14 w-auto object-contain"
+              className="h-14 xl:h-16 w-auto object-contain"
             />
+          </div>
+
+          {/* Kategori Kuning + Judul Master Truck */}
+          <div className="min-w-0">
+            <p className="mb-1 text-[11px] xl:text-xs uppercase tracking-[0.15em] text-[#F2C14E] lg-text-bright font-semibold flex items-center gap-1.5">
+              <span aria-hidden className="inline-block w-1.5 h-1.5 rounded-full bg-[#F2C14E] shrink-0" />
+              <span>Bengkel Perawatan &amp; Perbaikan Truk</span>
+            </p>
+            <h1 className="text-2xl xl:text-3xl font-bold tracking-tight leading-tight login-title-sheen tracking-[-0.02em]">
+              Master Truck
+            </h1>
+            <p className="text-xs text-[#94A3B8] font-medium tracking-wide mt-0.5">
+              One Stop Services • KIM 3 Medan
+            </p>
           </div>
         </div>
 
-        <div className="login-reveal" style={{ animationDelay: '80ms' }}>
-          <p className="mb-2 text-xs uppercase tracking-[0.18em] text-[#F2C14E] lg-text-bright font-semibold">
-            <span aria-hidden className="inline-flex w-1.5 h-1.5 mr-2 align-middle rounded-full bg-[#F2C14E]" />
-            Bengkel Perawatan &amp; Perbaikan Truk
-          </p>
-          <h1 className="mb-3 text-3xl xl:text-4xl font-bold tracking-tight leading-tight login-title-sheen tracking-[-0.02em]">
-            Master Truck
-          </h1>
-          <div className="login-accent-line" aria-hidden="true" />
-        </div>
+        <div className="login-accent-line mb-5" aria-hidden="true" />
 
-        <p className="mb-4 text-sm xl:text-[15px] leading-relaxed text-[#E2E8F0] auth-text-dark lg-p-text login-reveal" style={{ animationDelay: '160ms' }}>
+        <p className="mb-4 text-sm xl:text-[15px] leading-relaxed text-[#E2E8F0] auth-text-dark lg-p-text login-reveal" style={{ animationDelay: '120ms' }}>
           Master Truck adalah bengkel spesialis perawatan dan perbaikan armada truk serta kendaraan niaga yang berbasis di Medan. Melayani servis berkala, overhaul mesin, kelistrikan, dan suku cadang untuk kawasan industri dan sekitarnya.
         </p>
 
