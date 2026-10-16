@@ -9,7 +9,7 @@ import type { LucideIcon } from 'lucide-react';
  * seluruh animasi dekoratif mati otomatis pada prefers-reduced-motion.
  */
 
-const LOGO_SRC = '/logo.png'; // ganti ke logo Master Truck
+const LOGO_SRC = '/master-truck-logo.png';
 
 // Foto opsional untuk latar panel: isi mis. '/panel-gudang.jpg' (taruh file di folder public/)
 const PANEL_PHOTO: string | null = null;
@@ -81,12 +81,12 @@ export const LoginBrandPanel: React.FC = () => {
       <div className="relative z-10 w-full max-w-md xl:max-w-lg flex flex-col">
 
         {/* Logo chip */}
-        <div className="mb-9 login-reveal" style={{ animationDelay: '0ms' }}>
-          <div className="bg-[#E9EEF6] p-2.5 rounded-xl inline-flex border border-white/[0.18]">
+        <div className="mb-8 login-reveal" style={{ animationDelay: '0ms' }}>
+          <div className="bg-[#0A0D14] p-3 px-4 rounded-2xl inline-flex items-center border border-white/10 shadow-xl shadow-black/40">
             <img
               src={LOGO_SRC}
-              alt="Master Truck"
-              className="h-8 w-auto object-contain"
+              alt="Master Truck One Stop Services"
+              className="h-12 xl:h-14 w-auto object-contain"
             />
           </div>
         </div>
