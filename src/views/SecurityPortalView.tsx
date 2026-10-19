@@ -464,7 +464,7 @@ export const SecurityPortalView: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#EFF6FF] active:bg-[#DBEAFE] text-[#1D4ED8] text-xs font-bold rounded-xl border-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-[1px] transition-all cursor-pointer"
           >
             <ArrowRightCircle className="w-4 h-4" />
-            <span>+ Check In Kendaraan</span>
+            <span>+ Check In</span>
           </button>
         </div>
       </div>
@@ -751,14 +751,14 @@ export const SecurityPortalView: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 3. TAB: CHECK IN KENDARAAN (FORMULIR UTAMA DENGAN PILIHAN DI-REVAMP)      */}
+      {/* 3. TAB: CHECK IN (FORMULIR UTAMA)                                         */}
       {/* ========================================================================= */}
       {currentTab === 'checkin' && (
         <div className="space-y-6 animate-in fade-in duration-200">
           <div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
             <div className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="font-bold text-base text-slate-900">Formulir Check-In Gerbang Masuk</h3>
+                <h3 className="font-bold text-base text-slate-900">Check In</h3>
                 <p className="text-xs text-slate-500">Pencatatan kedatangan armada booking, service walk-in, pembelian sparepart, atau kunjungan tamu</p>
               </div>
               {selectedBooking && (
