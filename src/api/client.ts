@@ -5,6 +5,8 @@ import {
   MasterType,
   MasterJenisLayanan,
   MasterKeluhan,
+  MasterEmployee,
+  KendaraanLookup,
   DokumenKendaraan,
   BookingService,
   SpkService,
@@ -16,7 +18,15 @@ import {
   LoginResponse,
   AuthUser,
   PeranUser,
-  Notifikasi
+  Notifikasi,
+  SecurityDashboardStats,
+  KunjunganGerbang,
+  SecurityBookingItem,
+  SecurityOnProgressItem,
+  MemoKeluarItem,
+  SecurityRiwayatKeluarItem,
+  CheckInPayload,
+  CheckOutPayload
 } from '../types';
 import { useAppStore } from '../store/useAppStore';
 
@@ -415,6 +425,20 @@ export const api = {
     return res.data;
   },
 
+  // Lookup Kendaraan & Terhubung Pengguna Fleet (sch_pos.tbl_member_unit via sch_fleet.v_kendaraan_lookup)
+  lookupKendaraanByNopol: async (nopol: string): Promise<KendaraanLookup[]> => {
+    try {
+      const res = await apiClient.get('/kim3/kendaraan-lookup', {
+        params: { nopol },
+      });
+      if (Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res.data?.data)) return res.data.data;
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
   // Master Merk Kendaraan (sch_pos.tbl_member_asset_brand via sch_fleet.v_pos_asset_brand)
   getMasterMerk: async (): Promise<MasterBrand[]> => {
     try {
@@ -463,6 +487,14 @@ export const api = {
     } catch {
       return [];
     }
+  },
+
+  // Master PIC / Petugas / Karyawan (sch_pos.tbl_employee via sch_fleet.v_pos_employee)
+  getMasterEmployee: async (params?: { department?: string; jobposition?: string }): Promise<MasterEmployee[]> => {
+    const res = await apiClient.get('/kim3/master/pic-employee', { params });
+    if (Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.data?.data)) return res.data.data;
+    return [];
   },
 
   // Dokumen Saya
@@ -640,13 +672,18 @@ export const api = {
     if (!data || !data.id) {
       throw new Error('User not found or inactive in database');
     }
+    const rawRole = (data as any).role || (data as any).peran || '';
+    const isSecurity = rawRole.toLowerCase().includes('security');
+    const peran: PeranUser = isSecurity ? 'Security' : 'Customer Fleet';
+    const role = isSecurity ? 'Security' : 'Customer_Fleet';
+
     return {
       id: data.id,
       email: data.email,
       nama_lengkap: data.nama_lengkap,
       nama_pic: (data as any).nama_pic ?? null,
-      peran: 'Customer Fleet',
-      role: 'Customer_Fleet',
+      peran,
+      role,
       status_aktif: data.status_aktif !== false,
       id_pelanggan: data.id_pelanggan,
       nama_perusahaan: data.nama_perusahaan ?? data.nama_lengkap,
@@ -720,5 +757,62 @@ export const api = {
   }): Promise<any> => {
     const res = await apiClient.post('/kim3/notifikasi-kirim', data);
     return res.data;
+  },
+
+  // -------------------------------------------------------------
+  // MODUL SECURITY & POS GERBANG
+  // -------------------------------------------------------------
+
+  getSecurityDashboardStats: async (): Promise<SecurityDashboardStats> => {
+    const res = await apiClient.get('/kim3/security/dashboard');
+    const data = Array.isArray(res.data) ? res.data[0] : res.data;
+    return {
+      total_masuk_hari_ini: Number(data?.total_masuk_hari_ini || 0),
+      total_di_dalam: Number(data?.total_di_dalam || 0),
+      total_siap_keluar: Number(data?.total_siap_keluar || 0),
+      total_booking_hari_ini: Number(data?.total_booking_hari_ini || 0),
+      total_keluar_hari_ini: Number(data?.total_keluar_hari_ini || 0),
+    };
+  },
+
+  getSecurityBookingList: async (params?: { tanggal?: string; search?: string }): Promise<SecurityBookingItem[]> => {
+    const res = await apiClient.get('/kim3/security/booking-list', { params });
+    return Array.isArray(res.data) ? res.data : [];
+  },
+
+  getSecurityKunjungan: async (params?: { status_gerbang?: string; tipe_kunjungan?: string; search?: string }): Promise<KunjunganGerbang[]> => {
+    const res = await apiClient.get('/kim3/security/kunjungan', { params });
+    return Array.isArray(res.data) ? res.data : [];
+  },
+
+  securityCheckIn: async (payload: CheckInPayload): Promise<any> => {
+    const res = await apiClient.post('/kim3/security/check-in', payload);
+    return res.data;
+  },
+
+  getSecurityOnProgress: async (): Promise<SecurityOnProgressItem[]> => {
+    const res = await apiClient.get('/kim3/security/on-progress');
+    return Array.isArray(res.data) ? res.data : [];
+  },
+
+  securityCheckOut: async (payload: CheckOutPayload): Promise<any> => {
+    const res = await apiClient.post('/kim3/security/check-out', payload);
+    return res.data;
+  },
+
+  getSecurityMemoKeluar: async (search?: string): Promise<MemoKeluarItem[]> => {
+    const res = await apiClient.get('/kim3/security/memo-keluar', { params: { search } });
+    return Array.isArray(res.data) ? res.data : [];
+  },
+
+  getSecurityMemoDetail: async (params: { id?: number | string; nomor_memo?: string }): Promise<MemoKeluarItem | null> => {
+    const res = await apiClient.get('/kim3/security/memo-keluar-detail', { params });
+    const list = Array.isArray(res.data) ? res.data : [];
+    return list.length > 0 ? list[0] : null;
+  },
+
+  getSecurityRiwayatKeluar: async (periode?: 'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA'): Promise<SecurityRiwayatKeluarItem[]> => {
+    const res = await apiClient.get('/kim3/security/riwayat-keluar', { params: { periode: periode || 'HARI_INI' } });
+    return Array.isArray(res.data) ? res.data : [];
   },
 };

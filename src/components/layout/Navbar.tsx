@@ -24,19 +24,24 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'fleet-kendaraan': { title: 'Kendaraan Saya', subtitle: 'Kelola Data Armada' },
   'fleet-dokumen': { title: 'Dokumen Saya', subtitle: 'Berkas Legalitas Kendaraan' },
   'fleet-profil': { title: 'Profil Perusahaan', subtitle: 'Informasi Mitra' },
+  'security-dashboard': { title: 'Dashboard Gerbang', subtitle: 'Pos Security KIM 3' },
+  'security-checkin': { title: 'Check In & Booking', subtitle: 'Pemeriksaan Masuk Gerbang' },
+  'security-onprogress': { title: 'On Progress Bengkel', subtitle: 'Monitoring Armada di Dalam' },
+  'security-keluar': { title: 'Selesai / Keluar', subtitle: 'Riwayat Checkout Gerbang' },
+  'security-memo': { title: 'Memo Keluar', subtitle: 'Arsip Digital Gate Pass' },
 };
 
 export const Navbar: React.FC = () => {
-  const { currentUser, authUser, activeTab, setActiveTab, logout, theme, toggleTheme } = useAppStore();
+  const { currentUser, authUser, currentRole, activeTab, setActiveTab, logout, theme, toggleTheme } = useAppStore();
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const defaultTab = 'fleet-dashboard';
+  const defaultTab = currentRole === 'Security' ? 'security-dashboard' : 'fleet-dashboard';
   const isRootTab = activeTab === defaultTab || activeTab === 'dashboard';
 
   const currentInfo = TAB_TITLES[activeTab] || {
     title: activeTab.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-    subtitle: 'Web Fleet Customer',
+    subtitle: currentRole === 'Security' ? 'Pos Security Gerbang' : 'Web Fleet Customer',
   };
 
   const handleBack = () => {
@@ -122,8 +127,25 @@ export const Navbar: React.FC = () => {
               className="h-9 w-auto object-contain"
             />
             <div className="border-l border-[#E2E8F0] dark:border-border pl-3">
-              <span className="block text-xs font-bold text-[#0F172A] dark:text-white leading-tight">KIM 3 WEB FLEET</span>
-              <span className="block text-[10px] text-[#64748B] dark:text-slate-400">Customer Monitoring Portal</span>
+              {currentRole === 'Security' ? (
+                <>
+                  <span className="block text-xs font-black text-[#0F172A] dark:text-white leading-tight tracking-wide">
+                    MASTER TRUCK &bull; POS GERBANG
+                  </span>
+                  <span className="block text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                    Security Gate & Check Point KIM 3
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="block text-xs font-bold text-[#0F172A] dark:text-white leading-tight">
+                    KIM 3 WEB FLEET
+                  </span>
+                  <span className="block text-[10px] text-[#64748B] dark:text-slate-400">
+                    Customer Monitoring Portal
+                  </span>
+                </>
+              )}
             </div>
           </div>
 

@@ -1,4 +1,4 @@
-export type PeranUser = 'Customer Fleet';
+export type PeranUser = 'Customer Fleet' | 'Security';
 
 export interface Pengguna {
   id: number;
@@ -110,6 +110,42 @@ export interface MasterJenisLayanan {
   deskripsi: string;
   kategori: string;
   estimasi_durasi?: string;
+}
+
+export interface MasterEmployee {
+  id?: number;
+  employeeid: string;
+  employeecode?: string;
+  employeename: string;
+  nama_karyawan?: string;
+  jobposition?: string;
+  jabatan?: string;
+  department?: string;
+  departemen?: string;
+  mobilenumber?: string;
+  no_hp?: string;
+  email?: string;
+  active?: boolean;
+  display_label?: string;
+}
+
+export interface KendaraanLookup {
+  id: number;
+  no_polisi: string;
+  no_polisi_clean?: string;
+  member_id?: number;
+  nama_perusahaan?: string;
+  id_pelanggan?: number | null;
+  user_id?: number | null;
+  nama_pengguna_fleet?: string | null;
+  nama_pic?: string | null;
+  no_telepon?: string | null;
+  jenis_armada?: string;
+  merk?: string;
+  model?: string;
+  tahun?: number;
+  status_aktif?: boolean;
+  foto_kendaraan?: string | null;
 }
 
 export interface MasterKeluhan {
@@ -435,3 +471,149 @@ export interface Notifikasi {
   read_at?: string | null;
   created_at: string | number;
 }
+
+// -------------------------------------------------------------
+// MODUL SECURITY & POS GERBANG
+// -------------------------------------------------------------
+
+export interface SecurityDashboardStats {
+  total_masuk_hari_ini: number;
+  total_di_dalam: number;
+  total_siap_keluar: number;
+  total_booking_hari_ini: number;
+  total_keluar_hari_ini: number;
+}
+
+export type TipeKunjunganGerbang = 'SERVICE' | 'KUNJUNGAN' | 'BELI_PART' | 'LAINNYA' | 'TAMU_NON_SERVICE';
+export type StatusGerbang = 'DI_DALAM' | 'SELESAI_KELUAR' | 'DIBATALKAN';
+
+export interface KunjunganGerbang {
+  id: number;
+  nomor_tiket: string;
+  tipe_kunjungan: TipeKunjunganGerbang;
+  booking_id?: number | null;
+  no_polisi: string;
+  nama_pengemudi: string;
+  no_telepon_pengemudi?: string | null;
+  nama_perusahaan?: string | null;
+  tujuan_kunjungan?: string | null;
+  bertemu_dengan?: string | null;
+  pos_jaga?: string;
+  security_user_id?: number;
+  nama_security?: string;
+  waktu_masuk: string;
+  waktu_keluar?: string | null;
+  status_gerbang: StatusGerbang;
+  foto_kendaraan_masuk?: string | null;
+  foto_kendaraan_keluar?: string | null;
+  catatan_masuk?: string | null;
+  catatan_keluar?: string | null;
+  nomor_memo?: string | null;
+  memo_id?: number | null;
+}
+
+export interface SecurityBookingItem {
+  booking_id: number;
+  no_booking: string;
+  no_polisi: string;
+  jenis_layanan: string;
+  tanggal_booking: string;
+  jam_booking: string;
+  keluhan?: string;
+  catatan?: string;
+  status: string;
+  nama_pelanggan: string;
+  nama_pic?: string;
+  no_telepon?: string;
+  foto_kendaraan?: string;
+  merk?: string;
+  model?: string;
+  tipe?: string;
+  tipe_kendaraan?: string;
+  tahun?: number;
+  sudah_checkin: boolean;
+}
+
+export interface SecurityOnProgressItem {
+  kunjungan_id: number;
+  nomor_tiket: string;
+  no_polisi: string;
+  tipe_kunjungan: TipeKunjunganGerbang;
+  nama_pengemudi: string;
+  nama_perusahaan?: string;
+  waktu_masuk: string;
+  durasi_jam: number;
+  foto_kendaraan_masuk?: string | null;
+  no_spk: string;
+  status_progress: string;
+  foreman: string;
+  mekanik: string;
+}
+
+export interface MemoKeluarItem {
+  id: number;
+  nomor_memo: string;
+  kunjungan_id: number;
+  nama_security?: string;
+  ttd_security?: string;
+  keterangan_barang_keluar?: string;
+  foto_barang_keluar?: string;
+  foto_surat_jalan?: string;
+  status_pos_cleared: boolean;
+  catatan?: string;
+  tanggal_terbit: string;
+  nomor_tiket: string;
+  tipe_kunjungan: TipeKunjunganGerbang;
+  no_polisi: string;
+  nama_pengemudi: string;
+  nama_perusahaan?: string;
+  no_telepon_pengemudi?: string;
+  tujuan_kunjungan?: string;
+  bertemu_dengan?: string;
+  pos_jaga?: string;
+  foto_kendaraan_masuk?: string;
+  foto_kendaraan_keluar?: string;
+  waktu_masuk: string;
+  waktu_keluar: string;
+}
+
+export interface SecurityRiwayatKeluarItem {
+  kunjungan_id: number;
+  nomor_tiket: string;
+  no_polisi: string;
+  tipe_kunjungan: TipeKunjunganGerbang;
+  nama_pengemudi: string;
+  nama_perusahaan?: string;
+  waktu_masuk: string;
+  waktu_keluar: string;
+  durasi_jam: number;
+  nomor_memo: string;
+  memo_id: number;
+  nama_security?: string;
+}
+
+export interface CheckInPayload {
+  tipe_kunjungan: TipeKunjunganGerbang;
+  booking_id?: number | null;
+  no_polisi: string;
+  nama_pengemudi: string;
+  no_telepon_pengemudi?: string;
+  nama_perusahaan?: string;
+  tujuan_kunjungan?: string;
+  bertemu_dengan?: string;
+  pos_jaga?: string;
+  foto_kendaraan_masuk?: string;
+  catatan_masuk?: string;
+}
+
+export interface CheckOutPayload {
+  kunjungan_id: number | string;
+  foto_kendaraan_keluar?: string;
+  catatan_keluar?: string;
+  ttd_security?: string;
+  nama_security?: string;
+  keterangan_barang_keluar?: string;
+  foto_barang_keluar?: string;
+  foto_surat_jalan?: string;
+}
+

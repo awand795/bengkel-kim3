@@ -9,7 +9,11 @@ import {
   Building2,
   HelpCircle,
   MoreHorizontal,
-  X
+  X,
+  ArrowRightCircle,
+  Wrench,
+  LogOut,
+  FileCheck
 } from 'lucide-react';
 
 interface NavTab {
@@ -19,14 +23,23 @@ interface NavTab {
 }
 
 export const MobileBottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, bumpNav } = useAppStore();
+  const { activeTab, setActiveTab, bumpNav, currentRole } = useAppStore();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const primaryTabs: NavTab[] = [
+  const fleetPrimaryTabs: NavTab[] = [
     { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Truck },
     { id: 'fleet-booking', label: 'Booking Service', icon: Calendar },
     { id: 'fleet-history', label: 'Riwayat Service', icon: Receipt },
+  ];
+
+  const securityTabs: NavTab[] = [
+    { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'security-booking', label: 'Booking', icon: Calendar },
+    { id: 'security-checkin', label: 'Check In', icon: ArrowRightCircle },
+    { id: 'security-onprogress', label: 'Progress', icon: Wrench },
+    { id: 'security-keluar', label: 'Keluar', icon: LogOut },
+    { id: 'security-memo', label: 'Memo', icon: FileCheck },
   ];
 
   const moreTabs: NavTab[] = [
@@ -34,9 +47,12 @@ export const MobileBottomNav: React.FC = () => {
     { id: 'fleet-profil', label: 'Profil', icon: Building2 },
   ];
 
+  const primaryTabs = currentRole === 'Security' ? securityTabs : fleetPrimaryTabs;
+
   const isMatchTab = (tabId: string, current: string) => {
     if (tabId === current) return true;
     if (tabId === 'fleet-dashboard' && current === 'dashboard') return true;
+    if (tabId === 'security-dashboard' && current === 'dashboard') return true;
     return false;
   };
 
@@ -91,29 +107,31 @@ export const MobileBottomNav: React.FC = () => {
           );
         })}
 
-        {/* "Lainnya" Button */}
-        <button
-          type="button"
-          onClick={() => setMoreOpen(true)}
-          className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-md active:scale-95 ${
-            isMoreActive ? 'text-accent' : 'text-ink-subtle hover:text-ink'
-          }`}
-        >
-          <div
-            className={`p-1.5 rounded-md transition-colors ${
-              isMoreActive ? 'bg-accent-subtle text-accent' : 'bg-transparent text-ink-subtle'
+        {/* "Lainnya" Button (Khusus Customer Fleet) */}
+        {currentRole !== 'Security' && (
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={`flex flex-col items-center justify-center flex-1 min-h-[48px] min-w-[44px] py-1 transition-all rounded-md active:scale-95 ${
+              isMoreActive ? 'text-accent' : 'text-ink-subtle hover:text-ink'
             }`}
           >
-            <MoreHorizontal className="w-5 h-5 shrink-0" />
-          </div>
-          <span
-            className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
-              isMoreActive ? 'font-bold text-accent' : 'font-medium text-ink-subtle'
-            }`}
-          >
-            Lainnya
-          </span>
-        </button>
+            <div
+              className={`p-1.5 rounded-md transition-colors ${
+                isMoreActive ? 'bg-accent-subtle text-accent' : 'bg-transparent text-ink-subtle'
+              }`}
+            >
+              <MoreHorizontal className="w-5 h-5 shrink-0" />
+            </div>
+            <span
+              className={`text-[10px] tracking-tight mt-0.5 truncate max-w-[70px] ${
+                isMoreActive ? 'font-bold text-accent' : 'font-medium text-ink-subtle'
+              }`}
+            >
+              Lainnya
+            </span>
+          </button>
+        )}
       </nav>
 
       {/* "Lainnya" Menu Bottom Sheet Modal */}

@@ -8,6 +8,7 @@ import { LoginPage } from './views/LoginPage';
 import { UnverifiedEmailView } from './views/UnverifiedEmailView';
 import { DeactivatedAccountView } from './views/DeactivatedAccountView';
 import { WebFleetCustomerView } from './views/WebFleetCustomerView';
+import { SecurityPortalView } from './views/SecurityPortalView';
 import { ToastContainer } from './components/common/Toast';
 import { ApprovalAutoPopup } from './components/common/ApprovalAutoPopup';
 
@@ -16,6 +17,7 @@ export const App: React.FC = () => {
     activeTab,
     isLoggedIn,
     authUser,
+    currentRole,
     isVerifyingSession,
     setIsVerifyingSession,
     logout,
@@ -35,14 +37,21 @@ export const App: React.FC = () => {
       .getMe()
       .then((me) => {
         if (!isMounted) return;
+        const isSec = me.peran === 'Security' || me.role === 'Security';
+        const role = isSec ? 'Security' : 'Customer Fleet';
+        const targetTab = isSec
+          ? (activeTab.startsWith('security-') ? activeTab : 'security-dashboard')
+          : (activeTab.startsWith('fleet-') ? activeTab : 'fleet-dashboard');
+
         useAppStore.setState({
-          authUser: me,
+          authUser: { ...me, peran: role },
           currentUser: me.nama_lengkap,
-          currentRole: 'Customer Fleet',
+          currentRole: role,
+          activeTab: targetTab,
           isLoggedIn: true,
           isVerifyingSession: false,
         });
-        localStorage.setItem('bengkel_auth_user', JSON.stringify(me));
+        localStorage.setItem('bengkel_auth_user', JSON.stringify({ ...me, peran: role }));
       })
       .catch((err) => {
         if (!isMounted) return;
@@ -113,6 +122,10 @@ export const App: React.FC = () => {
   }
 
   const renderActiveView = () => {
+    if (currentRole === 'Security') {
+      return <SecurityPortalView />;
+    }
+
     switch (activeTab) {
       case 'fleet-booking':
         return <WebFleetCustomerView initialMenu="booking" />;

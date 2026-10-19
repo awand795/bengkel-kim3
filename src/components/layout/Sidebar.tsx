@@ -9,7 +9,11 @@ import {
   Building2, 
   HelpCircle,
   Phone,
-  MessageCircle
+  MessageCircle,
+  ArrowRightCircle,
+  Wrench,
+  LogOut,
+  FileCheck
 } from 'lucide-react';
 
 export interface NavItem {
@@ -19,9 +23,9 @@ export interface NavItem {
 }
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab, bumpNav } = useAppStore();
+  const { activeTab, setActiveTab, bumpNav, currentRole } = useAppStore();
 
-  const navigationItems: NavItem[] = [
+  const fleetNavigationItems: NavItem[] = [
     { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'fleet-kendaraan', label: 'Kendaraan Saya', icon: Truck },
     { id: 'fleet-booking', label: 'Booking Service', icon: Calendar },
@@ -30,9 +34,21 @@ export const Sidebar: React.FC = () => {
     { id: 'fleet-profil', label: 'Profil', icon: Building2 },
   ];
 
+  const securityNavigationItems: NavItem[] = [
+    { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'security-booking', label: 'Booking', icon: Calendar },
+    { id: 'security-checkin', label: 'Check In Kendaraan', icon: ArrowRightCircle },
+    { id: 'security-onprogress', label: 'On Progress', icon: Wrench },
+    { id: 'security-keluar', label: 'Selesai / Keluar', icon: LogOut },
+    { id: 'security-memo', label: 'Memo Keluar', icon: FileCheck },
+  ];
+
+  const navigationItems = currentRole === 'Security' ? securityNavigationItems : fleetNavigationItems;
+
   const isTabActive = (tabId: string) => {
     if (activeTab === tabId) return true;
     if (tabId === 'fleet-dashboard' && activeTab === 'dashboard') return true;
+    if (tabId === 'security-dashboard' && activeTab === 'dashboard') return true;
     return false;
   };
 
