@@ -24,6 +24,7 @@ import { SectionHeader } from '../components/common/SectionHeader';
 import { FilterChips } from '../components/common/FilterChips';
 import { PlateChip } from '../components/common/PlateChip';
 import { RupiahCell } from '../components/common/RupiahCell';
+import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
 import { 
   Truck, 
   Calendar, 
@@ -76,6 +77,12 @@ import {
   Lightbulb
 } from 'lucide-react';
 
+const fmtWaktuFull = (iso?: string | null): string => {
+  if (!iso || isNaN(new Date(iso).getTime())) return '';
+  const d = new Date(iso);
+  return `Pukul ${d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB • ${d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+};
+
 interface WebFleetCustomerViewProps {
   initialMenu?: 'dashboard' | 'booking' | 'history' | 'kendaraan' | 'dokumen' | 'profil';
 }
@@ -121,6 +128,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   kendaraanList,
 }) => {
   const [subTab, setSubTab] = useState<'progress' | 'detail' | 'catatan' | 'dokumen'>('progress');
+  const [spkFakturModalOpen, setSpkFakturModalOpen] = useState(false);
 
   // Tarif PPN DB untuk approval (tanpa fallback): angka approve = angka tagihan
   const ppnRateCustomer = ppnRate ?? null;
@@ -149,11 +157,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
       tanggal: d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
       jam: d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
     };
-  };
-  const fmtWaktuFull = (iso?: string | null): string => {
-    if (!iso || isNaN(new Date(iso).getTime())) return '';
-    const d = new Date(iso);
-    return `Pukul ${d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB • ${d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}`;
   };
 
   // Filter detail pekerjaan, part, dan dokumen kendaraan aktif
@@ -1004,6 +1007,37 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     <div className="space-y-2">
                       <span className="font-bold text-ink block">Berkas & Dokumen Kendaraan Ini:</span>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Kartu Faktur Resmi jika ada invoice / sudah selesai / FIR Closed */}
+                        {(activeInvoice || spk.no_invoice || spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed') && (
+                          <div className="flex items-center justify-between p-3 rounded-xl border border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-500/60 transition-colors">
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                                <FileText className="w-4 h-4" />
+                              </span>
+                              <div>
+                                <div className="font-bold text-ink flex items-center gap-1.5">
+                                  <span>Faktur_{activeInvoice?.no_invoice || spk.no_invoice || spk.no_spk}.pdf</span>
+                                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${activeInvoiceLunas || spk.status_spk === 'Selesai' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                    {activeInvoiceLunas || spk.status_spk === 'Selesai' ? 'LUNAS' : 'RESMI'}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-ink-subtle">
+                                  Faktur Servis Resmi • Rp {Number(activeInvoice?.grand_total || spk.total_invoice || spk.estimasi_biaya || 0).toLocaleString('id-ID')}
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSpkFakturModalOpen(true)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                              title="Lihat & Cetak Faktur"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                              <span>Cetak Faktur</span>
+                            </button>
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface-raised hover:border-accent/30 transition-colors">
                           <div className="flex items-center gap-2.5">
                             <FileText className="w-5 h-5 text-accent" />
@@ -1407,6 +1441,28 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
           </div>
         </ModalPortal>
       )}
+      {/* Digital Faktur Modal untuk Cetak / Unduh Faktur Resmi */}
+      <DigitalFakturModal
+        invoice={activeInvoice || {
+          id: spk.id,
+          no_invoice: spk.no_invoice || `FJ-${spk.no_spk}`,
+          id_spk: spk.id,
+          no_polisi: spk.no_polisi,
+          nama_customer: spk.nama_customer,
+          tanggal_invoice: spk.waktu_invoice || spk.waktu_fir_closed || spk.created_at || new Date().toISOString(),
+          subtotal: Number(spk.estimasi_biaya || 0),
+          ppn_nominal: Math.round(Number(spk.estimasi_biaya || 0) * 0.11),
+          diskon: 0,
+          grand_total: Number(spk.total_invoice || spk.estimasi_biaya || 0),
+          metode_pembayaran: 'Transfer Bank',
+          status_pembayaran: spk.status_spk === 'Selesai' ? 'Lunas' : 'Menunggu Pembayaran',
+          tanggal_bayar: spk.waktu_check_out || spk.waktu_fir_closed,
+          kasir_pic: 'Kasir Bengkel KIM 3'
+        }}
+        isOpen={spkFakturModalOpen}
+        onClose={() => setSpkFakturModalOpen(false)}
+        noSpk={spk.no_spk}
+      />
     </div>
   );
 };
@@ -2305,7 +2361,47 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Active SPK being monitored: ambil SPK aktif milik customer yang sedang berjalan
   const activeTrackSpk = mySpkList.find(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed') || mySpkList[0];
 
-  // ── DOKUMEN SAYA: Berkas legalitas kendaraan (STNK, BPKB, KIR, Asuransi) ─────
+  // ── DOKUMEN SAYA: Faktur & Bukti Tagihan (dari POS) + Legalitas Armada ─────
+  const [dokumenSubTab, setDokumenSubTab] = useState<'faktur' | 'legalitas'>('faktur');
+  const [selectedFakturForPrint, setSelectedFakturForPrint] = useState<InvoicePembayaran | null>(null);
+  const [fakturModalOpen, setFakturModalOpen] = useState(false);
+  const [fakturSearch, setFakturSearch] = useState('');
+  const [fakturFilterPlat, setFakturFilterPlat] = useState('');
+  const [fakturPage, setFakturPage] = useState(1);
+  const [fakturLimit, setFakturLimit] = useState(10);
+
+  const fakturSemuaList = useMemo(() => {
+    return [...myInvoiceList].sort((a, b) => {
+      return String(b.tanggal_invoice || b.tanggal_bayar || '').localeCompare(String(a.tanggal_invoice || a.tanggal_bayar || ''));
+    });
+  }, [myInvoiceList]);
+
+  const fakturTerfilterList = useMemo(() => {
+    return fakturSemuaList.filter((inv) => {
+      if (fakturFilterPlat) {
+        const platClean = (inv.no_polisi || '').toUpperCase().replace(/\s+/g, '');
+        const targetClean = fakturFilterPlat.toUpperCase().replace(/\s+/g, '');
+        if (platClean !== targetClean) return false;
+      }
+      if (fakturSearch.trim()) {
+        const q = fakturSearch.toLowerCase().trim();
+        const noInv = (inv.no_invoice || '').toLowerCase();
+        const plat = (inv.no_polisi || '').toLowerCase();
+        const spk = inv.id_spk ? `spk-${inv.id_spk}` : '';
+        if (!noInv.includes(q) && !plat.includes(q) && !spk.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [fakturSemuaList, fakturFilterPlat, fakturSearch]);
+
+  const fakturTotalPages = Math.max(1, Math.ceil(fakturTerfilterList.length / fakturLimit));
+  const fakturSafePage = Math.min(fakturPage, fakturTotalPages);
+  const fakturRows = fakturTerfilterList.slice((fakturSafePage - 1) * fakturLimit, fakturSafePage * fakturLimit);
+
+  React.useEffect(() => {
+    setFakturPage(1);
+  }, [fakturFilterPlat, fakturSearch, fakturLimit]);
+
   const [dokumenFilterPlat, setDokumenFilterPlat] = useState('');
   const [dokumenPage, setDokumenPage] = useState(1);
   const [dokumenLimit, setDokumenLimit] = useState(10);
@@ -3842,199 +3938,449 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </div>
       )}
 
-      {/* MENU 4: DOKUMEN SAYA — berkas kendaraan + faktur otomatis (service & beli part) */}
+      {/* MENU 4: DOKUMEN SAYA — Faktur Resmi (Service & Part POS) serta Berkas Legalitas Armada (STNK, KIR, dll) */}
       {fleetMenu === 'dokumen' && (
         <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-border bg-white px-4 py-4 dark:bg-surface-raised sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div>
-              <h2 className="text-base font-bold tracking-tight text-ink">Dokumen Saya</h2>
-              <p className="mt-0.5 text-xs text-ink-muted">Berkas legalitas kendaraan dan masa berlakunya</p>
-            </div>
-            <button
-              type="button"
-              disabled={!isVerifiedByAdmin}
-              onClick={() => {
-                if (!isVerifiedByAdmin) {
-                  toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
-                  return;
-                }
-                if (myKendaraanList.length > 0) {
-                  setDokumenForm(prev => ({ ...prev, no_polisi: myKendaraanList[0].no_polisi }));
-                }
-                setOpenTambahDokumenModal(true);
-              }}
-              className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#12388F] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 ${
-                !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-              }`}
-              title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Unggah Dokumen Baru</span>
-            </button>
-          </div>
-
-          {/* Filter kendaraan (plat nomor) dalam toolbar */}
-          <div className="flex flex-col gap-2.5 border-b border-border bg-[#F8FAFC] p-3 dark:bg-slate-900/40 sm:flex-row sm:items-center">
-            <div className="relative sm:max-w-xs w-full">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
-              <select
-                value={dokumenFilterPlat}
-                onChange={(e) => setDokumenFilterPlat(e.target.value)}
-                aria-label="Filter dokumen per kendaraan"
-                className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-border bg-white pl-9 pr-8 text-xs font-medium text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 dark:bg-surface-raised"
-              >
-                <option value="">Semua Kendaraan</option>
-                {myKendaraanList.map((k) => (
-                  <option key={k.id} value={k.no_polisi}>
-                    {formatPlat(k.no_polisi)} — {formatNamaArmada(k)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
-            </div>
-            {dokumenFilterPlat && (
-              <button
-                type="button"
-                onClick={() => setDokumenFilterPlat('')}
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-ink-muted transition hover:bg-surface dark:bg-surface-raised"
-              >
-                <X className="w-3.5 h-3.5" /> Reset
-              </button>
-            )}
-          </div>
-
-          {dokumenRows.length > 0 ? (
-            <div className="overflow-hidden bg-surface-raised">
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-border bg-[#F8FAFC] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-subtle dark:bg-slate-900/40">
-                    <tr>
-                      <th className="px-5 py-3 font-semibold">Nama Dokumen</th>
-                      <th className="px-4 py-3 font-semibold">Jenis</th>
-                      <th className="px-4 py-3 font-semibold">No. Polisi</th>
-                      <th className="px-4 py-3 font-semibold">Masa Berlaku</th>
-                      <th className="px-5 py-3 text-right font-semibold">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/70">
-                    {dokumenRows.map((item) => (
-                      <tr key={`doc-${item.id}`} className="transition-colors hover:bg-surface/70">
-                        <td className="max-w-[280px] px-5 py-3.5 font-semibold text-ink">
-                          <span className="block truncate">{item.nama_dokumen}</span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-flex rounded-md border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink-muted">
-                            {item.jenis_dokumen}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-flex rounded-md border border-border bg-white px-2.5 py-1 font-mono text-xs font-bold text-ink dark:bg-surface">
-                            {formatPlat(item.no_polisi)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          {renderDocExpiryBadge(item.masa_berlaku)}
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <a
-                            href={item.file_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-white px-3 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
-                          >
-                            <Download className="h-3.5 w-3.5" /> Unduh
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
-              <div className="block space-y-2.5 p-3 md:hidden">
-                {dokumenRows.map((item) => (
-                  <div key={`doc-${item.id}`} className="rounded-xl border border-border bg-white p-3.5 dark:bg-surface">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold leading-snug text-ink">{item.nama_dokumen}</div>
-                        <div className="mt-1">
-                          <span className="inline-flex rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-xs font-bold text-ink">
-                            {formatPlat(item.no_polisi)}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="shrink-0 rounded-md border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink-muted">
-                        {item.jenis_dokumen}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs text-ink-subtle">
-                      <span>Masa Berlaku</span>
-                      <div>
-                        {renderDocExpiryBadge(item.masa_berlaku)}
-                      </div>
-                    </div>
-
-                    <a
-                      href={item.file_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-[#F1F5F9] px-3 py-2 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#E7EDF5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
-                    >
-                      <Download className="w-3.5 h-3.5" /> Unduh Dokumen
-                    </a>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagination menempel di footer container tabel */}
-              <div className="border-t border-border bg-white px-4 pb-3 dark:bg-surface-raised">
-                <PaginationBar
-                  page={dokumenSafePage}
-                  totalPages={dokumenTotalPages}
-                  totalRecords={dokumenTerfilterList.length}
-                  limit={dokumenLimit}
-                  label="dokumen"
-                  onPageChange={setDokumenPage}
-                  onLimitChange={(l) => {
-                    setDokumenLimit(l);
-                    setDokumenPage(1);
-                  }}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3 border-t border-border bg-surface px-5 py-10 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF0F7] text-[#34517C] dark:bg-blue-950/40 dark:text-blue-300">
-                <FileText className="w-6 h-6" />
-              </div>
+          {/* Header Card dengan Tab Switcher: [Faktur & Bukti Tagihan] vs [Legalitas Kendaraan (STNK/KIR)] */}
+          <div className="flex flex-col gap-3 border-b border-border bg-white p-4 dark:bg-surface-raised sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-sm font-bold text-ink">Belum Ada Dokumen</h3>
-                <p className="text-xs text-ink-muted mt-1">
-                  Unggah berkas STNK, KIR, atau polis asuransi kendaraan Anda di sini.
+                <h2 className="text-base font-bold tracking-tight text-ink">Dokumen Saya</h2>
+                <p className="mt-0.5 text-xs text-ink-muted">
+                  Faktur resmi servis & suku cadang dari POS KIM 3, STNK, KIR, dan berkas legalitas armada
                 </p>
               </div>
+              {dokumenSubTab === 'legalitas' && (
+                <button
+                  type="button"
+                  disabled={!isVerifiedByAdmin}
+                  onClick={() => {
+                    if (!isVerifiedByAdmin) {
+                      toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                      return;
+                    }
+                    if (myKendaraanList.length > 0) {
+                      setDokumenForm(prev => ({ ...prev, no_polisi: myKendaraanList[0].no_polisi }));
+                    }
+                    setOpenTambahDokumenModal(true);
+                  }}
+                  className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#12388F] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 ${
+                    !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                  title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Unggah Dokumen Baru</span>
+                </button>
+              )}
+            </div>
+
+            {/* TAB SELECTOR: [Faktur & Bukti Tagihan] & [Legalitas Kendaraan (STNK, KIR, dll)] */}
+            <div className="flex items-center gap-2 border-t border-border pt-3">
               <button
                 type="button"
-                disabled={!isVerifiedByAdmin}
-                onClick={() => {
-                  if (!isVerifiedByAdmin) {
-                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
-                    return;
-                  }
-                  if (myKendaraanList.length > 0) {
-                    setDokumenForm(prev => ({ ...prev, no_polisi: myKendaraanList[0].no_polisi }));
-                  }
-                  setOpenTambahDokumenModal(true);
-                }}
-                className={`inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#12388F] px-4 text-xs font-bold text-white transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 ${
-                  !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                onClick={() => setDokumenSubTab('faktur')}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all border shrink-0 cursor-pointer ${
+                  dokumenSubTab === 'faktur'
+                    ? 'border-[#12388F]/30 bg-blue-50/80 text-[#12388F] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                    : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
                 }`}
-                title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
               >
-                <Plus className="w-3.5 h-3.5" /> Unggah Dokumen Baru
+                <FileText className="w-4 h-4" />
+                <span>Faktur & Bukti Tagihan</span>
+                <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-white dark:bg-slate-800 text-ink-muted border border-border">
+                  {myInvoiceList.length}
+                </span>
               </button>
+              <button
+                type="button"
+                onClick={() => setDokumenSubTab('legalitas')}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all border shrink-0 cursor-pointer ${
+                  dokumenSubTab === 'legalitas'
+                    ? 'border-[#12388F]/30 bg-blue-50/80 text-[#12388F] dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                    : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface'
+                }`}
+              >
+                <FileCheck className="w-4 h-4" />
+                <span>Legalitas Kendaraan (STNK, KIR, dll.)</span>
+                <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-white dark:bg-slate-800 text-ink-muted border border-border">
+                  {myDokumenList.length}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* TAB 1: FAKTUR & BUKTI TAGIHAN (DARI POS) */}
+          {dokumenSubTab === 'faktur' && (
+            <div>
+              {/* Filter Faktur Toolbar */}
+              <div className="flex flex-col gap-2.5 border-b border-border bg-[#F8FAFC] p-3 dark:bg-slate-900/40 sm:flex-row sm:items-center">
+                <div className="relative sm:max-w-xs w-full">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+                  <input
+                    type="text"
+                    value={fakturSearch}
+                    onChange={(e) => setFakturSearch(e.target.value)}
+                    placeholder="Cari No. Faktur / Plat..."
+                    aria-label="Cari No. Faktur"
+                    className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-xs font-medium text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 dark:bg-surface-raised"
+                  />
+                </div>
+                <div className="relative sm:max-w-xs w-full">
+                  <select
+                    value={fakturFilterPlat}
+                    onChange={(e) => setFakturFilterPlat(e.target.value)}
+                    aria-label="Filter faktur per kendaraan"
+                    className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-border bg-white pl-3 pr-8 text-xs font-medium text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 dark:bg-surface-raised"
+                  >
+                    <option value="">Semua Kendaraan</option>
+                    {myKendaraanList.map((k) => (
+                      <option key={k.id} value={k.no_polisi}>
+                        {formatPlat(k.no_polisi)} — {formatNamaArmada(k)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+                </div>
+                {(fakturFilterPlat || fakturSearch) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFakturFilterPlat('');
+                      setFakturSearch('');
+                    }}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-ink-muted transition hover:bg-surface dark:bg-surface-raised cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" /> Reset Filter
+                  </button>
+                )}
+              </div>
+
+              {/* Table Faktur */}
+              {fakturRows.length > 0 ? (
+                <div className="overflow-hidden bg-surface-raised">
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-b border-border bg-[#F8FAFC] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-subtle dark:bg-slate-900/40">
+                        <tr>
+                          <th className="px-5 py-3 font-semibold">No. Faktur</th>
+                          <th className="px-4 py-3 font-semibold">Kendaraan</th>
+                          <th className="px-4 py-3 font-semibold">Referensi SPK</th>
+                          <th className="px-4 py-3 font-semibold">Tanggal Terbit</th>
+                          <th className="px-4 py-3 font-semibold text-right">Total Tagihan</th>
+                          <th className="px-4 py-3 font-semibold">Status Bayar</th>
+                          <th className="px-5 py-3 text-right font-semibold">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/70">
+                        {fakturRows.map((inv) => {
+                          const isLunas = inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas';
+                          return (
+                            <tr key={`inv-${inv.id}`} className="transition-colors hover:bg-surface/70">
+                              <td className="px-5 py-3.5 font-bold text-ink">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-md bg-blue-50 dark:bg-blue-950/40 text-[#12388F] dark:text-blue-300 flex items-center justify-center shrink-0 border border-blue-200 dark:border-blue-800">
+                                    <FileText className="w-3.5 h-3.5" />
+                                  </span>
+                                  <span className="font-mono">{inv.no_invoice}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className="inline-flex rounded-md border border-border bg-white px-2.5 py-1 font-mono text-xs font-bold text-ink dark:bg-surface">
+                                  {formatPlat(inv.no_polisi)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 font-mono text-ink-muted">
+                                {inv.id_spk ? `SPK #${inv.id_spk}` : 'Beli Sparepart'}
+                              </td>
+                              <td className="px-4 py-3.5 text-ink-muted">
+                                {fmtWaktuFull(inv.tanggal_invoice || inv.tanggal_bayar) || '-'}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-mono font-bold text-ink">
+                                Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  isLunas
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isLunas ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                  {isLunas ? 'Lunas' : 'Menunggu Bayar'}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3.5 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedFakturForPrint(inv);
+                                    setFakturModalOpen(true);
+                                  }}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-white px-3 text-xs font-semibold text-[#12388F] transition hover:border-[#12388F] hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700 cursor-pointer shadow-2xs"
+                                >
+                                  <Printer className="h-3.5 w-3.5" /> Cetak Faktur
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Faktur Cards */}
+                  <div className="block space-y-2.5 p-3 md:hidden">
+                    {fakturRows.map((inv) => {
+                      const isLunas = inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas';
+                      return (
+                        <div key={`inv-m-${inv.id}`} className="rounded-xl border border-border bg-white p-3.5 dark:bg-surface space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-mono font-bold text-sm text-ink">{inv.no_invoice}</div>
+                              <div className="mt-1 flex items-center gap-2">
+                                <span className="inline-flex rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-xs font-bold text-ink">
+                                  {formatPlat(inv.no_polisi)}
+                                </span>
+                                <span className="text-xs text-ink-muted">
+                                  {inv.id_spk ? `SPK #${inv.id_spk}` : 'Beli Sparepart'}
+                                </span>
+                              </div>
+                            </div>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              isLunas
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {isLunas ? 'Lunas' : 'Menunggu Bayar'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between border-t border-border pt-2 text-xs">
+                            <span className="text-ink-muted">Total Tagihan:</span>
+                            <span className="font-mono font-bold text-ink">
+                              Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs text-ink-subtle">
+                            <span>Waktu Terbit:</span>
+                            <span>{fmtWaktuFull(inv.tanggal_invoice || inv.tanggal_bayar) || '-'}</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedFakturForPrint(inv);
+                              setFakturModalOpen(true);
+                            }}
+                            className="mt-1 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[#12388F]/30 bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#12388F] transition hover:bg-blue-100 cursor-pointer"
+                          >
+                            <Printer className="w-3.5 h-3.5" /> Cetak / Unduh Faktur
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination Faktur */}
+                  <div className="border-t border-border bg-white px-4 pb-3 dark:bg-surface-raised">
+                    <PaginationBar
+                      page={fakturSafePage}
+                      totalPages={fakturTotalPages}
+                      totalRecords={fakturTerfilterList.length}
+                      limit={fakturLimit}
+                      label="faktur"
+                      onPageChange={setFakturPage}
+                      onLimitChange={(l) => {
+                        setFakturLimit(l);
+                        setFakturPage(1);
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 border-t border-border bg-surface px-5 py-10 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-[#12388F] dark:bg-blue-950/40 dark:text-blue-300">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink">Belum Ada Faktur</h3>
+                    <p className="text-xs text-ink-muted mt-1 max-w-sm mx-auto">
+                      Faktur tagihan servis resmi dari sistem POS KIM 3 akan otomatis tercatat dan dapat dicetak di sini setelah pengerjaan servis atau pembelian suku cadang.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: LEGALITAS KENDARAAN (STNK, KIR, ASURANSI, DLL) */}
+          {dokumenSubTab === 'legalitas' && (
+            <div>
+              {/* Filter kendaraan (plat nomor) dalam toolbar */}
+              <div className="flex flex-col gap-2.5 border-b border-border bg-[#F8FAFC] p-3 dark:bg-slate-900/40 sm:flex-row sm:items-center">
+                <div className="relative sm:max-w-xs w-full">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+                  <select
+                    value={dokumenFilterPlat}
+                    onChange={(e) => setDokumenFilterPlat(e.target.value)}
+                    aria-label="Filter dokumen per kendaraan"
+                    className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-border bg-white pl-9 pr-8 text-xs font-medium text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 dark:bg-surface-raised"
+                  >
+                    <option value="">Semua Kendaraan</option>
+                    {myKendaraanList.map((k) => (
+                      <option key={k.id} value={k.no_polisi}>
+                        {formatPlat(k.no_polisi)} — {formatNamaArmada(k)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+                </div>
+                {dokumenFilterPlat && (
+                  <button
+                    type="button"
+                    onClick={() => setDokumenFilterPlat('')}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-ink-muted transition hover:bg-surface dark:bg-surface-raised"
+                  >
+                    <X className="w-3.5 h-3.5" /> Reset
+                  </button>
+                )}
+              </div>
+
+              {dokumenRows.length > 0 ? (
+                <div className="overflow-hidden bg-surface-raised">
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-b border-border bg-[#F8FAFC] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-subtle dark:bg-slate-900/40">
+                        <tr>
+                          <th className="px-5 py-3 font-semibold">Nama Dokumen</th>
+                          <th className="px-4 py-3 font-semibold">Jenis</th>
+                          <th className="px-4 py-3 font-semibold">No. Polisi</th>
+                          <th className="px-4 py-3 font-semibold">Masa Berlaku</th>
+                          <th className="px-5 py-3 text-right font-semibold">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/70">
+                        {dokumenRows.map((item) => (
+                          <tr key={`doc-${item.id}`} className="transition-colors hover:bg-surface/70">
+                            <td className="max-w-[280px] px-5 py-3.5 font-semibold text-ink">
+                              <span className="block truncate">{item.nama_dokumen}</span>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <span className="inline-flex rounded-md border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink-muted">
+                                {item.jenis_dokumen}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <span className="inline-flex rounded-md border border-border bg-white px-2.5 py-1 font-mono text-xs font-bold text-ink dark:bg-surface">
+                                {formatPlat(item.no_polisi)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              {renderDocExpiryBadge(item.masa_berlaku)}
+                            </td>
+                            <td className="px-5 py-3.5 text-right">
+                              <a
+                                href={item.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-white px-3 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
+                              >
+                                <Download className="h-3.5 w-3.5" /> Unduh
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile: stacked card list (pengganti tabel di layar < md) */}
+                  <div className="block space-y-2.5 p-3 md:hidden">
+                    {dokumenRows.map((item) => (
+                      <div key={`doc-${item.id}`} className="rounded-xl border border-border bg-white p-3.5 dark:bg-surface">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold leading-snug text-ink">{item.nama_dokumen}</div>
+                            <div className="mt-1">
+                              <span className="inline-flex rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-xs font-bold text-ink">
+                                {formatPlat(item.no_polisi)}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-md border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink-muted">
+                            {item.jenis_dokumen}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs text-ink-subtle">
+                          <span>Masa Berlaku</span>
+                          <div>
+                            {renderDocExpiryBadge(item.masa_berlaku)}
+                          </div>
+                        </div>
+
+                        <a
+                          href={item.file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-[#F1F5F9] px-3 py-2 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#E7EDF5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Unduh Dokumen
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination menempel di footer container tabel */}
+                  <div className="border-t border-border bg-white px-4 pb-3 dark:bg-surface-raised">
+                    <PaginationBar
+                      page={dokumenSafePage}
+                      totalPages={dokumenTotalPages}
+                      totalRecords={dokumenTerfilterList.length}
+                      limit={dokumenLimit}
+                      label="dokumen"
+                      onPageChange={setDokumenPage}
+                      onLimitChange={(l) => {
+                        setDokumenLimit(l);
+                        setDokumenPage(1);
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 border-t border-border bg-surface px-5 py-10 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF0F7] text-[#34517C] dark:bg-blue-950/40 dark:text-blue-300">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-ink">Belum Ada Dokumen</h3>
+                    <p className="text-xs text-ink-muted mt-1">
+                      Unggah berkas STNK, KIR, atau polis asuransi kendaraan Anda di sini.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!isVerifiedByAdmin}
+                    onClick={() => {
+                      if (!isVerifiedByAdmin) {
+                        toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                        return;
+                      }
+                      if (myKendaraanList.length > 0) {
+                        setDokumenForm(prev => ({ ...prev, no_polisi: myKendaraanList[0].no_polisi }));
+                      }
+                      setOpenTambahDokumenModal(true);
+                    }}
+                    className={`inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#12388F] px-4 text-xs font-bold text-white transition hover:bg-[#0D2A6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12388F]/30 focus-visible:ring-offset-2 ${
+                      !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    }`}
+                    title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Unggah Dokumen Baru
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -5552,6 +5898,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
         </ModalPortal>
       )}
+
+      {/* Digital Faktur Modal untuk Pratinjau & Cetak PDF */}
+      <DigitalFakturModal
+        invoice={selectedFakturForPrint}
+        isOpen={fakturModalOpen}
+        onClose={() => setFakturModalOpen(false)}
+      />
 
     </div>
   );

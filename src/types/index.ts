@@ -278,6 +278,11 @@ export interface SpkService {
   jenis_layanan?: string;
   catatan_sa?: string;
   catatan_foreman?: string;
+  no_invoice?: string;
+  total_invoice?: number;
+  waktu_invoice?: string;
+  total_bayar?: number;
+  status_invoice?: string;
   created_at: string;
 }
 
