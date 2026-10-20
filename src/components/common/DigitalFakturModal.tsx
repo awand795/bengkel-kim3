@@ -262,7 +262,9 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2 text-slate-700">PPN (11%)</td>
+                  <td className="px-4 py-2 text-slate-700">
+                    PPN {invoice.tarif_ppn_persen != null ? `(${invoice.tarif_ppn_persen}%)` : Number(invoice.ppn_nominal || 0) > 0 ? '(11%)' : '(0%)'}
+                  </td>
                   <td className="px-4 py-2 text-right font-mono text-slate-800">
                     Rp {Number(invoice.ppn_nominal || 0).toLocaleString('id-ID')}
                   </td>

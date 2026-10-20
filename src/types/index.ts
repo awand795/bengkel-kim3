@@ -429,6 +429,8 @@ export interface InvoicePembayaran {
   tanggal_invoice: string;
   subtotal: number;
   ppn_nominal: number;
+  tarif_ppn_persen?: number;
+  tipe_pajak?: string;
   diskon: number;
   grand_total: number;
   metode_pembayaran: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC';
