@@ -2527,9 +2527,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         throw new Error(`Pemesanan jadwal booking service wajib minimal H+1 dari hari ini (mulai ${minBookingDate}).`);
       }
 
-      const bookNo = `BK${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
       return api.tambahBooking({
-        no_booking: bookNo,
         id_pelanggan: myPelangganId || undefined,
         no_polisi: bookingForm.no_polisi,
         jenis_layanan: bookingForm.jenis_layanan,
