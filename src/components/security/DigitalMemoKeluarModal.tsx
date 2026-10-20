@@ -28,18 +28,102 @@ export const DigitalMemoKeluarModal: React.FC<DigitalMemoKeluarModalProps> = ({
   if (!isOpen || !memo) return null;
 
   const handlePrint = () => {
+    const printContent = document.getElementById('printable-memo-content');
+    if (printContent) {
+      let iframe = document.getElementById('memo-print-iframe') as HTMLIFrameElement;
+      if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'memo-print-iframe';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.style.visibility = 'hidden';
+        document.body.appendChild(iframe);
+      }
+
+      const doc = iframe.contentWindow?.document;
+      if (doc) {
+        // Ambil semua stylesheet agar format Tailwind & font terangkut persis sama dengan preview
+        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+          .map((el) => el.outerHTML)
+          .join('\n');
+
+        doc.open();
+        doc.write(`
+          <!DOCTYPE html>
+          <html lang="id">
+            <head>
+              <title>Gate Pass / Memo Keluar - ${memo.nomor_memo}</title>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              ${styles}
+              <style>
+                @page {
+                  size: A4 portrait;
+                  margin: 12mm 15mm;
+                }
+                *, *::before, *::after {
+                  box-sizing: border-box;
+                }
+                html, body {
+                  background: #ffffff !important;
+                  color: #0f172a !important;
+                  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+                .memo-print-wrapper {
+                  width: 100% !important;
+                  max-width: 800px !important;
+                  margin: 0 auto !important;
+                  padding: 16px !important;
+                  background: #ffffff !important;
+                }
+                .no-print {
+                  display: none !important;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="memo-print-wrapper">
+                ${printContent.innerHTML}
+              </div>
+            </body>
+          </html>
+        `);
+        doc.close();
+
+        setTimeout(() => {
+          try {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+          } catch (e) {
+            console.error('Iframe print error, falling back to window.print():', e);
+            window.print();
+          }
+        }, 350);
+        return;
+      }
+    }
+
+    // Fallback jika iframe tidak tersedia
     window.print();
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-9999 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+    <div className="printable-container fixed inset-0 z-9999 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
       {/* Container Cetak */}
       <div 
         id="printable-memo-keluar"
-        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto animate-in fade-in zoom-in-95 duration-200 print:max-h-none print:shadow-none print:border-none print:rounded-none"
       >
         {/* Modal Action Bar (Hidden saat Print) */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white print:hidden shrink-0">
+        <div className="no-print print:hidden flex items-center justify-between px-6 py-4 bg-slate-900 text-white shrink-0">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
             <span className="font-semibold text-sm tracking-wide">Digital Gate Pass / Memo Keluar</span>
@@ -64,7 +148,7 @@ export const DigitalMemoKeluarModal: React.FC<DigitalMemoKeluarModalProps> = ({
         </div>
 
         {/* Isi Dokumen Memo Keluar (Akan Dicetak) */}
-        <div className="overflow-y-auto p-6 sm:p-8 space-y-6 text-slate-800 bg-white print:p-0 print:space-y-4">
+        <div id="printable-memo-content" className="overflow-y-auto p-6 sm:p-8 space-y-6 text-slate-800 bg-white print:overflow-visible print:p-0 print:space-y-4">
           {/* Header Kop Resmi */}
           <div className="border-b-2 border-slate-900 pb-5 text-center relative">
             <div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
@@ -218,7 +302,7 @@ export const DigitalMemoKeluarModal: React.FC<DigitalMemoKeluarModalProps> = ({
         </div>
 
         {/* Modal Action Bar Bawah (Hidden saat Print) */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2.5 print:hidden">
+        <div className="no-print print:hidden p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2.5">
           <button
             type="button"
             onClick={onClose}

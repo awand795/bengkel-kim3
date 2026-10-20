@@ -586,11 +586,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   /* Saat modal cetak terbuka: sembunyikan SEMUA halaman web,
      hanya overlay modal cetak (.printable-container) yang dirender.
      Sehingga preview print berisi dokumen saja, bukan halaman aplikasi. */
-  body:has(> .printable-container) > *:not(.printable-container) {
+  body:has(> .printable-container) > *:not(.printable-container),
+  body:has(> .printable-container) > #root {
     display: none !important;
   }
 
   /* Fallback tanpa :has(): sembunyikan layout aplikasi & UI umum */
+  #root,
   header,
   aside,
   nav,
@@ -673,7 +675,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   }
 
   /* Formal A4 Document Style (SPK & Memo Keluar) */
-  #printable-a4-document {
+  #printable-a4-document,
+  #printable-memo-keluar {
     display: block !important;
     position: static !important;
     width: 100% !important;
