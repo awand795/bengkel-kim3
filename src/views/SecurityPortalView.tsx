@@ -199,7 +199,7 @@ export const SecurityPortalView: React.FC = () => {
       no_telepon_pengemudi: booking.no_telepon || '',
       nama_perusahaan: booking.nama_pelanggan || '',
       tujuan_kunjungan: keperluanStr,
-      bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
+      bertemu_dengan: sa ? (sa.employeename || sa.nama_karyawan || '') : '',
       catatan_masuk: booking.catatan || '',
       foto_kendaraan_masuk: '',
     });
@@ -247,7 +247,7 @@ export const SecurityPortalView: React.FC = () => {
         if (!prev.bertemu_dengan && prev.tipe_kunjungan === 'SERVICE' && employees.length > 0) {
           const sa = employees.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
           if (sa) {
-            return { ...prev, bertemu_dengan: sa.display_label || sa.employeename };
+            return { ...prev, bertemu_dengan: sa.employeename || sa.nama_karyawan || '' };
           }
         }
         return prev;
@@ -371,7 +371,7 @@ export const SecurityPortalView: React.FC = () => {
         no_telepon_pengemudi: '',
         nama_perusahaan: '',
         tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-        bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
+        bertemu_dengan: sa ? (sa.employeename || sa.nama_karyawan || '') : '',
         catatan_masuk: '',
         foto_kendaraan_masuk: '',
       });
@@ -821,7 +821,7 @@ export const SecurityPortalView: React.FC = () => {
                       no_telepon_pengemudi: '',
                       nama_perusahaan: '',
                       tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-                      bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
+                      bertemu_dengan: sa ? (sa.employeename || sa.nama_karyawan || '') : '',
                       catatan_masuk: '',
                       foto_kendaraan_masuk: '',
                     });
@@ -867,7 +867,7 @@ export const SecurityPortalView: React.FC = () => {
                           no_telepon_pengemudi: '',
                           nama_perusahaan: '',
                           tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-                          bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
+                          bertemu_dengan: sa ? (sa.employeename || sa.nama_karyawan || '') : '',
                           catatan_masuk: '',
                           foto_kendaraan_masuk: '',
                         });
@@ -990,20 +990,20 @@ export const SecurityPortalView: React.FC = () => {
                                 (e.jobposition || e.department || '').toLowerCase().includes('advisor') || 
                                 (e.jobposition || '').toLowerCase().includes('sa')
                               );
-                              if (emp) autoPic = emp.display_label || emp.employeename;
+                              if (emp) autoPic = emp.employeename || emp.nama_karyawan || '';
                             } else if (t.id === 'BELI_PART') {
                               const emp = employeeList.find((e) => 
                                 (e.jobposition || e.department || '').toLowerCase().includes('warehouse') || 
                                 (e.jobposition || '').toLowerCase().includes('part')
                               );
-                              if (emp) autoPic = emp.display_label || emp.employeename;
+                              if (emp) autoPic = emp.employeename || emp.nama_karyawan || '';
                             } else if (t.id === 'KUNJUNGAN') {
                               const emp = employeeList.find((e) => 
                                 (e.department || '').toLowerCase().includes('admin') || 
                                 (e.jobposition || '').toLowerCase().includes('admin') ||
                                 (e.department || '').toLowerCase().includes('management')
                               );
-                              if (emp) autoPic = emp.display_label || emp.employeename;
+                              if (emp) autoPic = emp.employeename || emp.nama_karyawan || '';
                             }
                           }
                           setCheckInForm((prev) => ({
@@ -1107,15 +1107,18 @@ export const SecurityPortalView: React.FC = () => {
                       onChange={(e) => setCheckInForm({ ...checkInForm, bertemu_dengan: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F] bg-white cursor-pointer"
                     >
-                      <option value="">-- Pilih PIC / Petugas Bengkel (Database POS) --</option>
-                      {employeeList.map((emp) => (
-                        <option 
-                          key={emp.employeeid || emp.id} 
-                          value={emp.display_label || emp.employeename}
-                        >
-                          {emp.display_label || `${emp.employeename}${emp.jobposition ? ` (${emp.jobposition})` : ''}`}
-                        </option>
-                      ))}
+                      <option value="">-- Pilih PIC / Petugas Bengkel --</option>
+                      {employeeList.map((emp) => {
+                        const name = emp.employeename || emp.nama_karyawan || emp.employeeid;
+                        return (
+                          <option 
+                            key={emp.employeeid || emp.id} 
+                            value={name}
+                          >
+                            {name}
+                          </option>
+                        );
+                      })}
                     </select>
                   ) : (
                     <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-xs flex items-center justify-between">
@@ -1125,7 +1128,7 @@ export const SecurityPortalView: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-800 mb-1">
-                    Nama Perusahaan / Asal Fleet (Opsional)
+                    Nama Perusahaan (Opsional)
                   </label>
                   <input
                     type="text"
