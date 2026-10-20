@@ -669,9 +669,9 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   >
                     <FileText className="w-4 h-4" />
                     Dokumen
-                    {activeArmadaDocs.length > 0 && (
+                    {(activeArmadaDocs.length > 0 || (activeInvoice || spk.no_invoice || spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed')) && (
                       <span className="px-1.5 py-0.5 text-xs rounded-full bg-surface text-ink-muted">
-                        {activeArmadaDocs.length}
+                        {activeArmadaDocs.length + ((activeInvoice || spk.no_invoice || spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed') ? 1 : 0)}
                       </span>
                     )}
                   </button>
@@ -1038,24 +1038,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface-raised hover:border-accent/30 transition-colors">
-                          <div className="flex items-center gap-2.5">
-                            <FileText className="w-5 h-5 text-accent" />
-                            <div>
-                              <div className="font-semibold text-ink">SPK_{spk.no_spk}.pdf</div>
-                              <div className="text-xs text-ink-subtle">Surat Perintah Kerja Resmi</div>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => toast.info('Mengunduh Berkas', `Salinan Surat Perintah Kerja ${spk.no_spk} sedang diunduh.`)}
-                            className="p-1.5 text-accent hover:bg-accent-subtle rounded-xl"
-                            title="Unduh SPK"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        </div>
-
                         {activeArmadaDocs.map((doc) => (
                           <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface-raised hover:border-accent/30 transition-colors">
                             <div className="flex items-center gap-2.5">
@@ -1076,23 +1058,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           </div>
                         ))}
 
-                        {activeArmadaDocs.length === 0 && (
-                          <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface-raised">
-                            <div className="flex items-center gap-2.5">
-                              <FileCheck className="w-5 h-5 text-ink-muted" />
-                              <div>
-                                <div className="font-semibold text-ink">Kartu_Riwayat_Service.pdf</div>
-                                <div className="text-xs text-ink-subtle">Riwayat Perawatan Rutin Bengkel KIM3</div>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => toast.info('Mengunduh Riwayat', `Riwayat service kendaraan ${formatPlat(spk.no_polisi)} sedang disiapkan.`)}
-                              className="p-1.5 text-accent hover:bg-accent-subtle rounded-xl"
-                              title="Unduh Riwayat"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
+                        {!activeInvoice && !spk.no_invoice && spk.status_spk !== 'Selesai' && spk.status_spk !== 'FIR Closed' && activeArmadaDocs.length === 0 && (
+                          <div className="col-span-full py-8 text-center text-ink-muted bg-surface-raised rounded-xl border border-dashed border-border">
+                            <FileText className="w-8 h-8 mx-auto mb-2 text-ink-subtle opacity-40" />
+                            <p className="font-medium text-xs">Belum ada berkas atau dokumen terlampir untuk service ini.</p>
                           </div>
                         )}
                       </div>
