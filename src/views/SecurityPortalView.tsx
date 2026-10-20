@@ -45,6 +45,7 @@ import { StatCard } from '../components/common/StatCard';
 import { SecurityCheckOutModal } from '../components/security/SecurityCheckOutModal';
 import { DigitalMemoKeluarModal } from '../components/security/DigitalMemoKeluarModal';
 import { useAppStore } from '../store/useAppStore';
+import { realtimeHub } from '../services/realtimeService';
 
 // Pilihan Tujuan Kedatangan (Revamped dengan Ikon, Badge, dan Penjelasan)
 const renderTipeKunjunganBadge = (tipe: string | undefined) => {
@@ -253,6 +254,20 @@ export const SecurityPortalView: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
     loadEmployeeData();
+
+    // Subscribe ke event realtime (Booking baru dari customer, status check in, dll.)
+    const unsubscribe = realtimeHub.subscribe((evt) => {
+      if (
+        evt.type === 'BOOKING_CREATED' ||
+        evt.type === 'VEHICLE_CHECKED_IN' ||
+        evt.type === 'VEHICLE_CHECKED_OUT' ||
+        evt.type === 'MEMO_TERBIT'
+      ) {
+        loadDashboardData();
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -551,6 +566,7 @@ export const SecurityPortalView: React.FC = () => {
                     <th className="py-2.5 px-3.5">Tgl Booking</th>
                     <th className="py-2.5 px-3.5">Jam Booking</th>
                     <th className="py-2.5 px-3.5">Status</th>
+                    <th className="py-2.5 px-3.5 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -596,6 +612,23 @@ export const SecurityPortalView: React.FC = () => {
                             ) : (
                               <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#DBEAFE] text-[#12388F]">
                                 Booked
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                            {!b.sudah_checkin ? (
+                              <button
+                                type="button"
+                                onClick={() => handlePilihBooking(b)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-[11px] font-bold rounded-lg shadow-xs hover:shadow transition-all cursor-pointer"
+                                title="Proses Check In langsung untuk kendaraan ini"
+                              >
+                                <ArrowRightCircle className="w-3.5 h-3.5" />
+                                <span>Check In</span>
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                Selesai Check In
                               </span>
                             )}
                           </td>

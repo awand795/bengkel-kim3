@@ -233,7 +233,17 @@ export const NotificationDropdown: React.FC = () => {
         setActiveTab('fleet-history');
         setFleetPendingPartId(Number(partLink[1]));
       } else {
-        const safeTab = item.link_tab.startsWith('fleet-') ? item.link_tab : 'fleet-status';
+        const myRole = currentRole || (authUser?.peran ?? 'Customer Fleet');
+        let safeTab = item.link_tab;
+        if (myRole === 'Security') {
+          if (!safeTab.startsWith('security-')) {
+            safeTab = 'security-booking';
+          }
+        } else {
+          if (!safeTab.startsWith('fleet-')) {
+            safeTab = 'fleet-status';
+          }
+        }
         setActiveTab(safeTab);
       }
     }
