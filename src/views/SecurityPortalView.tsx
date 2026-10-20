@@ -640,23 +640,23 @@ export const SecurityPortalView: React.FC = () => {
     }
   };
 
-  // Metrics for Screen 2 (On Progress)
+  // Metrics for Screen 2 (On Progress) - Data real tanpa dummy fallback
   const countDikerjakan = onProgressList.filter(
     (x) =>
       (x.status_progress || '').toLowerCase().includes('dikerjakan') ||
       (x.status_progress || '').toLowerCase().includes('kerja')
-  ).length || (onProgressList.length > 0 ? Math.max(1, Math.ceil(onProgressList.length * 0.6)) : 0);
+  ).length;
 
   const countMenungguPart = onProgressList.filter(
     (x) =>
       (x.status_progress || '').toLowerCase().includes('part') ||
       (x.status_progress || '').toLowerCase().includes('approval') ||
       (x.status_progress || '').toLowerCase().includes('tunggu')
-  ).length || (onProgressList.length > 1 ? Math.floor(onProgressList.length * 0.25) : 0);
+  ).length;
 
   const countMenungguQC = onProgressList.filter(
     (x) => (x.status_progress || '').toLowerCase().includes('qc')
-  ).length || (onProgressList.length > 2 ? 1 : 0);
+  ).length;
 
   return (
     <div className="space-y-6 font-sans">
