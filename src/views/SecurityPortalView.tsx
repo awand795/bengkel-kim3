@@ -27,6 +27,7 @@ import {
   X,
   Download
 } from 'lucide-react';
+import { PhotoUploader } from '../components/common/PhotoUploader';
 import { api, getApiErrorMessage } from '../api/client';
 import { 
   SecurityDashboardStats, 
@@ -182,6 +183,7 @@ export const SecurityPortalView: React.FC = () => {
     tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
     bertemu_dengan: 'Service Advisor (SA)',
     catatan_masuk: '',
+    foto_kendaraan_masuk: '',
   });
   const [isCheckInSubmitting, setIsCheckInSubmitting] = useState(false);
 
@@ -266,6 +268,7 @@ export const SecurityPortalView: React.FC = () => {
           nama_pengemudi: prev.nama_pengemudi || found.nama_pic || found.nama_pengguna_fleet || '',
           nama_perusahaan: prev.nama_perusahaan || found.nama_perusahaan || found.nama_pengguna_fleet || '',
           no_telepon_pengemudi: prev.no_telepon_pengemudi || found.no_telepon || '',
+          foto_kendaraan_masuk: prev.foto_kendaraan_masuk || found.foto_kendaraan || '',
         }));
       } else {
         setMatchedKendaraan(null);
@@ -333,6 +336,7 @@ export const SecurityPortalView: React.FC = () => {
       tujuan_kunjungan: `Service Booking: ${booking.jenis_layanan}${booking.keluhan ? ` - ${booking.keluhan}` : ''}`,
       bertemu_dengan: 'Service Advisor (SA)',
       catatan_masuk: booking.catatan || '',
+      foto_kendaraan_masuk: booking.foto_kendaraan || '',
     });
     setActiveTab('security-checkin');
     toast.success(`Data booking nopol ${booking.no_polisi} berhasil dimuat ke formulir check-in.`);
@@ -368,6 +372,7 @@ export const SecurityPortalView: React.FC = () => {
         tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
         bertemu_dengan: 'Service Advisor (SA)',
         catatan_masuk: '',
+        foto_kendaraan_masuk: '',
       });
 
       // Reload data and switch to On Progress tab
@@ -798,6 +803,7 @@ export const SecurityPortalView: React.FC = () => {
                       tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
                       bertemu_dengan: 'Service Advisor (SA)',
                       catatan_masuk: '',
+                      foto_kendaraan_masuk: '',
                     });
                   }}
                   className="text-xs text-red-600 hover:text-red-700 font-semibold underline shrink-0 cursor-pointer"
@@ -813,34 +819,24 @@ export const SecurityPortalView: React.FC = () => {
                 <label className="block font-bold text-slate-900 text-xs sm:text-sm mb-1.5">
                   Nomor Polisi Kendaraan <span className="text-red-500">*</span>
                 </label>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      required
-                      value={checkInForm.no_polisi}
-                      onChange={(e) => {
-                        const val = e.target.value.toUpperCase();
-                        setCheckInForm({ ...checkInForm, no_polisi: val });
-                        handlePlateSearch(val);
-                      }}
-                      placeholder="Ketik plat (Contoh: BK 3747 RR atau BK 5678 CD)"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-black text-sm text-slate-900 uppercase focus:outline-none focus:border-[#12388F]"
-                    />
-                    {isSearchingKendaraan && (
-                      <span className="absolute right-3 top-3 text-[10px] text-blue-600 font-medium animate-pulse">
-                        Mengecek database...
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    title="Ambil foto plat kendaraan (Opsional)"
-                    onClick={() => toast.info('Kamera foto gerbang siap digunakan.')}
-                    className="p-2.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-[#12388F] transition-colors cursor-pointer shrink-0"
-                  >
-                    <Camera className="w-5 h-5" />
-                  </button>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={checkInForm.no_polisi}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setCheckInForm({ ...checkInForm, no_polisi: val });
+                      handlePlateSearch(val);
+                    }}
+                    placeholder="Ketik plat (Contoh: BK 3747 RR atau BK 5678 CD)"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-black text-sm text-slate-900 uppercase focus:outline-none focus:border-[#12388F]"
+                  />
+                  {isSearchingKendaraan && (
+                    <span className="absolute right-3 top-3 text-[10px] text-blue-600 font-medium animate-pulse">
+                      Mengecek database...
+                    </span>
+                  )}
                 </div>
 
                 {/* Info Terhubung Pemilik / Pengguna Fleet di bawah input plat */}
@@ -1043,6 +1039,15 @@ export const SecurityPortalView: React.FC = () => {
                   onChange={(e) => setCheckInForm({ ...checkInForm, catatan_masuk: e.target.value })}
                   placeholder="Contoh: Membawa dokumen fisik, kondisi fisik truk mulus, muatan kosong..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
+                />
+              </div>
+
+              {/* Unggah Foto Masuk Gerbang (Tersimpan di sch_fleet.foto) */}
+              <div className="pt-1">
+                <PhotoUploader
+                  label="Foto Fisik Kendaraan Masuk (Opsional)"
+                  value={checkInForm.foto_kendaraan_masuk}
+                  onChange={(url) => setCheckInForm((prev) => ({ ...prev, foto_kendaraan_masuk: url }))}
                 />
               </div>
 
