@@ -265,7 +265,7 @@ export const SecurityPortalView: React.FC = () => {
   const [riwayatPeriode, setRiwayatPeriode] = useState<'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA'>('HARI_INI');
 
   // Shared PAGE_SIZE untuk semua tabel pos security
-  const SECURITY_TABLE_PAGE_SIZE = 5;
+  const SECURITY_TABLE_PAGE_SIZE = 10;
 
   // Filter tanggal per tab
   const [bookingFilterTanggal, setBookingFilterTanggal] = useState<string>('');
