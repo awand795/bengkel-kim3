@@ -601,6 +601,8 @@ export const SecurityPortalView: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {(() => {
                     const filtered = bookingList.filter((b) => {
+                      // Jangan tampilkan armada yang sudah check-in di list booking gerbang
+                      if (b.sudah_checkin) return false;
                       const matchSearch =
                         !searchQuery ||
                         b.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -701,6 +703,7 @@ export const SecurityPortalView: React.FC = () => {
             {/* Dynamic Pagination Footer */}
             {(() => {
               const filtered = bookingList.filter((b) => {
+                if (b.sudah_checkin) return false;
                 const matchSearch =
                   !searchQuery ||
                   b.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -754,9 +757,9 @@ export const SecurityPortalView: React.FC = () => {
                         &gt;
                       </button>
                     </div>
-                  ) : (
+                  ) : totalItems > 0 ? (
                     <span className="text-[11px] text-slate-400 font-medium">Halaman 1 dari 1</span>
-                  )}
+                  ) : null}
                 </div>
               );
             })()}

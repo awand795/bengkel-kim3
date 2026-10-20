@@ -782,7 +782,11 @@ export const api = {
       try {
         const all = await api.getBooking();
         const today = new Date().toISOString().split('T')[0];
-        totalBookingHariIni = all.filter((b) => b.tanggal_booking === today && b.status !== 'Dibatalkan' && b.status !== 'Booking Canceled' && !b.is_canceled).length;
+        totalBookingHariIni = all.filter((b) => {
+          const st = (b.status || '').toLowerCase().replace(/[\s\-_]+/g, '');
+          const isCheckIn = st === 'checkin' || st === 'checkedin' || st === 'sudahmasuk';
+          return b.tanggal_booking === today && !isCheckIn && b.status !== 'Dibatalkan' && b.status !== 'Booking Canceled' && !b.is_canceled;
+        }).length;
       } catch {}
     }
     return {
