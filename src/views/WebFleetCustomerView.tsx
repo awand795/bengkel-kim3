@@ -1938,12 +1938,28 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return hasSpk;
   }, [spkList]);
 
-  // Status operasional booking: 'Check In' bila sudah terbit SPK / berstatus Check In
+  // Helper: Cek apakah jadwal booking sudah lewat dari sekarang (tanggal & jam)
+  const isBookingPast = useCallback((b: BookingService): boolean => {
+    if (!b.tanggal_booking) return false;
+    const [h, m] = (b.jam_booking || '23:59').split(':').map(Number);
+    const sched = new Date(
+      `${b.tanggal_booking.slice(0, 10)}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
+    );
+    if (isNaN(sched.getTime())) return false;
+    return Date.now() > sched.getTime();
+  }, []);
+
+  // Status operasional booking:
+  // 1. 'Booking Canceled' bila dibatalkan atau jadwal lewat dari sekarang dan belum dikerjakan (batal otomatis)
+  // 2. 'Check In' bila sudah di-check in gerbang atau terbit SPK
+  // 3. 'Booked' bila masih aktif sebelum jadwal
   const getBookingEffectiveStatus = useCallback((b: BookingService): 'Booked' | 'Check In' | 'Booking Canceled' => {
     if (b.status === 'Booking Canceled' || b.status === 'Dibatalkan' || b.is_canceled) return 'Booking Canceled';
     if (b.status === 'Check In' || isBookingCheckedIn(b)) return 'Check In';
+    // Jadwal sudah lewat dan belum dikerjakan -> Otomatis dianggap Batal
+    if (isBookingPast(b)) return 'Booking Canceled';
     return 'Booked';
-  }, [isBookingCheckedIn]);
+  }, [isBookingCheckedIn, isBookingPast]);
 
   // Helper: Cek apakah kendaraan saat ini aktif berada di dalam bengkel (belum check-out)
   const isKendaraanInBengkel = useCallback((nopol?: string): boolean => {
@@ -1991,24 +2007,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     );
   }, []);
 
-  // Aturan cancel booking: status masih Booked dan minimal 10 menit sebelum
-  // jadwal (tanggal_booking + jam_booking). Server juga menolak bila status
-  // sudah berubah / sudah ada check-in dari booking tersebut.
+  // Aturan cancel booking:
+  // - Boleh dibatalkan customer kapan saja selama kendaraan belum dikerjakan / check-in.
+  // - Jika sudah lewat tanggal sekarang dan belum dikerjakan, booking otomatis berstatus Batal.
   const getCancelState = (b: BookingService): { allowed: boolean; reason: string } => {
-    const effStatus = getBookingEffectiveStatus(b);
-    if (effStatus === 'Check In') {
-      return { allowed: false, reason: 'Kendaraan sudah di-check in di gerbang bengkel.' };
+    if (b.status === 'Booking Canceled' || b.status === 'Dibatalkan' || b.is_canceled) {
+      return { allowed: false, reason: 'Booking sudah dibatalkan.' };
     }
-    if (effStatus !== 'Booked') {
-      return { allowed: false, reason: `Status "${b.status}" sudah tidak bisa dibatalkan.` };
+    const isCheckedIn = b.status === 'Check In' || isBookingCheckedIn(b);
+    if (isCheckedIn) {
+      return { allowed: false, reason: 'Kendaraan sudah di-check in / sedang dikerjakan di bengkel.' };
     }
-    const [h, m] = (b.jam_booking || '00:00').split(':').map(Number);
-    const sched = new Date(`${b.tanggal_booking}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`);
-    if (isNaN(sched.getTime())) {
-      return { allowed: false, reason: 'Jadwal booking tidak valid.' };
-    }
-    if (Date.now() > sched.getTime() - 10 * 60 * 1000) {
-      return { allowed: false, reason: 'Batas pembatalan H-10 menit sudah lewat. Hubungi bengkel.' };
+    if (isBookingPast(b)) {
+      return { allowed: false, reason: 'Jadwal booking sudah lewat dari hari ini (batal otomatis).' };
     }
     return { allowed: true, reason: '' };
   };
@@ -2142,10 +2153,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Terkunci bila aturan H-10 menit / status tidak memungkinkan.
   const BookingCancelButton = ({ b, compact = false }: { b: BookingService; compact?: boolean }) => {
     const effStatus = getBookingEffectiveStatus(b);
-    if (effStatus === 'Booking Canceled' || effStatus === ('Dibatalkan' as any)) {
+    const isPast = isBookingPast(b) && !isBookingCheckedIn(b);
+    if (effStatus === 'Booking Canceled' || effStatus === ('Dibatalkan' as any) || isPast) {
       return (
-        <span className="text-xs px-2.5 py-1 rounded-xl bg-surface text-ink-subtle border border-border font-bold">
-          Booking Canceled
+        <span
+          title={isPast ? 'Booking otomatis dibatalkan karena telah melewati jadwal dan belum dikerjakan.' : 'Booking dibatalkan'}
+          className="text-xs px-2.5 py-1 rounded-xl bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/50 font-bold inline-flex items-center gap-1"
+        >
+          {isPast && !b.is_canceled ? 'Batal Otomatis (Lewat Jadwal)' : 'Booking Canceled'}
         </span>
       );
     }
@@ -2877,7 +2892,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           <div className="flex items-start gap-2.5 rounded-xl border border-[#DCE5F5] bg-[#F5F8FD] px-4 py-3 text-xs leading-relaxed text-[#52647E] dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-slate-300">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#34517C] dark:text-blue-300" />
             <p>
-              Setelah check-in di gerbang, kendaraan otomatis masuk ke Riwayat Kendaraan. Booking dapat dibatalkan paling lambat 10 menit sebelum jadwal.
+              Booking dapat dibatalkan selama kendaraan belum dikerjakan / check-in. Booking yang sudah melewati jadwal tanggal/jam kedatangan akan otomatis dibatalkan.
             </p>
           </div>
 
