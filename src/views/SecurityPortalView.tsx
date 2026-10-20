@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   LayoutDashboard, 
@@ -85,6 +85,113 @@ const renderTipeKunjunganBadge = (tipe: string | undefined) => {
   }
 };
 
+interface SecurityTablePaginationProps {
+  currentPage: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}
+
+const SecurityTablePagination: React.FC<SecurityTablePaginationProps> = ({
+  currentPage,
+  totalItems,
+  pageSize,
+  onPageChange,
+}) => {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startCount = totalItems === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const endCount = Math.min(safeCurrentPage * pageSize, totalItems);
+
+  const renderPageButtons = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }).map((_, i) => {
+        const pageNum = i + 1;
+        const isActive = safeCurrentPage === pageNum;
+        return (
+          <button
+            key={pageNum}
+            type="button"
+            onClick={() => onPageChange(pageNum)}
+            className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+              isActive
+                ? 'bg-[#12388F] text-white'
+                : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {pageNum}
+          </button>
+        );
+      });
+    }
+
+    const pages: (number | string)[] = [];
+    if (safeCurrentPage <= 4) {
+      pages.push(1, 2, 3, 4, 5, '...', totalPages);
+    } else if (safeCurrentPage >= totalPages - 3) {
+      pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(1, '...', safeCurrentPage - 1, safeCurrentPage, safeCurrentPage + 1, '...', totalPages);
+    }
+
+    return pages.map((p, idx) => {
+      if (typeof p === 'string') {
+        return (
+          <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 text-xs select-none">
+            ...
+          </span>
+        );
+      }
+      const isActive = safeCurrentPage === p;
+      return (
+        <button
+          key={p}
+          type="button"
+          onClick={() => onPageChange(p)}
+          className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+            isActive
+              ? 'bg-[#12388F] text-white'
+              : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          {p}
+        </button>
+      );
+    });
+  };
+
+  return (
+    <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+      <div>
+        Menampilkan {startCount} - {endCount} dari {totalItems} data
+      </div>
+      {totalPages > 1 ? (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={safeCurrentPage <= 1}
+            onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))}
+            className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs"
+          >
+            &lt;
+          </button>
+          {renderPageButtons()}
+          <button
+            type="button"
+            disabled={safeCurrentPage >= totalPages}
+            onClick={() => onPageChange(Math.min(totalPages, safeCurrentPage + 1))}
+            className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs"
+          >
+            &gt;
+          </button>
+        </div>
+      ) : totalItems > 0 ? (
+        <span className="text-[11px] text-slate-400 font-medium">Halaman 1 dari 1</span>
+      ) : null}
+    </div>
+  );
+};
+
 export const SecurityPortalView: React.FC = () => {
   const { activeTab, setActiveTab, authUser } = useAppStore();
 
@@ -110,10 +217,20 @@ export const SecurityPortalView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [riwayatPeriode, setRiwayatPeriode] = useState<'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA'>('HARI_INI');
 
-  // Check In form states
+  // Shared PAGE_SIZE untuk semua tabel pos security
+  const SECURITY_TABLE_PAGE_SIZE = 5;
+
+  // Filter tanggal per tab
   const [bookingFilterTanggal, setBookingFilterTanggal] = useState<string>('');
+  const [onProgressFilterTanggal, setOnProgressFilterTanggal] = useState<string>('');
+  const [riwayatFilterTanggal, setRiwayatFilterTanggal] = useState<string>('');
+  const [memoFilterTanggal, setMemoFilterTanggal] = useState<string>('');
+
+  // Current page per tab
   const [bookingCurrentPage, setBookingCurrentPage] = useState<number>(1);
-  const BOOKING_PAGE_SIZE = 5;
+  const [onProgressCurrentPage, setOnProgressCurrentPage] = useState<number>(1);
+  const [riwayatCurrentPage, setRiwayatCurrentPage] = useState<number>(1);
+  const [memoCurrentPage, setMemoCurrentPage] = useState<number>(1);
   const [selectedBooking, setSelectedBooking] = useState<SecurityBookingItem | null>(null);
   const [viewingBookingDetail, setViewingBookingDetail] = useState<SecurityBookingItem | null>(null);
   const [bookingDetailModalOpen, setBookingDetailModalOpen] = useState<boolean>(false);
@@ -551,7 +668,10 @@ export const SecurityPortalView: React.FC = () => {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setBookingCurrentPage(1);
+                  }}
                   placeholder="Cari No. Polisi / Nama Customer"
                   className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#12388F]"
                 />
@@ -562,7 +682,10 @@ export const SecurityPortalView: React.FC = () => {
                 <input
                   type="date"
                   value={bookingFilterTanggal}
-                  onChange={(e) => setBookingFilterTanggal(e.target.value)}
+                  onChange={(e) => {
+                    setBookingFilterTanggal(e.target.value);
+                    setBookingCurrentPage(1);
+                  }}
                   className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer text-xs"
                 />
               </div>
@@ -572,6 +695,7 @@ export const SecurityPortalView: React.FC = () => {
                 onClick={() => {
                   setSearchQuery('');
                   setBookingFilterTanggal('');
+                  setBookingCurrentPage(1);
                 }}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
               >
@@ -612,10 +736,10 @@ export const SecurityPortalView: React.FC = () => {
                         !bookingFilterTanggal || b.tanggal_booking === bookingFilterTanggal;
                       return matchSearch && matchDate;
                     });
-                    const totalPages = Math.max(1, Math.ceil(filtered.length / BOOKING_PAGE_SIZE));
+                    const totalPages = Math.max(1, Math.ceil(filtered.length / SECURITY_TABLE_PAGE_SIZE));
                     const currentPage = Math.min(Math.max(1, bookingCurrentPage), totalPages);
-                    const startIndex = (currentPage - 1) * BOOKING_PAGE_SIZE;
-                    const pageItems = filtered.slice(startIndex, startIndex + BOOKING_PAGE_SIZE);
+                    const startIndex = (currentPage - 1) * SECURITY_TABLE_PAGE_SIZE;
+                    const pageItems = filtered.slice(startIndex, startIndex + SECURITY_TABLE_PAGE_SIZE);
 
                     if (pageItems.length === 0) {
                       return (
@@ -638,7 +762,7 @@ export const SecurityPortalView: React.FC = () => {
                           }}
                           className="hover:bg-blue-50/50 cursor-pointer transition-colors"
                         >
-                          <td className="py-2.5 px-3.5 font-semibold text-slate-500">{idx + 1}</td>
+                          <td className="py-2.5 px-3.5 font-semibold text-slate-500">{startIndex + idx + 1}</td>
                           <td className="py-2.5 px-3.5">
                             <span className="font-mono font-black text-slate-900">
                               {b.no_polisi}
@@ -713,54 +837,14 @@ export const SecurityPortalView: React.FC = () => {
                   !bookingFilterTanggal || b.tanggal_booking === bookingFilterTanggal;
                 return matchSearch && matchDate;
               });
-              const totalItems = filtered.length;
-              const totalPages = Math.max(1, Math.ceil(totalItems / BOOKING_PAGE_SIZE));
-              const currentPage = Math.min(Math.max(1, bookingCurrentPage), totalPages);
-              const startCount = totalItems === 0 ? 0 : (currentPage - 1) * BOOKING_PAGE_SIZE + 1;
-              const endCount = Math.min(currentPage * BOOKING_PAGE_SIZE, totalItems);
 
               return (
-                <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-                  <div>
-                    Menampilkan {startCount} - {endCount} dari {totalItems} data
-                  </div>
-                  {totalPages > 1 ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={currentPage <= 1}
-                        onClick={() => setBookingCurrentPage((p) => Math.max(1, p - 1))}
-                        className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs"
-                      >
-                        &lt;
-                      </button>
-                      {Array.from({ length: totalPages }).map((_, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => setBookingCurrentPage(i + 1)}
-                          className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
-                            currentPage === i + 1
-                              ? 'bg-[#12388F] text-white'
-                              : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        disabled={currentPage >= totalPages}
-                        onClick={() => setBookingCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs"
-                      >
-                        &gt;
-                      </button>
-                    </div>
-                  ) : totalItems > 0 ? (
-                    <span className="text-[11px] text-slate-400 font-medium">Halaman 1 dari 1</span>
-                  ) : null}
-                </div>
+                <SecurityTablePagination
+                  currentPage={bookingCurrentPage}
+                  totalItems={filtered.length}
+                  pageSize={SECURITY_TABLE_PAGE_SIZE}
+                  onPageChange={setBookingCurrentPage}
+                />
               );
             })()}
           </div>
@@ -1192,7 +1276,10 @@ export const SecurityPortalView: React.FC = () => {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setOnProgressCurrentPage(1);
+                  }}
                   placeholder="Cari No. Polisi / Nama Customer"
                   className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#12388F]"
                 />
@@ -1202,14 +1289,22 @@ export const SecurityPortalView: React.FC = () => {
                 <span className="text-slate-400 text-[11px]">Tanggal</span>
                 <input
                   type="date"
-                  value={bookingFilterTanggal}
-                  onChange={(e) => setBookingFilterTanggal(e.target.value)}
+                  value={onProgressFilterTanggal}
+                  onChange={(e) => {
+                    setOnProgressFilterTanggal(e.target.value);
+                    setOnProgressCurrentPage(1);
+                  }}
                   className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer text-xs"
                 />
               </div>
 
               <button
                 type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setOnProgressFilterTanggal('');
+                  setOnProgressCurrentPage(1);
+                }}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
               >
                 <Filter className="w-3.5 h-3.5 text-slate-500" />
@@ -1287,16 +1382,36 @@ export const SecurityPortalView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {onProgressList.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-10 text-center text-slate-400">
-                        Tidak ada unit yang sedang berada di dalam bengkel.
-                      </td>
-                    </tr>
-                  ) : (
-                    onProgressList.map((item, idx) => (
+                  {(() => {
+                    const filtered = onProgressList.filter((item) => {
+                      const matchSearch =
+                        !searchQuery ||
+                        item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (item.nama_perusahaan && item.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (item.nama_pengemudi && item.nama_pengemudi.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (item.nomor_tiket && item.nomor_tiket.toLowerCase().includes(searchQuery.toLowerCase()));
+                      const matchDate =
+                        !onProgressFilterTanggal || (item.waktu_masuk && item.waktu_masuk.includes(onProgressFilterTanggal));
+                      return matchSearch && matchDate;
+                    });
+                    const totalPages = Math.max(1, Math.ceil(filtered.length / SECURITY_TABLE_PAGE_SIZE));
+                    const currentPage = Math.min(Math.max(1, onProgressCurrentPage), totalPages);
+                    const startIndex = (currentPage - 1) * SECURITY_TABLE_PAGE_SIZE;
+                    const pageItems = filtered.slice(startIndex, startIndex + SECURITY_TABLE_PAGE_SIZE);
+
+                    if (pageItems.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={9} className="py-10 text-center text-slate-400 text-xs font-medium">
+                            Tidak ada unit yang sedang berada di dalam bengkel.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return pageItems.map((item, idx) => (
                       <tr key={item.kunjungan_id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-2.5 px-3.5 font-semibold text-slate-500">{idx + 1}</td>
+                        <td className="py-2.5 px-3.5 font-semibold text-slate-500">{startIndex + idx + 1}</td>
                         <td className="py-2.5 px-3.5 font-mono font-black text-slate-900">
                           {item.no_polisi}
                         </td>
@@ -1348,25 +1463,35 @@ export const SecurityPortalView: React.FC = () => {
                           </button>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination Footer */}
-            <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-              <div>
-                Menampilkan 1 - {Math.min(5, onProgressList.length)} dari {onProgressList.length} data
-              </div>
-              <div className="flex items-center gap-1">
-                <button type="button" className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 cursor-pointer text-xs">&lt;</button>
-                <button type="button" className="px-2.5 py-1 rounded bg-[#12388F] text-white font-bold text-xs">1</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer text-xs">2</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer text-xs">3</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 cursor-pointer text-xs">&gt;</button>
-              </div>
-            </div>
+            {/* Dynamic Pagination Footer */}
+            {(() => {
+              const filtered = onProgressList.filter((item) => {
+                const matchSearch =
+                  !searchQuery ||
+                  item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (item.nama_perusahaan && item.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                  (item.nama_pengemudi && item.nama_pengemudi.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                  (item.nomor_tiket && item.nomor_tiket.toLowerCase().includes(searchQuery.toLowerCase()));
+                const matchDate =
+                  !onProgressFilterTanggal || (item.waktu_masuk && item.waktu_masuk.includes(onProgressFilterTanggal));
+                return matchSearch && matchDate;
+              });
+
+              return (
+                <SecurityTablePagination
+                  currentPage={onProgressCurrentPage}
+                  totalItems={filtered.length}
+                  pageSize={SECURITY_TABLE_PAGE_SIZE}
+                  onPageChange={setOnProgressCurrentPage}
+                />
+              );
+            })()}
           </div>
         </div>
       )}
@@ -1394,7 +1519,10 @@ export const SecurityPortalView: React.FC = () => {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setRiwayatCurrentPage(1);
+                  }}
                   placeholder="Cari No. Polisi / Nama Customer"
                   className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#12388F]"
                 />
@@ -1404,12 +1532,22 @@ export const SecurityPortalView: React.FC = () => {
                 <span className="text-slate-400 text-[11px]">Tanggal</span>
                 <input
                   type="date"
+                  value={riwayatFilterTanggal}
+                  onChange={(e) => {
+                    setRiwayatFilterTanggal(e.target.value);
+                    setRiwayatCurrentPage(1);
+                  }}
                   className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer text-xs"
                 />
               </div>
 
               <button
                 type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setRiwayatFilterTanggal('');
+                  setRiwayatCurrentPage(1);
+                }}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
               >
                 <Filter className="w-3.5 h-3.5 text-slate-500" />
@@ -1430,7 +1568,10 @@ export const SecurityPortalView: React.FC = () => {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setRiwayatPeriode(p.id as any)}
+                onClick={() => {
+                  setRiwayatPeriode(p.id as any);
+                  setRiwayatCurrentPage(1);
+                }}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   riwayatPeriode === p.id
                     ? 'bg-[#12388F] text-white shadow-xs'
@@ -1460,16 +1601,39 @@ export const SecurityPortalView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {riwayatKeluarList.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-10 text-center text-slate-400">
-                        Tidak ada riwayat kendaraan keluar pada periode ini.
-                      </td>
-                    </tr>
-                  ) : (
-                    riwayatKeluarList.map((item, idx) => (
+                  {(() => {
+                    const filtered = riwayatKeluarList.filter((item) => {
+                      const matchSearch =
+                        !searchQuery ||
+                        item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (item.nama_perusahaan && item.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (item.nama_pengemudi && item.nama_pengemudi.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (item.nomor_tiket && item.nomor_tiket.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (item.nomor_memo && item.nomor_memo.toLowerCase().includes(searchQuery.toLowerCase()));
+                      const matchDate =
+                        !riwayatFilterTanggal ||
+                        (item.waktu_keluar && item.waktu_keluar.includes(riwayatFilterTanggal)) ||
+                        (item.waktu_masuk && item.waktu_masuk.includes(riwayatFilterTanggal));
+                      return matchSearch && matchDate;
+                    });
+                    const totalPages = Math.max(1, Math.ceil(filtered.length / SECURITY_TABLE_PAGE_SIZE));
+                    const currentPage = Math.min(Math.max(1, riwayatCurrentPage), totalPages);
+                    const startIndex = (currentPage - 1) * SECURITY_TABLE_PAGE_SIZE;
+                    const pageItems = filtered.slice(startIndex, startIndex + SECURITY_TABLE_PAGE_SIZE);
+
+                    if (pageItems.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={9} className="py-10 text-center text-slate-400 text-xs font-medium">
+                            Tidak ada riwayat kendaraan keluar pada periode ini.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return pageItems.map((item, idx) => (
                       <tr key={item.kunjungan_id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-2.5 px-3.5 font-semibold text-slate-500">{idx + 1}</td>
+                        <td className="py-2.5 px-3.5 font-semibold text-slate-500">{startIndex + idx + 1}</td>
                         <td className="py-2.5 px-3.5 font-mono font-black text-slate-900">
                           {item.no_polisi}
                         </td>
@@ -1503,27 +1667,38 @@ export const SecurityPortalView: React.FC = () => {
                           </button>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination Footer */}
-            <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-              <div>
-                Menampilkan 1 - {Math.min(5, riwayatKeluarList.length)} dari {riwayatKeluarList.length} data
-              </div>
-              <div className="flex items-center gap-1">
-                <button type="button" className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 cursor-pointer text-xs">&lt;</button>
-                <button type="button" className="px-2.5 py-1 rounded bg-[#12388F] text-white font-bold text-xs">1</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer text-xs">2</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer text-xs">3</button>
-                <span className="px-1 text-slate-400">...</span>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer text-xs">5</button>
-                <button type="button" className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 cursor-pointer text-xs">&gt;</button>
-              </div>
-            </div>
+            {/* Dynamic Pagination Footer */}
+            {(() => {
+              const filtered = riwayatKeluarList.filter((item) => {
+                const matchSearch =
+                  !searchQuery ||
+                  item.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (item.nama_perusahaan && item.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                  (item.nama_pengemudi && item.nama_pengemudi.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                  (item.nomor_tiket && item.nomor_tiket.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                  (item.nomor_memo && item.nomor_memo.toLowerCase().includes(searchQuery.toLowerCase()));
+                const matchDate =
+                  !riwayatFilterTanggal ||
+                  (item.waktu_keluar && item.waktu_keluar.includes(riwayatFilterTanggal)) ||
+                  (item.waktu_masuk && item.waktu_masuk.includes(riwayatFilterTanggal));
+                return matchSearch && matchDate;
+              });
+
+              return (
+                <SecurityTablePagination
+                  currentPage={riwayatCurrentPage}
+                  totalItems={filtered.length}
+                  pageSize={SECURITY_TABLE_PAGE_SIZE}
+                  onPageChange={setRiwayatCurrentPage}
+                />
+              );
+            })()}
           </div>
         </div>
       )}
@@ -1556,6 +1731,7 @@ export const SecurityPortalView: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
+                    setMemoCurrentPage(1);
                     loadMemoList(e.target.value);
                   }}
                   placeholder="Cari No. Polisi / No. Memo..."
@@ -1567,13 +1743,25 @@ export const SecurityPortalView: React.FC = () => {
                 <span className="text-slate-400 text-[10px]">Tanggal</span>
                 <input
                   type="date"
+                  value={memoFilterTanggal}
+                  onChange={(e) => {
+                    setMemoFilterTanggal(e.target.value);
+                    setMemoCurrentPage(1);
+                  }}
                   className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer text-xs"
                 />
               </div>
 
               <button
                 type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setMemoFilterTanggal('');
+                  setMemoCurrentPage(1);
+                  loadMemoList();
+                }}
                 className="p-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer"
+                title="Reset Filter"
               >
                 <Filter className="w-3.5 h-3.5" />
               </button>
@@ -1598,20 +1786,41 @@ export const SecurityPortalView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {memoList.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-10 text-center text-slate-400">
-                        Belum ada dokumen memo keluar.
-                      </td>
-                    </tr>
-                  ) : (
-                    memoList.map((memo, idx) => (
+                  {(() => {
+                    const filtered = memoList.filter((memo) => {
+                      const matchSearch =
+                        !searchQuery ||
+                        memo.nomor_memo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        memo.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        memo.nama_pengemudi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (memo.nama_perusahaan && memo.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (memo.nomor_tiket && memo.nomor_tiket.toLowerCase().includes(searchQuery.toLowerCase()));
+                      const matchDate =
+                        !memoFilterTanggal || (memo.tanggal_terbit && memo.tanggal_terbit.includes(memoFilterTanggal));
+                      return matchSearch && matchDate;
+                    });
+                    const totalPages = Math.max(1, Math.ceil(filtered.length / SECURITY_TABLE_PAGE_SIZE));
+                    const currentPage = Math.min(Math.max(1, memoCurrentPage), totalPages);
+                    const startIndex = (currentPage - 1) * SECURITY_TABLE_PAGE_SIZE;
+                    const pageItems = filtered.slice(startIndex, startIndex + SECURITY_TABLE_PAGE_SIZE);
+
+                    if (pageItems.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={9} className="py-10 text-center text-slate-400 text-xs font-medium">
+                            Belum ada dokumen memo keluar.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return pageItems.map((memo, idx) => (
                       <tr
                         key={memo.id}
                         onClick={() => handleViewMemo(memo.id, memo.nomor_memo)}
                         className="hover:bg-blue-50/50 cursor-pointer transition-colors"
                       >
-                        <td className="py-2.5 px-3.5 text-slate-500 font-semibold">{idx + 1}</td>
+                        <td className="py-2.5 px-3.5 text-slate-500 font-semibold">{startIndex + idx + 1}</td>
                         <td className="py-2.5 px-3.5 font-mono font-bold text-[#12388F]">
                           {memo.nomor_memo}
                         </td>
@@ -1649,24 +1858,36 @@ export const SecurityPortalView: React.FC = () => {
                           </button>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination Footer */}
-            <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-              <div>Menampilkan 1 - {Math.min(5, memoList.length)} dari {memoList.length} data</div>
-              <div className="flex items-center gap-1">
-                <button type="button" className="px-2 py-0.5 rounded border border-slate-300 bg-white text-slate-600 text-xs">&lt;</button>
-                <button type="button" className="px-2.5 py-1 rounded bg-[#12388F] text-white font-bold text-xs">1</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">2</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">3</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">4</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">&gt;</button>
-              </div>
-            </div>
+            {/* Dynamic Pagination Footer */}
+            {(() => {
+              const filtered = memoList.filter((memo) => {
+                const matchSearch =
+                  !searchQuery ||
+                  memo.nomor_memo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  memo.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  memo.nama_pengemudi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (memo.nama_perusahaan && memo.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                  (memo.nomor_tiket && memo.nomor_tiket.toLowerCase().includes(searchQuery.toLowerCase()));
+                const matchDate =
+                  !memoFilterTanggal || (memo.tanggal_terbit && memo.tanggal_terbit.includes(memoFilterTanggal));
+                return matchSearch && matchDate;
+              });
+
+              return (
+                <SecurityTablePagination
+                  currentPage={memoCurrentPage}
+                  totalItems={filtered.length}
+                  pageSize={SECURITY_TABLE_PAGE_SIZE}
+                  onPageChange={setMemoCurrentPage}
+                />
+              );
+            })()}
           </div>
         </div>
       )}
