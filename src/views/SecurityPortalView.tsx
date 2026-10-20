@@ -1408,14 +1408,14 @@ export const SecurityPortalView: React.FC = () => {
             </div>
           </div>
 
-          {/* 4 Kartu Metrik Ringkas Persis Excel (Total On Progress, Sedang Dikerjakan, Menunggu Part, Menunggu QC) */}
+          {/* 4 Kartu Metrik Ringkas Persis Excel (Total Diservis, Sedang Dikerjakan, Menunggu Part, Menunggu QC) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex items-center gap-3">
               <div className="w-11 h-11 rounded-xl bg-blue-50 text-[#12388F] flex items-center justify-center shrink-0">
                 <Truck className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-[11px] text-slate-500 font-medium">Total On Progress</div>
+                <div className="text-[11px] text-slate-500 font-medium">Total Diservis</div>
                 <div className="text-xl font-black text-slate-900 mt-0.5">
                   {onProgressList.length} <span className="text-xs font-normal text-slate-500">Unit</span>
                 </div>
