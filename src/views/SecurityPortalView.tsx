@@ -114,6 +114,7 @@ export const SecurityPortalView: React.FC = () => {
   const [bookingCurrentPage, setBookingCurrentPage] = useState<number>(1);
   const BOOKING_PAGE_SIZE = 5;
   const [selectedBooking, setSelectedBooking] = useState<SecurityBookingItem | null>(null);
+  const [bookingDetailModalOpen, setBookingDetailModalOpen] = useState<boolean>(false);
   const [checkInForm, setCheckInForm] = useState({
     tipe_kunjungan: 'SERVICE' as TipeKunjunganGerbang,
     booking_id: null as number | null,
@@ -603,12 +604,11 @@ export const SecurityPortalView: React.FC = () => {
                       return (
                         <tr
                           key={b.booking_id}
-                          onClick={() => setSelectedBooking(b)}
-                          className={`cursor-pointer transition-colors ${
-                            isSelected
-                              ? 'bg-[#EFF6FF] border-l-4 border-l-[#12388F]'
-                              : 'hover:bg-slate-50'
-                          }`}
+                          onClick={() => {
+                            setSelectedBooking(b);
+                            setBookingDetailModalOpen(true);
+                          }}
+                          className="hover:bg-blue-50/50 cursor-pointer transition-colors"
                         >
                           <td className="py-2.5 px-3.5 font-semibold text-slate-500">{idx + 1}</td>
                           <td className="py-2.5 px-3.5">
@@ -633,21 +633,35 @@ export const SecurityPortalView: React.FC = () => {
                             )}
                           </td>
                           <td className="py-2.5 px-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                            {!b.sudah_checkin ? (
+                            <div className="flex items-center justify-center gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => handlePilihBooking(b)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-[11px] font-bold rounded-lg shadow-xs hover:shadow transition-all cursor-pointer"
-                                title="Proses Check In langsung untuk kendaraan ini"
+                                onClick={() => {
+                                  setSelectedBooking(b);
+                                  setBookingDetailModalOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-[#12388F] text-[#12388F] hover:bg-[#12388F] hover:text-white transition-colors cursor-pointer shadow-2xs"
+                                title="Lihat detail reservasi booking"
                               >
-                                <ArrowRightCircle className="w-3.5 h-3.5" />
-                                <span>Check In</span>
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Detail</span>
                               </button>
-                            ) : (
-                              <span className="text-[11px] text-slate-400 font-medium">
-                                Selesai Check In
-                              </span>
-                            )}
+                              {!b.sudah_checkin ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handlePilihBooking(b)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-[11px] font-bold rounded-lg shadow-xs hover:shadow transition-all cursor-pointer"
+                                  title="Proses Check In langsung untuk kendaraan ini"
+                                >
+                                  <ArrowRightCircle className="w-3.5 h-3.5" />
+                                  <span>Check In</span>
+                                </button>
+                              ) : (
+                                <span className="text-[11px] text-slate-400 font-medium">
+                                  Selesai Check In
+                                </span>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -721,92 +735,6 @@ export const SecurityPortalView: React.FC = () => {
             })()}
           </div>
 
-          {/* Card DETAIL BOOKING Persis Mockup Excel */}
-          {selectedBooking && (
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                <h4 className="font-black text-sm uppercase tracking-wide text-slate-900">
-                  DETAIL BOOKING
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => handlePilihBooking(selectedBooking)}
-                  className="px-4 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-black rounded-lg shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <ArrowRightCircle className="w-4 h-4" />
-                  <span>PILIH &amp; ISI OTOMATIS</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-                {/* Kolom 1 */}
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">No. Polisi</div>
-                    <div className="font-mono font-black text-xl text-slate-900 mt-0.5">
-                      {selectedBooking.no_polisi}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">Jenis Armada</div>
-                    <div className="font-bold text-slate-900 mt-0.5">
-                      {selectedBooking.tipe_kendaraan || 'Truk'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">Tujuan Kunjungan</div>
-                    <div className="font-bold text-[#12388F] mt-0.5">
-                      {selectedBooking.jenis_layanan || 'Service'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Kolom 2 */}
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">Nama Customer</div>
-                    <div className="font-bold text-slate-900 mt-0.5">
-                      {selectedBooking.nama_pelanggan}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">No. Telepon</div>
-                    <div className="font-mono text-slate-900 mt-0.5 font-semibold">
-                      {selectedBooking.no_telepon || '0812-3456-7890'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">PIC / Driver</div>
-                    <div className="font-bold text-slate-900 mt-0.5">
-                      {selectedBooking.nama_pic || selectedBooking.nama_pelanggan || 'Slamet Riyadi'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Kolom 3 */}
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">Tanggal Booking</div>
-                    <div className="font-bold text-slate-900 mt-0.5">
-                      {selectedBooking.tanggal_booking || '03 Mei 2025'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">Jam Booking</div>
-                    <div className="font-mono font-bold text-slate-900 mt-0.5">
-                      {selectedBooking.jam_booking || '08:00'} WIB
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-slate-500 font-medium">Keterangan</div>
-                    <div className="text-slate-600 mt-0.5 italic">
-                      {selectedBooking.keluhan || selectedBooking.catatan || '-'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -1654,6 +1582,119 @@ export const SecurityPortalView: React.FC = () => {
                 <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">4</button>
                 <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">&gt;</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detail Booking Reservasi */}
+      {bookingDetailModalOpen && selectedBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-[#12388F] text-white px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm uppercase tracking-wide">DETAIL BOOKING</h3>
+                  <p className="text-[11px] text-blue-200">No. Reservasi: {selectedBooking.no_booking}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBookingDetailModalOpen(false)}
+                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 text-xs text-slate-700">
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">No. Polisi</span>
+                  <div className="font-mono font-black text-2xl text-slate-900 leading-tight">
+                    {selectedBooking.no_polisi}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</span>
+                  <div>
+                    {selectedBooking.sudah_checkin ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Sudah Masuk
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#DBEAFE] text-[#12388F]">
+                        Booked
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-medium">Jenis Armada</span>
+                  <p className="font-bold text-slate-900 text-xs mt-0.5">{selectedBooking.tipe_kendaraan || 'Truk'}</p>
+                </div>
+                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-medium">Tujuan Kunjungan</span>
+                  <p className="font-bold text-[#12388F] text-xs mt-0.5">{selectedBooking.jenis_layanan || 'Service'}</p>
+                </div>
+                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-medium">Nama Customer</span>
+                  <p className="font-bold text-slate-900 text-xs mt-0.5">{selectedBooking.nama_pelanggan}</p>
+                </div>
+                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-medium">No. Telepon</span>
+                  <p className="font-mono font-semibold text-slate-900 text-xs mt-0.5">{selectedBooking.no_telepon || '-'}</p>
+                </div>
+                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-medium">PIC / Driver</span>
+                  <p className="font-bold text-slate-900 text-xs mt-0.5">{selectedBooking.nama_pic || selectedBooking.nama_pelanggan || '-'}</p>
+                </div>
+                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-medium">Jadwal Reservasi</span>
+                  <p className="font-bold text-slate-900 text-xs mt-0.5">
+                    {selectedBooking.tanggal_booking} &bull; <span className="font-mono">{selectedBooking.jam_booking} WIB</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
+                <span className="text-[10px] text-slate-400 font-medium">Keterangan / Keluhan</span>
+                <p className="text-slate-700 text-xs mt-0.5 italic">
+                  {selectedBooking.keluhan || selectedBooking.catatan || 'Tidak ada catatan tambahan.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setBookingDetailModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+              {!selectedBooking.sudah_checkin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBookingDetailModalOpen(false);
+                    handlePilihBooking(selectedBooking);
+                  }}
+                  className="px-4 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-black rounded-xl shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowRightCircle className="w-4 h-4" />
+                  <span>PILIH &amp; ISI CHECK IN</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
