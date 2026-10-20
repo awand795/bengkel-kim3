@@ -64,12 +64,14 @@ export const Navbar: React.FC = () => {
                 <ArrowLeft className="w-5 h-5 text-ink" />
               </button>
             ) : (
-              <div className="min-w-[44px] min-h-[44px] flex items-center justify-center">
-                <img
-                  src="/logo.png"
-                  alt="KIM3"
-                  className="h-7 w-auto object-contain"
-                />
+              <div className="flex items-center">
+                <div className="bg-[#0A0D14] p-1 px-2.5 rounded-lg border border-white/10 inline-flex items-center shadow-xs">
+                  <img
+                    src="/master-truck-logo.png"
+                    alt="Master Truck"
+                    className="h-6 w-auto object-contain"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -121,11 +123,13 @@ export const Navbar: React.FC = () => {
         <div className="hidden md:flex max-w-[1600px] mx-auto px-4 lg:px-6 h-[60px] items-center justify-between gap-4">
           {/* Brand Logo & Title */}
           <div className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="KIM3 Bengkel"
-              className="h-9 w-auto object-contain"
-            />
+            <div className="bg-[#0A0D14] p-1.5 px-3 rounded-xl border border-white/10 inline-flex items-center shadow-xs">
+              <img
+                src="/master-truck-logo.png"
+                alt="Master Truck"
+                className="h-7 w-auto object-contain"
+              />
+            </div>
             <div className="border-l border-[#E2E8F0] dark:border-border pl-3">
               {currentRole === 'Security' ? (
                 <>
@@ -139,7 +143,7 @@ export const Navbar: React.FC = () => {
               ) : (
                 <>
                   <span className="block text-xs font-bold text-[#0F172A] dark:text-white leading-tight">
-                    KIM 3 WEB FLEET
+                    MASTER TRUCK &bull; WEB FLEET
                   </span>
                   <span className="block text-[10px] text-[#64748B] dark:text-slate-400">
                     Customer Monitoring Portal

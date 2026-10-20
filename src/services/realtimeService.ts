@@ -246,7 +246,7 @@ class RealtimeNotificationHub {
       try {
         new Notification(event.title, {
           body: event.message,
-          icon: '/logo.png',
+          icon: '/master-truck-logo.png',
         });
       } catch (_) {}
     }
