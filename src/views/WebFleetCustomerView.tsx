@@ -2732,7 +2732,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     jenis_dokumen: 'STNK',
     masa_berlaku: '',
     keterangan: '',
-    file_url: 'https://bengkelkim3.com/dokumen/sample-doc.pdf',
+    file_url: '',
   });
 
   const tambahDokumenMutation = useMutation({
@@ -2746,7 +2746,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         jenis_dokumen: data.jenis_dokumen as any,
         masa_berlaku: data.masa_berlaku || undefined,
         keterangan: data.keterangan,
-        file_url: data.file_url,
+        file_url: data.file_url || undefined,
         id_pelanggan: myPelangganId || undefined,
       });
     },
@@ -2760,7 +2760,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         jenis_dokumen: 'STNK',
         masa_berlaku: '',
         keterangan: '',
-        file_url: 'https://bengkelkim3.com/dokumen/sample-doc.pdf',
+        file_url: '',
       });
     },
     onError: (err: any) =>
@@ -4249,14 +4249,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               {renderDocExpiryBadge(item.masa_berlaku)}
                             </td>
                             <td className="px-5 py-3.5 text-right">
-                              <a
-                                href={item.file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-white px-3 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
-                              >
-                                <Download className="h-3.5 w-3.5" /> Unduh
-                              </a>
+                              {item.file_url ? (
+                                <a
+                                  href={item.file_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-white px-3 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
+                                >
+                                  <Download className="h-3.5 w-3.5" /> Unduh
+                                </a>
+                              ) : (
+                                <span className="inline-flex h-9 items-center gap-1.5 px-3 text-xs font-medium text-ink-subtle">
+                                  <FileCheck className="h-3.5 w-3.5 text-status-green" /> Terdaftar
+                                </span>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -4289,14 +4295,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </div>
                         </div>
 
-                        <a
-                          href={item.file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-[#F1F5F9] px-3 py-2 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#E7EDF5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Unduh Dokumen
-                        </a>
+                        {item.file_url ? (
+                          <a
+                            href={item.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-[#D7E0EC] bg-[#F1F5F9] px-3 py-2 text-xs font-semibold text-[#34517C] transition hover:border-[#B9C9DD] hover:bg-[#E7EDF5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Unduh Dokumen
+                          </a>
+                        ) : (
+                          <div className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-subtle">
+                            <FileCheck className="w-3.5 h-3.5 text-status-green" /> Dokumen Terdaftar di Database
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
