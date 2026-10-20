@@ -47,68 +47,6 @@ import { DigitalMemoKeluarModal } from '../components/security/DigitalMemoKeluar
 import { useAppStore } from '../store/useAppStore';
 
 // Pilihan Tujuan Kedatangan (Revamped dengan Ikon, Badge, dan Penjelasan)
-const TIPE_KEDATANGAN_OPTIONS: {
-  id: TipeKunjunganGerbang;
-  title: string;
-  badge: string;
-  desc: string;
-  icon: any;
-  defaultPic: string;
-  defaultKeperluan: string;
-  badgeColor: string;
-  iconBg: string;
-  iconColor: string;
-}[] = [
-  { 
-    id: 'SERVICE', 
-    title: 'Service', 
-    badge: 'Bengkel',
-    desc: 'Perbaikan armada, service berkala, ganti oli (Booking / Walk-in)',
-    icon: Wrench,
-    defaultPic: 'Service Advisor (SA)', 
-    defaultKeperluan: 'Service Berkala / Perbaikan Truk',
-    badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-    iconBg: 'bg-blue-50',
-    iconColor: 'text-[#12388F]'
-  },
-  { 
-    id: 'KUNJUNGAN', 
-    title: 'Kunjungan', 
-    badge: 'Tamu / Kantor',
-    desc: 'Tamu kantor, meeting, audit, vendor, atau keperluan manajemen',
-    icon: Building2,
-    defaultPic: 'Management / Kantor Bengkel', 
-    defaultKeperluan: 'Kunjungan Tamu / Keperluan Kantor',
-    badgeColor: 'bg-purple-100 text-purple-800 border-purple-200',
-    iconBg: 'bg-purple-50',
-    iconColor: 'text-purple-700'
-  },
-  { 
-    id: 'BELI_PART', 
-    title: 'Beli Part', 
-    badge: 'Warehouse',
-    desc: 'Pembelian sparepart langsung ke part counter / gudang tanpa perbaikan',
-    icon: Package,
-    defaultPic: 'Hisar (Warehouse)', 
-    defaultKeperluan: 'Pembelian Sparepart / Barang',
-    badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-    iconBg: 'bg-amber-50',
-    iconColor: 'text-amber-700'
-  },
-  { 
-    id: 'LAINNYA', 
-    title: 'Lainnya', 
-    badge: 'Umum',
-    desc: 'Drop berkas dokumen, pengiriman logistik, atau keperluan lainnya',
-    icon: FileText,
-    defaultPic: 'Pos Gerbang / Umum', 
-    defaultKeperluan: 'Keperluan Lainnya',
-    badgeColor: 'bg-slate-100 text-slate-800 border-slate-200',
-    iconBg: 'bg-slate-100',
-    iconColor: 'text-slate-700'
-  },
-];
-
 const renderTipeKunjunganBadge = (tipe: string | undefined) => {
   switch (tipe) {
     case 'SERVICE':
@@ -181,7 +119,7 @@ export const SecurityPortalView: React.FC = () => {
     no_telepon_pengemudi: '',
     nama_perusahaan: '',
     tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-    bertemu_dengan: 'Service Advisor (SA)',
+    bertemu_dengan: '',
     catatan_masuk: '',
     foto_kendaraan_masuk: '',
   });
@@ -229,12 +167,22 @@ export const SecurityPortalView: React.FC = () => {
     }
   };
 
-  // Fetch Master Employee real dari API
+  // Fetch Master Employee real dari API (sch_pos.tbl_employee via sch_fleet.v_pos_employee)
   const loadEmployeeData = async () => {
     setIsEmployeeLoading(true);
     try {
       const employees = await api.getMasterEmployee();
       setEmployeeList(employees);
+      // Auto-set ke Service Advisor pertama dari database jika belum ada PIC yang dipilih
+      setCheckInForm((prev) => {
+        if (!prev.bertemu_dengan && prev.tipe_kunjungan === 'SERVICE' && employees.length > 0) {
+          const sa = employees.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
+          if (sa) {
+            return { ...prev, bertemu_dengan: sa.display_label || sa.employeename };
+          }
+        }
+        return prev;
+      });
     } catch (err: any) {
       console.error('Master employee API call:', err);
       setEmployeeList([]);
@@ -326,6 +274,7 @@ export const SecurityPortalView: React.FC = () => {
   // Handle Pilih & Isi Otomatis dari Booking
   const handlePilihBooking = (booking: SecurityBookingItem) => {
     setSelectedBooking(booking);
+    const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
     setCheckInForm({
       tipe_kunjungan: 'SERVICE',
       booking_id: booking.booking_id,
@@ -334,7 +283,7 @@ export const SecurityPortalView: React.FC = () => {
       no_telepon_pengemudi: booking.no_telepon || '',
       nama_perusahaan: booking.nama_pelanggan,
       tujuan_kunjungan: `Service Booking: ${booking.jenis_layanan}${booking.keluhan ? ` - ${booking.keluhan}` : ''}`,
-      bertemu_dengan: 'Service Advisor (SA)',
+      bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
       catatan_masuk: booking.catatan || '',
       foto_kendaraan_masuk: booking.foto_kendaraan || '',
     });
@@ -367,6 +316,7 @@ export const SecurityPortalView: React.FC = () => {
 
       // Reset form
       setSelectedBooking(null);
+      const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
       setCheckInForm({
         tipe_kunjungan: 'SERVICE',
         booking_id: null,
@@ -375,7 +325,7 @@ export const SecurityPortalView: React.FC = () => {
         no_telepon_pengemudi: '',
         nama_perusahaan: '',
         tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-        bertemu_dengan: 'Service Advisor (SA)',
+        bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
         catatan_masuk: '',
         foto_kendaraan_masuk: '',
       });
@@ -798,6 +748,7 @@ export const SecurityPortalView: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setSelectedBooking(null);
+                    const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
                     setCheckInForm({
                       tipe_kunjungan: 'SERVICE',
                       booking_id: null,
@@ -806,7 +757,7 @@ export const SecurityPortalView: React.FC = () => {
                       no_telepon_pengemudi: '',
                       nama_perusahaan: '',
                       tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-                      bertemu_dengan: 'Service Advisor (SA)',
+                      bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
                       catatan_masuk: '',
                       foto_kendaraan_masuk: '',
                     });
@@ -895,21 +846,28 @@ export const SecurityPortalView: React.FC = () => {
                       <label
                         key={t.id}
                         onClick={() => {
-                          // Otomatis arahkan PIC jika ada match di employeeList dari API
-                          let autoPic = checkInForm.bertemu_dengan;
+                          // Otomatis tentukan PIC yang relevan HANYA dari data real database
+                          let autoPic = '';
                           if (!checkInForm.booking_id && employeeList.length > 0) {
                             if (t.id === 'SERVICE') {
-                              const emp = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor') || (e.jobposition || '').toLowerCase().includes('sa'));
+                              const emp = employeeList.find((e) => 
+                                (e.jobposition || e.department || '').toLowerCase().includes('advisor') || 
+                                (e.jobposition || '').toLowerCase().includes('sa')
+                              );
                               if (emp) autoPic = emp.display_label || emp.employeename;
                             } else if (t.id === 'BELI_PART') {
-                              const emp = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('warehouse') || (e.employeename || '').toLowerCase().includes('hisar') || (e.jobposition || '').toLowerCase().includes('part'));
+                              const emp = employeeList.find((e) => 
+                                (e.jobposition || e.department || '').toLowerCase().includes('warehouse') || 
+                                (e.jobposition || '').toLowerCase().includes('part')
+                              );
                               if (emp) autoPic = emp.display_label || emp.employeename;
                             } else if (t.id === 'KUNJUNGAN') {
-                              const emp = employeeList.find((e) => (e.department || '').toLowerCase().includes('management') || (e.jobposition || '').toLowerCase().includes('admin'));
+                              const emp = employeeList.find((e) => 
+                                (e.department || '').toLowerCase().includes('admin') || 
+                                (e.jobposition || '').toLowerCase().includes('admin') ||
+                                (e.department || '').toLowerCase().includes('management')
+                              );
                               if (emp) autoPic = emp.display_label || emp.employeename;
-                            } else if (t.id === 'LAINNYA') {
-                              // Reset PIC jika opsi Lainnya
-                              autoPic = '';
                             }
                           }
                           setCheckInForm((prev) => ({
@@ -1013,7 +971,7 @@ export const SecurityPortalView: React.FC = () => {
                       onChange={(e) => setCheckInForm({ ...checkInForm, bertemu_dengan: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F] bg-white cursor-pointer"
                     >
-                      <option value="">-- Pilih PIC / Petugas Bengkel --</option>
+                      <option value="">-- Pilih PIC / Petugas Bengkel (Database POS) --</option>
                       {employeeList.map((emp) => (
                         <option 
                           key={emp.employeeid || emp.id} 
@@ -1024,13 +982,9 @@ export const SecurityPortalView: React.FC = () => {
                       ))}
                     </select>
                   ) : (
-                    <input
-                      type="text"
-                      value={checkInForm.bertemu_dengan}
-                      onChange={(e) => setCheckInForm({ ...checkInForm, bertemu_dengan: e.target.value })}
-                      placeholder="Ketik nama PIC / tujuan..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
-                    />
+                    <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-xs flex items-center justify-between">
+                      <span>{isEmployeeLoading ? 'Memuat daftar PIC dari database...' : 'Daftar PIC database belum tersedia'}</span>
+                    </div>
                   )}
                 </div>
                 <div>
@@ -1262,7 +1216,7 @@ export const SecurityPortalView: React.FC = () => {
                           )}
                         </td>
                         <td className="py-2.5 px-3.5 text-slate-700 font-medium">
-                          {item.mekanik || item.foreman || 'M02 - Andi Wijaya'}
+                          {item.mekanik || item.foreman || '-'}
                         </td>
                         <td className="py-2.5 px-3.5 text-center">
                           <button
