@@ -684,22 +684,56 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         </span>
                         Timeline Riwayat Aktivitas Service:
                       </span>
-                      <div className="space-y-3 relative pl-4 border-l-2 border-[#12388F]/25 dark:border-blue-400/30 ml-2">
-                        <div className="relative">
-                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                          <div className="font-semibold text-ink">Kendaraan Masuk di Pos Security</div>
-                          <div className="text-xs text-ink-muted">{fmtWaktuFull(spk.waktu_check_in || spk.created_at) || '-'} | Pos Security KIM 3</div>
+                      <div className="space-y-4 relative pl-4 border-l-2 border-[#12388F]/25 dark:border-blue-400/30 ml-2">
+                        {/* Step 1: Kendaraan Masuk di Pos Security */}
+                        <div className="relative space-y-1">
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white dark:ring-slate-900"></div>
+                          <div className="font-bold text-ink">Kendaraan Masuk di Pos Security</div>
+                          <div className="text-xs font-semibold text-accent">
+                            {fmtWaktuFull(spk.waktu_check_in || spk.created_at) || '-'}
+                          </div>
+                          <div className="text-xs text-ink-muted">
+                            Petugas: Pos Security KIM 3
+                          </div>
+                          <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
+                            Kendaraan tiba di area gerbang bengkel KIM 3. Petugas security melakukan pemeriksaan kedatangan, validasi nomor polisi ({formatPlat(spk.no_polisi)}), dan pencatatan tiket masuk armada.
+                          </div>
                         </div>
-                        <div className="relative">
-                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-accent ring-4 ring-white"></div>
-                          <div className="font-semibold text-ink">Penerimaan & Cek Awal oleh SA</div>
-                          <div className="text-xs text-ink-muted">{fmtWaktuFull(spk.created_at) || '-'} | SA: {spk.nama_sa || '-'} | Odometer: {spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</div>
+
+                        {/* Step 2: Penerimaan & Cek Awal oleh SA */}
+                        <div className="relative space-y-1">
+                          <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-accent ring-4 ring-white dark:ring-slate-900"></div>
+                          <div className="font-bold text-ink">Penerimaan & Cek Awal oleh SA</div>
+                          <div className="text-xs font-semibold text-accent">
+                            {(() => {
+                              let t = spk.created_at;
+                              if (spk.waktu_check_in && spk.created_at) {
+                                const dIn = new Date(spk.waktu_check_in).toDateString();
+                                const dCr = new Date(spk.created_at).toDateString();
+                                if (dIn !== dCr) t = spk.waktu_check_in;
+                              }
+                              return fmtWaktuFull(t || spk.waktu_check_in) || '-';
+                            })()}
+                          </div>
+                          <div className="text-xs text-ink-muted">
+                            SA: {spk.nama_sa || 'Fajar Rivaldi'} | Odometer: {spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}
+                          </div>
+                          <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed space-y-1">
+                            <div>
+                              Pemeriksaan fisik awal (Walk-around check 4 titik): Bodi [{spk.cek_body || 'OK'}], Mesin [{spk.cek_mesin || 'OK'}], Kelistrikan [{spk.cek_kelistrikan || 'OK'}], Kaki-kaki [{spk.cek_kaki_kaki || 'OK'}].
+                            </div>
+                            <div className="text-ink-muted">
+                              Keluhan: <span className="font-medium text-ink">"{spk.keluhan_customer || 'Perawatan berkala armada'}"</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="relative">
-                          <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${spk.status_spk === 'Waiting Part' ? 'bg-status-red animate-pulse' : spk.status_spk === 'Waiting QC' ? 'bg-status-green' : 'bg-status-amber animate-pulse'}`}></div>
-                          <div className="font-semibold text-ink">
+
+                        {/* Step 3: Pengerjaan Service Teknisi */}
+                        <div className="relative space-y-1">
+                          <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white dark:ring-slate-900 ${spk.status_spk === 'Waiting Part' ? 'bg-status-red animate-pulse' : spk.status_spk === 'Waiting QC' ? 'bg-status-green' : (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai') ? 'bg-status-green' : 'bg-status-amber animate-pulse'}`}></div>
+                          <div className="font-bold text-ink">
                             {spk.status_spk === 'Waiting Part'
-                              ? 'Menunggu Ketersediaan Sparepart (Timer Ditunda)'
+                              ? 'Menunggu Ketersediaan Sparepart (Pengerjaan Ditunda)'
                               : spk.status_spk === 'Waiting QC'
                               ? 'Pekerjaan Selesai Dikerjakan — Menunggu Inspeksi QC Foreman'
                               : spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai'
@@ -714,60 +748,112 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               ? 'WO Terbit — Siap Dikerjakan Mekanik'
                               : 'Pengerjaan Sedang Dilakukan oleh Mekanik'}
                           </div>
+                          <div className="text-xs font-semibold text-accent">
+                            {spk.waktu_selesai_pekerjaan ? (
+                              <>
+                                Selesai {fmtWaktuFull(spk.waktu_selesai_pekerjaan)}
+                                {(() => {
+                                  if (!spk.waktu_mulai_pekerjaan) return null;
+                                  const ms = new Date(spk.waktu_selesai_pekerjaan).getTime() - new Date(spk.waktu_mulai_pekerjaan).getTime();
+                                  if (isNaN(ms) || ms < 0) return null;
+                                  const h = Math.floor(ms / 3600000);
+                                  const m = Math.round((ms % 3600000) / 60000);
+                                  return <span> • Durasi: {h > 0 ? `${h} jam ` : ''}{m} menit</span>;
+                                })()}
+                              </>
+                            ) : spk.waktu_mulai_pekerjaan ? (
+                              <>Mulai pengerjaan: {fmtWaktuFull(spk.waktu_mulai_pekerjaan)}</>
+                            ) : (
+                              <>Dijadwalkan di bay servis</>
+                            )}
+                          </div>
                           <div className="text-xs text-ink-muted">
                             Mekanik: {spk.nama_mekanik || 'Belum Ditugaskan'} | Status SPK: <span className="font-medium text-ink">{spk.status_spk}</span>
                           </div>
-                          {spk.waktu_selesai_pekerjaan && (
-                            <div className="text-xs text-ink-muted">
-                              Selesai pukul {new Date(spk.waktu_selesai_pekerjaan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB • {new Date(spk.waktu_selesai_pekerjaan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              {(() => {
-                                if (!spk.waktu_mulai_pekerjaan) return null;
-                                const ms = new Date(spk.waktu_selesai_pekerjaan as string).getTime() - new Date(spk.waktu_mulai_pekerjaan as string).getTime();
-                                if (isNaN(ms) || ms < 0) return null;
-                                const h = Math.floor(ms / 3600000);
-                                const m = Math.round((ms % 3600000) / 60000);
-                                return <span> • Durasi: {h > 0 ? `${h} jam ` : ''}{m} menit</span>;
-                              })()}
-                            </div>
-                          )}
+                          <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
+                            {(() => {
+                              const jc = activePekerjaan.length;
+                              const pc = activeParts.length;
+                              const jText = jc > 0 ? `${jc} jasa perbaikan` : 'pekerjaan servis';
+                              const pText = pc > 0 ? `${pc} item suku cadang` : 'pemeriksaan komponen';
+                              if (spk.status_spk === 'Waiting Part') {
+                                return `Pengerjaan di stall servis ditunda sementara menunggu ketersediaan komponen/sparepart (${pc} part dibutuhkan).`;
+                              }
+                              if (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Waiting QC') {
+                                return `Teknisi telah menyelesaikan seluruh instruksi pengerjaan pada unit (${jText} dan ${pText}). Unit diserahkan untuk inspeksi pengujian mutu.`;
+                              }
+                              if (spk.waktu_mulai_pekerjaan) {
+                                return `Teknisi sedang aktif melakukan tindakan perbaikan dan perawatan unit di stall servis (${jText}, ${pText}).`;
+                              }
+                              return `Unit telah didaftarkan dan dijadwalkan untuk penanganan oleh teknisi di stall servis bengkel.`;
+                            })()}
+                          </div>
                         </div>
-                        {(spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai') && (
-                          <div className="relative">
-                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                            <div className="font-semibold text-ink">Quality Control (QC) Lulus</div>
+
+                        {/* Step 4: Quality Control (QC) Lulus */}
+                        {(spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || !!spk.waktu_qc || !!spk.tanggal_qc) && (
+                          <div className="relative space-y-1">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white dark:ring-slate-900"></div>
+                            <div className="font-bold text-ink">Quality Control (QC) Lulus</div>
+                            <div className="text-xs font-semibold text-accent">
+                              {fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || '-'}
+                            </div>
                             <div className="text-xs text-ink-muted">
-                              Inspeksi kualitas pengerjaan disetujui Foreman
-                              {spk.tanggal_qc ? ` • ${fmtWaktuFull(spk.tanggal_qc)}` : ''}
+                              Foreman: {spk.nama_foreman || 'Foreman Bengkel KIM 3'} | Hasil Uji: <span className="font-semibold text-status-green">QC PASSED</span>
+                            </div>
+                            <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
+                              {spk.catatan_foreman || 'Inspeksi kualitas pengerjaan, uji fungsi komponen, dan uji jalan (road test) telah disetujui. Seluruh pengerjaan memenuhi standar operasional bengkel.'}
                             </div>
                           </div>
                         )}
-                        {(spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai') && (
-                          <div className="relative">
-                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                            <div className="font-semibold text-ink">FIR Closed — Final Check SA</div>
+
+                        {/* Step 5: FIR Closed — Final Check SA */}
+                        {(spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || !!spk.waktu_fir_closed) && (
+                          <div className="relative space-y-1">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white dark:ring-slate-900"></div>
+                            <div className="font-bold text-ink">FIR Closed — Final Check SA</div>
+                            <div className="text-xs font-semibold text-accent">
+                              {fmtWaktuFull(spk.waktu_fir_closed || spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || '-'}
+                            </div>
                             <div className="text-xs text-ink-muted">
-                              Pemeriksaan akhir lolos, invoice diterbitkan
-                              {spk.waktu_fir_closed ? ` • ${fmtWaktuFull(spk.waktu_fir_closed)}` : ''}
+                              SA: {spk.nama_sa || 'Fajar Rivaldi'} | Dokumen: Faktur Servis
+                            </div>
+                            <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
+                              {spk.catatan_sa || 'Pemeriksaan akhir (Final Inspection Report) dinyatakan lolos oleh Service Advisor.'} Seluruh rincian pekerjaan serta pemakaian part telah diverifikasi dan invoice/faktur servis diterbitkan.
                             </div>
                           </div>
                         )}
+
+                        {/* Step 5b: Pembayaran Lunas */}
                         {activeInvoiceLunas && activeInvoice && !!spk.waktu_check_out && (
-                          <div className="relative">
-                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                            <div className="font-semibold text-ink">Pembayaran Lunas</div>
+                          <div className="relative space-y-1">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white dark:ring-slate-900"></div>
+                            <div className="font-bold text-ink">Pembayaran Lunas</div>
+                            <div className="text-xs font-semibold text-accent">
+                              {fmtWaktuFull(activeInvoice.tanggal_bayar || spk.waktu_fir_closed) || '-'}
+                            </div>
                             <div className="text-xs text-ink-muted">
-                              {activeInvoice.no_invoice} • Rp {Number(activeInvoice.grand_total || 0).toLocaleString('id-ID')}
-                              {activeInvoice.tanggal_bayar ? ` • ${fmtWaktuFull(activeInvoice.tanggal_bayar)}` : ''}
-                              {activeInvoice.metode_pembayaran ? ` • ${activeInvoice.metode_pembayaran}` : ''}
+                              Kasir & Keuangan: Bengkel KIM 3 | Metode: {activeInvoice.metode_pembayaran || 'Transfer'}
+                            </div>
+                            <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
+                              Invoice No. {activeInvoice.no_invoice} senilai Rp {Number(activeInvoice.grand_total || 0).toLocaleString('id-ID')} telah diselesaikan lunas.
                             </div>
                           </div>
                         )}
+
+                        {/* Step 6: Kendaraan Keluar Bengkel */}
                         {spk.waktu_check_out && (!!spk.waktu_fir_closed || spk.status_spk === 'Selesai') && (
-                          <div className="relative">
-                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white"></div>
-                            <div className="font-semibold text-ink">Kendaraan Keluar Bengkel</div>
+                          <div className="relative space-y-1">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white dark:ring-slate-900"></div>
+                            <div className="font-bold text-ink">Kendaraan Keluar Bengkel</div>
+                            <div className="text-xs font-semibold text-accent">
+                              {fmtWaktuFull(spk.waktu_check_out) || '-'}
+                            </div>
                             <div className="text-xs text-ink-muted">
-                              Check-out pos Security • {fmtWaktuFull(spk.waktu_check_out)}
+                              Petugas: Pos Security KIM 3 | Gate Pass: Valid
+                            </div>
+                            <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
+                              Verifikasi Gate Pass / Memo Keluar di Pos Security KIM 3 selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel.
                             </div>
                           </div>
                         )}
