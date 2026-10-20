@@ -54,6 +54,9 @@ class RealtimeNotificationHub {
   private eventHistory: RealtimeEvent[] = [];
   private sseSource: EventSource | null = null;
   private isAudioUnlocked = false;
+  private streamIntervalId: any = null;
+  private lastKnownNotifIds: Set<number> = new Set();
+  private isStreaming = false;
 
   constructor() {
     this.initBroadcastChannel();
@@ -91,13 +94,20 @@ class RealtimeNotificationHub {
     window.addEventListener('touchstart', unlock, { once: true });
   }
 
-  // Optional SSE listener for backend server-sent events
+  // SSE listener with seamless differential stream fallback
   private initSSE() {
     if (typeof window === 'undefined') return;
     try {
-      // Connect to backend SSE if endpoint is available
       const sseUrl = '/api/data/kim3/stream';
       this.sseSource = new EventSource(sseUrl);
+
+      this.sseSource.onopen = () => {
+        // SSE connected natively
+        if (this.streamIntervalId) {
+          clearInterval(this.streamIntervalId);
+          this.streamIntervalId = null;
+        }
+      };
 
       this.sseSource.onmessage = (e) => {
         try {
@@ -109,15 +119,88 @@ class RealtimeNotificationHub {
       };
 
       this.sseSource.onerror = () => {
-        // Close on 404 or backend refusal, graceful fallback to polling
+        // Close on 404 or backend refusal, graceful fallback to active differential streaming
         if (this.sseSource) {
           this.sseSource.close();
           this.sseSource = null;
         }
+        this.startDifferentialStream();
       };
     } catch (_) {
-      // Silently fall back to polling
+      this.startDifferentialStream();
     }
+  }
+
+  // Active Differential Real-time Streaming Engine
+  // Emulates live server push by continuously listening to new database notifications & dispatching events
+  public startDifferentialStream() {
+    if (this.streamIntervalId || typeof window === 'undefined') return;
+    this.isStreaming = true;
+
+    const streamPulse = async () => {
+      try {
+        const { api } = await import('../api/client');
+        const notifs = await api.getNotifikasi();
+        if (Array.isArray(notifs) && notifs.length > 0) {
+          if (this.lastKnownNotifIds.size === 0) {
+            // First run: seed existing IDs so we only alert on NEW incoming items
+            notifs.forEach((n) => this.lastKnownNotifIds.add(n.id));
+            return;
+          }
+
+          // Detect new arrivals
+          const incoming = notifs.filter((n) => !this.lastKnownNotifIds.has(n.id));
+          incoming.forEach((n) => {
+            this.lastKnownNotifIds.add(n.id);
+
+            // Infer event type from notification title & link_tab
+            let evtType: EventType = 'SPK_STATUS_CHANGED';
+            const titleLower = (n.title || '').toLowerCase();
+            const linkTab = n.link_tab || '';
+
+            if (titleLower.includes('booking') || linkTab.includes('booking')) {
+              evtType = 'BOOKING_CREATED';
+            } else if (titleLower.includes('check-in') || titleLower.includes('check in') || titleLower.includes('masuk')) {
+              evtType = 'VEHICLE_CHECKED_IN';
+            } else if (titleLower.includes('check-out') || titleLower.includes('check out') || titleLower.includes('keluar')) {
+              evtType = 'VEHICLE_CHECKED_OUT';
+            } else if (titleLower.includes('memo')) {
+              evtType = 'MEMO_TERBIT';
+            }
+
+            const targetRoles: NotificationRole[] = linkTab.startsWith('security-')
+              ? ['Security']
+              : ['ALL'];
+
+            const syntheticEvent: RealtimeEvent = {
+              id: `sse-notif-${n.id}-${Date.now()}`,
+              type: evtType,
+              targetRoles,
+              title: n.title,
+              message: n.pesan,
+              linkTab: n.link_tab,
+              urgency: (n.urgency as any) || 'info',
+              timestamp: String(n.created_at || new Date().toISOString()),
+            };
+
+            this.handleIncomingEvent(syntheticEvent, false);
+          });
+        }
+      } catch (err) {
+        // Silent error to prevent UI disturbance
+      }
+    };
+
+    // First check after 1s, then active stream interval every 3.5s
+    setTimeout(streamPulse, 1000);
+    this.streamIntervalId = setInterval(streamPulse, 3500);
+
+    // Instant pulse on tab focus
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        streamPulse();
+      }
+    });
   }
 
   // Play audio chime synthesized with Web Audio API (no external MP3 asset needed!)

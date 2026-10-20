@@ -777,23 +777,11 @@ export const api = {
     } catch (err) {
       console.warn('getSecurityDashboardStats API error:', err);
     }
-    let totalBookingHariIni = Number(statData?.total_booking_hari_ini || 0);
-    if (totalBookingHariIni === 0) {
-      try {
-        const all = await api.getBooking();
-        const today = new Date().toISOString().split('T')[0];
-        totalBookingHariIni = all.filter((b) => {
-          const st = (b.status || '').toLowerCase().replace(/[\s\-_]+/g, '');
-          const isCheckIn = st === 'checkin' || st === 'checkedin' || st === 'sudahmasuk';
-          return b.tanggal_booking === today && !isCheckIn && b.status !== 'Dibatalkan' && b.status !== 'Booking Canceled' && !b.is_canceled;
-        }).length;
-      } catch {}
-    }
     return {
       total_masuk_hari_ini: Number(statData?.total_masuk_hari_ini || 0),
       total_di_dalam: Number(statData?.total_di_dalam || 0),
       total_siap_keluar: Number(statData?.total_siap_keluar || 0),
-      total_booking_hari_ini: totalBookingHariIni,
+      total_booking_hari_ini: Number(statData?.total_booking_hari_ini || 0),
       total_keluar_hari_ini: Number(statData?.total_keluar_hari_ini || 0),
     };
   },

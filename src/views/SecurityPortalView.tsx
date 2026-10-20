@@ -14,7 +14,6 @@ import {
   Building2, 
   CheckCircle2, 
   AlertCircle, 
-  RotateCw, 
   Filter, 
   Printer, 
   ChevronRight,
@@ -354,9 +353,9 @@ export const SecurityPortalView: React.FC = () => {
     });
   };
 
-  // Load Initial Data
-  const loadDashboardData = async () => {
-    setIsLoading(true);
+  // Load Initial Data (mendukung silent update untuk SSE real-time tanpa flickering spinner)
+  const loadDashboardData = async (silent: boolean = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [s, didalam, bookings, prog] = await Promise.all([
         api.getSecurityDashboardStats(),
@@ -364,14 +363,24 @@ export const SecurityPortalView: React.FC = () => {
         api.getSecurityBookingList(),
         api.getSecurityOnProgress(),
       ]);
-      setStats(s);
+
+      const today = new Date().toISOString().split('T')[0];
+      const activeBookingsCount = bookings.filter((b) => {
+        const isToday = b.tanggal_booking ? b.tanggal_booking.slice(0, 10) === today : true;
+        return isToday && !b.sudah_checkin && b.status !== 'Check In' && b.status !== 'Dibatalkan';
+      }).length;
+
+      setStats({
+        ...s,
+        total_booking_hari_ini: s.total_booking_hari_ini > 0 ? s.total_booking_hari_ini : activeBookingsCount,
+      });
       setKunjunganDiDalam(didalam);
       setBookingList(bookings);
       setOnProgressList(prog);
     } catch (err: any) {
       console.error('Failed to load security dashboard:', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -424,23 +433,37 @@ export const SecurityPortalView: React.FC = () => {
   };
 
   useEffect(() => {
-    loadDashboardData();
+    loadDashboardData(false);
     loadEmployeeData();
 
-    // Subscribe ke event realtime (Booking baru dari customer, status check in, dll.)
+    // Subscribe ke event realtime SSE (Booking baru dari customer, status check in, spk, dll.)
     const unsubscribe = realtimeHub.subscribe((evt) => {
       if (
         evt.type === 'BOOKING_CREATED' ||
         evt.type === 'VEHICLE_CHECKED_IN' ||
         evt.type === 'VEHICLE_CHECKED_OUT' ||
-        evt.type === 'MEMO_TERBIT'
+        evt.type === 'MEMO_TERBIT' ||
+        evt.type === 'SPK_STATUS_CHANGED'
       ) {
-        loadDashboardData();
+        loadDashboardData(true);
+        if (currentTab === 'keluar') {
+          loadRiwayatKeluar(riwayatPeriode);
+        } else if (currentTab === 'memo') {
+          loadMemoList(searchQuery);
+        }
       }
     });
 
-    return () => unsubscribe();
-  }, []);
+    // Auto-sync real-time interval background setiap 4 detik tanpa jeda/flicker
+    const liveSyncInterval = setInterval(() => {
+      loadDashboardData(true);
+    }, 4000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(liveSyncInterval);
+    };
+  }, [currentTab, riwayatPeriode, searchQuery]);
 
   useEffect(() => {
     if (currentTab === 'keluar') {
@@ -448,7 +471,7 @@ export const SecurityPortalView: React.FC = () => {
     } else if (currentTab === 'memo') {
       loadMemoList(searchQuery);
     } else if (currentTab === 'booking' || currentTab === 'onprogress') {
-      loadDashboardData();
+      loadDashboardData(true);
     }
   }, [currentTab, riwayatPeriode]);
 
@@ -572,15 +595,13 @@ export const SecurityPortalView: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={loadDashboardData}
-            disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/25 transition-all shadow-2xs cursor-pointer"
-          >
-            <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Segarkan Data</span>
-          </button>
+          <div className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/15 text-emerald-300 border border-emerald-400/30 shadow-2xs backdrop-blur-xs select-none">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+            <span className="text-white text-xs font-medium tracking-wide">Live Real-time (SSE)</span>
+          </div>
           <button
             type="button"
             onClick={() => setActiveTab('security-checkin')}
