@@ -848,9 +848,11 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             <div className="text-xs text-ink-muted">
                               Foreman: {spk.nama_foreman || 'Foreman Bengkel KIM 3'} | Hasil Uji: <span className="font-semibold text-status-green">QC PASSED</span>
                             </div>
-                            <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
-                              {spk.catatan_foreman || 'Inspeksi kualitas pengerjaan, uji fungsi komponen, dan uji jalan (road test) telah disetujui. Seluruh pengerjaan memenuhi standar operasional bengkel.'}
-                            </div>
+                            {spk.catatan_foreman && (
+                              <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
+                                {spk.catatan_foreman}
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -866,7 +868,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               SA: {spk.nama_sa || 'Fajar Rivaldi'} | Dokumen: Faktur Servis
                             </div>
                             <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
-                              {spk.catatan_sa || 'Pemeriksaan akhir (Final Inspection Report) dinyatakan lolos oleh Service Advisor.'} Seluruh rincian pekerjaan serta pemakaian part telah diverifikasi dan invoice/faktur servis diterbitkan.
+                              {spk.catatan_sa ? `${spk.catatan_sa}. ` : ''}Pemeriksaan akhir (Final Inspection Report) disetujui Service Advisor dan faktur servis diterbitkan.
                             </div>
                           </div>
                         )}
@@ -1017,7 +1019,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           Catatan Service Advisor (SA):
                         </div>
                         <div className="text-ink-muted text-xs">
-                          {spk.catatan_sa || spk.catatan_kondisi_awal || 'Belum ada catatan dari Service Advisor.'}
+                          {spk.catatan_sa || spk.catatan_kondisi_awal || '-'}
                         </div>
                         {spk.odometer_km ? (
                           <div className="text-xs text-ink-muted pt-1.5 border-t border-border">
@@ -1032,7 +1034,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           Catatan & Temuan Teknisi / Foreman:
                         </div>
                         <div className="text-ink-muted text-xs">
-                          {spk.catatan_foreman || 'Belum ada catatan temuan teknisi untuk unit ini.'}
+                          {spk.catatan_foreman || '-'}
                         </div>
                       </div>
                     </div>
