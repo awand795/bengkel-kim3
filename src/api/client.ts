@@ -764,20 +764,70 @@ export const api = {
   // -------------------------------------------------------------
 
   getSecurityDashboardStats: async (): Promise<SecurityDashboardStats> => {
-    const res = await apiClient.get('/kim3/security/dashboard');
-    const data = Array.isArray(res.data) ? res.data[0] : res.data;
+    let statData: any = {};
+    try {
+      const res = await apiClient.get('/kim3/security/dashboard');
+      statData = Array.isArray(res.data) ? res.data[0] : res.data;
+    } catch (err) {
+      console.warn('getSecurityDashboardStats API error:', err);
+    }
+    let totalBookingHariIni = Number(statData?.total_booking_hari_ini || 0);
+    if (totalBookingHariIni === 0) {
+      try {
+        const all = await api.getBooking();
+        const today = new Date().toISOString().split('T')[0];
+        totalBookingHariIni = all.filter((b) => b.tanggal_booking === today && b.status !== 'Dibatalkan' && b.status !== 'Booking Canceled' && !b.is_canceled).length;
+      } catch {}
+    }
     return {
-      total_masuk_hari_ini: Number(data?.total_masuk_hari_ini || 0),
-      total_di_dalam: Number(data?.total_di_dalam || 0),
-      total_siap_keluar: Number(data?.total_siap_keluar || 0),
-      total_booking_hari_ini: Number(data?.total_booking_hari_ini || 0),
-      total_keluar_hari_ini: Number(data?.total_keluar_hari_ini || 0),
+      total_masuk_hari_ini: Number(statData?.total_masuk_hari_ini || 0),
+      total_di_dalam: Number(statData?.total_di_dalam || 0),
+      total_siap_keluar: Number(statData?.total_siap_keluar || 0),
+      total_booking_hari_ini: totalBookingHariIni,
+      total_keluar_hari_ini: Number(statData?.total_keluar_hari_ini || 0),
     };
   },
 
   getSecurityBookingList: async (params?: { tanggal?: string; search?: string }): Promise<SecurityBookingItem[]> => {
-    const res = await apiClient.get('/kim3/security/booking-list', { params });
-    return Array.isArray(res.data) ? res.data : [];
+    try {
+      const res = await apiClient.get('/kim3/security/booking-list', { params });
+      const list = Array.isArray(res.data) ? res.data : [];
+      if (list.length > 0) return list;
+    } catch (err) {
+      console.warn('API /kim3/security/booking-list failed, falling back to /kim3/booking:', err);
+    }
+    try {
+      const allBookings = await api.getBooking();
+      return allBookings
+        .filter((b) => {
+          if (b.status === 'Dibatalkan' || b.status === 'Booking Canceled' || b.is_canceled) return false;
+          if (params?.tanggal && b.tanggal_booking !== params.tanggal) return false;
+          if (params?.search) {
+            const q = params.search.toLowerCase();
+            const match = (b.no_polisi || '').toLowerCase().includes(q) || (b.no_booking || '').toLowerCase().includes(q) || (b.nama_customer || b.nama_perusahaan || '').toLowerCase().includes(q);
+            if (!match) return false;
+          }
+          return true;
+        })
+        .map((b) => ({
+          booking_id: b.id,
+          no_booking: b.no_booking,
+          no_polisi: b.no_polisi,
+          jenis_layanan: b.jenis_layanan || 'Service Berkala',
+          tanggal_booking: b.tanggal_booking,
+          jam_booking: b.jam_booking,
+          keluhan: b.keluhan || b.catatan || '',
+          catatan: b.catatan || b.keterangan || '',
+          status: b.status || 'Booked',
+          nama_pelanggan: b.nama_perusahaan || b.nama_customer || 'Customer Fleet',
+          nama_pic: b.pic_driver || b.nama_customer || '',
+          no_telepon: b.no_telepon || '',
+          tipe_kendaraan: b.jenis_armada || 'Truk',
+          sudah_checkin: b.status === 'Check In',
+        }));
+    } catch {
+      return [];
+    }
   },
 
   getSecurityKunjungan: async (params?: { status_gerbang?: string; tipe_kunjungan?: string; search?: string }): Promise<KunjunganGerbang[]> => {
