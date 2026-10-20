@@ -171,7 +171,6 @@ export const SecurityPortalView: React.FC = () => {
           nama_pengemudi: prev.nama_pengemudi || found.nama_pic || found.nama_pengguna_fleet || '',
           nama_perusahaan: prev.nama_perusahaan || found.nama_perusahaan || found.nama_pengguna_fleet || '',
           no_telepon_pengemudi: prev.no_telepon_pengemudi || found.no_telepon || '',
-          foto_kendaraan_masuk: prev.foto_kendaraan_masuk || found.foto_kendaraan || '',
         }));
       } else {
         setMatchedKendaraan(null);
@@ -202,7 +201,7 @@ export const SecurityPortalView: React.FC = () => {
       tujuan_kunjungan: keperluanStr,
       bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
       catatan_masuk: booking.catatan || '',
-      foto_kendaraan_masuk: booking.foto_kendaraan || '',
+      foto_kendaraan_masuk: '',
     });
 
     if (booking.no_polisi) {
