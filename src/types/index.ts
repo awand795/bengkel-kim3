@@ -184,7 +184,7 @@ export interface BookingService {
   keluhan?: string;
   catatan?: string;
   keterangan?: string;
-  status: 'Booked' | 'Check In' | 'Dibatalkan' | 'Booking Canceled';
+  status: 'Booked' | 'Check In' | 'Checked-In' | 'Dibatalkan' | 'Booking Canceled';
   is_canceled?: boolean;
   cancelat?: string;
   cancelby?: string;

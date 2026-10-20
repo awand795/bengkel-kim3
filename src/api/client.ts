@@ -772,7 +772,8 @@ export const api = {
     let statData: any = {};
     try {
       const res = await apiClient.get('/kim3/security/dashboard');
-      statData = Array.isArray(res.data) ? res.data[0] : res.data;
+      const raw = res.data?.data ?? res.data;
+      statData = Array.isArray(raw) ? raw[0] : raw;
     } catch (err) {
       console.warn('getSecurityDashboardStats API error:', err);
     }
@@ -794,10 +795,26 @@ export const api = {
   },
 
   getSecurityBookingList: async (params?: { tanggal?: string; search?: string }): Promise<SecurityBookingItem[]> => {
+    const isCheckedInStatus = (st?: string | null): boolean => {
+      if (!st) return false;
+      const s = st.toLowerCase().replace(/[\s\-_]+/g, '');
+      return s === 'checkin' || s === 'checkedin' || s === 'sudahmasuk' || s === 'selesaicheckin';
+    };
+
     try {
       const res = await apiClient.get('/kim3/security/booking-list', { params });
-      const list = Array.isArray(res.data) ? res.data : [];
-      if (list.length > 0) return list;
+      const raw = res.data?.data ?? res.data;
+      const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? [raw] : []);
+      if (list.length > 0) {
+        return list.map((b: any) => {
+          const checkedIn = Boolean(b.sudah_checkin) || isCheckedInStatus(b.status);
+          return {
+            ...b,
+            sudah_checkin: checkedIn,
+            status: checkedIn ? 'Check In' : (b.status || 'Booked'),
+          };
+        });
+      }
     } catch (err) {
       console.warn('API /kim3/security/booking-list failed, falling back to /kim3/booking:', err);
     }
@@ -806,7 +823,8 @@ export const api = {
       return allBookings
         .filter((b) => {
           if (b.status === 'Dibatalkan' || b.status === 'Booking Canceled' || b.is_canceled) return false;
-          if (b.tanggal_booking && b.status !== 'Check In') {
+          const checkedIn = isCheckedInStatus(b.status);
+          if (b.tanggal_booking && !checkedIn) {
             const parts = (b.jam_booking || '23:59').split(':');
             const h = String(Number(parts[0]) || 0).padStart(2, '0');
             const m = String(Number(parts[1]) || 0).padStart(2, '0');
@@ -821,22 +839,25 @@ export const api = {
           }
           return true;
         })
-        .map((b) => ({
-          booking_id: b.id,
-          no_booking: b.no_booking,
-          no_polisi: b.no_polisi,
-          jenis_layanan: b.jenis_layanan || 'Service Berkala',
-          tanggal_booking: b.tanggal_booking,
-          jam_booking: b.jam_booking,
-          keluhan: b.keluhan || b.catatan || '',
-          catatan: b.catatan || b.keterangan || '',
-          status: b.status || 'Booked',
-          nama_pelanggan: b.nama_perusahaan || b.nama_customer || 'Customer Fleet',
-          nama_pic: b.pic_driver || b.nama_customer || '',
-          no_telepon: b.no_telepon || '',
-          tipe_kendaraan: b.jenis_armada || 'Truk',
-          sudah_checkin: b.status === 'Check In',
-        }));
+        .map((b) => {
+          const checkedIn = isCheckedInStatus(b.status);
+          return {
+            booking_id: b.id,
+            no_booking: b.no_booking,
+            no_polisi: b.no_polisi,
+            jenis_layanan: b.jenis_layanan || 'Service Berkala',
+            tanggal_booking: b.tanggal_booking,
+            jam_booking: b.jam_booking,
+            keluhan: b.keluhan || b.catatan || '',
+            catatan: b.catatan || b.keterangan || '',
+            status: checkedIn ? 'Check In' : (b.status || 'Booked'),
+            nama_pelanggan: b.nama_perusahaan || b.nama_customer || 'Customer Fleet',
+            nama_pic: b.pic_driver || b.nama_customer || '',
+            no_telepon: b.no_telepon || '',
+            tipe_kendaraan: b.jenis_armada || 'Truk',
+            sudah_checkin: checkedIn,
+          };
+        });
     } catch {
       return [];
     }
@@ -844,7 +865,10 @@ export const api = {
 
   getSecurityKunjungan: async (params?: { status_gerbang?: string; tipe_kunjungan?: string; search?: string }): Promise<KunjunganGerbang[]> => {
     const res = await apiClient.get('/kim3/security/kunjungan', { params });
-    return Array.isArray(res.data) ? res.data : [];
+    const raw = res.data?.data ?? res.data;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') return [raw];
+    return [];
   },
 
   securityCheckIn: async (payload: CheckInPayload): Promise<any> => {
@@ -853,8 +877,34 @@ export const api = {
   },
 
   getSecurityOnProgress: async (): Promise<SecurityOnProgressItem[]> => {
-    const res = await apiClient.get('/kim3/security/on-progress');
-    return Array.isArray(res.data) ? res.data : [];
+    try {
+      const res = await apiClient.get('/kim3/security/on-progress');
+      const raw = res.data?.data ?? res.data;
+      const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? [raw] : []);
+      if (list.length > 0) return list;
+    } catch (e) {
+      console.warn('API /kim3/security/on-progress failed:', e);
+    }
+    // Fallback otomatis: sinkronkan dari data kunjungan_gerbang aktif dengan status 'DI_DALAM'
+    try {
+      const kunjungan = await api.getSecurityKunjungan({ status_gerbang: 'DI_DALAM' });
+      return kunjungan.map((k) => ({
+        kunjungan_id: k.id,
+        nomor_tiket: k.nomor_tiket,
+        no_polisi: k.no_polisi,
+        tipe_kunjungan: k.tipe_kunjungan,
+        nama_pengemudi: k.nama_pengemudi,
+        nama_perusahaan: k.nama_perusahaan || '',
+        waktu_masuk: k.waktu_masuk ? k.waktu_masuk.slice(0, 16) : '-',
+        durasi_jam: 0,
+        status_progress: 'Dalam Pemeriksaan SA',
+        no_spk: '-',
+        foreman: '-',
+        mekanik: '-',
+      }));
+    } catch {
+      return [];
+    }
   },
 
   securityCheckOut: async (payload: CheckOutPayload): Promise<any> => {
@@ -864,17 +914,24 @@ export const api = {
 
   getSecurityMemoKeluar: async (search?: string): Promise<MemoKeluarItem[]> => {
     const res = await apiClient.get('/kim3/security/memo-keluar', { params: { search } });
-    return Array.isArray(res.data) ? res.data : [];
+    const raw = res.data?.data ?? res.data;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') return [raw];
+    return [];
   },
 
   getSecurityMemoDetail: async (params: { id?: number | string; nomor_memo?: string }): Promise<MemoKeluarItem | null> => {
     const res = await apiClient.get('/kim3/security/memo-keluar-detail', { params });
-    const list = Array.isArray(res.data) ? res.data : [];
+    const raw = res.data?.data ?? res.data;
+    const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? [raw] : []);
     return list.length > 0 ? list[0] : null;
   },
 
   getSecurityRiwayatKeluar: async (periode?: 'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA'): Promise<SecurityRiwayatKeluarItem[]> => {
     const res = await apiClient.get('/kim3/security/riwayat-keluar', { params: { periode: periode || 'HARI_INI' } });
-    return Array.isArray(res.data) ? res.data : [];
+    const raw = res.data?.data ?? res.data;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') return [raw];
+    return [];
   },
 };

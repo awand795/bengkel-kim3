@@ -1921,8 +1921,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Helper: Cek apakah kendaraan dari jadwal booking ini sudah di-check in atau terbit SPK
   const isBookingCheckedIn = useCallback((b: BookingService): boolean => {
-    if (b.status === 'Check In') return true;
-    if (b.status === 'Dibatalkan' || b.status === 'Booking Canceled' || b.is_canceled) return false;
+    const rawStatus = (b.status as string) || '';
+    if (rawStatus === 'Check In' || rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN') return true;
+    if (rawStatus === 'Dibatalkan' || rawStatus === 'Booking Canceled' || b.is_canceled) return false;
 
     const bPlate = normalizePlat(b.no_polisi);
     const hasSpk = (spkList || []).some((s) => {
@@ -1954,8 +1955,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // 2. 'Check In' bila sudah di-check in gerbang atau terbit SPK
   // 3. 'Booked' bila masih aktif sebelum jadwal
   const getBookingEffectiveStatus = useCallback((b: BookingService): 'Booked' | 'Check In' | 'Booking Canceled' => {
-    if (b.status === 'Booking Canceled' || b.status === 'Dibatalkan' || b.is_canceled) return 'Booking Canceled';
-    if (b.status === 'Check In' || isBookingCheckedIn(b)) return 'Check In';
+    const rawStatus = (b.status as string) || '';
+    if (rawStatus === 'Booking Canceled' || rawStatus === 'Dibatalkan' || b.is_canceled) return 'Booking Canceled';
+    if (rawStatus === 'Check In' || rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN' || isBookingCheckedIn(b)) return 'Check In';
     // Jadwal sudah lewat dan belum dikerjakan -> Otomatis dianggap Batal
     if (isBookingPast(b)) return 'Booking Canceled';
     return 'Booked';
