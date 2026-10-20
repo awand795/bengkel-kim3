@@ -1073,7 +1073,7 @@ export const SecurityPortalView: React.FC = () => {
                         }
                       }
                     }}
-                    placeholder="Ketik plat (Contoh: BK 3747 RR atau BK 5678 CD)"
+                    placeholder="Contoh: BK 3747 RR"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-black text-sm text-slate-900 uppercase focus:outline-none focus:border-[#12388F]"
                   />
                   {isSearchingKendaraan && (
