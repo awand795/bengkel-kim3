@@ -350,6 +350,11 @@ export const SecurityPortalView: React.FC = () => {
       return;
     }
 
+    if (checkInForm.tipe_kunjungan === 'LAINNYA' && !checkInForm.tujuan_kunjungan.trim()) {
+      toast.error('Silakan ketik tujuan kedatangan untuk kategori Lainnya.');
+      return;
+    }
+
     setIsCheckInSubmitting(true);
     try {
       const res = await api.securityCheckIn({
@@ -883,7 +888,7 @@ export const SecurityPortalView: React.FC = () => {
                     { id: 'SERVICE', label: 'Service', defaultKeperluan: 'Service Berkala / Perbaikan Truk' },
                     { id: 'KUNJUNGAN', label: 'Kunjungan', defaultKeperluan: 'Kunjungan Tamu / Keperluan Kantor' },
                     { id: 'BELI_PART', label: 'Pembelian Barang', defaultKeperluan: 'Pembelian Sparepart / Barang' },
-                    { id: 'LAINNYA', label: 'Lainnya', defaultKeperluan: 'Keperluan Lainnya' },
+                    { id: 'LAINNYA', label: 'Lainnya', defaultKeperluan: '' },
                   ].map((t) => {
                     const isChecked = checkInForm.tipe_kunjungan === t.id;
                     return (
@@ -902,12 +907,19 @@ export const SecurityPortalView: React.FC = () => {
                             } else if (t.id === 'KUNJUNGAN') {
                               const emp = employeeList.find((e) => (e.department || '').toLowerCase().includes('management') || (e.jobposition || '').toLowerCase().includes('admin'));
                               if (emp) autoPic = emp.display_label || emp.employeename;
+                            } else if (t.id === 'LAINNYA') {
+                              // Reset PIC jika opsi Lainnya
+                              autoPic = '';
                             }
                           }
                           setCheckInForm((prev) => ({
                             ...prev,
                             tipe_kunjungan: t.id as TipeKunjunganGerbang,
-                            tujuan_kunjungan: prev.booking_id ? prev.tujuan_kunjungan : t.defaultKeperluan,
+                            tujuan_kunjungan: prev.booking_id 
+                              ? prev.tujuan_kunjungan 
+                              : (t.id === 'LAINNYA' 
+                                  ? (prev.tipe_kunjungan === 'LAINNYA' ? prev.tujuan_kunjungan : '') 
+                                  : t.defaultKeperluan),
                             bertemu_dengan: autoPic,
                           }));
                         }}
@@ -930,6 +942,28 @@ export const SecurityPortalView: React.FC = () => {
                     );
                   })}
                 </div>
+
+                {/* Input Manual Tujuan Kedatangan jika Memilih LAINNYA */}
+                {checkInForm.tipe_kunjungan === 'LAINNYA' && (
+                  <div className="mt-3 pt-3 border-t border-slate-200/80 animate-in fade-in duration-200">
+                    <label className="block font-semibold text-slate-800 text-xs mb-1.5 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <span>Tuliskan Tujuan Kedatangan</span>
+                        <span className="text-red-500">*</span>
+                      </span>
+                      <span className="text-[11px] font-normal text-slate-500">Ketik bebas tujuan / keperluan kunjungan armada</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={checkInForm.tujuan_kunjungan}
+                      onChange={(e) => setCheckInForm((prev) => ({ ...prev, tujuan_kunjungan: e.target.value }))}
+                      placeholder="Contoh: Pengantaran material, survei fasilitas, audit eksternal, dropping oli, dll."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-blue-400 bg-white font-medium text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#12388F]/20 focus:border-[#12388F]"
+                      autoFocus
+                    />
+                  </div>
+                )}
               </div>
 
               {/* 3. NAMA CUSTOMER & NO HP */}
@@ -1013,20 +1047,22 @@ export const SecurityPortalView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Keperluan Kunjungan / Keluhan Service */}
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">
-                  Keperluan / Rincian Kunjungan *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={checkInForm.tujuan_kunjungan}
-                  onChange={(e) => setCheckInForm({ ...checkInForm, tujuan_kunjungan: e.target.value })}
-                  placeholder="Contoh: Pembelian sparepart, service berkala, pengambilan dokumen stok opname..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
-                />
-              </div>
+              {/* Keperluan Kunjungan / Keluhan Service (hanya tampil jika bukan LAINNYA karena LAINNYA sudah diketik langsung di atas) */}
+              {checkInForm.tipe_kunjungan !== 'LAINNYA' && (
+                <div>
+                  <label className="block font-semibold text-slate-800 mb-1">
+                    Keperluan / Rincian Kunjungan *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={checkInForm.tujuan_kunjungan}
+                    onChange={(e) => setCheckInForm({ ...checkInForm, tujuan_kunjungan: e.target.value })}
+                    placeholder="Contoh: Pembelian sparepart, service berkala, pengambilan dokumen stok opname..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
+                  />
+                </div>
+              )}
 
               {/* Catatan Masuk Gerbang */}
               <div>
