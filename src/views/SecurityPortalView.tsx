@@ -132,9 +132,6 @@ export const SecurityPortalView: React.FC = () => {
   const [digitalMemoModalOpen, setDigitalMemoModalOpen] = useState(false);
   const [selectedMemoDetail, setSelectedMemoDetail] = useState<MemoKeluarItem | null>(null);
 
-  // Preview Memo on Right Column of Screen 4
-  const [selectedMemoPreview, setSelectedMemoPreview] = useState<MemoKeluarItem | null>(null);
-
   // Master Employee PIC dari API (sch_pos.tbl_employee via sch_fleet.v_pos_employee)
   const [employeeList, setEmployeeList] = useState<MasterEmployee[]>([]);
   const [isEmployeeLoading, setIsEmployeeLoading] = useState(false);
@@ -246,9 +243,6 @@ export const SecurityPortalView: React.FC = () => {
     try {
       const list = await api.getSecurityMemoKeluar(search);
       setMemoList(list);
-      if (list.length > 0 && !selectedMemoPreview) {
-        setSelectedMemoPreview(list[0]);
-      }
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -360,8 +354,14 @@ export const SecurityPortalView: React.FC = () => {
     }
   };
 
-  // Buka detail memo
+  // Buka detail memo dalam bentuk modal preview siap cetak
   const handleViewMemo = async (memoId: number, memoNo?: string) => {
+    // Cari data langsung dari memoList jika sudah ada agar instan
+    const localMemo = memoList.find((m) => m.id === memoId || (memoNo && m.nomor_memo === memoNo));
+    if (localMemo) {
+      setSelectedMemoDetail(localMemo);
+      setDigitalMemoModalOpen(true);
+    }
     try {
       const detail = await api.getSecurityMemoDetail({ id: memoId, nomor_memo: memoNo });
       if (detail) {
@@ -369,7 +369,9 @@ export const SecurityPortalView: React.FC = () => {
         setDigitalMemoModalOpen(true);
       }
     } catch (err: any) {
-      toast.error('Gagal memuat detail memo keluar.');
+      if (!localMemo) {
+        toast.error('Gagal memuat detail memo keluar.');
+      }
     }
   };
 
@@ -1431,270 +1433,129 @@ export const SecurityPortalView: React.FC = () => {
             </h2>
           </div>
 
-          {/* Split Layout 2 Kolom Persis Excel */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Kolom Kiri: LIST MEMO KELUAR */}
-            <div className="lg:col-span-7 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <h3 className="font-bold text-xs uppercase text-slate-800 tracking-wide">
-                  LIST MEMO KELUAR
-                </h3>
-
-                <div className="flex items-center gap-2">
-                  <div className="relative min-w-[170px]">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        loadMemoList(e.target.value);
-                      }}
-                      placeholder="Cari No. Polisi..."
-                      className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#12388F]"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1 text-xs text-slate-600 bg-white border border-slate-300 rounded-lg px-2 py-1">
-                    <span className="text-slate-400 text-[10px]">Tanggal</span>
-                    <input
-                      type="date"
-                      className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer text-xs"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    className="p-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer"
-                  >
-                    <Filter className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+          {/* Filter & Search Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-slate-500">Daftar memo keluar & preview gate pass siap cetak</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-[200px]">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    loadMemoList(e.target.value);
+                  }}
+                  placeholder="Cari No. Polisi / No. Memo..."
+                  className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#12388F]"
+                />
               </div>
 
-              {/* Tabel List Memo Keluar */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
-                      <tr>
-                        <th className="py-2.5 px-3">No.</th>
-                        <th className="py-2.5 px-3">No. Memo</th>
-                        <th className="py-2.5 px-3">No. Polisi</th>
-                        <th className="py-2.5 px-3">Nama Customer</th>
-                        <th className="py-2.5 px-3">Keluar</th>
-                        <th className="py-2.5 px-3 text-center">Aksi</th>
+              <div className="flex items-center gap-1 text-xs text-slate-600 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5">
+                <span className="text-slate-400 text-[10px]">Tanggal</span>
+                <input
+                  type="date"
+                  className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer text-xs"
+                />
+              </div>
+
+              <button
+                type="button"
+                className="p-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                <Filter className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Tabel List Memo Keluar Full Width */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="py-2.5 px-3.5">No.</th>
+                    <th className="py-2.5 px-3.5">No. Memo</th>
+                    <th className="py-2.5 px-3.5">No. Polisi</th>
+                    <th className="py-2.5 px-3.5">Nama Customer / Pengemudi</th>
+                    <th className="py-2.5 px-3.5">Tujuan</th>
+                    <th className="py-2.5 px-3.5">Keluar</th>
+                    <th className="py-2.5 px-3.5">Security</th>
+                    <th className="py-2.5 px-3.5">Status</th>
+                    <th className="py-2.5 px-3.5 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {memoList.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-10 text-center text-slate-400">
+                        Belum ada dokumen memo keluar.
+                      </td>
+                    </tr>
+                  ) : (
+                    memoList.map((memo, idx) => (
+                      <tr
+                        key={memo.id}
+                        onClick={() => handleViewMemo(memo.id, memo.nomor_memo)}
+                        className="hover:bg-blue-50/50 cursor-pointer transition-colors"
+                      >
+                        <td className="py-2.5 px-3.5 text-slate-500 font-semibold">{idx + 1}</td>
+                        <td className="py-2.5 px-3.5 font-mono font-bold text-[#12388F]">
+                          {memo.nomor_memo}
+                        </td>
+                        <td className="py-2.5 px-3.5 font-mono font-black text-slate-900">
+                          {memo.no_polisi}
+                        </td>
+                        <td className="py-2.5 px-3.5 font-bold text-slate-900">
+                          {memo.nama_perusahaan || memo.nama_pengemudi}
+                        </td>
+                        <td className="py-2.5 px-3.5">
+                          {renderTipeKunjunganBadge(memo.tipe_kunjungan)}
+                        </td>
+                        <td className="py-2.5 px-3.5 font-mono text-slate-600 text-[11px]">
+                          {memo.tanggal_terbit?.split(' ')[1]?.substring(0, 5) || memo.tanggal_terbit || '-'}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-slate-700 font-medium">
+                          {memo.nama_security || 'Security Gerbang'}
+                        </td>
+                        <td className="py-2.5 px-3.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Verified Out
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3.5 text-center">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewMemo(memo.id, memo.nomor_memo);
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg border border-[#12388F] text-[#12388F] hover:bg-[#12388F] hover:text-white transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Detail</span>
+                          </button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {memoList.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="py-8 text-center text-slate-400">
-                            Belum ada dokumen memo keluar.
-                          </td>
-                        </tr>
-                      ) : (
-                        memoList.map((memo, idx) => {
-                          const isSelected = selectedMemoPreview?.id === memo.id;
-                          return (
-                            <tr
-                              key={memo.id}
-                              onClick={() => setSelectedMemoPreview(memo)}
-                              className={`cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-[#EFF6FF] border-l-4 border-l-[#12388F]'
-                                  : 'hover:bg-slate-50'
-                              }`}
-                            >
-                              <td className="py-2.5 px-3 text-slate-500 font-semibold">{idx + 1}</td>
-                              <td className="py-2.5 px-3 font-mono font-bold text-[#12388F]">
-                                {memo.nomor_memo}
-                              </td>
-                              <td className="py-2.5 px-3 font-mono font-black text-slate-900">
-                                {memo.no_polisi}
-                              </td>
-                              <td className="py-2.5 px-3 font-bold text-slate-900">
-                                {memo.nama_perusahaan || memo.nama_pengemudi}
-                              </td>
-                              <td className="py-2.5 px-3 font-mono text-slate-600 text-[11px]">
-                                {memo.tanggal_terbit?.split(' ')[1]?.substring(0, 5) || '12:45'}
-                              </td>
-                              <td className="py-2.5 px-3 text-center">
-                                <div className="inline-flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    title="Lihat Dokumen"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedMemoPreview(memo);
-                                    }}
-                                    className="p-1 rounded text-slate-500 hover:text-[#12388F] hover:bg-blue-50 cursor-pointer"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    title="Cetak Memo Keluar"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedMemoDetail(memo);
-                                      setDigitalMemoModalOpen(true);
-                                    }}
-                                    className="p-1 rounded text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer"
-                                  >
-                                    <Printer className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination Footer */}
-                <div className="px-3.5 py-2 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-                  <div>Menampilkan 1 - {Math.min(5, memoList.length)} dari {memoList.length} data</div>
-                  <div className="flex items-center gap-1">
-                    <button type="button" className="px-2 py-0.5 rounded border border-slate-300 bg-white text-slate-600 text-xs">&lt;</button>
-                    <button type="button" className="px-2.5 py-1 rounded bg-[#12388F] text-white font-bold text-xs">1</button>
-                    <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">2</button>
-                    <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">3</button>
-                    <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">4</button>
-                    <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">&gt;</button>
-                  </div>
-                </div>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            {/* Kolom Kanan: PREVIEW MEMO KELUAR */}
-            <div className="lg:col-span-5 space-y-3">
-              <h3 className="font-bold text-xs uppercase text-slate-800 tracking-wide">
-                PREVIEW MEMO KELUAR
-              </h3>
-
-              {selectedMemoPreview ? (
-                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4 text-xs">
-                  {/* Top: MEMO KELUAR & No Memo */}
-                  <div className="flex items-start justify-between pb-3 border-b border-slate-200">
-                    <div>
-                      <h4 className="text-base font-black text-slate-900 tracking-tight">
-                        MEMO KELUAR
-                      </h4>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-slate-400 font-semibold uppercase">No. Memo</div>
-                      <div className="font-mono font-black text-xs text-slate-900">
-                        {selectedMemoPreview.nomor_memo}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tanggal & Jam Keluar */}
-                  <div className="grid grid-cols-2 gap-4 pb-3 border-b border-slate-100 text-[11px]">
-                    <div>
-                      <span className="text-slate-400">Tanggal Keluar:</span>{' '}
-                      <strong className="text-slate-800">{selectedMemoPreview.tanggal_terbit?.split(' ')[0] || '03 Mei 2025'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-400">Jam Keluar:</span>{' '}
-                      <strong className="text-slate-800 font-mono">{selectedMemoPreview.tanggal_terbit?.split(' ')[1] || '12:45'}</strong>
-                    </div>
-                  </div>
-
-                  {/* DATA KENDARAAN */}
-                  <div className="space-y-2 pb-3 border-b border-slate-100">
-                    <div className="font-bold text-[11px] uppercase tracking-wider text-slate-500">
-                      DATA KENDARAAN
-                    </div>
-                    <div className="grid grid-cols-2 gap-y-2 text-xs">
-                      <div>
-                        <div className="text-[10px] text-slate-400">No. Polisi</div>
-                        <div className="font-mono font-black text-slate-900">{selectedMemoPreview.no_polisi}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400">Jenis Armada</div>
-                        <div className="font-bold text-slate-900">Truk</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400">Nama Customer</div>
-                        <div className="font-bold text-slate-900">{selectedMemoPreview.nama_perusahaan || selectedMemoPreview.nama_pengemudi}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400">Tujuan Kunjungan</div>
-                        <div className="font-bold text-[#12388F]">
-                          {selectedMemoPreview.tipe_kunjungan === 'SERVICE' ? 'Service' : selectedMemoPreview.tipe_kunjungan === 'BELI_PART' ? 'Beli Part' : 'Kunjungan'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* KETERANGAN */}
-                  <div className="space-y-1.5 pb-3 border-b border-slate-100">
-                    <div className="font-bold text-[11px] uppercase tracking-wider text-slate-500">
-                      KETERANGAN
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-slate-400">Status:</span>{' '}
-                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px]">
-                        Selesai
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-600">
-                      <span className="text-slate-400">Catatan:</span>{' '}
-                      {selectedMemoPreview.catatan || 'Pekerjaan telah selesai dan kendaraan dalam kondisi baik.'}
-                    </div>
-                  </div>
-
-                  {/* Tanda Tangan Security Persis Mockup */}
-                  <div className="pt-1 flex justify-end">
-                    <div className="text-center w-36">
-                      <div className="text-[10px] text-slate-400">Dibuat oleh,</div>
-                      <div className="my-1.5 flex justify-center">
-                        <div className="w-14 h-14 rounded-full border border-blue-400/40 flex items-center justify-center text-blue-600 rotate-[-12deg]">
-                          <ShieldCheck className="w-8 h-8 opacity-70" />
-                        </div>
-                      </div>
-                      <div className="font-bold text-xs text-slate-900 underline">
-                        {selectedMemoPreview.nama_security || 'Hisar'}
-                      </div>
-                      <div className="text-[10px] text-slate-500">Security</div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons: CETAK & EXPORT PDF */}
-                  <div className="pt-2 flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedMemoDetail(selectedMemoPreview);
-                        setDigitalMemoModalOpen(true);
-                      }}
-                      className="flex-1 py-2 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Printer className="w-3.5 h-3.5 text-slate-600" />
-                      <span>CETAK</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedMemoDetail(selectedMemoPreview);
-                        setDigitalMemoModalOpen(true);
-                      }}
-                      className="flex-1 py-2 px-3 rounded-lg bg-[#12388F] hover:bg-[#0D2A6B] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                    >
-                      <Download className="w-3.5 h-3.5 text-white" />
-                      <span>EXPORT PDF</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-400 text-xs">
-                  Pilih salah satu memo di daftar sebelah kiri untuk memuat preview.
-                </div>
-              )}
+            {/* Pagination Footer */}
+            <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+              <div>Menampilkan 1 - {Math.min(5, memoList.length)} dari {memoList.length} data</div>
+              <div className="flex items-center gap-1">
+                <button type="button" className="px-2 py-0.5 rounded border border-slate-300 bg-white text-slate-600 text-xs">&lt;</button>
+                <button type="button" className="px-2.5 py-1 rounded bg-[#12388F] text-white font-bold text-xs">1</button>
+                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">2</button>
+                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">3</button>
+                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">4</button>
+                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 text-xs">&gt;</button>
+              </div>
             </div>
           </div>
         </div>
