@@ -731,7 +731,29 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           </div>
                         </div>
 
-                        {/* Step 3: Pengerjaan Service Teknisi */}
+                        {/* Step 3: Pengecekan Mekanik & Penerbitan WO (SOP Langkah 4-6) */}
+                        {(spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Waiting QC' || !!spk.waktu_mulai_pekerjaan || spk.status_spk === 'Estimasi Disetujui' || spk.status_spk === 'Dalam Pengerjaan' || (spk.status_spk as string) === 'Proses Pekerjaan') && (
+                          <div className="relative space-y-1">
+                            <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white dark:ring-slate-900"></div>
+                            <div className="font-bold text-ink">Pengecekan Mekanik & Penerbitan WO</div>
+                            <div className="text-xs font-semibold text-accent">
+                              {spk.waktu_mulai_pekerjaan ? fmtWaktuFull(spk.waktu_mulai_pekerjaan) : (spk.waktu_check_in ? fmtWaktuFull(spk.waktu_check_in) : '-')}
+                            </div>
+                            <div className="text-xs text-ink-muted">
+                              Foreman & SA: {spk.nama_sa || 'Fajar Rivaldi'} | Status WO: <span className="font-semibold text-status-green">Disetujui</span>
+                            </div>
+                            <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed space-y-1">
+                              <div>
+                                Foreman mendistribusikan penanganan ke teknisi <span className="font-semibold text-ink">{spk.nama_mekanik || 'SYAHBANA'}</span> untuk inspeksi detail di stall servis.
+                              </div>
+                              <div className="text-ink-muted">
+                                Estimasi biaya dan durasi pengerjaan disetujui. Suku cadang diverifikasi siap pasang di gudang, dan Surat Perintah Kerja (WO No. <span className="font-mono font-medium text-ink">{spk.no_wo || spk.no_spk}</span>) resmi diterbitkan.
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Step 4: Pengerjaan Service Teknisi Selesai (SOP Langkah 7-10) */}
                         <div className="relative space-y-1">
                           <div className={`absolute -left-[23px] top-1 w-3 h-3 rounded-full ring-4 ring-white dark:ring-slate-900 ${spk.status_spk === 'Waiting Part' ? 'bg-status-red animate-pulse' : spk.status_spk === 'Waiting QC' ? 'bg-status-green' : (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai') ? 'bg-status-green' : 'bg-status-amber animate-pulse'}`}></div>
                           <div className="font-bold text-ink">
@@ -771,25 +793,47 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             )}
                           </div>
                           <div className="text-xs text-ink-muted">
-                            Mekanik: {spk.nama_mekanik || 'Belum Ditugaskan'} | Status SPK: <span className="font-medium text-ink">{spk.status_spk}</span>
+                            Mekanik: {spk.nama_mekanik || 'SYAHBANA'} | Status SPK: <span className="font-medium text-ink">{spk.status_spk}</span>
                           </div>
-                          <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed">
-                            {(() => {
-                              const jc = activePekerjaan.length;
-                              const pc = activeParts.length;
-                              const jText = jc > 0 ? `${jc} jasa perbaikan` : 'pekerjaan servis';
-                              const pText = pc > 0 ? `${pc} item suku cadang` : 'pemeriksaan komponen';
-                              if (spk.status_spk === 'Waiting Part') {
-                                return `Pengerjaan di stall servis ditunda sementara menunggu ketersediaan komponen/sparepart (${pc} part dibutuhkan).`;
-                              }
-                              if (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Waiting QC') {
-                                return `Teknisi telah menyelesaikan seluruh instruksi pengerjaan pada unit (${jText} dan ${pText}). Unit diserahkan untuk inspeksi pengujian mutu.`;
-                              }
-                              if (spk.waktu_mulai_pekerjaan) {
-                                return `Teknisi sedang aktif melakukan tindakan perbaikan dan perawatan unit di stall servis (${jText}, ${pText}).`;
-                              }
-                              return `Unit telah didaftarkan dan dijadwalkan untuk penanganan oleh teknisi di stall servis bengkel.`;
-                            })()}
+                          <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed space-y-2">
+                            <div>
+                              {(() => {
+                                const jc = activePekerjaan.length;
+                                const pc = activeParts.length;
+                                const jText = jc > 0 ? `${jc} jasa perbaikan` : 'pekerjaan servis';
+                                const pText = pc > 0 ? `${pc} item suku cadang` : 'pemeriksaan komponen';
+                                if (spk.status_spk === 'Waiting Part') {
+                                  return `Pengerjaan di stall servis ditunda sementara menunggu ketersediaan komponen/sparepart (${pc} part dibutuhkan).`;
+                                }
+                                if (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Waiting QC') {
+                                  return `Teknisi telah menyelesaikan seluruh instruksi pengerjaan pada unit (${jText} dan ${pText}). Unit diserahkan untuk inspeksi pengujian mutu.`;
+                                }
+                                if (spk.waktu_mulai_pekerjaan) {
+                                  return `Teknisi sedang aktif melakukan tindakan perbaikan dan perawatan unit di stall servis (${jText}, ${pText}).`;
+                                }
+                                return `Unit telah didaftarkan dan dijadwalkan untuk penanganan oleh teknisi di stall servis bengkel.`;
+                              })()}
+                            </div>
+
+                            {/* Rincian Eksplisit Jasa & Part yang diganti (Live dari sch_pos) */}
+                            {(activePekerjaan.length > 0 || activeParts.length > 0) && (
+                              <div className="pt-2 border-t border-border/60 space-y-1.5 text-[11px]">
+                                {activePekerjaan.length > 0 && (
+                                  <div className="flex items-start gap-1.5">
+                                    <span className="font-semibold text-ink shrink-0">Tindakan Jasa:</span>
+                                    <span className="text-accent font-medium">{activePekerjaan.map((p) => p.nama_pekerjaan).join(', ')}</span>
+                                  </div>
+                                )}
+                                {activeParts.length > 0 && (
+                                  <div className="flex items-start gap-1.5">
+                                    <span className="font-semibold text-ink shrink-0">Part yang Diganti:</span>
+                                    <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                                      {activeParts.map((pt) => `${pt.nama_part}${pt.jumlah ? ` (${pt.jumlah} ${pt.satuan || 'Set'})` : ''}`).join(', ')}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
 

@@ -229,6 +229,7 @@ export interface AntrianKunjungan {
 export interface SpkService {
   id: number;
   no_spk: string;
+  no_wo?: string;
   id_antrian?: number;
   id_booking?: number;
   id_pelanggan?: number | null;
