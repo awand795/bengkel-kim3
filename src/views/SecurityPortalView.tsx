@@ -142,6 +142,15 @@ export const SecurityPortalView: React.FC = () => {
   const [employeeList, setEmployeeList] = useState<MasterEmployee[]>([]);
   const [isEmployeeLoading, setIsEmployeeLoading] = useState(false);
 
+  // Helper: Format label PIC dengan jabatan/jobposition dari database
+  const getEmployeeDisplayLabel = (emp?: MasterEmployee | null) => {
+    if (!emp) return '';
+    if (emp.display_label) return emp.display_label;
+    const name = emp.employeename || emp.nama_karyawan || emp.employeeid || '';
+    const pos = emp.jobposition || emp.jabatan || emp.department || '';
+    return pos ? `${name} (${pos})` : name;
+  };
+
   // Lookup Kendaraan & Terhubung Pengguna Fleet (sch_pos.tbl_member_unit via sch_fleet.v_kendaraan_lookup)
   const [matchedKendaraan, setMatchedKendaraan] = useState<KendaraanLookup | null>(null);
   const [isSearchingKendaraan, setIsSearchingKendaraan] = useState(false);
@@ -199,7 +208,7 @@ export const SecurityPortalView: React.FC = () => {
       no_telepon_pengemudi: booking.no_telepon || '',
       nama_perusahaan: booking.nama_pelanggan || '',
       tujuan_kunjungan: keperluanStr,
-      bertemu_dengan: sa ? (sa.employeename || sa.nama_karyawan || '') : '',
+      bertemu_dengan: sa ? getEmployeeDisplayLabel(sa) : '',
       catatan_masuk: booking.catatan || '',
       foto_kendaraan_masuk: '',
     });
@@ -247,7 +256,7 @@ export const SecurityPortalView: React.FC = () => {
         if (!prev.bertemu_dengan && prev.tipe_kunjungan === 'SERVICE' && employees.length > 0) {
           const sa = employees.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
           if (sa) {
-            return { ...prev, bertemu_dengan: sa.employeename || sa.nama_karyawan || '' };
+            return { ...prev, bertemu_dengan: getEmployeeDisplayLabel(sa) };
           }
         }
         return prev;
@@ -371,7 +380,7 @@ export const SecurityPortalView: React.FC = () => {
         no_telepon_pengemudi: '',
         nama_perusahaan: '',
         tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-        bertemu_dengan: sa ? (sa.employeename || sa.nama_karyawan || '') : '',
+        bertemu_dengan: sa ? getEmployeeDisplayLabel(sa) : '',
         catatan_masuk: '',
         foto_kendaraan_masuk: '',
       });
@@ -821,7 +830,7 @@ export const SecurityPortalView: React.FC = () => {
                       no_telepon_pengemudi: '',
                       nama_perusahaan: '',
                       tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-                      bertemu_dengan: sa ? (sa.employeename || sa.nama_karyawan || '') : '',
+                      bertemu_dengan: sa ? getEmployeeDisplayLabel(sa) : '',
                       catatan_masuk: '',
                       foto_kendaraan_masuk: '',
                     });
@@ -867,7 +876,7 @@ export const SecurityPortalView: React.FC = () => {
                           no_telepon_pengemudi: '',
                           nama_perusahaan: '',
                           tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-                          bertemu_dengan: sa ? (sa.employeename || sa.nama_karyawan || '') : '',
+                          bertemu_dengan: sa ? getEmployeeDisplayLabel(sa) : '',
                           catatan_masuk: '',
                           foto_kendaraan_masuk: '',
                         });
@@ -990,20 +999,20 @@ export const SecurityPortalView: React.FC = () => {
                                 (e.jobposition || e.department || '').toLowerCase().includes('advisor') || 
                                 (e.jobposition || '').toLowerCase().includes('sa')
                               );
-                              if (emp) autoPic = emp.employeename || emp.nama_karyawan || '';
+                              if (emp) autoPic = getEmployeeDisplayLabel(emp);
                             } else if (t.id === 'BELI_PART') {
                               const emp = employeeList.find((e) => 
                                 (e.jobposition || e.department || '').toLowerCase().includes('warehouse') || 
                                 (e.jobposition || '').toLowerCase().includes('part')
                               );
-                              if (emp) autoPic = emp.employeename || emp.nama_karyawan || '';
+                              if (emp) autoPic = getEmployeeDisplayLabel(emp);
                             } else if (t.id === 'KUNJUNGAN') {
                               const emp = employeeList.find((e) => 
                                 (e.department || '').toLowerCase().includes('admin') || 
                                 (e.jobposition || '').toLowerCase().includes('admin') ||
                                 (e.department || '').toLowerCase().includes('management')
                               );
-                              if (emp) autoPic = emp.employeename || emp.nama_karyawan || '';
+                              if (emp) autoPic = getEmployeeDisplayLabel(emp);
                             }
                           }
                           setCheckInForm((prev) => ({
@@ -1107,15 +1116,15 @@ export const SecurityPortalView: React.FC = () => {
                       onChange={(e) => setCheckInForm({ ...checkInForm, bertemu_dengan: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F] bg-white cursor-pointer"
                     >
-                      <option value="">-- Pilih PIC / Petugas Bengkel --</option>
+                      <option value="">-- Pilih PIC / Petugas Bengkel (Database POS) --</option>
                       {employeeList.map((emp) => {
-                        const name = emp.employeename || emp.nama_karyawan || emp.employeeid;
+                        const label = getEmployeeDisplayLabel(emp);
                         return (
                           <option 
                             key={emp.employeeid || emp.id} 
-                            value={name}
+                            value={label}
                           >
-                            {name}
+                            {label}
                           </option>
                         );
                       })}
