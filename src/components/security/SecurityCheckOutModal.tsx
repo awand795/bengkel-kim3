@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, LogOut, PenTool, RotateCcw, ShieldCheck, CheckCircle2, Truck, AlertTriangle } from 'lucide-react';
 import { api, getApiErrorMessage } from '../../api/client';
 import { toast } from '../common/Toast';
@@ -143,9 +144,9 @@ export const SecurityCheckOutModal: React.FC<SecurityCheckOutModalProps> = ({
 
   if (!isOpen || !kunjungan) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-9999 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto animate-in fade-in zoom-in-95 duration-200">
         {/* Header Modal */}
         <div className="flex items-center justify-between px-6 py-4 bg-[#1D4ED8] text-white">
           <div className="flex items-center gap-2.5">
@@ -295,6 +296,7 @@ export const SecurityCheckOutModal: React.FC<SecurityCheckOutModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

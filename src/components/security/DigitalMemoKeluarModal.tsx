@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Printer, ShieldCheck, CheckCircle2, Clock, Calendar, Truck, User, Building2, PackageCheck } from 'lucide-react';
 import { MemoKeluarItem } from '../../types';
 
@@ -13,21 +14,32 @@ export const DigitalMemoKeluarModal: React.FC<DigitalMemoKeluarModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen || !memo) return null;
 
   const handlePrint = () => {
     window.print();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-9999 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
       {/* Container Cetak */}
       <div 
         id="printable-memo-keluar"
-        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Modal Action Bar (Hidden saat Print) */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white print:hidden">
+        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white print:hidden shrink-0">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
             <span className="font-semibold text-sm tracking-wide">Digital Gate Pass / Memo Keluar</span>
@@ -224,6 +236,7 @@ export const DigitalMemoKeluarModal: React.FC<DigitalMemoKeluarModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
