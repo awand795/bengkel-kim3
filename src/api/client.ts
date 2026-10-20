@@ -801,6 +801,13 @@ export const api = {
       return allBookings
         .filter((b) => {
           if (b.status === 'Dibatalkan' || b.status === 'Booking Canceled' || b.is_canceled) return false;
+          if (b.tanggal_booking && b.status !== 'Check In') {
+            const parts = (b.jam_booking || '23:59').split(':');
+            const h = String(Number(parts[0]) || 0).padStart(2, '0');
+            const m = String(Number(parts[1]) || 0).padStart(2, '0');
+            const sched = new Date(b.tanggal_booking.slice(0, 10) + 'T' + h + ':' + m + ':00');
+            if (!isNaN(sched.getTime()) && Date.now() > sched.getTime()) return false;
+          }
           if (params?.tanggal && b.tanggal_booking !== params.tanggal) return false;
           if (params?.search) {
             const q = params.search.toLowerCase();

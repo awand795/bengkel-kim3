@@ -111,6 +111,8 @@ export const SecurityPortalView: React.FC = () => {
 
   // Check In form states
   const [bookingFilterTanggal, setBookingFilterTanggal] = useState<string>('');
+  const [bookingCurrentPage, setBookingCurrentPage] = useState<number>(1);
+  const BOOKING_PAGE_SIZE = 5;
   const [selectedBooking, setSelectedBooking] = useState<SecurityBookingItem | null>(null);
   const [checkInForm, setCheckInForm] = useState({
     tipe_kunjungan: 'SERVICE' as TipeKunjunganGerbang,
@@ -570,8 +572,8 @@ export const SecurityPortalView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {bookingList
-                    .filter((b) => {
+                  {(() => {
+                    const filtered = bookingList.filter((b) => {
                       const matchSearch =
                         !searchQuery ||
                         b.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -580,8 +582,23 @@ export const SecurityPortalView: React.FC = () => {
                       const matchDate =
                         !bookingFilterTanggal || b.tanggal_booking === bookingFilterTanggal;
                       return matchSearch && matchDate;
-                    })
-                    .map((b, idx) => {
+                    });
+                    const totalPages = Math.max(1, Math.ceil(filtered.length / BOOKING_PAGE_SIZE));
+                    const currentPage = Math.min(Math.max(1, bookingCurrentPage), totalPages);
+                    const startIndex = (currentPage - 1) * BOOKING_PAGE_SIZE;
+                    const pageItems = filtered.slice(startIndex, startIndex + BOOKING_PAGE_SIZE);
+
+                    if (pageItems.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={9} className="py-10 text-center text-slate-400 text-xs font-medium">
+                            Tidak ada data reservasi booking aktif yang sesuai.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return pageItems.map((b, idx) => {
                       const isSelected = selectedBooking?.booking_id === b.booking_id;
                       return (
                         <tr
@@ -634,26 +651,74 @@ export const SecurityPortalView: React.FC = () => {
                           </td>
                         </tr>
                       );
-                    })}
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination Footer */}
-            <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-              <div>
-                Menampilkan 1 - {Math.min(5, bookingList.length)} dari {bookingList.length} data
-              </div>
-              <div className="flex items-center gap-1">
-                <button type="button" className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 cursor-pointer text-xs">&lt;</button>
-                <button type="button" className="px-2.5 py-1 rounded bg-[#12388F] text-white font-bold text-xs">1</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer text-xs">2</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer text-xs">3</button>
-                <span className="px-1 text-slate-400">...</span>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer text-xs">5</button>
-                <button type="button" className="px-2.5 py-1 rounded border border-slate-300 bg-white text-slate-600 cursor-pointer text-xs">&gt;</button>
-              </div>
-            </div>
+            {/* Dynamic Pagination Footer */}
+            {(() => {
+              const filtered = bookingList.filter((b) => {
+                const matchSearch =
+                  !searchQuery ||
+                  b.no_polisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  b.nama_pelanggan.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  b.no_booking.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchDate =
+                  !bookingFilterTanggal || b.tanggal_booking === bookingFilterTanggal;
+                return matchSearch && matchDate;
+              });
+              const totalItems = filtered.length;
+              const totalPages = Math.max(1, Math.ceil(totalItems / BOOKING_PAGE_SIZE));
+              const currentPage = Math.min(Math.max(1, bookingCurrentPage), totalPages);
+              const startCount = totalItems === 0 ? 0 : (currentPage - 1) * BOOKING_PAGE_SIZE + 1;
+              const endCount = Math.min(currentPage * BOOKING_PAGE_SIZE, totalItems);
+
+              return (
+                <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+                  <div>
+                    Menampilkan {startCount} - {endCount} dari {totalItems} data
+                  </div>
+                  {totalPages > 1 ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        disabled={currentPage <= 1}
+                        onClick={() => setBookingCurrentPage((p) => Math.max(1, p - 1))}
+                        className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs"
+                      >
+                        &lt;
+                      </button>
+                      {Array.from({ length: totalPages }).map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setBookingCurrentPage(i + 1)}
+                          className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                            currentPage === i + 1
+                              ? 'bg-[#12388F] text-white'
+                              : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setBookingCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs"
+                      >
+                        &gt;
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 font-medium">Halaman 1 dari 1</span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Card DETAIL BOOKING Persis Mockup Excel */}
