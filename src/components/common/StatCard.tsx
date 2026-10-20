@@ -110,7 +110,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           onClick();
         }
       }}
-      className={`bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 sm:p-5 relative flex flex-col justify-between overflow-hidden shadow-xs transition-all duration-200 hover:-translate-y-[2px] hover:shadow-md ${
+      className={`bg-surface-raised border border-[#E2E8F0] dark:border-border rounded-xl p-4 sm:p-5 relative flex flex-col justify-between overflow-hidden shadow-xs transition-all duration-200 hover:-translate-y-[2px] hover:shadow-md h-full ${
         theme.hoverBorder
       } ${
         active
@@ -130,8 +130,8 @@ export const StatCard: React.FC<StatCardProps> = ({
       />
 
       <div>
-        {/* Top Row: Icon Container on Left, Number on Right */}
-        <div className="flex items-center justify-between gap-3">
+        {/* Top Row: Icon Container on Left, Number on Right (Tinggi 40px konsisten agar angka sejajar) */}
+        <div className="flex items-center justify-between gap-3 h-10">
           {Icon ? (
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${theme.chipBg} ${theme.textAccent} dark:bg-blue-950/50 dark:text-blue-300`}>
               <Icon className={`w-5 h-5 ${theme.textAccent} dark:text-blue-300`} />
@@ -142,27 +142,27 @@ export const StatCard: React.FC<StatCardProps> = ({
             </div>
           )}
 
-          <div className="flex flex-col items-end min-w-0 flex-1">
-            {badge && (
-              <span className="text-[11px] font-bold text-[#475569] dark:text-slate-300 uppercase px-2 py-0.5 rounded-md bg-[#F1F5F9] dark:bg-surface border border-[#E2E8F0] dark:border-border mb-1">
-                {badge}
-              </span>
-            )}
-            <div
-              className={`font-sans font-semibold tabular-nums text-right truncate max-w-full leading-tight ${theme.textAccent} dark:text-white ${
-                isLongValue ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
-              }`}
-              title={valueStr}
-            >
-              {value}
-            </div>
+          <div
+            className={`font-sans font-semibold tabular-nums text-right truncate max-w-full leading-none ${theme.textAccent} dark:text-white ${
+              isLongValue ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
+            }`}
+            title={valueStr}
+          >
+            {value}
           </div>
         </div>
 
-        {/* Title and Subtitle Below */}
+        {/* Title and Subtitle Below (Sejajar sempurna antar card) */}
         <div className="mt-3">
-          <div className="text-[13px] font-semibold text-[#0F172A] dark:text-white truncate leading-snug">
-            {title}
+          <div className="flex items-center justify-between gap-1.5 min-h-[20px]">
+            <span className="text-[13px] font-semibold text-[#0F172A] dark:text-white truncate leading-snug">
+              {title}
+            </span>
+            {badge && (
+              <span className="text-[10px] font-bold text-[#475569] dark:text-slate-300 uppercase px-1.5 py-0.5 rounded-md bg-[#F1F5F9] dark:bg-surface border border-[#E2E8F0] dark:border-border shrink-0 leading-none">
+                {badge}
+              </span>
+            )}
           </div>
           {subtitle && (
             <p className="text-xs text-[#475569] dark:text-slate-300 mt-0.5 truncate font-normal">
