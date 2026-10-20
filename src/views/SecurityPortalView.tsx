@@ -115,8 +115,8 @@ export const SecurityPortalView: React.FC = () => {
   const [bookingCurrentPage, setBookingCurrentPage] = useState<number>(1);
   const BOOKING_PAGE_SIZE = 5;
   const [selectedBooking, setSelectedBooking] = useState<SecurityBookingItem | null>(null);
+  const [viewingBookingDetail, setViewingBookingDetail] = useState<SecurityBookingItem | null>(null);
   const [bookingDetailModalOpen, setBookingDetailModalOpen] = useState<boolean>(false);
-  const [userClearedBooking, setUserClearedBooking] = useState(false);
   const [checkInForm, setCheckInForm] = useState({
     tipe_kunjungan: 'SERVICE' as TipeKunjunganGerbang,
     booking_id: null as number | null,
@@ -218,6 +218,25 @@ export const SecurityPortalView: React.FC = () => {
     }
   };
 
+  // Reset Form Check In ke kondisi awal (bersih/walk-in manual)
+  const resetCheckInForm = () => {
+    setSelectedBooking(null);
+    setMatchedKendaraan(null);
+    const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
+    setCheckInForm({
+      tipe_kunjungan: 'SERVICE',
+      booking_id: null,
+      no_polisi: '',
+      nama_pengemudi: '',
+      no_telepon_pengemudi: '',
+      nama_perusahaan: '',
+      tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
+      bertemu_dengan: sa ? getEmployeeDisplayLabel(sa) : '',
+      catatan_masuk: '',
+      foto_kendaraan_masuk: '',
+    });
+  };
+
   // Load Initial Data
   const loadDashboardData = async () => {
     setIsLoading(true);
@@ -232,12 +251,6 @@ export const SecurityPortalView: React.FC = () => {
       setKunjunganDiDalam(didalam);
       setBookingList(bookings);
       setOnProgressList(prog);
-
-      // Otomatis tautkan data booking aktif ke formulir check in jika belum di-reset manual
-      const activeBookings = bookings.filter((b) => !b.sudah_checkin);
-      if (!userClearedBooking && !selectedBooking && activeBookings.length > 0) {
-        populateCheckInFromBooking(activeBookings[0]);
-      }
     } catch (err: any) {
       console.error('Failed to load security dashboard:', err);
     } finally {
@@ -319,26 +332,11 @@ export const SecurityPortalView: React.FC = () => {
       loadMemoList(searchQuery);
     } else if (currentTab === 'booking' || currentTab === 'onprogress') {
       loadDashboardData();
-    } else if (currentTab === 'checkin') {
-      if (!userClearedBooking && !selectedBooking) {
-        const activeBookings = bookingList.filter((b) => !b.sudah_checkin);
-        if (activeBookings.length > 0) {
-          populateCheckInFromBooking(activeBookings[0]);
-        }
-      }
     }
   }, [currentTab, riwayatPeriode]);
 
-  // Pastikan form selalu sinkron jika selectedBooking aktif
-  useEffect(() => {
-    if (selectedBooking && checkInForm.booking_id !== selectedBooking.booking_id) {
-      populateCheckInFromBooking(selectedBooking);
-    }
-  }, [selectedBooking]);
-
   // Handle Pilih & Isi Otomatis dari Booking
   const handlePilihBooking = (booking: SecurityBookingItem) => {
-    setUserClearedBooking(false);
     populateCheckInFromBooking(booking);
     setActiveTab('security-checkin');
     toast.success(`Data booking nopol ${booking.no_polisi} berhasil dimuat ke formulir check-in.`);
@@ -367,23 +365,8 @@ export const SecurityPortalView: React.FC = () => {
       const tiket = res?.data?.nomor_tiket || 'TG-TERBIT';
       toast.success(`Check-In Berhasil! Tiket gerbang ${tiket} berhasil dibuat.`);
 
-      // Reset form
-      setUserClearedBooking(false);
-      setSelectedBooking(null);
-      setMatchedKendaraan(null);
-      const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
-      setCheckInForm({
-        tipe_kunjungan: 'SERVICE',
-        booking_id: null,
-        no_polisi: '',
-        nama_pengemudi: '',
-        no_telepon_pengemudi: '',
-        nama_perusahaan: '',
-        tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-        bertemu_dengan: sa ? getEmployeeDisplayLabel(sa) : '',
-        catatan_masuk: '',
-        foto_kendaraan_masuk: '',
-      });
+      // Reset form ke kondisi awal
+      resetCheckInForm();
 
       // Reload data and switch to On Progress tab
       loadDashboardData();
@@ -648,7 +631,7 @@ export const SecurityPortalView: React.FC = () => {
                         <tr
                           key={b.booking_id}
                           onClick={() => {
-                            setSelectedBooking(b);
+                            setViewingBookingDetail(b);
                             setBookingDetailModalOpen(true);
                           }}
                           className="hover:bg-blue-50/50 cursor-pointer transition-colors"
@@ -680,7 +663,7 @@ export const SecurityPortalView: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setSelectedBooking(b);
+                                  setViewingBookingDetail(b);
                                   setBookingDetailModalOpen(true);
                                 }}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-[#12388F] text-[#12388F] hover:bg-[#12388F] hover:text-white transition-colors cursor-pointer shadow-2xs"
@@ -817,24 +800,7 @@ export const SecurityPortalView: React.FC = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setUserClearedBooking(true);
-                    setSelectedBooking(null);
-                    setMatchedKendaraan(null);
-                    const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
-                    setCheckInForm({
-                      tipe_kunjungan: 'SERVICE',
-                      booking_id: null,
-                      no_polisi: '',
-                      nama_pengemudi: '',
-                      no_telepon_pengemudi: '',
-                      nama_perusahaan: '',
-                      tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-                      bertemu_dengan: sa ? getEmployeeDisplayLabel(sa) : '',
-                      catatan_masuk: '',
-                      foto_kendaraan_masuk: '',
-                    });
-                  }}
+                  onClick={resetCheckInForm}
                   className="text-xs text-red-600 hover:text-red-700 font-semibold underline shrink-0 cursor-pointer"
                 >
                   Reset Form Manual
@@ -864,26 +830,10 @@ export const SecurityPortalView: React.FC = () => {
                     onChange={(e) => {
                       const val = e.target.value;
                       if (!val) {
-                        setUserClearedBooking(true);
-                        setSelectedBooking(null);
-                        setMatchedKendaraan(null);
-                        const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
-                        setCheckInForm({
-                          tipe_kunjungan: 'SERVICE',
-                          booking_id: null,
-                          no_polisi: '',
-                          nama_pengemudi: '',
-                          no_telepon_pengemudi: '',
-                          nama_perusahaan: '',
-                          tujuan_kunjungan: 'Service Berkala / Perbaikan Truk',
-                          bertemu_dengan: sa ? getEmployeeDisplayLabel(sa) : '',
-                          catatan_masuk: '',
-                          foto_kendaraan_masuk: '',
-                        });
+                        resetCheckInForm();
                       } else {
                         const found = bookingList.find((b) => b.booking_id === Number(val));
                         if (found) {
-                          setUserClearedBooking(false);
                           populateCheckInFromBooking(found);
                         }
                       }
@@ -916,16 +866,26 @@ export const SecurityPortalView: React.FC = () => {
                     value={checkInForm.no_polisi}
                     onChange={(e) => {
                       const val = e.target.value.toUpperCase();
-                      setCheckInForm({ ...checkInForm, no_polisi: val });
-                      handlePlateSearch(val);
-                      // Otomatis tautkan jika nopol cocok dengan data booking aktif
                       const clean = val.replace(/\s+/g, '');
+                      let currentBookingId = checkInForm.booking_id;
+                      if (selectedBooking && selectedBooking.no_polisi.replace(/\s+/g, '').toUpperCase() !== clean) {
+                        setSelectedBooking(null);
+                        currentBookingId = null;
+                      }
+
+                      setCheckInForm((prev) => ({
+                        ...prev,
+                        no_polisi: val,
+                        booking_id: currentBookingId,
+                      }));
+                      handlePlateSearch(val);
+
+                      // Otomatis tautkan jika nopol cocok dengan data booking aktif
                       if (clean.length >= 4) {
                         const matchedB = bookingList.find(
                           (b) => !b.sudah_checkin && b.no_polisi.replace(/\s+/g, '').toUpperCase() === clean
                         );
                         if (matchedB && (!selectedBooking || selectedBooking.booking_id !== matchedB.booking_id)) {
-                          setUserClearedBooking(false);
                           populateCheckInFromBooking(matchedB);
                         }
                       }
@@ -1708,7 +1668,7 @@ export const SecurityPortalView: React.FC = () => {
       )}
 
       {/* Modal Detail Booking Reservasi */}
-      {bookingDetailModalOpen && selectedBooking && createPortal(
+      {bookingDetailModalOpen && viewingBookingDetail && createPortal(
         <div className="fixed inset-0 z-9999 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
           <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto animate-in fade-in zoom-in-95 duration-200">
             {/* Header Modal - Konsisten dengan tema Pos Gerbang (#1D4ED8) */}
@@ -1719,12 +1679,15 @@ export const SecurityPortalView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base tracking-wide leading-tight">Detail Reservasi Booking</h3>
-                  <p className="text-[11px] text-blue-100 font-mono mt-0.5">ID: {selectedBooking.no_booking}</p>
+                  <p className="text-[11px] text-blue-100 font-mono mt-0.5">ID: {viewingBookingDetail.no_booking}</p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setBookingDetailModalOpen(false)}
+                onClick={() => {
+                  setBookingDetailModalOpen(false);
+                  setViewingBookingDetail(null);
+                }}
                 className="p-1.5 text-blue-100 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 aria-label="Tutup"
               >
@@ -1743,13 +1706,13 @@ export const SecurityPortalView: React.FC = () => {
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">No. Polisi Armada</span>
                     <div className="font-mono font-black text-xl sm:text-2xl text-slate-900 leading-tight">
-                      {selectedBooking.no_polisi}
+                      {viewingBookingDetail.no_polisi}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Status Reservasi</span>
-                  {selectedBooking.sudah_checkin ? (
+                  {viewingBookingDetail.sudah_checkin ? (
                     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Sudah Masuk
                     </span>
@@ -1768,7 +1731,7 @@ export const SecurityPortalView: React.FC = () => {
                     <Truck className="w-3.5 h-3.5" />
                     <span>Jenis Armada</span>
                   </div>
-                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{selectedBooking.tipe_kendaraan || 'Truk'}</p>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingBookingDetail.tipe_kendaraan || 'Truk'}</p>
                 </div>
 
                 <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
@@ -1776,7 +1739,7 @@ export const SecurityPortalView: React.FC = () => {
                     <Wrench className="w-3.5 h-3.5" />
                     <span>Tujuan Kunjungan</span>
                   </div>
-                  <p className="font-bold text-[#12388F] text-xs sm:text-sm">{selectedBooking.jenis_layanan || 'Service'}</p>
+                  <p className="font-bold text-[#12388F] text-xs sm:text-sm">{viewingBookingDetail.jenis_layanan || 'Service'}</p>
                 </div>
 
                 <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
@@ -1784,7 +1747,7 @@ export const SecurityPortalView: React.FC = () => {
                     <Building2 className="w-3.5 h-3.5" />
                     <span>Nama Customer / Perusahaan</span>
                   </div>
-                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{selectedBooking.nama_pelanggan}</p>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingBookingDetail.nama_pelanggan}</p>
                 </div>
 
                 <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
@@ -1792,7 +1755,7 @@ export const SecurityPortalView: React.FC = () => {
                     <Phone className="w-3.5 h-3.5" />
                     <span>No. Telepon / Kontak</span>
                   </div>
-                  <p className="font-mono font-bold text-slate-900 text-xs sm:text-sm">{selectedBooking.no_telepon || '-'}</p>
+                  <p className="font-mono font-bold text-slate-900 text-xs sm:text-sm">{viewingBookingDetail.no_telepon || '-'}</p>
                 </div>
 
                 <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
@@ -1800,7 +1763,7 @@ export const SecurityPortalView: React.FC = () => {
                     <User className="w-3.5 h-3.5" />
                     <span>PIC / Driver Pengemudi</span>
                   </div>
-                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{selectedBooking.nama_pic || selectedBooking.nama_pelanggan || '-'}</p>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingBookingDetail.nama_pic || viewingBookingDetail.nama_pelanggan || '-'}</p>
                 </div>
 
                 <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
@@ -1809,7 +1772,7 @@ export const SecurityPortalView: React.FC = () => {
                     <span>Jadwal Kedatangan</span>
                   </div>
                   <p className="font-bold text-slate-900 text-xs sm:text-sm">
-                    {selectedBooking.tanggal_booking} &bull; <span className="font-mono text-[#12388F]">{selectedBooking.jam_booking} WIB</span>
+                    {viewingBookingDetail.tanggal_booking} &bull; <span className="font-mono text-[#12388F]">{viewingBookingDetail.jam_booking} WIB</span>
                   </p>
                 </div>
               </div>
@@ -1818,7 +1781,7 @@ export const SecurityPortalView: React.FC = () => {
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Keterangan / Keluhan Driver</span>
                 <p className="text-slate-800 text-xs leading-relaxed italic">
-                  {selectedBooking.keluhan || selectedBooking.catatan || 'Tidak ada catatan tambahan untuk reservasi ini.'}
+                  {viewingBookingDetail.keluhan || viewingBookingDetail.catatan || 'Tidak ada catatan tambahan untuk reservasi ini.'}
                 </p>
               </div>
             </div>
@@ -1827,17 +1790,22 @@ export const SecurityPortalView: React.FC = () => {
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0">
               <button
                 type="button"
-                onClick={() => setBookingDetailModalOpen(false)}
+                onClick={() => {
+                  setBookingDetailModalOpen(false);
+                  setViewingBookingDetail(null);
+                }}
                 className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
               >
                 Tutup
               </button>
-              {!selectedBooking.sudah_checkin && (
+              {!viewingBookingDetail.sudah_checkin && (
                 <button
                   type="button"
                   onClick={() => {
+                    const target = viewingBookingDetail;
                     setBookingDetailModalOpen(false);
-                    handlePilihBooking(selectedBooking);
+                    setViewingBookingDetail(null);
+                    handlePilihBooking(target);
                   }}
                   className="px-5 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
                 >
