@@ -185,6 +185,8 @@ export interface BookingService {
   catatan?: string;
   keterangan?: string;
   status: 'Booked' | 'Check In' | 'Checked-In' | 'Dibatalkan' | 'Booking Canceled';
+  kode_cabang?: string | null;
+  nama_cabang?: string | null;
   is_canceled?: boolean;
   cancelat?: string;
   cancelby?: string;
@@ -522,6 +524,8 @@ export interface SecurityBookingItem {
   keluhan?: string;
   catatan?: string;
   status: string;
+  kode_cabang?: string | null;
+  nama_cabang?: string | null;
   nama_pelanggan: string;
   nama_pic?: string;
   no_telepon?: string;
