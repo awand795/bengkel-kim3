@@ -158,9 +158,6 @@ export const SecurityPortalView: React.FC = () => {
       setStats(s);
       setKunjunganDiDalam(didalam);
       setBookingList(bookings);
-      if (!selectedBooking && bookings.length > 0) {
-        setSelectedBooking(bookings[0]);
-      }
       setOnProgressList(prog);
     } catch (err: any) {
       console.error('Failed to load security dashboard:', err);
@@ -279,27 +276,47 @@ export const SecurityPortalView: React.FC = () => {
       loadRiwayatKeluar(riwayatPeriode);
     } else if (currentTab === 'memo') {
       loadMemoList(searchQuery);
-    } else if (currentTab === 'booking' || currentTab === 'checkin' || currentTab === 'onprogress') {
+    } else if (currentTab === 'booking' || currentTab === 'onprogress') {
       loadDashboardData();
     }
   }, [currentTab, riwayatPeriode]);
 
-  // Handle Pilih & Isi Otomatis dari Booking
-  const handlePilihBooking = (booking: SecurityBookingItem) => {
+  // Sinkronisasi otomatis nilai form check in dari data Booking
+  const populateCheckInFromBooking = (booking: SecurityBookingItem) => {
     setSelectedBooking(booking);
     const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
+    const keperluanStr = booking.jenis_layanan
+      ? `Service Booking: ${booking.jenis_layanan}${booking.keluhan ? ` - ${booking.keluhan}` : ''}`
+      : 'Service Berkala / Perbaikan Truk';
+
     setCheckInForm({
       tipe_kunjungan: 'SERVICE',
       booking_id: booking.booking_id,
-      no_polisi: booking.no_polisi,
-      nama_pengemudi: booking.nama_pic || booking.nama_pelanggan,
+      no_polisi: booking.no_polisi || '',
+      nama_pengemudi: booking.nama_pic || booking.nama_pelanggan || '',
       no_telepon_pengemudi: booking.no_telepon || '',
-      nama_perusahaan: booking.nama_pelanggan,
-      tujuan_kunjungan: `Service Booking: ${booking.jenis_layanan}${booking.keluhan ? ` - ${booking.keluhan}` : ''}`,
+      nama_perusahaan: booking.nama_pelanggan || '',
+      tujuan_kunjungan: keperluanStr,
       bertemu_dengan: sa ? (sa.display_label || sa.employeename) : '',
       catatan_masuk: booking.catatan || '',
       foto_kendaraan_masuk: booking.foto_kendaraan || '',
     });
+
+    if (booking.no_polisi) {
+      handlePlateSearch(booking.no_polisi);
+    }
+  };
+
+  // Pastikan form selalu sinkron jika selectedBooking aktif
+  useEffect(() => {
+    if (selectedBooking && checkInForm.booking_id !== selectedBooking.booking_id) {
+      populateCheckInFromBooking(selectedBooking);
+    }
+  }, [selectedBooking]);
+
+  // Handle Pilih & Isi Otomatis dari Booking
+  const handlePilihBooking = (booking: SecurityBookingItem) => {
+    populateCheckInFromBooking(booking);
     setActiveTab('security-checkin');
     toast.success(`Data booking nopol ${booking.no_polisi} berhasil dimuat ke formulir check-in.`);
   };
@@ -329,6 +346,7 @@ export const SecurityPortalView: React.FC = () => {
 
       // Reset form
       setSelectedBooking(null);
+      setMatchedKendaraan(null);
       const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
       setCheckInForm({
         tipe_kunjungan: 'SERVICE',
@@ -777,6 +795,7 @@ export const SecurityPortalView: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setSelectedBooking(null);
+                    setMatchedKendaraan(null);
                     const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
                     setCheckInForm({
                       tipe_kunjungan: 'SERVICE',
