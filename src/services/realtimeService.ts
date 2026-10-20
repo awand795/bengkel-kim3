@@ -195,11 +195,22 @@ class RealtimeNotificationHub {
       }
     }
 
-    // Persist to server backend database so notifications are saved permanently
-    if (typeof window !== 'undefined') {
+    // Persist to server backend database SOALNYA:
+    // Hanya simpan ke database bila ada target user tertentu (id_pengguna / targetUserId)
+    // ATAU bila ditargetkan untuk Customer Fleet.
+    // Event internal murni yang ditujukan ke Security / SA tanpa targetUserId TIDAK disimpan
+    // ke tabel notifikasi publik agar tidak masuk ke inbox pelanggan lain.
+    const targetUserId = event.id_pengguna ?? event.targetUserId;
+    const isTargetingInternalStaffOnly =
+      event.targetRoles &&
+      event.targetRoles.length > 0 &&
+      !event.targetRoles.includes('ALL') &&
+      !event.targetRoles.includes('Customer Fleet');
+
+    if (typeof window !== 'undefined' && (targetUserId != null || !isTargetingInternalStaffOnly)) {
       import('../api/client').then(({ api }) => {
         api.kirimNotifikasi({
-          id_pengguna: event.id_pengguna ?? event.targetUserId,
+          id_pengguna: targetUserId,
           title: event.title,
           pesan: event.message,
           link_tab: event.linkTab,

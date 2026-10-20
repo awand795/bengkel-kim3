@@ -22,12 +22,20 @@ interface ToastItem {
 }
 
 export const FloatingNotificationToast: React.FC = () => {
-  const { authUser, setActiveTab } = useAppStore();
+  const { currentRole, authUser, setActiveTab } = useAppStore();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   useEffect(() => {
     const unsubscribe = realtimeHub.subscribe((event) => {
-      // User-specific targeting check (e.g. specific customer)
+      // 1. Role matching check: Jika event memiliki targetRoles, role user aktif wajib cocok!
+      if (event.targetRoles && event.targetRoles.length > 0 && !event.targetRoles.includes('ALL')) {
+        const myRole = currentRole || (authUser?.peran ?? 'Customer Fleet');
+        if (!event.targetRoles.includes(myRole as NotificationRole)) {
+          return;
+        }
+      }
+
+      // 2. User-specific targeting check (e.g. specific customer)
       const targetUser = event.id_pengguna ?? event.targetUserId;
       if (targetUser && authUser?.id && targetUser !== authUser.id) {
         return;
@@ -53,7 +61,7 @@ export const FloatingNotificationToast: React.FC = () => {
     return () => {
       unsubscribe();
     };
-  }, [authUser]);
+  }, [currentRole, authUser]);
 
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

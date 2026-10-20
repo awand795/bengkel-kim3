@@ -59,7 +59,7 @@ function formatNotificationTime(dateVal?: string | number | null): string {
 
 export const NotificationDropdown: React.FC = () => {
   const queryClient = useQueryClient();
-  const { authUser, setActiveTab, setFleetPendingPartId } = useAppStore();
+  const { currentRole, authUser, setActiveTab, setFleetPendingPartId } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
   const [deleteTarget, setDeleteTarget] = useState<Notifikasi | null>(null);
@@ -131,6 +131,14 @@ export const NotificationDropdown: React.FC = () => {
   // walau role-nya sama (mis. dua akun Customer Fleet di browser yang sama).
   useEffect(() => {
     const unsubscribe = realtimeHub.subscribe((evt: RealtimeEvent) => {
+      // 1. Role matching check: jika notif khusus role tertentu, tolak jika role tidak cocok
+      if (evt.targetRoles && evt.targetRoles.length > 0 && !evt.targetRoles.includes('ALL')) {
+        const myRole = currentRole || (authUser?.peran ?? 'Customer Fleet');
+        if (!evt.targetRoles.includes(myRole as any)) {
+          return;
+        }
+      }
+
       const myId = authUser?.id ?? null;
       let isForMe = false;
       const targetUser = evt.id_pengguna ?? evt.targetUserId;
@@ -149,7 +157,7 @@ export const NotificationDropdown: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [authUser, queryClient]);
+  }, [currentRole, authUser, queryClient]);
 
   // Deteksi jika ada notifikasi verifikasi baru yang belum dibaca dari backend
   const lastNotifIdsRef = useRef<Set<number>>(new Set());
@@ -183,10 +191,26 @@ export const NotificationDropdown: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Filter notifikasi sesuai role aktif (mencegah notifikasi pos Security tampil di Customer Fleet & sebaliknya)
+  const roleFilteredList = useMemo(() => {
+    const myRole = currentRole || (authUser?.peran ?? 'Customer Fleet');
+    return notifikasiList.filter((n) => {
+      const link = n.link_tab || '';
+      if (myRole === 'Customer Fleet') {
+        // Customer Fleet tidak boleh melihat notifikasi internal security
+        if (link.startsWith('security-')) return false;
+      } else if (myRole === 'Security') {
+        // Security tidak boleh melihat notifikasi personal portal customer yang bukan wewenangnya
+        if (link.startsWith('fleet-') && n.id_pengguna && n.id_pengguna !== authUser?.id) return false;
+      }
+      return true;
+    });
+  }, [notifikasiList, currentRole, authUser]);
+
   // Compute Unread Counts & Filtered Feed
   const unreadItems = useMemo(() => {
-    return notifikasiList.filter((n) => !n.is_read);
-  }, [notifikasiList]);
+    return roleFilteredList.filter((n) => !n.is_read);
+  }, [roleFilteredList]);
 
   const unreadCount = unreadItems.length;
 
@@ -194,8 +218,8 @@ export const NotificationDropdown: React.FC = () => {
     if (filterTab === 'unread') {
       return unreadItems;
     }
-    return notifikasiList;
-  }, [filterTab, unreadItems, notifikasiList]);
+    return roleFilteredList;
+  }, [filterTab, unreadItems, roleFilteredList]);
 
   // Action: Click item -> Mark read & Navigate
   const handleNotificationClick = (item: Notifikasi) => {
