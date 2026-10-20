@@ -191,26 +191,74 @@ const SecurityTablePagination: React.FC<SecurityTablePaginationProps> = ({
   );
 };
 
+// Global in-memory & session cache to ensure instant data rendering across sidebar navigation (no 0 flashing)
+let cachedSecurityStats: SecurityDashboardStats = (() => {
+  try {
+    const saved = sessionStorage.getItem('kim3_sec_stats');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return {
+    total_masuk_hari_ini: 0,
+    total_di_dalam: 0,
+    total_siap_keluar: 0,
+    total_booking_hari_ini: 0,
+    total_keluar_hari_ini: 0,
+  };
+})();
+
+let cachedBookingList: SecurityBookingItem[] = (() => {
+  try {
+    const saved = sessionStorage.getItem('kim3_sec_bookings');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return [];
+})();
+
+let cachedKunjunganDiDalam: KunjunganGerbang[] = (() => {
+  try {
+    const saved = sessionStorage.getItem('kim3_sec_didalam');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return [];
+})();
+
+let cachedOnProgressList: SecurityOnProgressItem[] = (() => {
+  try {
+    const saved = sessionStorage.getItem('kim3_sec_onprogress');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return [];
+})();
+
+let cachedRiwayatKeluar: SecurityRiwayatKeluarItem[] = (() => {
+  try {
+    const saved = sessionStorage.getItem('kim3_sec_riwayat');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return [];
+})();
+
+let cachedMemoList: MemoKeluarItem[] = (() => {
+  try {
+    const saved = sessionStorage.getItem('kim3_sec_memo');
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return [];
+})();
+
 export const SecurityPortalView: React.FC = () => {
   const { activeTab, setActiveTab, authUser } = useAppStore();
 
   // Internal tab state: 'dashboard' | 'booking' | 'checkin' | 'onprogress' | 'keluar' | 'memo'
   const currentTab = activeTab.replace('security-', '');
 
-  // State data utama
-  const [stats, setStats] = useState<SecurityDashboardStats>({
-    total_masuk_hari_ini: 0,
-    total_di_dalam: 0,
-    total_siap_keluar: 0,
-    total_booking_hari_ini: 0,
-    total_keluar_hari_ini: 0,
-  });
-
-  const [bookingList, setBookingList] = useState<SecurityBookingItem[]>([]);
-  const [kunjunganDiDalam, setKunjunganDiDalam] = useState<KunjunganGerbang[]>([]);
-  const [onProgressList, setOnProgressList] = useState<SecurityOnProgressItem[]>([]);
-  const [riwayatKeluarList, setRiwayatKeluarList] = useState<SecurityRiwayatKeluarItem[]>([]);
-  const [memoList, setMemoList] = useState<MemoKeluarItem[]>([]);
+  // State data utama (diinisialisasi dari cache agar instan saat pindah-pindah menu sidebar)
+  const [stats, setStats] = useState<SecurityDashboardStats>(cachedSecurityStats);
+  const [bookingList, setBookingList] = useState<SecurityBookingItem[]>(cachedBookingList);
+  const [kunjunganDiDalam, setKunjunganDiDalam] = useState<KunjunganGerbang[]>(cachedKunjunganDiDalam);
+  const [onProgressList, setOnProgressList] = useState<SecurityOnProgressItem[]>(cachedOnProgressList);
+  const [riwayatKeluarList, setRiwayatKeluarList] = useState<SecurityRiwayatKeluarItem[]>(cachedRiwayatKeluar);
+  const [memoList, setMemoList] = useState<MemoKeluarItem[]>(cachedMemoList);
 
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -370,13 +418,27 @@ export const SecurityPortalView: React.FC = () => {
         return isToday && !b.sudah_checkin && b.status !== 'Check In' && b.status !== 'Dibatalkan';
       }).length;
 
-      setStats({
+      const newStats: SecurityDashboardStats = {
         ...s,
         total_booking_hari_ini: s.total_booking_hari_ini > 0 ? s.total_booking_hari_ini : activeBookingsCount,
-      });
+      };
+
+      setStats(newStats);
       setKunjunganDiDalam(didalam);
       setBookingList(bookings);
       setOnProgressList(prog);
+
+      // Sinkronkan ke cache memori & sessionStorage agar instan saat navigasi sidebar (tidak 0 lagi)
+      cachedSecurityStats = newStats;
+      cachedKunjunganDiDalam = didalam;
+      cachedBookingList = bookings;
+      cachedOnProgressList = prog;
+      try {
+        sessionStorage.setItem('kim3_sec_stats', JSON.stringify(newStats));
+        sessionStorage.setItem('kim3_sec_bookings', JSON.stringify(bookings));
+        sessionStorage.setItem('kim3_sec_didalam', JSON.stringify(didalam));
+        sessionStorage.setItem('kim3_sec_onprogress', JSON.stringify(prog));
+      } catch {}
     } catch (err: any) {
       console.error('Failed to load security dashboard:', err);
     } finally {
@@ -408,32 +470,51 @@ export const SecurityPortalView: React.FC = () => {
     }
   };
 
-  const loadRiwayatKeluar = async (periode?: 'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA') => {
-    setIsLoading(true);
+  const loadRiwayatKeluar = async (
+    periode?: 'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA',
+    silent: boolean = false
+  ) => {
+    if (!silent && cachedRiwayatKeluar.length === 0) setIsLoading(true);
     try {
       const list = await api.getSecurityRiwayatKeluar(periode);
       setRiwayatKeluarList(list);
+      cachedRiwayatKeluar = list;
+      try {
+        sessionStorage.setItem('kim3_sec_riwayat', JSON.stringify(list));
+      } catch {}
     } catch (err: any) {
       console.error(err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
-  const loadMemoList = async (search?: string) => {
-    setIsLoading(true);
+  const loadMemoList = async (search?: string, silent: boolean = false) => {
+    if (!silent && cachedMemoList.length === 0) setIsLoading(true);
     try {
       const list = await api.getSecurityMemoKeluar(search);
       setMemoList(list);
+      cachedMemoList = list;
+      try {
+        sessionStorage.setItem('kim3_sec_memo', JSON.stringify(list));
+      } catch {}
     } catch (err: any) {
       console.error(err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadDashboardData(false);
+    const hasCache =
+      cachedSecurityStats.total_masuk_hari_ini > 0 ||
+      cachedSecurityStats.total_di_dalam > 0 ||
+      cachedSecurityStats.total_booking_hari_ini > 0 ||
+      cachedBookingList.length > 0 ||
+      cachedKunjunganDiDalam.length > 0;
+
+    // Jika sudah ada data di cache, render langsung & revalidasi di background (tanpa loading spinner & tanpa 0)
+    loadDashboardData(hasCache);
     loadEmployeeData();
 
     // Subscribe ke event realtime SSE (Booking baru dari customer, status check in, spk, dll.)
@@ -447,9 +528,9 @@ export const SecurityPortalView: React.FC = () => {
       ) {
         loadDashboardData(true);
         if (currentTab === 'keluar') {
-          loadRiwayatKeluar(riwayatPeriode);
+          loadRiwayatKeluar(riwayatPeriode, true);
         } else if (currentTab === 'memo') {
-          loadMemoList(searchQuery);
+          loadMemoList(searchQuery, true);
         }
       }
     });
@@ -467,9 +548,9 @@ export const SecurityPortalView: React.FC = () => {
 
   useEffect(() => {
     if (currentTab === 'keluar') {
-      loadRiwayatKeluar(riwayatPeriode);
+      loadRiwayatKeluar(riwayatPeriode, cachedRiwayatKeluar.length > 0);
     } else if (currentTab === 'memo') {
-      loadMemoList(searchQuery);
+      loadMemoList(searchQuery, cachedMemoList.length > 0);
     } else if (currentTab === 'booking' || currentTab === 'onprogress') {
       loadDashboardData(true);
     }
@@ -595,13 +676,6 @@ export const SecurityPortalView: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <div className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/15 text-emerald-300 border border-emerald-400/30 shadow-2xs backdrop-blur-xs select-none">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-            </span>
-            <span className="text-white text-xs font-medium tracking-wide">Live Real-time (SSE)</span>
-          </div>
           <button
             type="button"
             onClick={() => setActiveTab('security-checkin')}
