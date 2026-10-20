@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   LayoutDashboard, 
   ArrowRightCircle, 
@@ -1588,97 +1589,127 @@ export const SecurityPortalView: React.FC = () => {
       )}
 
       {/* Modal Detail Booking Reservasi */}
-      {bookingDetailModalOpen && selectedBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="bg-[#12388F] text-white px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-white" />
+      {bookingDetailModalOpen && selectedBooking && createPortal(
+        <div className="fixed inset-0 z-9999 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto animate-in fade-in zoom-in-95 duration-200">
+            {/* Header Modal - Konsisten dengan tema Pos Gerbang (#1D4ED8) */}
+            <div className="flex items-center justify-between px-6 py-4.5 bg-[#1D4ED8] text-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shadow-xs">
+                  <Calendar className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-black text-sm uppercase tracking-wide">DETAIL BOOKING</h3>
-                  <p className="text-[11px] text-blue-200">No. Reservasi: {selectedBooking.no_booking}</p>
+                  <h3 className="font-bold text-sm sm:text-base tracking-wide leading-tight">Detail Reservasi Booking</h3>
+                  <p className="text-[11px] text-blue-100 font-mono mt-0.5">ID: {selectedBooking.no_booking}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setBookingDetailModalOpen(false)}
-                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="p-1.5 text-blue-100 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Tutup"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-5 space-y-4 text-xs text-slate-700">
-              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">No. Polisi</span>
-                  <div className="font-mono font-black text-2xl text-slate-900 leading-tight">
-                    {selectedBooking.no_polisi}
+            {/* Content Body */}
+            <div className="overflow-y-auto p-6 space-y-4 text-xs text-slate-700">
+              {/* Card Plat & Status */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-[#12388F] text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                    <Truck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">No. Polisi Armada</span>
+                    <div className="font-mono font-black text-xl sm:text-2xl text-slate-900 leading-tight">
+                      {selectedBooking.no_polisi}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</span>
-                  <div>
-                    {selectedBooking.sudah_checkin ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Sudah Masuk
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#DBEAFE] text-[#12388F]">
-                        Booked
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Status Reservasi</span>
+                  {selectedBooking.sudah_checkin ? (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Sudah Masuk
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold bg-[#DBEAFE] text-[#12388F] border border-blue-200">
+                      Booked
+                    </span>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-medium">Jenis Armada</span>
-                  <p className="font-bold text-slate-900 text-xs mt-0.5">{selectedBooking.tipe_kendaraan || 'Truk'}</p>
+              {/* Grid Rincian Informasi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Truck className="w-3.5 h-3.5" />
+                    <span>Jenis Armada</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{selectedBooking.tipe_kendaraan || 'Truk'}</p>
                 </div>
-                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-medium">Tujuan Kunjungan</span>
-                  <p className="font-bold text-[#12388F] text-xs mt-0.5">{selectedBooking.jenis_layanan || 'Service'}</p>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Wrench className="w-3.5 h-3.5" />
+                    <span>Tujuan Kunjungan</span>
+                  </div>
+                  <p className="font-bold text-[#12388F] text-xs sm:text-sm">{selectedBooking.jenis_layanan || 'Service'}</p>
                 </div>
-                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-medium">Nama Customer</span>
-                  <p className="font-bold text-slate-900 text-xs mt-0.5">{selectedBooking.nama_pelanggan}</p>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Nama Customer / Perusahaan</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{selectedBooking.nama_pelanggan}</p>
                 </div>
-                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-medium">No. Telepon</span>
-                  <p className="font-mono font-semibold text-slate-900 text-xs mt-0.5">{selectedBooking.no_telepon || '-'}</p>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>No. Telepon / Kontak</span>
+                  </div>
+                  <p className="font-mono font-bold text-slate-900 text-xs sm:text-sm">{selectedBooking.no_telepon || '-'}</p>
                 </div>
-                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-medium">PIC / Driver</span>
-                  <p className="font-bold text-slate-900 text-xs mt-0.5">{selectedBooking.nama_pic || selectedBooking.nama_pelanggan || '-'}</p>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <User className="w-3.5 h-3.5" />
+                    <span>PIC / Driver Pengemudi</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{selectedBooking.nama_pic || selectedBooking.nama_pelanggan || '-'}</p>
                 </div>
-                <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-medium">Jadwal Reservasi</span>
-                  <p className="font-bold text-slate-900 text-xs mt-0.5">
-                    {selectedBooking.tanggal_booking} &bull; <span className="font-mono">{selectedBooking.jam_booking} WIB</span>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Jadwal Kedatangan</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">
+                    {selectedBooking.tanggal_booking} &bull; <span className="font-mono text-[#12388F]">{selectedBooking.jam_booking} WIB</span>
                   </p>
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-50/70 rounded-lg border border-slate-100">
-                <span className="text-[10px] text-slate-400 font-medium">Keterangan / Keluhan</span>
-                <p className="text-slate-700 text-xs mt-0.5 italic">
-                  {selectedBooking.keluhan || selectedBooking.catatan || 'Tidak ada catatan tambahan.'}
+              {/* Catatan / Keluhan */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Keterangan / Keluhan Driver</span>
+                <p className="text-slate-800 text-xs leading-relaxed italic">
+                  {selectedBooking.keluhan || selectedBooking.catatan || 'Tidak ada catatan tambahan untuk reservasi ini.'}
                 </p>
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5">
+            {/* Footer Modal Action */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setBookingDetailModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -1689,15 +1720,16 @@ export const SecurityPortalView: React.FC = () => {
                     setBookingDetailModalOpen(false);
                     handlePilihBooking(selectedBooking);
                   }}
-                  className="px-4 py-2 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-black rounded-xl shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#12388F] hover:bg-[#0D2A6B] text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <ArrowRightCircle className="w-4 h-4" />
-                  <span>PILIH &amp; ISI CHECK IN</span>
+                  <span>Pilih &amp; Isi Check In</span>
                 </button>
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Check-Out Gerbang */}
