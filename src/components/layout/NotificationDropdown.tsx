@@ -200,8 +200,8 @@ export const NotificationDropdown: React.FC = () => {
         // Customer Fleet tidak boleh melihat notifikasi internal security
         if (link.startsWith('security-')) return false;
       } else if (myRole === 'Security') {
-        // Security tidak boleh melihat notifikasi personal portal customer yang bukan wewenangnya
-        if (link.startsWith('fleet-') && n.id_pengguna && n.id_pengguna !== authUser?.id) return false;
+        // Security tidak boleh melihat notifikasi personal portal customer (fleet-*)
+        if (link.startsWith('fleet-')) return false;
       }
       return true;
     });

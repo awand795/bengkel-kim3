@@ -195,27 +195,29 @@ class RealtimeNotificationHub {
       }
     }
 
-    // Persist to server backend database SOALNYA:
-    // Hanya simpan ke database bila ada target user tertentu (id_pengguna / targetUserId)
-    // ATAU bila ditargetkan untuk Customer Fleet.
-    // Event internal murni yang ditujukan ke Security / SA tanpa targetUserId TIDAK disimpan
-    // ke tabel notifikasi publik agar tidak masuk ke inbox pelanggan lain.
-    const targetUserId = event.id_pengguna ?? event.targetUserId;
-    const isTargetingInternalStaffOnly =
-      event.targetRoles &&
-      event.targetRoles.length > 0 &&
-      !event.targetRoles.includes('ALL') &&
-      !event.targetRoles.includes('Customer Fleet');
+    // Persist ke database backend agar tersimpan di lonceng notifikasi:
+    // - Jika ditargetkan untuk Security (linkTab 'security-*' atau targetRoles 'Security'), id_pengguna harus null
+    //   karena user Security ada di sch_pos.tbl_pengguna (bukan foreign key sch_fleet.pengguna).
+    //   link_tab 'security-*' akan otomatis difilter di NotificationDropdown agar HANYA tampil untuk role Security.
+    // - Jika ditargetkan untuk Customer Fleet tertentu, gunakan id_pengguna / targetUserId.
+    if (typeof window !== 'undefined') {
+      const isSecurityTarget =
+        event.targetRoles?.includes('Security') ||
+        Boolean(event.linkTab && event.linkTab.startsWith('security-'));
 
-    if (typeof window !== 'undefined' && (targetUserId != null || !isTargetingInternalStaffOnly)) {
+      const targetUserId = isSecurityTarget ? null : (event.id_pengguna ?? event.targetUserId ?? null);
+      const linkTab = event.linkTab || (isSecurityTarget ? 'security-booking' : undefined);
+
       import('../api/client').then(({ api }) => {
         api.kirimNotifikasi({
           id_pengguna: targetUserId,
           title: event.title,
           pesan: event.message,
-          link_tab: event.linkTab,
+          link_tab: linkTab,
           urgency: event.urgency || 'info',
-        }).catch(() => {});
+        }).catch((err) => {
+          console.warn('[RealtimeHub] kirimNotifikasi error:', err);
+        });
       }).catch(() => {});
     }
 

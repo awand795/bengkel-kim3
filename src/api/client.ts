@@ -159,8 +159,13 @@ const normalizeList = <T,>(payload: any): PaginatedResult<T> => {
   if (Array.isArray(payload)) {
     return { rows: payload, pagination: null };
   }
-  const rows = Array.isArray(payload?.data) ? payload.data : [];
-  return { rows, pagination: payload?.pagination ?? null };
+  if (Array.isArray(payload?.data)) {
+    return { rows: payload.data, pagination: payload?.pagination ?? null };
+  }
+  if (payload?.data && typeof payload.data === 'object') {
+    return { rows: [payload.data as T], pagination: payload?.pagination ?? null };
+  }
+  return { rows: [], pagination: payload?.pagination ?? null };
 };
 
 const fetchList = async <T,>(url: string, query: ListQuery = {}): Promise<PaginatedResult<T>> => {
