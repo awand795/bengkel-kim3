@@ -87,6 +87,23 @@ export const DigitalMemoKeluarModal: React.FC<DigitalMemoKeluarModalProps> = ({
                 .no-print {
                   display: none !important;
                 }
+                .kop-header {
+                  display: flex !important;
+                  justify-content: space-between !important;
+                  align-items: flex-start !important;
+                  width: 100% !important;
+                  border-bottom: 2px solid #0f172a !important;
+                  padding-bottom: 16px !important;
+                  margin-bottom: 16px !important;
+                }
+                .kop-left {
+                  text-align: left !important;
+                  flex: 1 !important;
+                }
+                .kop-right {
+                  text-align: right !important;
+                  float: right !important;
+                }
               </style>
             </head>
             <body>
@@ -126,7 +143,10 @@ export const DigitalMemoKeluarModal: React.FC<DigitalMemoKeluarModalProps> = ({
         <div className="no-print print:hidden flex items-center justify-between px-6 py-4 bg-slate-900 text-white shrink-0">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            <span className="font-semibold text-sm tracking-wide">Digital Gate Pass / Memo Keluar</span>
+            <span className="font-semibold text-sm tracking-wide">Gate Pass / Memo Keluar</span>
+            <span className="font-mono text-xs font-bold text-emerald-300 bg-emerald-950/60 px-2.5 py-0.5 rounded border border-emerald-500/30">
+              {memo.nomor_memo}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -149,29 +169,34 @@ export const DigitalMemoKeluarModal: React.FC<DigitalMemoKeluarModalProps> = ({
 
         {/* Isi Dokumen Memo Keluar (Akan Dicetak) */}
         <div id="printable-memo-content" className="overflow-y-auto p-6 sm:p-8 space-y-6 text-slate-800 bg-white print:overflow-visible print:p-0 print:space-y-4">
-          {/* Header Kop Resmi */}
-          <div className="border-b-2 border-slate-900 pb-5 text-center relative">
-            <div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
-              Valid Gate Pass &bull; Izin Keluar Resmi
+          {/* Header Kop Resmi (Layout 2 Kolom: Kiri Identitas Bengkel, Kanan Gate Pass & No Memo Float Kanan) */}
+          <div className="kop-header border-b-2 border-slate-900 pb-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 text-slate-800">
+            {/* Sisi Kiri: Identitas Bengkel */}
+            <div className="kop-left text-left flex-1">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 uppercase">
+                BENGKEL MASTER TRUCK - KIM 3
+              </h1>
+              <p className="text-xs text-slate-600 font-medium mt-0.5">
+                Kawasan Industri Medan III (KIM 3) &bull; One Stop Truck Maintenance & Spareparts Service
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Telp: 0812-3456-7890 &bull; Pos Gerbang Security Utama
+              </p>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900 uppercase">
-              BENGKEL MASTER TRUCK - KIM 3
-            </h1>
-            <p className="text-xs text-slate-600 font-medium">
-              Kawasan Industri Medan III (KIM 3) &bull; One Stop Truck Maintenance & Spareparts Service
-            </p>
-            <p className="text-xs text-slate-500">
-              Telp: 0812-3456-7890 &bull; Pos Gerbang Security Utama
-            </p>
 
-            <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-600">
-              <div>
-                <span className="font-semibold text-slate-500">NO. MEMO KELUAR:</span>{' '}
-                <span className="font-mono font-bold text-slate-900 text-sm">{memo.nomor_memo}</span>
+            {/* Sisi Kanan: Gate Pass / Memo Keluar (Float di Kanan) */}
+            <div className="kop-right text-left sm:text-right shrink-0 sm:float-right">
+              <div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md text-[11px] font-black uppercase tracking-wider mb-1.5 print:bg-emerald-100 print:text-emerald-800">
+                Valid Gate Pass &bull; Izin Keluar Resmi
               </div>
-              <div>
-                <span className="font-semibold text-slate-500">TANGGAL & JAM:</span>{' '}
-                <span className="font-semibold text-slate-900">{memo.tanggal_terbit || memo.waktu_keluar}</span>
+              <div className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">
+                GATE PASS / MEMO KELUAR
+              </div>
+              <div className="text-xs font-semibold text-slate-600 mt-1">
+                NO: <span className="font-mono font-black text-slate-900 text-sm tracking-wide">{memo.nomor_memo}</span>
+              </div>
+              <div className="text-[11px] font-medium text-slate-500 mt-0.5">
+                TGL: <span className="font-semibold text-slate-800">{memo.tanggal_terbit || memo.waktu_keluar}</span>
               </div>
             </div>
           </div>
