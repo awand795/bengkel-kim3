@@ -14,6 +14,11 @@ interface AppState {
   // dikonsumsi sekali oleh view terkait → modal approval langsung terbuka)
   fleetPendingPartId: number | null;
   fleetPendingSpkId: number | null;
+  // Deep-link booking dari kartu armada (menu Kendaraan): diisi tombol "Booking",
+  // dikonsumsi sekali oleh WebFleetCustomerView → wizard booking langsung terbuka
+  // di langkah layanan dengan unit tersebut sudah terpilih.
+  // (Perpindahan tab me-remount view, jadi niat ini tidak bisa disimpan di state lokal.)
+  fleetPendingBookingPlate: string | null;
   kunjunganPendingId: number | null;
   // Kunci antre popup: true selama modal approval (auto/manual) terbuka
   approvalModalOpen: boolean;
@@ -32,6 +37,7 @@ interface AppState {
   setSaPendingAntrianId: (id: number | null) => void;
   setFleetPendingPartId: (id: number | null) => void;
   setFleetPendingSpkId: (id: number | null) => void;
+  setFleetPendingBookingPlate: (plate: string | null) => void;
   setKunjunganPendingId: (id: number | null) => void;
   setApprovalModalOpen: (open: boolean) => void;
   // Tick navigasi: di-bump setiap klik sidebar agar view bisa reset
@@ -92,6 +98,7 @@ export const useAppStore = create<AppState>((set) => ({
   saPendingAntrianId: null,
   fleetPendingPartId: null,
   fleetPendingSpkId: null,
+  fleetPendingBookingPlate: null,
   kunjunganPendingId: null,
   approvalModalOpen: false,
   notificationCount: 0,
@@ -184,6 +191,7 @@ export const useAppStore = create<AppState>((set) => ({
   setSaPendingAntrianId: (id: number | null) => set({ saPendingAntrianId: id }),
   setFleetPendingPartId: (id: number | null) => set({ fleetPendingPartId: id }),
   setFleetPendingSpkId: (id: number | null) => set({ fleetPendingSpkId: id }),
+  setFleetPendingBookingPlate: (plate: string | null) => set({ fleetPendingBookingPlate: plate }),
   setKunjunganPendingId: (id: number | null) => set({ kunjunganPendingId: id }),
   setApprovalModalOpen: (open: boolean) => set({ approvalModalOpen: open }),
   navTick: 0,

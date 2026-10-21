@@ -1621,7 +1621,7 @@ const getBookingServiceGroup = (service: BookingServiceItem): string => {
 
 export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ initialMenu }) => {
   const queryClient = useQueryClient();
-  const { setActiveTab, currentUser, authUser, fleetPendingPartId, setFleetPendingPartId, fleetPendingSpkId, setFleetPendingSpkId, setApprovalModalOpen } = useAppStore();
+  const { setActiveTab, currentUser, authUser, fleetPendingPartId, setFleetPendingPartId, fleetPendingSpkId, setFleetPendingSpkId, fleetPendingBookingPlate, setFleetPendingBookingPlate, setApprovalModalOpen } = useAppStore();
   const [fleetMenu, setFleetMenu] = useState<'dashboard' | 'booking' | 'history' | 'kendaraan' | 'dokumen' | 'profil'>(
     initialMenu || 'dashboard'
   );
@@ -2058,6 +2058,27 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   React.useEffect(() => {
     setApprovalModalOpen(!!historyDetail);
   }, [historyDetail, setApprovalModalOpen]);
+
+  // Deep-link booking dari kartu armada (menu Kendaraan): perpindahan tab me-remount
+  // view ini (App.tsx memakai key={activeTab}), sehingga niat "buka wizard booking"
+  // dititipkan lewat store dan dikonsumsi di sini. Set ke null setelah dipakai agar
+  // hanya berjalan sekali.
+  React.useEffect(() => {
+    if (fleetPendingBookingPlate == null) return;
+    if (fleetMenu !== 'booking') {
+      setFleetMenu('booking');
+      return;
+    }
+    const minDate = getLocalDateStr(1);
+    setBookingForm((prev) => ({
+      ...prev,
+      no_polisi: fleetPendingBookingPlate,
+      tanggal_booking: !prev.tanggal_booking || prev.tanggal_booking < minDate ? minDate : prev.tanggal_booking,
+    }));
+    setBookingStep(2);
+    setOpenBookingModal(true);
+    setFleetPendingBookingPlate(null);
+  }, [fleetPendingBookingPlate, fleetMenu, setFleetPendingBookingPlate]);
 
   // Kalau jumlah data menyusut (mis. filter pencarian aktif) sampai halaman aktif
   // melewati halaman terakhir, tarik kembali ke halaman terakhir yang valid.
@@ -3834,12 +3855,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             no_polisi: k.no_polisi,
                             tanggal_booking: !prev.tanggal_booking || prev.tanggal_booking < minDate ? minDate : prev.tanggal_booking,
                           }));
-                          // Unit sudah terpilih dari kartu armada, jadi langsung buka wizard
-                          // booking pada langkah 2 (pilih layanan & keluhan).
-                          setBookingStep(2);
+                          // Perpindahan tab me-remount view ini, jadi state lokal di atas
+                          // akan terbuang. Niat "buka wizard booking" dititipkan ke store
+                          // agar dikonsumsi oleh instance view yang baru.
+                          setFleetPendingBookingPlate(k.no_polisi);
                           setFleetMenu('booking');
                           setActiveTab('fleet-booking');
-                          setOpenBookingModal(true);
                           toast.success(
                             'Kendaraan Siap Dijadwalkan',
                             `Unit ${formatPlat(k.no_polisi)} sudah terpilih. Silakan tentukan jenis layanan & keluhan.`
