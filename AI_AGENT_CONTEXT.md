@@ -140,6 +140,16 @@ SELECT count(*) FROM sch_fleet.kunjungan_gerbang;
 - `sch_fleet.v_spk_pos_item_part`: Rincian suku cadang per SPK.
 - `sch_fleet.v_pos_employee`: Master data karyawan/teknisi dari POS.
 - `sch_fleet.v_kendaraan_lookup`: Pencarian cepat data unit, merk, tipe, nama pemilik.
+- `sch_fleet.admin_user`: Akun **Super Admin** (Portal Admin). Kolom audit memakai `input_date`/`update_dt` — **tidak ada** `created_at`.
+- `sch_fleet.pengaturan_situs`: Pengaturan web key-value (`wa_cs`, `wa_cs_pesan`), dibaca sidebar semua portal.
+
+### Catatan Portal Admin (Super Admin)
+- Login: `/kim3/auth/login` & `/kim3/auth/me` punya cabang ketiga `UNION ALL` dari `sch_fleet.admin_user` → `peran='Super Admin'`, `role='Super_Admin'`.
+- Endpoint admin: `/kim3/admin/security-user*`, `/kim3/admin/akun-admin*`, `/kim3/admin/pengaturan*`, `/kim3/auth/ganti-password-admin`, `/kim3/pengaturan-publik`.
+- **Hindari path `/kim3/admin/admin-user`** — bentrok dengan route internal gateway (respons selalu kosong). Gunakan `/kim3/admin/akun-admin`.
+- Koneksi gateway memakai `search_path = sch_fleet`, sedangkan `pgcrypto` terpasang di schema `public`. Selalu tulis `public.crypt(...)` dan `public.gen_salt('bf', 10)` (fungsi tanpa schema akan error).
+- Pagination gateway mengembalikan `data: []` (bukan error) bila SQL menyebut kolom/tabel yang tidak ada, atau memakai self-join/subquery pada tabel yang sama. Cek `total_records` untuk mendeteksi kasus ini.
+- `security_user` & `admin_user` punya UNIQUE(email); pesan duplikat muncul sebagai error SQL dari gateway.
 
 ---
 
@@ -147,9 +157,10 @@ SELECT count(*) FROM sch_fleet.kunjungan_gerbang;
 
 ### Struktur Folder Penting
 - `src/api/client.ts`: Kumpulan fungsi axios pemanggil API ke backend.
-- `src/store/useAppStore.ts`: Global state (Zustand) untuk session, user auth, role (`Customer Fleet` vs `Security`), tab aktif, dan tema tampilan.
+- `src/store/useAppStore.ts`: Global state (Zustand) untuk session, user auth, role (`Customer Fleet` / `Security` / `Super Admin`), tab aktif, dan tema tampilan.
 - `src/views/WebFleetCustomerView.tsx`: Seluruh tampilan modul Customer Fleet.
 - `src/views/SecurityPortalView.tsx`: Seluruh tampilan modul Pos Security Gerbang.
+- `src/views/AdminPortalView.tsx`: Portal Admin (Super Admin) — akun Security, akun Admin, pengaturan WhatsApp web.
 - `src/components/layout/`: Navigasi (`Sidebar.tsx`, `Navbar.tsx`, `MobileBottomNav.tsx`, `NotificationDropdown.tsx`).
 - `src/components/security/`: Modal gerbang (`SecurityCheckOutModal.tsx`, `DigitalMemoKeluarModal.tsx`).
 - `src/services/realtimeService.ts`: Engine realtime (SSE, differential streaming, audio chime Web Audio API).
