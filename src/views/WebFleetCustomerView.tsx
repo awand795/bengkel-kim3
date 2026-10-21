@@ -2957,16 +2957,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         );
       }
 
-      // Generate kode booking unik format BK-YYMMDD-XXXX dari client sebagai jaminan ekstra
-      const today = new Date();
-      const yy = String(today.getFullYear()).slice(-2);
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      const randSeq = String(Math.floor(1000 + Math.random() * 9000));
-      const clientBookingNo = `BK-${yy}${mm}${dd}-${randSeq}`;
-
       return api.tambahBooking({
-        no_booking: clientBookingNo,
         id_pelanggan: myPelangganId ? Number(myPelangganId) : undefined,
         no_polisi: bookingForm.no_polisi,
         jenis_layanan: bookingForm.jenis_layanan,
