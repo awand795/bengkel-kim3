@@ -2370,6 +2370,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return false;
   });
 
+  // Helper: Normalisasi format tanggal booking (mendukung string YYYY-MM-DD maupun epoch miliseconds integer)
+  const formatBookingDate = useCallback((val?: string | number | null): string => {
+    if (!val) return '';
+    const str = String(val).trim();
+    if (/^\d{11,}$/.test(str) || typeof val === 'number') {
+      const d = new Date(Number(val));
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+    }
+    return str.slice(0, 10);
+  }, []);
+
   // Helper: Cek apakah kendaraan dari jadwal booking ini sudah di-check in atau terbit SPK
   const isBookingCheckedIn = useCallback((b: BookingService): boolean => {
     const rawStatus = (b.status as string) || '';
@@ -2381,19 +2397,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       if (s.id_booking != null && s.id_booking === b.id) return true;
       if (bPlate && normalizePlat(s.no_polisi) === bPlate) {
         const sTime = String(s.waktu_check_in || s.created_at || '');
-        const bDate = String(b.tanggal_booking || '').slice(0, 10);
+        const bDate = formatBookingDate(b.tanggal_booking);
         if (!bDate || !sTime || sTime.slice(0, 10) >= bDate) return true;
       }
       return false;
     });
 
     return hasSpk;
-  }, [spkList]);
+  }, [spkList, formatBookingDate]);
 
   // Helper: Cek apakah jadwal booking sudah lewat dari sekarang (tanggal & jam)
   const isBookingPast = useCallback((b: BookingService): boolean => {
     if (!b?.tanggal_booking) return false;
-    const dateStr = String(b.tanggal_booking).slice(0, 10);
+    const dateStr = formatBookingDate(b.tanggal_booking);
     if (!dateStr || dateStr.length < 10) return false;
     const timeStr = String(b.jam_booking || '23:59');
     const [h, m] = timeStr.split(':').map(Number);
@@ -2402,7 +2418,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     );
     if (isNaN(sched.getTime())) return false;
     return Date.now() > sched.getTime();
-  }, []);
+  }, [formatBookingDate]);
 
   // Status operasional booking:
   // 1. 'Booking Canceled' bila dibatalkan atau jadwal lewat dari sekarang dan belum dikerjakan (batal otomatis)
@@ -3454,7 +3470,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </td>
                           <td className="px-4 py-3.5 text-xs font-medium text-ink-muted">{b.jenis_layanan}</td>
                           <td className="whitespace-nowrap px-4 py-3.5">
-                            <div className="text-xs font-semibold tabular-nums text-ink">{b.tanggal_booking}</div>
+                            <div className="text-xs font-semibold tabular-nums text-ink">{formatBookingDate(b.tanggal_booking)}</div>
                             <div className="mt-0.5 text-[11px] tabular-nums text-ink-subtle">{b.jam_booking} WIB</div>
                             {b.status_pos === 'RESCHEDULED' && (
                               <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-900/50">
@@ -3490,7 +3506,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           <StatusBadge status={getBookingEffectiveStatus(b)} size="sm" />
                         </div>
                         <p className="mt-2 truncate text-xs font-semibold text-ink">{b.jenis_layanan}</p>
-                        <p className="mt-1 text-[11px] tabular-nums text-ink-muted">{b.tanggal_booking} · {b.jam_booking} WIB</p>
+                        <p className="mt-1 text-[11px] tabular-nums text-ink-muted">{formatBookingDate(b.tanggal_booking)} · {b.jam_booking} WIB</p>
                         {b.status_pos === 'RESCHEDULED' && (
                           <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-900/50">
                             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
