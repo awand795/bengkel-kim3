@@ -38,7 +38,7 @@ export const MobileBottomNav: React.FC = () => {
     { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'security-booking', label: 'Booking', icon: Calendar },
     { id: 'security-checkin', label: 'Check In', icon: ArrowRightCircle },
-    { id: 'security-onprogress', label: 'Progress', icon: Wrench },
+    { id: 'security-onprogress', label: 'Dalam Bengkel', icon: Wrench },
     { id: 'security-checkout', label: 'Check Out', icon: LogOut },
     { id: 'security-keluar', label: 'Keluar', icon: History },
     { id: 'security-memo', label: 'Memo', icon: FileCheck },

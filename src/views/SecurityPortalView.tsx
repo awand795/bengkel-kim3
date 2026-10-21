@@ -1249,7 +1249,7 @@ export const SecurityPortalView: React.FC = () => {
                 2
               </div>
               <h2 className="text-sm sm:text-base font-black tracking-wide text-slate-900 uppercase">
-                SELURUH NOPOL YANG MASIH BERADA DIBENGKEL (STATUS ON PROGRESS)
+                SELURUH NOPOL YANG MASIH BERADA DIBENGKEL (DALAM BENGKEL)
               </h2>
             </div>
 

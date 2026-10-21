@@ -25,7 +25,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'fleet-profil': { title: 'Profil Perusahaan', subtitle: 'Informasi Mitra' },
   'security-dashboard': { title: 'Dashboard Gerbang', subtitle: 'Pos Security KIM 3' },
   'security-checkin': { title: 'Check In & Booking', subtitle: 'Pemeriksaan Masuk Gerbang' },
-  'security-onprogress': { title: 'On Progress Bengkel', subtitle: 'Monitoring Armada di Dalam' },
+  'security-onprogress': { title: 'Dalam Bengkel', subtitle: 'Monitoring Armada di Dalam' },
   'security-keluar': { title: 'Selesai / Keluar', subtitle: 'Riwayat Checkout Gerbang' },
   'security-memo': { title: 'Memo Keluar', subtitle: 'Arsip Digital Gate Pass' },
 };
