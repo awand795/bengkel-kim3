@@ -22,6 +22,10 @@ const notify = () => {
 
 export const toast = {
   show: (item: Omit<ToastItem, 'id'>) => {
+    // Cegah kemunculan toast ganda yang persis sama sedang aktif di layar
+    if (toastMemory.some((t) => t.type === item.type && t.title === item.title && t.message === item.message)) {
+      return '';
+    }
     const id = Math.random().toString(36).substring(2, 9);
     const newToast: ToastItem = {
       id,

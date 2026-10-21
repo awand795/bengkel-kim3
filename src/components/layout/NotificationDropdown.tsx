@@ -21,6 +21,28 @@ import { ConfirmModal } from '../common/ConfirmModal';
 import { Notifikasi } from '../../types';
 
 // Helper to format ISO, SQL timestamp, or UNIX epoch millisecond to Indonesian friendly string
+const ALERTED_STORAGE_KEY = 'bengkel_alerted_notif_ids';
+
+function getAlertedNotifIds(): Set<number> {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(ALERTED_STORAGE_KEY) : null;
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function markNotifAlerted(id: number) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const set = getAlertedNotifIds();
+      set.add(id);
+      const arr = Array.from(set).slice(-300);
+      localStorage.setItem(ALERTED_STORAGE_KEY, JSON.stringify(arr));
+    }
+  } catch {}
+}
+
 function formatNotificationTime(dateVal?: string | number | null): string {
   if (dateVal === null || dateVal === undefined || dateVal === '') return 'Baru saja';
   try {
@@ -159,20 +181,36 @@ export const NotificationDropdown: React.FC = () => {
     return () => unsubscribe();
   }, [currentRole, authUser, queryClient]);
 
-  // Deteksi jika ada notifikasi verifikasi baru yang belum dibaca dari backend
+  // Deteksi jika ada notifikasi verifikasi baru yang masuk SELAMA sesi aktif berjalan
+  // Mencegah munculnya toast berulang-ulang untuk notifikasi lama saat login ulang / reload halaman
   const lastNotifIdsRef = useRef<Set<number>>(new Set());
+  const isInitialMountRef = useRef<boolean>(true);
+
   useEffect(() => {
     if (isLoading || !notifikasiList.length) return;
 
-    // Cek apakah ada notifikasi verifikasi baru yang belum dibaca
-    const verifNotif = notifikasiList.find(
-      (n) =>
-        !n.is_read &&
-        n.title.toLowerCase().includes('terverifikasi') &&
-        !lastNotifIdsRef.current.has(n.id)
+    const alertedSet = getAlertedNotifIds();
+
+    // 1. Pada mount pertama (saat user baru login atau buka halaman):
+    // Catat seluruh notifikasi yang sudah ada di database agar TIDAK muncul sebagai toast berulang kali
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      lastNotifIdsRef.current = new Set(notifikasiList.map((n) => n.id));
+      notifikasiList.forEach((n) => {
+        markNotifAlerted(n.id);
+      });
+      return;
+    }
+
+    // 2. Hanya deteksi notifikasi yang benar-benar baru masuk saat user aktif di halaman
+    const newNotifs = notifikasiList.filter(
+      (n) => !n.is_read && !lastNotifIdsRef.current.has(n.id) && !alertedSet.has(n.id)
     );
 
+    const verifNotif = newNotifs.find((n) => n.title.toLowerCase().includes('terverifikasi'));
+
     if (verifNotif) {
+      markNotifAlerted(verifNotif.id);
       toast.success(verifNotif.title, verifNotif.pesan);
       realtimeHub.playChime('success');
     }

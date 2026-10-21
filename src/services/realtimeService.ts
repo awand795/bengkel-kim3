@@ -58,7 +58,27 @@ class RealtimeNotificationHub {
   private lastKnownNotifIds: Set<number> = new Set();
   private isStreaming = false;
 
+  private loadKnownNotifIds(): Set<number> {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const raw = sessionStorage.getItem('bengkel_known_notif_ids');
+        return raw ? new Set(JSON.parse(raw)) : new Set();
+      }
+    } catch {}
+    return new Set();
+  }
+
+  private saveKnownNotifIds() {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const arr = Array.from(this.lastKnownNotifIds).slice(-300);
+        sessionStorage.setItem('bengkel_known_notif_ids', JSON.stringify(arr));
+      }
+    } catch {}
+  }
+
   constructor() {
+    this.lastKnownNotifIds = this.loadKnownNotifIds();
     this.initBroadcastChannel();
     this.setupAudioUnlocker();
     this.initSSE();
@@ -145,14 +165,18 @@ class RealtimeNotificationHub {
           if (this.lastKnownNotifIds.size === 0) {
             // First run: seed existing IDs so we only alert on NEW incoming items
             notifs.forEach((n) => this.lastKnownNotifIds.add(n.id));
+            this.saveKnownNotifIds();
             return;
           }
 
           // Detect new arrivals
           const incoming = notifs.filter((n) => !this.lastKnownNotifIds.has(n.id));
-          incoming.forEach((n) => {
-            this.lastKnownNotifIds.add(n.id);
+          if (incoming.length > 0) {
+            incoming.forEach((n) => this.lastKnownNotifIds.add(n.id));
+            this.saveKnownNotifIds();
+          }
 
+          incoming.forEach((n) => {
             // Infer event type from notification title & link_tab
             let evtType: EventType = 'SPK_STATUS_CHANGED';
             const titleLower = (n.title || '').toLowerCase();
@@ -173,7 +197,7 @@ class RealtimeNotificationHub {
               : ['ALL'];
 
             const syntheticEvent: RealtimeEvent = {
-              id: `sse-notif-${n.id}-${Date.now()}`,
+              id: `notif-${n.id}`,
               type: evtType,
               targetRoles,
               title: n.title,

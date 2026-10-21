@@ -44,13 +44,30 @@ export const FloatingNotificationToast: React.FC = () => {
         return;
       }
 
+      // 3. Deduplikasi event toast agar tidak muncul berulang kali pada tab atau sesi yang sama
+      const eventKey = `seen_toast_${event.id}`;
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          if (sessionStorage.getItem(eventKey)) {
+            return;
+          }
+          sessionStorage.setItem(eventKey, '1');
+        }
+      } catch {}
+
       const newToast: ToastItem = {
         id: event.id,
         event,
         createdAt: Date.now(),
       };
 
-      setToasts((prev) => [newToast, ...prev.slice(0, 2)]); // Keep max 3 toasts
+      setToasts((prev) => {
+        // Cegah duplikasi item jika id atau kombinasi title+message yang sama sudah ada di tampilan
+        if (prev.some((t) => t.id === newToast.id || (t.event.title === newToast.event.title && t.event.message === newToast.event.message))) {
+          return prev;
+        }
+        return [newToast, ...prev.slice(0, 2)];
+      });
 
       // Auto dismiss after 6.5 seconds
       setTimeout(() => {
