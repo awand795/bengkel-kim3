@@ -37,7 +37,7 @@ export const Sidebar: React.FC = () => {
 
   const securityNavigationItems: NavItem[] = [
     { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'security-booking', label: 'Booking', icon: Calendar },
+    { id: 'security-booking', label: 'Daftar Booking', icon: Calendar },
     { id: 'security-checkin', label: 'Check In', icon: ArrowRightCircle },
     { id: 'security-onprogress', label: 'Dalam Bengkel', icon: Wrench },
     { id: 'security-checkout', label: 'Check Out', icon: LogOut },
