@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { 
   LayoutDashboard, 
@@ -191,76 +192,13 @@ const SecurityTablePagination: React.FC<SecurityTablePaginationProps> = ({
   );
 };
 
-// Global in-memory & session cache to ensure instant data rendering across sidebar navigation (no 0 flashing)
-let cachedSecurityStats: SecurityDashboardStats = (() => {
-  try {
-    const saved = sessionStorage.getItem('kim3_sec_stats');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return {
-    total_masuk_hari_ini: 0,
-    total_di_dalam: 0,
-    total_siap_keluar: 0,
-    total_booking_hari_ini: 0,
-    total_keluar_hari_ini: 0,
-  };
-})();
-
-let cachedBookingList: SecurityBookingItem[] = (() => {
-  try {
-    const saved = sessionStorage.getItem('kim3_sec_bookings');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return [];
-})();
-
-let cachedKunjunganDiDalam: KunjunganGerbang[] = (() => {
-  try {
-    const saved = sessionStorage.getItem('kim3_sec_didalam');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return [];
-})();
-
-let cachedOnProgressList: SecurityOnProgressItem[] = (() => {
-  try {
-    const saved = sessionStorage.getItem('kim3_sec_onprogress');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return [];
-})();
-
-let cachedRiwayatKeluar: SecurityRiwayatKeluarItem[] = (() => {
-  try {
-    const saved = sessionStorage.getItem('kim3_sec_riwayat');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return [];
-})();
-
-let cachedMemoList: MemoKeluarItem[] = (() => {
-  try {
-    const saved = sessionStorage.getItem('kim3_sec_memo');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return [];
-})();
-
 export const SecurityPortalView: React.FC = () => {
+  const queryClient = useQueryClient();
   const { activeTab, setActiveTab, authUser } = useAppStore();
 
   // Internal tab state: 'dashboard' | 'booking' | 'checkin' | 'onprogress' | 'keluar' | 'memo'
   const currentTab = activeTab.replace('security-', '');
 
-  // State data utama (diinisialisasi dari cache agar instan saat pindah-pindah menu sidebar)
-  const [stats, setStats] = useState<SecurityDashboardStats>(cachedSecurityStats);
-  const [bookingList, setBookingList] = useState<SecurityBookingItem[]>(cachedBookingList);
-  const [kunjunganDiDalam, setKunjunganDiDalam] = useState<KunjunganGerbang[]>(cachedKunjunganDiDalam);
-  const [onProgressList, setOnProgressList] = useState<SecurityOnProgressItem[]>(cachedOnProgressList);
-  const [riwayatKeluarList, setRiwayatKeluarList] = useState<SecurityRiwayatKeluarItem[]>(cachedRiwayatKeluar);
-  const [memoList, setMemoList] = useState<MemoKeluarItem[]>(cachedMemoList);
-
-  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [riwayatPeriode, setRiwayatPeriode] = useState<'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA'>('HARI_INI');
 
@@ -303,8 +241,62 @@ export const SecurityPortalView: React.FC = () => {
   const [selectedMemoDetail, setSelectedMemoDetail] = useState<MemoKeluarItem | null>(null);
 
   // Master Employee PIC dari API (sch_pos.tbl_employee via sch_fleet.v_pos_employee)
-  const [employeeList, setEmployeeList] = useState<MasterEmployee[]>([]);
-  const [isEmployeeLoading, setIsEmployeeLoading] = useState(false);
+  const { data: employeeList = [], isLoading: isEmployeeLoading } = useQuery({
+    queryKey: ['master-employees'],
+    queryFn: () => api.getMasterEmployee(),
+    staleTime: 300000,
+  });
+
+  // Queries TanStack React Query (instan saat pindah-pindah tab, background revalidation)
+  const { data: rawStats } = useQuery({
+    queryKey: ['security-dashboard'],
+    queryFn: () => api.getSecurityDashboardStats(),
+    staleTime: 10000,
+  });
+
+  const { data: bookingList = [] } = useQuery({
+    queryKey: ['security-booking-list'],
+    queryFn: () => api.getSecurityBookingList(),
+    staleTime: 10000,
+  });
+
+  const { data: onProgressList = [] } = useQuery({
+    queryKey: ['security-onprogress'],
+    queryFn: () => api.getSecurityOnProgress(),
+    staleTime: 10000,
+  });
+
+  const { data: riwayatKeluarList = [] } = useQuery({
+    queryKey: ['security-riwayat-keluar', riwayatPeriode],
+    queryFn: () => api.getSecurityRiwayatKeluar(riwayatPeriode),
+    staleTime: 30000,
+  });
+
+  const { data: memoList = [] } = useQuery({
+    queryKey: ['security-memo'],
+    queryFn: () => api.getSecurityMemoKeluar(),
+    staleTime: 30000,
+  });
+
+  // Perhitungan statistik dashboard yang reaktif dan akurat
+  const today = new Date().toISOString().split('T')[0];
+  const activeBookingsCount = useMemo(() => {
+    return bookingList.filter((b) => {
+      const isToday = b.tanggal_booking ? b.tanggal_booking.slice(0, 10) === today : true;
+      return isToday && !b.sudah_checkin && b.status !== 'Check In' && b.status !== 'Dibatalkan';
+    }).length;
+  }, [bookingList, today]);
+
+  const stats: SecurityDashboardStats = useMemo(() => ({
+    total_masuk_hari_ini: rawStats?.total_masuk_hari_ini ?? 0,
+    total_di_dalam: rawStats?.total_di_dalam ?? 0,
+    total_siap_keluar: rawStats?.total_siap_keluar ?? 0,
+    total_booking_hari_ini:
+      rawStats?.total_booking_hari_ini && rawStats.total_booking_hari_ini > 0
+        ? rawStats.total_booking_hari_ini
+        : activeBookingsCount,
+    total_keluar_hari_ini: rawStats?.total_keluar_hari_ini ?? 0,
+  }), [rawStats, activeBookingsCount]);
 
   // Helper: Format label PIC dengan jabatan/jobposition dari database
   const getEmployeeDisplayLabel = (emp?: MasterEmployee | null) => {
@@ -401,123 +393,18 @@ export const SecurityPortalView: React.FC = () => {
     });
   };
 
-  // Load Initial Data (mendukung silent update untuk SSE real-time tanpa flickering spinner)
-  const loadDashboardData = async (silent: boolean = false) => {
-    if (!silent) setIsLoading(true);
-    try {
-      const [s, didalam, bookings, prog] = await Promise.all([
-        api.getSecurityDashboardStats(),
-        api.getSecurityKunjungan({ status_gerbang: 'DI_DALAM' }),
-        api.getSecurityBookingList(),
-        api.getSecurityOnProgress(),
-      ]);
-
-      const today = new Date().toISOString().split('T')[0];
-      const activeBookingsCount = bookings.filter((b) => {
-        const isToday = b.tanggal_booking ? b.tanggal_booking.slice(0, 10) === today : true;
-        return isToday && !b.sudah_checkin && b.status !== 'Check In' && b.status !== 'Dibatalkan';
-      }).length;
-
-      const newStats: SecurityDashboardStats = {
-        ...s,
-        total_booking_hari_ini: s.total_booking_hari_ini > 0 ? s.total_booking_hari_ini : activeBookingsCount,
-      };
-
-      setStats(newStats);
-      setKunjunganDiDalam(didalam);
-      setBookingList(bookings);
-      setOnProgressList(prog);
-
-      // Sinkronkan ke cache memori & sessionStorage agar instan saat navigasi sidebar (tidak 0 lagi)
-      cachedSecurityStats = newStats;
-      cachedKunjunganDiDalam = didalam;
-      cachedBookingList = bookings;
-      cachedOnProgressList = prog;
-      try {
-        sessionStorage.setItem('kim3_sec_stats', JSON.stringify(newStats));
-        sessionStorage.setItem('kim3_sec_bookings', JSON.stringify(bookings));
-        sessionStorage.setItem('kim3_sec_didalam', JSON.stringify(didalam));
-        sessionStorage.setItem('kim3_sec_onprogress', JSON.stringify(prog));
-      } catch {}
-    } catch (err: any) {
-      console.error('Failed to load security dashboard:', err);
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  };
-
-  // Fetch Master Employee real dari API (sch_pos.tbl_employee via sch_fleet.v_pos_employee)
-  const loadEmployeeData = async () => {
-    setIsEmployeeLoading(true);
-    try {
-      const employees = await api.getMasterEmployee();
-      setEmployeeList(employees);
-      // Auto-set ke Service Advisor pertama dari database jika belum ada PIC yang dipilih
-      setCheckInForm((prev) => {
-        if (!prev.bertemu_dengan && prev.tipe_kunjungan === 'SERVICE' && employees.length > 0) {
-          const sa = employees.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
-          if (sa) {
-            return { ...prev, bertemu_dengan: getEmployeeDisplayLabel(sa) };
-          }
-        }
-        return prev;
-      });
-    } catch (err: any) {
-      console.error('Master employee API call:', err);
-      setEmployeeList([]);
-    } finally {
-      setIsEmployeeLoading(false);
-    }
-  };
-
-  const loadRiwayatKeluar = async (
-    periode?: 'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA',
-    silent: boolean = false
-  ) => {
-    if (!silent && cachedRiwayatKeluar.length === 0) setIsLoading(true);
-    try {
-      const list = await api.getSecurityRiwayatKeluar(periode);
-      setRiwayatKeluarList(list);
-      cachedRiwayatKeluar = list;
-      try {
-        sessionStorage.setItem('kim3_sec_riwayat', JSON.stringify(list));
-      } catch {}
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  };
-
-  const loadMemoList = async (search?: string, silent: boolean = false) => {
-    if (!silent && cachedMemoList.length === 0) setIsLoading(true);
-    try {
-      const list = await api.getSecurityMemoKeluar(search);
-      setMemoList(list);
-      cachedMemoList = list;
-      try {
-        sessionStorage.setItem('kim3_sec_memo', JSON.stringify(list));
-      } catch {}
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  };
-
+  // Auto-set Service Advisor jika form belum memiliki PIC
   useEffect(() => {
-    const hasCache =
-      cachedSecurityStats.total_masuk_hari_ini > 0 ||
-      cachedSecurityStats.total_di_dalam > 0 ||
-      cachedSecurityStats.total_booking_hari_ini > 0 ||
-      cachedBookingList.length > 0 ||
-      cachedKunjunganDiDalam.length > 0;
+    if (!checkInForm.bertemu_dengan && checkInForm.tipe_kunjungan === 'SERVICE' && employeeList.length > 0) {
+      const sa = employeeList.find((e) => (e.jobposition || e.department || '').toLowerCase().includes('advisor'));
+      if (sa) {
+        setCheckInForm((prev) => ({ ...prev, bertemu_dengan: getEmployeeDisplayLabel(sa) }));
+      }
+    }
+  }, [employeeList, checkInForm.bertemu_dengan, checkInForm.tipe_kunjungan]);
 
-    // Jika sudah ada data di cache, render langsung & revalidasi di background (tanpa loading spinner & tanpa 0)
-    loadDashboardData(hasCache);
-    loadEmployeeData();
-
-    // Subscribe ke event realtime SSE (Booking baru dari customer, status check in, spk, dll.)
+  // Subscribe ke event realtime SSE (Booking baru dari customer, status check in, spk, memo dll.)
+  useEffect(() => {
     const unsubscribe = realtimeHub.subscribe((evt) => {
       if (
         evt.type === 'BOOKING_CREATED' ||
@@ -526,35 +413,18 @@ export const SecurityPortalView: React.FC = () => {
         evt.type === 'MEMO_TERBIT' ||
         evt.type === 'SPK_STATUS_CHANGED'
       ) {
-        loadDashboardData(true);
-        if (currentTab === 'keluar') {
-          loadRiwayatKeluar(riwayatPeriode, true);
-        } else if (currentTab === 'memo') {
-          loadMemoList(searchQuery, true);
-        }
+        queryClient.invalidateQueries({ queryKey: ['security-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['security-booking-list'] });
+        queryClient.invalidateQueries({ queryKey: ['security-onprogress'] });
+        queryClient.invalidateQueries({ queryKey: ['security-riwayat-keluar'] });
+        queryClient.invalidateQueries({ queryKey: ['security-memo'] });
       }
     });
 
-    // Auto-sync real-time interval background setiap 4 detik tanpa jeda/flicker
-    const liveSyncInterval = setInterval(() => {
-      loadDashboardData(true);
-    }, 4000);
-
     return () => {
       unsubscribe();
-      clearInterval(liveSyncInterval);
     };
-  }, [currentTab, riwayatPeriode, searchQuery]);
-
-  useEffect(() => {
-    if (currentTab === 'keluar') {
-      loadRiwayatKeluar(riwayatPeriode, cachedRiwayatKeluar.length > 0);
-    } else if (currentTab === 'memo') {
-      loadMemoList(searchQuery, cachedMemoList.length > 0);
-    } else if (currentTab === 'booking' || currentTab === 'onprogress') {
-      loadDashboardData(true);
-    }
-  }, [currentTab, riwayatPeriode]);
+  }, [queryClient]);
 
   // Handle Pilih & Isi Otomatis dari Booking
   const handlePilihBooking = (booking: SecurityBookingItem) => {
@@ -589,8 +459,10 @@ export const SecurityPortalView: React.FC = () => {
       // Reset form ke kondisi awal
       resetCheckInForm();
 
-      // Reload data and switch to On Progress tab
-      loadDashboardData();
+      // Invalidate cache and switch to On Progress tab
+      queryClient.invalidateQueries({ queryKey: ['security-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['security-booking-list'] });
+      queryClient.invalidateQueries({ queryKey: ['security-onprogress'] });
       setActiveTab('security-onprogress');
     } catch (err: any) {
       toast.error(getApiErrorMessage(err, 'Gagal memproses Check-In gerbang.'));
@@ -607,7 +479,10 @@ export const SecurityPortalView: React.FC = () => {
 
   // Handle Checkout Success
   const handleCheckOutSuccess = async (memoId: number, memoNo: string) => {
-    loadDashboardData();
+    queryClient.invalidateQueries({ queryKey: ['security-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['security-onprogress'] });
+    queryClient.invalidateQueries({ queryKey: ['security-riwayat-keluar'] });
+    queryClient.invalidateQueries({ queryKey: ['security-memo'] });
     try {
       const detail = await api.getSecurityMemoDetail({ id: memoId, nomor_memo: memoNo });
       if (detail) {
@@ -1827,7 +1702,6 @@ export const SecurityPortalView: React.FC = () => {
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setMemoCurrentPage(1);
-                    loadMemoList(e.target.value);
                   }}
                   placeholder="Cari No. Polisi / No. Memo..."
                   className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#12388F]"
@@ -1853,7 +1727,6 @@ export const SecurityPortalView: React.FC = () => {
                   setSearchQuery('');
                   setMemoFilterTanggal('');
                   setMemoCurrentPage(1);
-                  loadMemoList();
                 }}
                 className="p-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 cursor-pointer"
                 title="Reset Filter"
