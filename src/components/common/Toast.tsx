@@ -16,6 +16,28 @@ type ToastListener = (toasts: ToastItem[]) => void;
 let listeners: ToastListener[] = [];
 let toastMemory: ToastItem[] = [];
 
+// Timer auto-dismiss per toast. Disimpan agar bisa dibatalkan saat toast
+// ditutup manual (tombol X) atau tergusur karena batas 5 item.
+const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+// Durasi tampil default per jenis. Toast error diberi waktu lebih lama
+// karena pesannya perlu dibaca. Set `duration: 0` saat memanggil toast
+// bila ingin toast menetap sampai ditutup manual.
+const TOAST_DURATION: Record<ToastType, number> = {
+  success: 4000,
+  info: 4000,
+  warning: 5000,
+  error: 6000,
+};
+
+const clearTimer = (id: string) => {
+  const timer = dismissTimers.get(id);
+  if (timer) {
+    clearTimeout(timer);
+    dismissTimers.delete(id);
+  }
+};
+
 const notify = () => {
   listeners.forEach((listener) => listener([...toastMemory]));
 };
@@ -28,17 +50,31 @@ export const toast = {
     }
     const id = Math.random().toString(36).substring(2, 9);
     const newToast: ToastItem = {
-      id,
-      duration: item.duration ?? 4000,
       ...item,
+      id,
+      // `...item` di atas tidak boleh menimpa duration: spread dulu, baru hitung default.
+      duration: item.duration ?? TOAST_DURATION[item.type] ?? 4000,
     };
     toastMemory = [newToast, ...toastMemory].slice(0, 5); // Keep max 5 visible
+
+    // Bersihkan timer milik toast yang tergusur dari tampilan
+    const activeIds = new Set(toastMemory.map((t) => t.id));
+    dismissTimers.forEach((timer, timerId) => {
+      if (!activeIds.has(timerId)) {
+        clearTimeout(timer);
+        dismissTimers.delete(timerId);
+      }
+    });
+
     notify();
 
     if (newToast.duration && newToast.duration > 0) {
-      setTimeout(() => {
-        toast.dismiss(id);
-      }, newToast.duration);
+      dismissTimers.set(
+        id,
+        setTimeout(() => {
+          toast.dismiss(id);
+        }, newToast.duration)
+      );
     }
     return id;
   },
@@ -48,7 +84,7 @@ export const toast = {
   },
 
   error: (title: string, message?: string, duration?: number) => {
-    return toast.show({ type: 'error', title, message, duration: duration ?? 5000 });
+    return toast.show({ type: 'error', title, message, duration });
   },
 
   info: (title: string, message?: string, duration?: number) => {
@@ -60,11 +96,14 @@ export const toast = {
   },
 
   dismiss: (id: string) => {
+    clearTimer(id);
     toastMemory = toastMemory.filter((t) => t.id !== id);
     notify();
   },
 
   clear: () => {
+    dismissTimers.forEach((timer) => clearTimeout(timer));
+    dismissTimers.clear();
     toastMemory = [];
     notify();
   },
