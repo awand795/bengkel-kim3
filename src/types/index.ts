@@ -86,6 +86,8 @@ export interface Kendaraan {
   status_aktif: boolean;
   active?: boolean;
   foto_kendaraan?: string;
+  /** true bila unit sedang berada di bengkel (kunjungan gerbang status DI_DALAM) */
+  di_bengkel?: boolean | null;
 }
 
 export interface MasterBrand {

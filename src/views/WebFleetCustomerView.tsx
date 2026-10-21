@@ -1721,6 +1721,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: kendaraanList } = useQuery({
     queryKey: ['kendaraan-list'],
     queryFn: api.getKendaraan,
+    // Segarkan agar status di_bengkel (dari pos gerbang) cepat ter-update
+    refetchInterval: 30000,
   });
 
   const { data: masterMerkList = [] } = useQuery({
@@ -1785,6 +1787,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryKey: ['kendaraan-page', armadaPage, armadaLimit, armadaQuery],
     queryFn: () => api.getKendaraanPage({ page: armadaPage, limit: armadaLimit, q: armadaQuery }),
     placeholderData: (prev) => prev,
+    // Status di_bengkel bisa berubah kapan saja dari pos gerbang
+    refetchInterval: 30000,
   });
 
   // Riwayat service per halaman (server-side pagination + search)
@@ -1951,6 +1955,30 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Himpunan plat nomor kendaraan kendaraan customer
   const myPlateSet = new Set(myKendaraanList.map((k) => k.no_polisi.toUpperCase().replace(/\s+/g, '')));
 
+  // Helper: Cek apakah kendaraan saat ini aktif berada di dalam bengkel (belum check-out)
+  const isKendaraanInBengkel = useCallback((nopol?: string): boolean => {
+    if (!nopol) return false;
+    const cleanP = normalizePlat(nopol);
+    if (!cleanP) return false;
+    return (spkList || []).some((s) => {
+      if (normalizePlat(s.no_polisi) !== cleanP) return false;
+      return s.status_spk !== 'Selesai' && !s.waktu_check_out;
+    });
+  }, [spkList]);
+
+  // Helper: unit tidak boleh dibooking selama masih di dalam bengkel.
+  // Sumber utama = kolom di_bengkel dari /kim3/kendaraan (kunjungan gerbang
+  // berstatus DI_DALAM). SPK berjalan dipakai sebagai cadangan untuk unit lama
+  // yang belum punya tiket gerbang, supaya badge dan tombol selalu sepakat.
+  const isUnitInWorkshop = useCallback(
+    (k?: { no_polisi?: string; di_bengkel?: boolean | null } | null): boolean => {
+      if (!k) return false;
+      if (k.di_bengkel) return true;
+      return isKendaraanInBengkel(k.no_polisi);
+    },
+    [isKendaraanInBengkel]
+  );
+
   // Pilihan kendaraan di modal booking (Step 1): filter by plat nomor, merk, model + pagination
   const filteredBookingKendaraanList = useMemo(() => {
     const q = bookingKendaraanSearch.trim().toLowerCase().replace(/\s+/g, '');
@@ -1969,6 +1997,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     (bookingKendaraanSafePage - 1) * bookingKendaraanLimit,
     bookingKendaraanSafePage * bookingKendaraanLimit
   );
+
+  // Unit yang sedang terpilih di wizard booking (untuk menolak unit yang masih di bengkel)
+  const selectedBookingKendaraan = useMemo(
+    () => myKendaraanList.find((k) => normalizePlat(k.no_polisi) === normalizePlat(bookingForm.no_polisi)),
+    [myKendaraanList, bookingForm.no_polisi]
+  );
+
+  // Bila data terbaru menyatakan unit terpilih baru saja masuk bengkel, lepaskan pilihannya
+  React.useEffect(() => {
+    if (!openBookingModal || !bookingForm.no_polisi) return;
+    if (!isUnitInWorkshop(selectedBookingKendaraan)) return;
+    const plat = bookingForm.no_polisi;
+    setBookingForm((prev) => ({ ...prev, no_polisi: '' }));
+    setBookingStep(1);
+    toast.warning(
+      'Unit Sedang di Bengkel',
+      `Unit ${formatPlat(plat)} baru saja masuk bengkel. Silakan pilih unit lain.`
+    );
+  }, [openBookingModal, bookingForm.no_polisi, selectedBookingKendaraan, isUnitInWorkshop]);
 
   // Otomatis sinkronkan halaman kendaraan di modal booking saat unit tertentu dipilih
   React.useEffect(() => {
@@ -2069,6 +2116,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       setFleetMenu('booking');
       return;
     }
+    // Unit yang masih di dalam bengkel tidak boleh dibooking (lihat di_bengkel / SPK berjalan)
+    const targetUnit = (kendaraanList || []).find(
+      (k) => normalizePlat(k.no_polisi) === normalizePlat(fleetPendingBookingPlate)
+    );
+    if (isUnitInWorkshop(targetUnit || { no_polisi: fleetPendingBookingPlate })) {
+      setFleetPendingBookingPlate(null);
+      toast.warning(
+        'Unit Sedang di Bengkel',
+        `Unit ${formatPlat(fleetPendingBookingPlate)} masih di bengkel. Booking bisa dibuat lagi setelah unit check out.`
+      );
+      return;
+    }
     const minDate = getLocalDateStr(1);
     setBookingForm((prev) => ({
       ...prev,
@@ -2078,7 +2137,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     setBookingStep(2);
     setOpenBookingModal(true);
     setFleetPendingBookingPlate(null);
-  }, [fleetPendingBookingPlate, fleetMenu, setFleetPendingBookingPlate]);
+  }, [fleetPendingBookingPlate, fleetMenu, setFleetPendingBookingPlate, kendaraanList, isUnitInWorkshop]);
 
   // Kalau jumlah data menyusut (mis. filter pencarian aktif) sampai halaman aktif
   // melewati halaman terakhir, tarik kembali ke halaman terakhir yang valid.
@@ -2140,17 +2199,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (isBookingPast(b)) return 'Booking Canceled';
     return 'Booked';
   }, [isBookingCheckedIn, isBookingPast]);
-
-  // Helper: Cek apakah kendaraan saat ini aktif berada di dalam bengkel (belum check-out)
-  const isKendaraanInBengkel = useCallback((nopol?: string): boolean => {
-    if (!nopol) return false;
-    const cleanP = normalizePlat(nopol);
-    if (!cleanP) return false;
-    return (spkList || []).some((s) => {
-      if (normalizePlat(s.no_polisi) !== cleanP) return false;
-      return s.status_spk !== 'Selesai' && !s.waktu_check_out;
-    });
-  }, [spkList]);
 
   // Helper: Status badge masa berlaku dokumen (berlaku > 30 hari, mendekati <= 30 hari, kadaluarsa < 0)
   const renderDocExpiryBadge = useCallback((dateStr?: string | null) => {
@@ -2546,6 +2594,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       }
       if (bookingForm.tanggal_booking < minBookingDate) {
         throw new Error(`Pemesanan jadwal booking service wajib minimal H+1 dari hari ini (mulai ${minBookingDate}).`);
+      }
+      if (isUnitInWorkshop(selectedBookingKendaraan || { no_polisi: bookingForm.no_polisi })) {
+        throw new Error(
+          `Unit ${formatPlat(bookingForm.no_polisi)} masih berada di bengkel. Booking bisa dibuat lagi setelah unit check out.`
+        );
       }
 
       return api.tambahBooking({
@@ -3132,6 +3185,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     toast.warning('Pilih Kendaraan', 'Silakan pilih kendaraan yang akan diservis.');
                     return;
                   }
+                  if (isUnitInWorkshop(selectedBookingKendaraan || { no_polisi: bookingForm.no_polisi })) {
+                    toast.warning(
+                      'Unit Sedang di Bengkel',
+                      `Unit ${formatPlat(bookingForm.no_polisi)} masih di bengkel. Pilih unit lain atau tunggu sampai unit check out.`
+                    );
+                    return;
+                  }
                   setBookingStep(2);
                 } else if (bookingStep === 2) {
                   if (isCustomService && !customServiceText.trim()) {
@@ -3163,13 +3223,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 {
                   id: 'kendaraan',
                   label: 'Pilih Kendaraan',
-                  isValid: !!bookingForm.no_polisi && myKendaraanList.length > 0,
+                  isValid: !!bookingForm.no_polisi && myKendaraanList.length > 0 && !isUnitInWorkshop(selectedBookingKendaraan),
                   content: (
                     <div className="space-y-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <h3 className="text-sm font-bold tracking-tight text-ink">Pilih kendaraan untuk diservis</h3>
                           <p className="mt-0.5 text-[11px] text-ink-muted">Pilih satu unit dari armada perusahaan Anda.</p>
+                          {myKendaraanList.some((k) => isUnitInWorkshop(k)) && (
+                            <p className="mt-1.5 flex items-start gap-1.5 text-[11px] font-medium text-status-amber">
+                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              Unit yang sedang di bengkel tidak bisa dipilih sampai unit check out.
+                            </p>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -3228,13 +3294,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         {filteredBookingKendaraanList.length > 0 ? (
                           bookingKendaraanPaginated.map((k) => {
                             const isSelected = bookingForm.no_polisi === k.no_polisi;
+                            const inWorkshop = isUnitInWorkshop(k);
                             return (
                               <label
                                 key={k.id}
-                                className={`group flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-3 py-3 transition-colors sm:px-4 ${
-                                  isSelected
-                                    ? 'border-[#34517C] bg-[#F4F7FC] ring-1 ring-[#34517C]/10 dark:bg-blue-950/20'
-                                    : 'border-border bg-white hover:border-[#B8C7DC] hover:bg-[#FAFBFD] dark:bg-surface-raised dark:hover:bg-surface'
+                                aria-disabled={inWorkshop || undefined}
+                                onClick={(e) => {
+                                  if (!inWorkshop) return;
+                                  e.preventDefault();
+                                  toast.warning(
+                                    'Unit Sedang di Bengkel',
+                                    `Unit ${formatPlat(k.no_polisi)} masih di bengkel dan belum bisa dipilih untuk booking.`
+                                  );
+                                }}
+                                className={`group flex items-center justify-between gap-3 rounded-xl border px-3 py-3 transition-colors sm:px-4 ${
+                                  inWorkshop
+                                    ? 'cursor-not-allowed border-border bg-surface opacity-60'
+                                    : isSelected
+                                      ? 'cursor-pointer border-[#34517C] bg-[#F4F7FC] ring-1 ring-[#34517C]/10 dark:bg-blue-950/20'
+                                      : 'cursor-pointer border-border bg-white hover:border-[#B8C7DC] hover:bg-[#FAFBFD] dark:bg-surface-raised dark:hover:bg-surface'
                                 }`}
                               >
                                 <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -3274,17 +3352,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                   </div>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2 pl-1">
-                                  <span className="hidden items-center gap-1 rounded-md border border-status-green/25 bg-status-green-bg px-2 py-1 text-[10px] font-semibold text-status-green sm:inline-flex">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-status-green" />
-                                    Aktif
-                                  </span>
+                                  {inWorkshop ? (
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-status-amber/30 bg-status-amber-bg px-2 py-1 text-[10px] font-semibold text-status-amber">
+                                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-amber" />
+                                      Di Bengkel
+                                    </span>
+                                  ) : (
+                                    <span className="hidden items-center gap-1 rounded-md border border-status-green/25 bg-status-green-bg px-2 py-1 text-[10px] font-semibold text-status-green sm:inline-flex">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-status-green" />
+                                      Aktif
+                                    </span>
+                                  )}
                                   <input
                                     type="radio"
                                     name="booking_kendaraan"
                                     checked={isSelected}
-                                    onChange={() => setBookingForm({ ...bookingForm, no_polisi: k.no_polisi })}
-                                    aria-label={`Pilih kendaraan ${formatPlat(k.no_polisi)}`}
-                                    className="h-4 w-4 shrink-0 cursor-pointer accent-[#34517C]"
+                                    disabled={inWorkshop}
+                                    onChange={() => setBookingForm((prev) => ({ ...prev, no_polisi: k.no_polisi }))}
+                                    aria-label={`Pilih kendaraan ${formatPlat(k.no_polisi)}${inWorkshop ? ' (sedang di bengkel)' : ''}`}
+                                    className={`h-4 w-4 shrink-0 accent-[#34517C] ${inWorkshop ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                   />
                                 </div>
                               </label>
@@ -3721,7 +3807,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <>
               <div className="space-y-3">
               {armadaRows.map((k) => {
-                const sedangDiBengkel = isKendaraanInBengkel(k.no_polisi);
+                const sedangDiBengkel = isUnitInWorkshop(k);
                 return (
                   <div
                     key={k.id}
@@ -3843,10 +3929,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border pt-3 xl:flex-col xl:items-stretch xl:justify-center xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
                       <button
                         type="button"
-                        disabled={!isVerifiedByAdmin}
+                        disabled={!isVerifiedByAdmin || sedangDiBengkel}
                         onClick={() => {
                           if (!isVerifiedByAdmin) {
                             toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                            return;
+                          }
+                          if (sedangDiBengkel) {
+                            toast.warning(
+                              'Unit Sedang di Bengkel',
+                              `Unit ${formatPlat(k.no_polisi)} masih berada di bengkel. Booking bisa dibuat lagi setelah unit check out.`
+                            );
                             return;
                           }
                           const minDate = getLocalDateStr(1);
@@ -3867,9 +3960,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           );
                         }}
                         className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#12388F] bg-[#12388F] px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-[#12388F]/15 transition-colors hover:border-[#0D2A6B] hover:bg-[#0D2A6B] dark:border-blue-600 dark:bg-blue-600 dark:hover:border-blue-500 dark:hover:bg-blue-500 ${
-                          !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          !isVerifiedByAdmin || sedangDiBengkel ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                         }`}
-                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : undefined}
+                        title={
+                          !isVerifiedByAdmin
+                            ? 'Akun belum terverifikasi oleh admin'
+                            : sedangDiBengkel
+                              ? 'Unit sedang di bengkel — booking tersedia setelah check out'
+                              : undefined
+                        }
                       >
                         <Calendar className="w-3.5 h-3.5" />
                         <span>Booking</span>
