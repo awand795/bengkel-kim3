@@ -7,7 +7,6 @@ import {
   X, 
   Building2, 
   Mail, 
-  CheckCircle2,
   Sun,
   Moon
 } from 'lucide-react';
@@ -267,14 +266,6 @@ export const Navbar: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-3 rounded-md bg-surface border border-border text-[11px] text-ink-muted space-y-1">
-                <div className="font-semibold text-ink flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-status-green" />
-                  <span>Sesi Web Fleet Aktif</span>
-                </div>
-                <p>Status pelacakan kendaraan dan persetujuan estimasi realtime.</p>
-              </div>
-
               <div className="flex items-center justify-between p-3 rounded-md bg-surface border border-border">
                 <div className="flex items-center gap-2">
                   {theme === 'dark' ? (
@@ -302,7 +293,7 @@ export const Navbar: React.FC = () => {
                 className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-accent-subtle text-accent border border-accent/25 font-bold text-xs hover:bg-accent hover:text-white transition-colors cursor-pointer"
               >
                 <User className="w-4 h-4" />
-                <span>Edit Profil Perusahaan</span>
+                <span>Edit Profil</span>
               </button>
 
               <button
