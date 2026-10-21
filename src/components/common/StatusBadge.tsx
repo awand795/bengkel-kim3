@@ -28,7 +28,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'estimasi disetujui':
         return 'bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]/40 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/50';
 
-      // Amber: Diproses / Diservis / Menunggu Pengerjaan / Sparepart
+      // Amber: Diproses / Diservis / Menunggu Pengerjaan / Sparepart / Menunggu Konfirmasi
       case 'proses pengerjaan':
       case 'dalam pengerjaan':
       case 'sedang dikerjakan':
@@ -39,6 +39,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'barang siap diambil':
       case 'barang diserahkan':
       case 'pending':
+      case 'menunggu konfirmasi':
       case 'menunggu approval customer':
       case 'menunggu approval':
       case 'waiting part':
@@ -49,7 +50,15 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'menunggu qc':
         return 'bg-[#FEF3C7] text-[#B45309] border-[#FCD34D]/40 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/50';
 
-      // Hijau: Selesai / QC Passed / Ready / Paid
+      // Ungu: Rescheduled
+      case 'rescheduled':
+      case 'reschedule':
+      case 'jadwal ulang':
+        return 'bg-[#EDE9FE] text-[#6D28D9] border-[#C4B5FD]/40 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/50';
+
+      // Hijau: Selesai / QC Passed / Ready / Paid / Confirmed
+      case 'confirmed':
+      case 'dikonfirmasi':
       case 'qc passed':
       case 'disetujui sa':
       case 'disetujui':

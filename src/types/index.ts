@@ -246,7 +246,14 @@ export interface BookingService {
   keluhan?: string;
   catatan?: string;
   keterangan?: string;
-  status: 'Booked' | 'Check In' | 'Checked-In' | 'Dibatalkan' | 'Booking Canceled';
+  status: 'Booked' | 'Check In' | 'Checked-In' | 'Dibatalkan' | 'Booking Canceled' | 'Confirmed' | 'Rescheduled' | 'Menunggu Konfirmasi';
+  status_pos?: 'CONFIRMED' | 'RESCHEDULED' | 'CANCELED' | string | null;
+  memo_pos?: string | null;
+  reschedule_date?: string | null;
+  tanggal_booking_awal?: string;
+  jam_booking_awal?: string;
+  is_confirmed?: boolean;
+  can_cancel?: boolean;
   kode_cabang?: string | null;
   nama_cabang?: string | null;
   is_canceled?: boolean;
@@ -610,6 +617,10 @@ export interface SecurityBookingItem {
   tipe_kendaraan?: string;
   tahun?: number;
   sudah_checkin: boolean;
+  is_confirmed?: boolean;
+  status_pos?: string;
+  memo_pos?: string;
+  reschedule_date?: string;
 }
 
 export interface SecurityOnProgressItem {

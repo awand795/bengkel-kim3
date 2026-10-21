@@ -2,7 +2,8 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, normalizePlat, formatPlat, isValidPlatIndonesia, formatPlatIndonesia, getLocalDateStr, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart } from '../types';
+import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart, MasterBrand, MasterType } from '../types';
+import { SelectMenu, type SelectMenuOption } from '../components/common/SelectMenu';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { useAppStore } from '../store/useAppStore';
 import { usePpnRate } from '../hooks/usePpnRate';
@@ -83,6 +84,76 @@ import {
   Sparkles,
   Lightbulb
 } from 'lucide-react';
+
+// Tipe / bentuk karoseri armada yang paling sering dipakai di bengkel.
+const KAROSERI_TIPE = ['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL', 'TRUK'];
+
+/** Opsi dropdown merk: master data (A–Z) + nilai unit yang belum terdaftar di master. */
+const buildMerkOptions = (masterMerkList: MasterBrand[], current: string): SelectMenuOption[] => {
+  const seen = new Set<string>();
+  const options: SelectMenuOption[] = [];
+  for (const brand of masterMerkList) {
+    const name = (brand.brandname || '').trim().toUpperCase();
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    options.push({ value: name, label: name });
+  }
+  options.sort((a, b) => a.label.localeCompare(b.label, 'id'));
+  const currentValue = (current || '').trim().toUpperCase();
+  if (currentValue && !seen.has(currentValue)) {
+    options.push({ value: currentValue, label: currentValue });
+  }
+  return options;
+};
+
+/**
+ * Opsi dropdown tipe: tipe sesuai merk terpilih lebih dulu, lalu karoseri umum,
+ * lalu tipe lain dari master POS, dan terakhir nilai tersimpan yang tak ada di master.
+ */
+const buildTipeOptions = (
+  masterTipeList: MasterType[],
+  merk: string,
+  current: string
+): SelectMenuOption[] => {
+  const seen = new Set<string>();
+  const options: SelectMenuOption[] = [];
+  const pushOption = (value: string, label: string, group: string) => {
+    const key = (value || '').trim().toUpperCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    options.push({ value: key, label: label.trim(), group });
+  };
+
+  const merkKey = (merk || '').trim().toUpperCase();
+  if (merkKey) {
+    for (const tipe of masterTipeList) {
+      if ((tipe.brandname || '').trim().toUpperCase() !== merkKey) continue;
+      const name = (tipe.typename || '').trim().toUpperCase();
+      if (!name) continue;
+      pushOption(
+        name,
+        tipe.modelname ? `${name} (${tipe.modelname.toUpperCase()})` : name,
+        `Tipe sesuai merk (${merkKey})`
+      );
+    }
+  }
+
+  for (const karoseri of KAROSERI_TIPE) {
+    pushOption(karoseri, karoseri, 'Tipe / bentuk karoseri armada');
+  }
+
+  for (const typename of Array.from(
+    new Set(masterTipeList.map((t) => (t.typename || '').trim().toUpperCase()).filter(Boolean))
+  )) {
+    pushOption(typename, typename, 'Tipe kendaraan lainnya');
+  }
+
+  const currentValue = (current || '').trim().toUpperCase();
+  if (currentValue) {
+    pushOption(currentValue, currentValue, 'Nilai saat ini');
+  }
+  return options;
+};
 
 const fmtWaktuFull = (iso?: string | null): string => {
   if (!iso || isNaN(new Date(iso).getTime())) return '';
@@ -2333,13 +2404,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Status operasional booking:
   // 1. 'Booking Canceled' bila dibatalkan atau jadwal lewat dari sekarang dan belum dikerjakan (batal otomatis)
   // 2. 'Check In' bila sudah di-check in gerbang atau terbit SPK
-  // 3. 'Booked' bila masih aktif sebelum jadwal
-  const getBookingEffectiveStatus = useCallback((b: BookingService): 'Booked' | 'Check In' | 'Booking Canceled' => {
+  // 3. 'Confirmed' bila sudah dikonfirmasi admin bengkel melalui POS
+  // 4. 'Rescheduled' bila jadwal diubah oleh admin bengkel melalui POS
+  // 5. 'Menunggu Konfirmasi' bila masih baru dan belum diverifikasi admin
+  const getBookingEffectiveStatus = useCallback((b: BookingService): 'Confirmed' | 'Rescheduled' | 'Menunggu Konfirmasi' | 'Booked' | 'Check In' | 'Booking Canceled' => {
     const rawStatus = (b.status as string) || '';
-    if (rawStatus === 'Booking Canceled' || rawStatus === 'Dibatalkan' || b.is_canceled) return 'Booking Canceled';
+    if (rawStatus === 'Booking Canceled' || rawStatus === 'Dibatalkan' || b.is_canceled || b.status_pos === 'CANCELED') return 'Booking Canceled';
     if (rawStatus === 'Check In' || rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN' || isBookingCheckedIn(b)) return 'Check In';
-    // Jadwal sudah lewat dan belum dikerjakan -> Otomatis dianggap Batal
+    // PENTING: Jika jadwal sudah lewat dari sekarang dan belum dikerjakan / check-in -> Otomatis Batal (Expired)
     if (isBookingPast(b)) return 'Booking Canceled';
+    if (rawStatus === 'Confirmed' || b.status_pos === 'CONFIRMED' || b.is_confirmed) return 'Confirmed';
+    if (rawStatus === 'Rescheduled' || b.status_pos === 'RESCHEDULED') return 'Rescheduled';
+    if (rawStatus === 'Menunggu Konfirmasi' || (!b.is_confirmed && !b.status_pos)) return 'Menunggu Konfirmasi';
     return 'Booked';
   }, [isBookingCheckedIn, isBookingPast]);
 
@@ -2379,15 +2455,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, []);
 
   // Aturan cancel booking:
-  // - Boleh dibatalkan customer kapan saja selama kendaraan belum dikerjakan / check-in.
+  // - Boleh dibatalkan customer kapan saja SELAMA belum dikonfirmasi admin bengkel (Confirmed) dan belum check-in.
+  // - Jika status Confirmed, tombol cancel terkunci permanen.
   // - Jika sudah lewat tanggal sekarang dan belum dikerjakan, booking otomatis berstatus Batal.
   const getCancelState = (b: BookingService): { allowed: boolean; reason: string } => {
-    if (b.status === 'Booking Canceled' || b.status === 'Dibatalkan' || b.is_canceled) {
+    if (b.status === 'Booking Canceled' || b.status === 'Dibatalkan' || b.is_canceled || b.status_pos === 'CANCELED') {
       return { allowed: false, reason: 'Booking sudah dibatalkan.' };
     }
     const isCheckedIn = b.status === 'Check In' || isBookingCheckedIn(b);
     if (isCheckedIn) {
       return { allowed: false, reason: 'Kendaraan sudah di-check in / sedang dikerjakan di bengkel.' };
+    }
+    if (b.status === 'Confirmed' || b.status_pos === 'CONFIRMED' || b.is_confirmed) {
+      return { allowed: false, reason: 'Booking telah dikonfirmasi oleh Admin Bengkel dan tidak dapat dibatalkan.' };
     }
     if (isBookingPast(b)) {
       return { allowed: false, reason: 'Jadwal booking sudah lewat dari hari ini (batal otomatis).' };
@@ -2401,8 +2481,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     const bStat = getBookingEffectiveStatus(b);
     if (aStat === 'Booking Canceled' && bStat !== 'Booking Canceled') return 1;
     if (bStat === 'Booking Canceled' && aStat !== 'Booking Canceled') return -1;
-    if (aStat === 'Check In' && bStat === 'Booked') return 1;
-    if (bStat === 'Check In' && aStat === 'Booked') return -1;
+    if (aStat === 'Check In' && bStat !== 'Check In') return 1;
+    if (bStat === 'Check In' && aStat !== 'Check In') return -1;
     return `${a.tanggal_booking} ${a.jam_booking}`.localeCompare(`${b.tanggal_booking} ${b.jam_booking}`);
   });
 
@@ -2457,8 +2537,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     );
   };
 
-  // ── Booking Saya: hanya menampilkan booking yang Aktif (Booked) ──────────────
-  const bookingAktifList = myBookingSorted.filter((b) => getBookingEffectiveStatus(b) === 'Booked');
+  // ── Booking Saya: hanya menampilkan booking yang Aktif (Booked, Confirmed, Rescheduled, Menunggu Konfirmasi) ─
+  const bookingAktifList = myBookingSorted.filter((b) => {
+    const eff = getBookingEffectiveStatus(b);
+    return eff === 'Booked' || eff === 'Confirmed' || eff === 'Rescheduled' || eff === 'Menunggu Konfirmasi';
+  });
   const bookingFiltered = bookingAktifList;
 
   const {
@@ -2481,11 +2564,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     bookingViewOffset + bookingViewLimit
   );
 
-  // Jadwal Booking Terdekat: hanya yang masih Booked DAN jadwalnya belum lewat.
+  // Jadwal Booking Terdekat: hanya yang berstatus aktif DAN jadwalnya belum lewat.
   // Booking yang sudah check-in (Diproses), Selesai, Dibatalkan, atau terlewat
   // tidak tampil di kartu ringkas (tetap ada di tab Booking Saya).
   const upcomingBookings = myBookingSorted.filter((b) => {
-    if (getBookingEffectiveStatus(b) !== 'Booked') return false;
+    const eff = getBookingEffectiveStatus(b);
+    if (eff !== 'Booked' && eff !== 'Confirmed' && eff !== 'Rescheduled' && eff !== 'Menunggu Konfirmasi') return false;
     const [h, m] = (b.jam_booking || '00:00').split(':').map(Number);
     const sched = new Date(
       `${b.tanggal_booking}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
@@ -2542,6 +2626,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </span>
       );
     }
+    if (effStatus === 'Confirmed' || b.is_confirmed || b.status_pos === 'CONFIRMED') {
+      return (
+        <span
+          title="Booking telah dikonfirmasi oleh Admin Bengkel dan jadwal telah dikunci."
+          className="text-xs px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-bold inline-flex items-center gap-1"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>Dikonfirmasi</span>
+        </span>
+      );
+    }
     const st = getCancelState(b);
     const isDisabled = !st.allowed || batalkanBookingMutation.isPending;
     const tooltipText = st.allowed ? 'Batalkan booking ini' : st.reason;
@@ -2576,6 +2671,98 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       </button>
     );
   };
+
+  // ── Sync & Notifikasi Status Booking dari POS (Murni Frontend & API, No DB Trigger) ──
+  // Mendeteksi perubahan status booking (CONFIRMED, RESCHEDULED, CANCELED) dari POS.
+  // Menyimpan history notifikasi di localStorage per user agar toast tidak muncul berulang saat reload/login ulang.
+  React.useEffect(() => {
+    if (!myBookingList || myBookingList.length === 0) return;
+
+    const storageKey = `bengkel_notified_booking_events_${authUser?.id || 'guest'}`;
+    let notifiedMap: Record<string, string> = {};
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) notifiedMap = JSON.parse(stored);
+    } catch {
+      notifiedMap = {};
+    }
+
+    let hasNewNotification = false;
+
+    myBookingList.forEach((b) => {
+      const bKey = String(b.no_booking || b.id || '');
+      if (!bKey) return;
+
+      const rawPosStatus = (b.status_pos || '').toUpperCase();
+      // Hanya proses event konfirmasi, reschedule, atau pembatalan dari POS
+      if (!['CONFIRMED', 'RESCHEDULED', 'CANCELED'].includes(rawPosStatus)) return;
+
+      // Jika jadwal booking sudah lewat dari sekarang dan belum dikerjakan, jangan tampilkan toast masa lalu
+      if (isBookingPast(b)) {
+        if (!notifiedMap[bKey]) {
+          notifiedMap[bKey] = rawPosStatus;
+          hasNewNotification = true;
+        }
+        return;
+      }
+
+      const lastStatus = notifiedMap[bKey];
+      // Jika status POS baru / berubah dari status yang sudah pernah di-notifkan
+      if (lastStatus !== rawPosStatus) {
+        notifiedMap[bKey] = rawPosStatus;
+        hasNewNotification = true;
+
+        const platStr = b.no_polisi ? formatPlat(b.no_polisi) : '';
+        const bookingCode = b.no_booking || `#${b.id}`;
+
+        if (rawPosStatus === 'CONFIRMED') {
+          toast.success(
+            'Booking Dikonfirmasi',
+            `Booking ${bookingCode} (${platStr}) telah dikonfirmasi oleh Admin Bengkel. Silakan datang sesuai jadwal.`
+          );
+          api.kirimNotifikasi({
+            id_pengguna: authUser?.id,
+            title: 'Booking Dikonfirmasi Admin Bengkel',
+            pesan: `Booking ${bookingCode} untuk unit ${platStr} jadwal ${b.tanggal_booking} ${b.jam_booking} WIB telah dikonfirmasi. Kendaraan Anda dapat check-in di gerbang security sesuai jadwal.`,
+            link_tab: 'fleet-booking',
+            urgency: 'success',
+          }).catch(() => {});
+        } else if (rawPosStatus === 'RESCHEDULED') {
+          toast.info(
+            'Jadwal Booking Di-reschedule',
+            `Booking ${bookingCode} diubah jadwalnya menjadi ${b.tanggal_booking} ${b.jam_booking} WIB.${b.memo_pos ? ` Catatan: ${b.memo_pos}` : ''}`
+          );
+          api.kirimNotifikasi({
+            id_pengguna: authUser?.id,
+            title: 'Jadwal Booking Di-reschedule',
+            pesan: `Jadwal booking ${bookingCode} (${platStr}) disesuaikan oleh pihak bengkel menjadi ${b.tanggal_booking} pukul ${b.jam_booking} WIB.${b.memo_pos ? ` Catatan Bengkel: ${b.memo_pos}` : ''}`,
+            link_tab: 'fleet-booking',
+            urgency: 'warning',
+          }).catch(() => {});
+        } else if (rawPosStatus === 'CANCELED') {
+          toast.warning(
+            'Booking Dibatalkan Bengkel',
+            `Booking ${bookingCode} (${platStr}) dibatalkan oleh pihak bengkel.${b.memo_pos ? ` Catatan: ${b.memo_pos}` : ''}`
+          );
+          api.kirimNotifikasi({
+            id_pengguna: authUser?.id,
+            title: 'Booking Dibatalkan Bengkel',
+            pesan: `Booking ${bookingCode} (${platStr}) tidak dapat diproses dan dibatalkan oleh bengkel.${b.memo_pos ? ` Alasan: ${b.memo_pos}` : ''}`,
+            link_tab: 'fleet-booking',
+            urgency: 'urgent',
+          }).catch(() => {});
+        }
+      }
+    });
+
+    if (hasNewNotification) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(notifiedMap));
+      } catch {}
+      realtimeHub.playChime?.();
+      queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
+    }
+  }, [myBookingList, authUser?.id, queryClient]);
 
   // Filter Dokumen khusus kendaraan milik customer yang sedang login
   const myDokumenList = (dokumenList || []).filter((d) => {
@@ -2807,6 +2994,29 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     description: '',
     foto_kendaraan: '',
   });
+
+  // Opsi dropdown merk & tipe unit kendaraan (form tambah + form edit).
+  const armadaMerkOptions = useMemo(
+    () => buildMerkOptions(masterMerkList, armadaForm.merk),
+    [masterMerkList, armadaForm.merk]
+  );
+  const armadaTipeOptions = useMemo(
+    () => buildTipeOptions(masterTipeList, armadaForm.merk, armadaForm.type || armadaForm.jenis_armada),
+    [masterTipeList, armadaForm.merk, armadaForm.type, armadaForm.jenis_armada]
+  );
+  const editArmadaMerkOptions = useMemo(
+    () => buildMerkOptions(masterMerkList, editArmadaForm.merk),
+    [masterMerkList, editArmadaForm.merk]
+  );
+  const editArmadaTipeOptions = useMemo(
+    () =>
+      buildTipeOptions(
+        masterTipeList,
+        editArmadaForm.merk,
+        editArmadaForm.type || editArmadaForm.jenis_armada
+      ),
+    [masterTipeList, editArmadaForm.merk, editArmadaForm.type, editArmadaForm.jenis_armada]
+  );
 
   const tambahArmadaMutation = useMutation({
     mutationFn: async (data: typeof armadaForm) => {
@@ -3236,6 +3446,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           <td className="whitespace-nowrap px-4 py-3.5">
                             <div className="text-xs font-semibold tabular-nums text-ink">{b.tanggal_booking}</div>
                             <div className="mt-0.5 text-[11px] tabular-nums text-ink-subtle">{b.jam_booking} WIB</div>
+                            {b.status_pos === 'RESCHEDULED' && (
+                              <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-900/50">
+                                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
+                                Di-reschedule Bengkel
+                              </div>
+                            )}
+                            {b.memo_pos && (
+                              <div className="mt-1 text-[10px] text-ink-muted italic max-w-[220px] truncate" title={b.memo_pos}>
+                                Memo: {b.memo_pos}
+                              </div>
+                            )}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3.5">
                             <StatusBadge status={getBookingEffectiveStatus(b)} size="sm" />
@@ -3260,6 +3481,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </div>
                         <p className="mt-2 truncate text-xs font-semibold text-ink">{b.jenis_layanan}</p>
                         <p className="mt-1 text-[11px] tabular-nums text-ink-muted">{b.tanggal_booking} · {b.jam_booking} WIB</p>
+                        {b.status_pos === 'RESCHEDULED' && (
+                          <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-900/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
+                            Di-reschedule Bengkel
+                          </div>
+                        )}
+                        {b.memo_pos && (
+                          <p className="mt-1 text-[11px] text-purple-800 dark:text-purple-300 bg-purple-50/60 dark:bg-purple-950/30 p-2 rounded-md border border-purple-100 dark:border-purple-900/30">
+                            <span className="font-semibold">Catatan Bengkel:</span> {b.memo_pos}
+                          </p>
+                        )}
                         <p className="mt-1 font-mono text-[10px] text-ink-subtle">{b.no_booking || `#${b.id}`}</p>
                         <div className="mt-3">
                           <BookingCancelButton b={b} compact />
@@ -4045,7 +4277,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <span className="block truncate text-xs font-semibold text-ink">{cleanField(k.type) || cleanField(k.jenis_armada) || '-'}</span>
                       </div>
                       <div className="min-w-0 rounded-lg bg-[#F7F9FC] px-3 py-2 dark:bg-slate-800/60">
-                        <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-ink-subtle">Tahun</span>
+                        <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-ink-subtle">Tahun Pembuatan</span>
                         <span className="block truncate text-xs font-semibold tabular-nums text-ink">{cleanField(k.tahun) || cleanField(k.year) || '-'}</span>
                       </div>
                       <div className="min-w-0 rounded-lg bg-[#F7F9FC] px-3 py-2 dark:bg-slate-800/60">
@@ -5395,7 +5627,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="min-w-0">
                       <h3 className="text-sm font-bold tracking-tight text-ink sm:text-base">Tambah Unit Kendaraan Baru</h3>
                       <p className="mt-0.5 text-[11px] leading-snug text-ink-muted">
-                        Daftarkan kendaraan operasional ke database Bengkel KIM 3
+                        Kolom bertanda <span className="text-status-red">*</span> wajib diisi
                       </p>
                     </div>
                   </div>
@@ -5419,7 +5651,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     return;
                   }
                   if (!isValidPlatIndonesia(rawPlat)) {
-                    toast.warning('Format plat nomor tidak valid! Gunakan standar plat Indonesia (contoh: BK 1234 ABC atau B 1234 CD).');
+                    toast.warning('Format plat belum sesuai. Contoh: BK 1234 ABC.');
                     return;
                   }
                   if (!cleanField(armadaForm.merk)) {
@@ -5444,25 +5676,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }}
                 className="flex min-h-0 flex-1 flex-col"
               >
-                <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+                <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
                   <section aria-labelledby="armada-identitas-heading">
-                    <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
-                      <div>
-                        <h4 id="armada-identitas-heading" className="text-xs font-bold text-ink">Identitas kendaraan</h4>
-                        <p className="mt-0.5 text-[11px] text-ink-subtle">Informasi utama untuk mengenali unit</p>
-                      </div>
-                      <span className="text-[10px] font-medium text-ink-subtle"><span className="text-status-red">*</span> Wajib diisi</span>
+                    <div className="mb-3 border-b border-border pb-2">
+                      <h4 id="armada-identitas-heading" className="text-xs font-bold text-ink">Identitas unit</h4>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                       <div>
                         <label htmlFor="armada-no-polisi" className="mb-1.5 block text-xs font-semibold text-ink-muted">
-                          No. Polisi (Standar Indonesia) <span className="text-status-red">*</span>
+                          Nomor Polisi <span className="text-status-red">*</span>
                         </label>
                         <input
                           id="armada-no-polisi"
                           type="text"
                           required
-                          placeholder="Contoh: BK 9999 XX atau B 1234 CD"
+                          placeholder="BK 1234 ABC"
                           value={armadaForm.no_polisi}
                           onChange={(e) => setArmadaForm({ ...armadaForm, no_polisi: e.target.value.toUpperCase() })}
                           className={`w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:outline-hidden focus:ring-2 ${
@@ -5475,66 +5703,52 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         />
                         {armadaForm.no_polisi.trim().length > 0 && !isValidPlatIndonesia(armadaForm.no_polisi) && (
                           <p className="mt-1 text-[11px] text-rose-500 leading-tight">
-                            Format tidak sesuai standar Indonesia: 1-2 huruf wilayah, 1-4 angka (tanpa diawali 0), 1-3 huruf seri (contoh: BK 1234 ABC).
+                            Format belum sesuai. Contoh: BK 1234 ABC.
                           </p>
                         )}
                         {armadaForm.no_polisi.trim().length > 0 && isValidPlatIndonesia(armadaForm.no_polisi) && (
                           <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="h-3 w-3 inline" /> Format plat valid ({formatPlatIndonesia(armadaForm.no_polisi)})
+                            <CheckCircle2 className="h-3 w-3 inline" /> Plat valid ({formatPlatIndonesia(armadaForm.no_polisi)})
                           </p>
                         )}
                       </div>
                       <div>
                         <label htmlFor="armada-unit-name" className="mb-1.5 block text-xs font-semibold text-ink-muted">
-                          Nama Unit / Panggilan
+                          Nama Unit <span className="font-normal text-ink-subtle">(opsional)</span>
                         </label>
                         <input
                           id="armada-unit-name"
                           type="text"
-                          placeholder="Contoh: Fuso Wingbox Medan-Aceh"
+                          placeholder="Fuso Medan"
                           value={armadaForm.unit_name}
                           onChange={(e) => setArmadaForm({ ...armadaForm, unit_name: e.target.value.toUpperCase() })}
                           className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         />
                       </div>
-                    </div>
-                  </section>
-
-                  <section aria-labelledby="armada-spesifikasi-heading">
-                    <div className="mb-3 border-b border-border pb-2">
-                      <h4 id="armada-spesifikasi-heading" className="text-xs font-bold text-ink">Spesifikasi unit</h4>
-                      <p className="mt-0.5 text-[11px] text-ink-subtle">Merk, model, bentuk kendaraan, dan tahun pembuatan</p>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <label htmlFor="armada-merk" className="mb-1.5 block text-xs font-semibold text-ink-muted">
                           Merk <span className="text-status-red">*</span>
                         </label>
-                        <select
+                        <SelectMenu
                           id="armada-merk"
-                          required
                           value={armadaForm.merk}
-                          onChange={(e) => setArmadaForm({ ...armadaForm, merk: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
-                        >
-                          <option value="">-- PILIH MERK KENDARAAN --</option>
-                          {masterMerkList.map((m) => (
-                            <option key={m.id} value={m.brandname.toUpperCase()}>{m.brandname.toUpperCase()}</option>
-                          ))}
-                          {armadaForm.merk && !masterMerkList.some((m) => m.brandname.toUpperCase() === armadaForm.merk.toUpperCase()) && (
-                            <option value={armadaForm.merk.toUpperCase()}>{armadaForm.merk.toUpperCase()}</option>
-                          )}
-                        </select>
+                          onChange={(merk) => setArmadaForm({ ...armadaForm, merk })}
+                          options={armadaMerkOptions}
+                          placeholder="Pilih merk…"
+                          searchable
+                          searchPlaceholder="Cari merk…"
+                          emptyMessage="Merk tidak ditemukan"
+                        />
                       </div>
                       <div>
                         <label htmlFor="armada-model" className="mb-1.5 block text-xs font-semibold text-ink-muted">
-                          Model / Seri <span className="text-status-red">*</span>
+                          Model <span className="text-status-red">*</span>
                         </label>
                         <input
                           id="armada-model"
                           type="text"
                           required
-                          placeholder="Contoh: DUTRO 130HD"
+                          placeholder="Dutro 130HD"
                           value={armadaForm.model}
                           onChange={(e) => setArmadaForm({ ...armadaForm, model: e.target.value.toUpperCase() })}
                           className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
@@ -5542,47 +5756,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       </div>
                       <div>
                         <label htmlFor="armada-type" className="mb-1.5 block text-xs font-semibold text-ink-muted">
-                          Tipe / Bentuk Kendaraan <span className="text-status-red">*</span>
+                          Tipe Kendaraan <span className="text-status-red">*</span>
                         </label>
-                        <select
+                        <SelectMenu
                           id="armada-type"
-                          required
                           value={armadaForm.type || armadaForm.jenis_armada}
-                          onChange={(e) => setArmadaForm({ ...armadaForm, type: e.target.value.toUpperCase(), jenis_armada: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
-                        >
-                          <option value="">-- PILIH TIPE KENDARAAN --</option>
-                          {armadaForm.merk && masterTipeList.filter((t) => t.brandname?.toUpperCase() === armadaForm.merk.toUpperCase()).length > 0 && (
-                            <optgroup label={`TIPE SESUAI MERK (${armadaForm.merk})`}>
-                              {masterTipeList
-                                .filter((t) => t.brandname?.toUpperCase() === armadaForm.merk.toUpperCase())
-                                .map((t) => (
-                                  <option key={`merk-tipe-${t.id}`} value={t.typename.toUpperCase()}>
-                                    {t.typename.toUpperCase()} {t.modelname ? `(${t.modelname.toUpperCase()})` : ''}
-                                  </option>
-                                ))}
-                            </optgroup>
-                          )}
-                          <optgroup label="TIPE / BENTUK KAROSERI ARMADA">
-                            {['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL'].map((b) => (
-                              <option key={`common-${b}`} value={b}>{b}</option>
-                            ))}
-                          </optgroup>
-                          <optgroup label="TIPE KENDARAAN LAINNYA">
-                            {Array.from(new Set(masterTipeList.map((t) => t.typename).filter(Boolean))).map((tn) => (
-                              <option key={`pos-type-${tn}`} value={tn.toUpperCase()}>{tn.toUpperCase()}</option>
-                            ))}
-                          </optgroup>
-                          {(armadaForm.type || armadaForm.jenis_armada) &&
-                            !masterTipeList.some((t) => t.typename?.toUpperCase() === (armadaForm.type || armadaForm.jenis_armada).toUpperCase()) &&
-                            !['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL'].some(
-                              (b) => b === (armadaForm.type || armadaForm.jenis_armada).toUpperCase()
-                            ) && (
-                              <option value={(armadaForm.type || armadaForm.jenis_armada).toUpperCase()}>
-                                {(armadaForm.type || armadaForm.jenis_armada).toUpperCase()}
-                              </option>
-                            )}
-                        </select>
+                          onChange={(tipe) => setArmadaForm({ ...armadaForm, type: tipe, jenis_armada: tipe })}
+                          options={armadaTipeOptions}
+                          placeholder="Pilih tipe…"
+                          searchable
+                          searchPlaceholder="Cari tipe…"
+                          emptyMessage="Tipe tidak ditemukan"
+                        />
                       </div>
                       <div>
                         <label htmlFor="armada-tahun" className="mb-1.5 block text-xs font-semibold text-ink-muted">
@@ -5594,6 +5779,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           required
                           min="1970"
                           max={new Date().getFullYear() + 1}
+                          placeholder="Contoh: 2019"
                           value={armadaForm.tahun}
                           onChange={(e) => setArmadaForm({ ...armadaForm, tahun: Number(e.target.value) })}
                           className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
@@ -5604,10 +5790,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                   <section aria-labelledby="armada-dokumen-heading">
                     <div className="mb-3 border-b border-border pb-2">
-                      <h4 id="armada-dokumen-heading" className="text-xs font-bold text-ink">Identitas teknis & masa berlaku</h4>
-                      <p className="mt-0.5 text-[11px] text-ink-subtle">Nomor kendaraan dan pengingat dokumen</p>
+                      <h4 id="armada-dokumen-heading" className="text-xs font-bold text-ink">Dokumen & teknis <span className="font-normal text-ink-subtle">(opsional)</span></h4>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                       <div>
                         <label htmlFor="armada-no-rangka" className="mb-1.5 block text-xs font-semibold text-ink-muted">Nomor Rangka (VIN)</label>
                         <input
@@ -5630,7 +5815,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         />
                       </div>
-                      <div className="sm:col-span-2">
+                      <div>
                         <label htmlFor="armada-expired" className="mb-1.5 block text-xs font-semibold text-ink-muted">
                           Masa Berlaku STNK
                         </label>
@@ -5648,16 +5833,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <section aria-labelledby="armada-foto-heading">
                     <div className="mb-3 border-b border-border pb-2">
                       <h4 id="armada-foto-heading" className="text-xs font-bold text-ink">Foto unit <span className="font-normal text-ink-subtle">(opsional)</span></h4>
-                      <p className="mt-0.5 text-[11px] text-ink-subtle">Tambahkan foto agar unit mudah dikenali</p>
                     </div>
                     <PhotoUploader
                       label=""
                       value={armadaForm.foto_kendaraan}
                       onChange={(url) => setArmadaForm({ ...armadaForm, foto_kendaraan: url })}
                     />
-                    <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
-                      Foto tersimpan otomatis dengan kompresi. Maks. 15 MB; JPG, PNG, atau WebP. Foto tampil di daftar setelah unit disimpan.
-                    </p>
                   </section>
                 </div>
 
@@ -5917,19 +6098,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 }}
                 className="flex min-h-0 flex-1 flex-col"
               >
-                <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+                <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
                   <section aria-labelledby="edit-armada-identitas">
                     <div className="mb-3 border-b border-border pb-2">
-                      <h4 id="edit-armada-identitas" className="text-xs font-bold text-ink">Identitas kendaraan</h4>
-                      <p className="mt-0.5 text-[11px] text-ink-subtle">Nomor polisi: <span className="font-mono font-semibold text-ink-muted">{formatPlat(editArmadaData.no_polisi)}</span></p>
+                      <h4 id="edit-armada-identitas" className="text-xs font-bold text-ink">Identitas unit</h4>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                       <div className="sm:col-span-2">
-                        <label htmlFor="edit-armada-unit-name" className="mb-1.5 block text-xs font-semibold text-ink-muted">Nama Unit / Panggilan</label>
+                        <label htmlFor="edit-armada-unit-name" className="mb-1.5 block text-xs font-semibold text-ink-muted">Nama Unit <span className="font-normal text-ink-subtle">(opsional)</span></label>
                         <input
                           id="edit-armada-unit-name"
                           type="text"
-                          placeholder="Contoh: Fuso Wingbox Medan-Aceh"
+                          placeholder="Fuso Medan"
                           value={editArmadaForm.unit_name}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, unit_name: e.target.value.toUpperCase() })}
                           className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
@@ -5939,78 +6119,45 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <label htmlFor="edit-armada-merk" className="mb-1.5 block text-xs font-semibold text-ink-muted">
                           Merk <span className="text-status-red">*</span>
                         </label>
-                        <select
+                        <SelectMenu
                           id="edit-armada-merk"
-                          required
                           value={editArmadaForm.merk}
-                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, merk: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
-                        >
-                          <option value="">-- PILIH MERK --</option>
-                          {masterMerkList.map((m) => <option key={m.id} value={m.brandname.toUpperCase()}>{m.brandname.toUpperCase()}</option>)}
-                          {editArmadaForm.merk && !masterMerkList.some((m) => m.brandname.toUpperCase() === editArmadaForm.merk.toUpperCase()) && (
-                            <option value={editArmadaForm.merk.toUpperCase()}>{editArmadaForm.merk.toUpperCase()}</option>
-                          )}
-                        </select>
+                          onChange={(merk) => setEditArmadaForm({ ...editArmadaForm, merk })}
+                          options={editArmadaMerkOptions}
+                          placeholder="Pilih merk…"
+                          searchable
+                          searchPlaceholder="Cari merk…"
+                          emptyMessage="Merk tidak ditemukan"
+                        />
                       </div>
                       <div>
                         <label htmlFor="edit-armada-model" className="mb-1.5 block text-xs font-semibold text-ink-muted">
-                          Model / Seri <span className="text-status-red">*</span>
+                          Model <span className="text-status-red">*</span>
                         </label>
                         <input
                           id="edit-armada-model"
                           type="text"
                           required
-                          placeholder="Contoh: DUTRO 130HD"
+                          placeholder="Dutro 130HD"
                           value={editArmadaForm.model}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, model: e.target.value.toUpperCase() })}
                           className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         />
                       </div>
-                    </div>
-                  </section>
-
-                  <section aria-labelledby="edit-armada-spesifikasi">
-                    <div className="mb-3 border-b border-border pb-2">
-                      <h4 id="edit-armada-spesifikasi" className="text-xs font-bold text-ink">Spesifikasi unit</h4>
-                      <p className="mt-0.5 text-[11px] text-ink-subtle">Tipe kendaraan dan tahun pembuatan</p>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <label htmlFor="edit-armada-type" className="mb-1.5 block text-xs font-semibold text-ink-muted">
-                          Tipe / Bentuk Kendaraan <span className="text-status-red">*</span>
+                          Tipe Kendaraan <span className="text-status-red">*</span>
                         </label>
-                        <select
+                        <SelectMenu
                           id="edit-armada-type"
-                          required
                           value={editArmadaForm.type || editArmadaForm.jenis_armada}
-                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, type: e.target.value.toUpperCase(), jenis_armada: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border bg-surface-raised px-3.5 py-2.5 text-sm font-medium uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
-                        >
-                          <option value="">-- PILIH TIPE KENDARAAN --</option>
-                          {editArmadaForm.merk && masterTipeList.filter((t) => t.brandname?.toUpperCase() === editArmadaForm.merk.toUpperCase()).length > 0 && (
-                            <optgroup label={`TIPE SESUAI MERK (${editArmadaForm.merk})`}>
-                              {masterTipeList
-                                .filter((t) => t.brandname?.toUpperCase() === editArmadaForm.merk.toUpperCase())
-                                .map((t) => <option key={`edit-merk-tipe-${t.id}`} value={t.typename.toUpperCase()}>{t.typename.toUpperCase()} {t.modelname ? `(${t.modelname.toUpperCase()})` : ''}</option>)}
-                            </optgroup>
-                          )}
-                          <optgroup label="TIPE / BENTUK KAROSERI ARMADA">
-                            {['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL'].map((b) => (
-                              <option key={`edit-common-${b}`} value={b}>{b}</option>
-                            ))}
-                          </optgroup>
-                          <optgroup label="TIPE KENDARAAN LAINNYA">
-                            {Array.from(new Set(masterTipeList.map((t) => t.typename).filter(Boolean))).map((tn) => (
-                              <option key={`edit-pos-type-${tn}`} value={tn.toUpperCase()}>{tn.toUpperCase()}</option>
-                            ))}
-                          </optgroup>
-                          {(editArmadaForm.type || editArmadaForm.jenis_armada) &&
-                            !masterTipeList.some((t) => t.typename?.toUpperCase() === (editArmadaForm.type || editArmadaForm.jenis_armada).toUpperCase()) &&
-                            !['BOX', 'WINGBOX', 'BAK TERBUKA', 'DUMP TRUCK', 'TANGKI', 'TRAILER', 'TRONTON', 'PICK UP', 'DUTRO', 'TRUK ENGKEL'].some(
-                              (b) => b === (editArmadaForm.type || editArmadaForm.jenis_armada).toUpperCase()
-                            ) && <option value={(editArmadaForm.type || editArmadaForm.jenis_armada).toUpperCase()}>{(editArmadaForm.type || editArmadaForm.jenis_armada).toUpperCase()}</option>}
-                        </select>
+                          onChange={(tipe) => setEditArmadaForm({ ...editArmadaForm, type: tipe, jenis_armada: tipe })}
+                          options={editArmadaTipeOptions}
+                          placeholder="Pilih tipe…"
+                          searchable
+                          searchPlaceholder="Cari tipe…"
+                          emptyMessage="Tipe tidak ditemukan"
+                        />
                       </div>
                       <div>
                         <label htmlFor="edit-armada-tahun" className="mb-1.5 block text-xs font-semibold text-ink-muted">
@@ -6022,6 +6169,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           required
                           min="1970"
                           max={new Date().getFullYear() + 1}
+                          placeholder="Contoh: 2019"
                           value={editArmadaForm.tahun}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, tahun: Number(e.target.value) })}
                           className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
@@ -6032,10 +6180,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
                   <section aria-labelledby="edit-armada-teknis">
                     <div className="mb-3 border-b border-border pb-2">
-                      <h4 id="edit-armada-teknis" className="text-xs font-bold text-ink">Identitas teknis & masa berlaku</h4>
-                      <p className="mt-0.5 text-[11px] text-ink-subtle">Nomor kendaraan dan pengingat dokumen</p>
+                      <h4 id="edit-armada-teknis" className="text-xs font-bold text-ink">Dokumen & teknis <span className="font-normal text-ink-subtle">(opsional)</span></h4>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                       <div>
                         <label htmlFor="edit-armada-no-rangka" className="mb-1.5 block text-xs font-semibold text-ink-muted">Nomor Rangka (VIN)</label>
                         <input
@@ -6058,8 +6205,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
                         />
                       </div>
-                      <div className="sm:col-span-2">
-                        <label htmlFor="edit-armada-expired" className="mb-1.5 block text-xs font-semibold text-ink-muted">Masa Berlaku (Pajak/STNK/Asuransi)</label>
+                      <div>
+                        <label htmlFor="edit-armada-expired" className="mb-1.5 block text-xs font-semibold text-ink-muted">Masa Berlaku STNK</label>
                         <input
                           id="edit-armada-expired"
                           type="date"
@@ -6074,16 +6221,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <section aria-labelledby="edit-armada-foto">
                     <div className="mb-3 border-b border-border pb-2">
                       <h4 id="edit-armada-foto" className="text-xs font-bold text-ink">Foto unit <span className="font-normal text-ink-subtle">(opsional)</span></h4>
-                      <p className="mt-0.5 text-[11px] text-ink-subtle">Unggah foto baru untuk mengganti foto saat ini</p>
                     </div>
                     <PhotoUploader
                       label=""
                       value={editArmadaForm.foto_kendaraan}
                       onChange={(url) => setEditArmadaForm({ ...editArmadaForm, foto_kendaraan: url })}
                     />
-                    <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
-                      Biarkan foto tetap seperti saat ini jika tidak ingin menggantinya. Foto baru dikompresi otomatis; maks. 15 MB.
-                    </p>
                   </section>
                 </div>
 
