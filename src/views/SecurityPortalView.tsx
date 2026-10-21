@@ -837,8 +837,8 @@ export const SecurityPortalView: React.FC = () => {
                                 Check In
                               </span>
                             ) : (
-                              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#DBEAFE] text-[#12388F]">
-                                Booked
+                              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                Confirmed
                               </span>
                             )}
                           </td>
@@ -2198,8 +2198,8 @@ export const SecurityPortalView: React.FC = () => {
                       Check In
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold bg-[#DBEAFE] text-[#12388F] border border-blue-200">
-                      Booked
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      Confirmed
                     </span>
                   )}
                 </div>

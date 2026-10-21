@@ -881,6 +881,9 @@ export const api = {
       const allBookings = await api.getBooking();
       return allBookings
         .filter((b) => {
+          // Hanya tampilkan reservasi yang CONFIRMED dari POS di daftar booking security
+          const isConfirmed = b.status === 'Confirmed' || b.status_pos === 'CONFIRMED' || Boolean(b.is_confirmed);
+          if (!isConfirmed) return false;
           if (b.status === 'Dibatalkan' || b.status === 'Booking Canceled' || b.is_canceled) return false;
           const checkedIn = isCheckedInStatus(b.status);
           if (b.tanggal_booking && !checkedIn) {
@@ -909,7 +912,8 @@ export const api = {
             jam_booking: b.jam_booking,
             keluhan: b.keluhan || b.catatan || '',
             catatan: b.catatan || b.keterangan || '',
-            status: checkedIn ? 'Check In' : (b.status || 'Booked'),
+            status: checkedIn ? 'Check In' : 'Confirmed',
+            is_confirmed: true,
             nama_pelanggan: b.nama_perusahaan || b.nama_customer || 'Customer Fleet',
             nama_pic: b.pic_driver || b.nama_customer || '',
             no_telepon: b.no_telepon || '',
