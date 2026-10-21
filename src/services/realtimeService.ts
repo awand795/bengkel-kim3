@@ -114,51 +114,21 @@ class RealtimeNotificationHub {
     window.addEventListener('touchstart', unlock, { once: true });
   }
 
-  // SSE listener with seamless differential stream fallback
-  private initSSE() {
-    if (typeof window === 'undefined') return;
-    try {
-      const sseUrl = '/api/data/kim3/stream';
-      this.sseSource = new EventSource(sseUrl);
-
-      this.sseSource.onopen = () => {
-        // SSE connected natively
-        if (this.streamIntervalId) {
-          clearInterval(this.streamIntervalId);
-          this.streamIntervalId = null;
-        }
-      };
-
-      this.sseSource.onmessage = (e) => {
-        try {
-          const parsed = JSON.parse(e.data);
-          if (parsed && parsed.title) {
-            this.handleIncomingEvent(parsed, false);
-          }
-        } catch (_) {}
-      };
-
-      this.sseSource.onerror = () => {
-        // Close on 404 or backend refusal, graceful fallback to active differential streaming
-        if (this.sseSource) {
-          this.sseSource.close();
-          this.sseSource = null;
-        }
-        this.startDifferentialStream();
-      };
-    } catch (_) {
-      this.startDifferentialStream();
-    }
-  }
-
   // Active Differential Real-time Streaming Engine
   // Emulates live server push by continuously listening to new database notifications & dispatching events
+  private initSSE() {
+    // Jalankan langsung active differential stream tanpa memicu 404 stream endpoint
+    this.startDifferentialStream();
+  }
+
   public startDifferentialStream() {
     if (this.streamIntervalId || typeof window === 'undefined') return;
     this.isStreaming = true;
 
     const streamPulse = async () => {
       try {
+        const token = localStorage.getItem('bengkel_jwt_token');
+        if (!token) return; // Jangan request jika belum login / belum ada token valid
         const { api } = await import('../api/client');
         const notifs = await api.getNotifikasi();
         if (Array.isArray(notifs) && notifs.length > 0) {
