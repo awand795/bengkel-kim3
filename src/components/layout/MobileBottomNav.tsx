@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../../store/useAppStore';
+import { api } from '../../api/client';
 import {
   LayoutDashboard,
   Calendar,
@@ -14,7 +16,10 @@ import {
   Wrench,
   LogOut,
   FileCheck,
-  History
+  History,
+  ShieldCheck,
+  UserCog,
+  Settings
 } from 'lucide-react';
 
 interface NavTab {
@@ -26,6 +31,16 @@ interface NavTab {
 export const MobileBottomNav: React.FC = () => {
   const { activeTab, setActiveTab, bumpNav, currentRole } = useAppStore();
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Nomor WhatsApp & pesan pembuka mengikuti Pengaturan Web (fallback nomor lama).
+  const { data: pengaturan } = useQuery({
+    queryKey: ['pengaturan-publik'],
+    queryFn: api.getPengaturanPublik,
+    staleTime: 1000 * 60 * 5,
+  });
+  const waNumber = (pengaturan?.wa_cs || '6281234567890').replace(/\D/g, '');
+  const waMessage = pengaturan?.wa_cs_pesan || 'Halo Bengkel KIM3, saya butuh bantuan Web Fleet';
+  const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`;
 
   const fleetPrimaryTabs: NavTab[] = [
     { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -49,7 +64,18 @@ export const MobileBottomNav: React.FC = () => {
     { id: 'fleet-profil', label: 'Profil', icon: Building2 },
   ];
 
-  const primaryTabs = currentRole === 'Security' ? securityTabs : fleetPrimaryTabs;
+  const adminTabs: NavTab[] = [
+    { id: 'admin-security', label: 'Security', icon: ShieldCheck },
+    { id: 'admin-akun', label: 'Admin', icon: UserCog },
+    { id: 'admin-pengaturan', label: 'Pengaturan', icon: Settings },
+  ];
+
+  const primaryTabs =
+    currentRole === 'Super Admin'
+      ? adminTabs
+      : currentRole === 'Security'
+        ? securityTabs
+        : fleetPrimaryTabs;
 
   const isMatchTab = (tabId: string, current: string) => {
     if (tabId === current) return true;
@@ -62,7 +88,7 @@ export const MobileBottomNav: React.FC = () => {
 
   const handleNavigate = (id: string) => {
     if (id === 'fleet-bantuan') {
-      window.open('https://wa.me/6281234567890?text=Halo%20Bengkel%20KIM3%2C%20saya%20butuh%20bantuan%20Web%20Fleet', '_blank');
+      window.open(waLink, '_blank');
       setMoreOpen(false);
       return;
     }
@@ -110,7 +136,7 @@ export const MobileBottomNav: React.FC = () => {
         })}
 
         {/* "Lainnya" Button (Khusus Customer Fleet) */}
-        {currentRole !== 'Security' && (
+        {currentRole === 'Customer Fleet' && (
           <button
             type="button"
             onClick={() => setMoreOpen(true)}

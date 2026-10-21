@@ -55,6 +55,7 @@ interface AppState {
 const roleDefaultTabs: Record<PeranUser, string> = {
   'Customer Fleet': 'fleet-dashboard',
   'Security': 'security-dashboard',
+  'Super Admin': 'admin-security',
 };
 
 // Initial state from localStorage
@@ -69,7 +70,10 @@ try {
     const parsed = JSON.parse(savedUserJson);
     initialAuthUser = parsed;
     if (parsed.nama_lengkap) initialUser = parsed.nama_lengkap;
-    if (parsed.peran === 'Security' || parsed.role === 'Security') {
+    const savedRole = `${parsed.peran || ''} ${parsed.role || ''}`.toLowerCase();
+    if (savedRole.includes('admin')) {
+      initialRole = 'Super Admin';
+    } else if (parsed.peran === 'Security' || parsed.role === 'Security') {
       initialRole = 'Security';
     } else {
       initialRole = 'Customer Fleet';
@@ -144,8 +148,10 @@ export const useAppStore = create<AppState>((set) => ({
   setIsVerifyingSession: (verifying: boolean) => set({ isVerifyingSession: verifying }),
 
   loginUser: (user: Partial<AuthUser>, token: string, refreshToken?: string) => {
+    const rawRole = `${user.peran || ''} ${user.role || ''}`.toLowerCase();
+    const isAdmin = rawRole.includes('admin');
     const isSecurity = user.peran === 'Security' || user.role === 'Security';
-    const role: PeranUser = isSecurity ? 'Security' : 'Customer Fleet';
+    const role: PeranUser = isAdmin ? 'Super Admin' : isSecurity ? 'Security' : 'Customer Fleet';
     const defaultTab = roleDefaultTabs[role] || (isSecurity ? 'security-dashboard' : 'fleet-dashboard');
     const fullUser = {
       ...user,

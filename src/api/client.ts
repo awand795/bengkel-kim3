@@ -26,7 +26,12 @@ import {
   MemoKeluarItem,
   SecurityRiwayatKeluarItem,
   CheckInPayload,
-  CheckOutPayload
+  CheckOutPayload,
+  SecurityUser,
+  SecurityUserPayload,
+  AdminUser,
+  AdminUserPayload,
+  PengaturanSitus
 } from '../types';
 import { useAppStore } from '../store/useAppStore';
 
@@ -679,8 +684,9 @@ export const api = {
     }
     const rawRole = (data as any).role || (data as any).peran || '';
     const isSecurity = rawRole.toLowerCase().includes('security');
-    const peran: PeranUser = isSecurity ? 'Security' : 'Customer Fleet';
-    const role = isSecurity ? 'Security' : 'Customer_Fleet';
+    const isAdmin = rawRole.toLowerCase().includes('admin');
+    const peran: PeranUser = isAdmin ? 'Super Admin' : isSecurity ? 'Security' : 'Customer Fleet';
+    const role = isAdmin ? 'Super_Admin' : isSecurity ? 'Security' : 'Customer_Fleet';
 
     return {
       id: data.id,
@@ -700,6 +706,8 @@ export const api = {
       nomor_hp_verifikasi: (data as any).nomor_hp_verifikasi,
       status_no_aktif: (data as any).status_no_aktif === true,
       pos_verifikasi: (data as any).pos_verifikasi === true,
+      harus_ganti_password: (data as any).harus_ganti_password === true,
+      jabatan: (data as any).jabatan ?? null,
     };
   },
 
@@ -726,6 +734,65 @@ export const api = {
 
   gantiPassword: async (password_baru: string): Promise<any> => {
     const res = await apiClient.post('/kim3/auth/ganti-password', { password_baru });
+    return res.data;
+  },
+
+  // ── Portal Admin: kelola akun & pengaturan situs ─────────────────────────
+  getSecurityUsers: (query: ListQuery = {}): Promise<PaginatedResult<SecurityUser>> =>
+    fetchList<SecurityUser>('/kim3/admin/security-user', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+
+  simpanSecurityUser: async (payload: SecurityUserPayload): Promise<any> => {
+    const path = payload.id
+      ? '/kim3/admin/security-user-update'
+      : '/kim3/admin/security-user-tambah';
+    const res = await apiClient.post(path, payload);
+    return res.data;
+  },
+
+  setSecurityUserStatus: async (id: number, status_aktif: boolean): Promise<any> => {
+    const res = await apiClient.post('/kim3/admin/security-user-status', { id, status_aktif });
+    return res.data;
+  },
+
+  getAdminUsers: (query: ListQuery = {}): Promise<PaginatedResult<AdminUser>> =>
+    fetchList<AdminUser>('/kim3/admin/akun-admin', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+
+  simpanAdminUser: async (payload: AdminUserPayload): Promise<any> => {
+    const path = payload.id
+      ? '/kim3/admin/akun-admin-update'
+      : '/kim3/admin/akun-admin-tambah';
+    const res = await apiClient.post(path, payload);
+    return res.data;
+  },
+
+  getPengaturan: async (): Promise<PengaturanSitus[]> => {
+    const res = await apiClient.get('/kim3/admin/pengaturan');
+    const raw = res.data?.value ?? res.data?.data ?? res.data;
+    return Array.isArray(raw) ? raw : raw ? [raw] : [];
+  },
+
+  simpanPengaturan: async (payload: {
+    kunci: string;
+    nilai: string;
+    keterangan?: string;
+  }): Promise<any> => {
+    const res = await apiClient.post('/kim3/admin/pengaturan-simpan', payload);
+    return res.data;
+  },
+
+  /** Pengaturan publik (nomor WhatsApp & pesan) — dibaca sidebar semua portal. */
+  getPengaturanPublik: async (): Promise<Record<string, string>> => {
+    const res = await apiClient.get('/kim3/pengaturan-publik');
+    const raw = res.data?.value ?? res.data?.data ?? res.data;
+    const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    return list.reduce((acc: Record<string, string>, item: any) => {
+      if (item?.kunci) acc[item.kunci] = item.nilai ?? '';
+      return acc;
+    }, {});
+  },
+
+  gantiPasswordAdmin: async (password_baru: string): Promise<any> => {
+    const res = await apiClient.post('/kim3/auth/ganti-password-admin', { password_baru });
     return res.data;
   },
 

@@ -215,13 +215,16 @@ export const LoginPage: React.FC = () => {
           // Profil penuh (termasuk foto) diambil terpisah agar JWT login
           // tetap kecil — JWT raksasa memicu 431 di semua request.
           api.getMe().then((me) => {
+            const rawRole = `${me.peran || ''} ${me.role || ''}`.toLowerCase();
+            const isAdmin = rawRole.includes('admin');
             const isSec = me.peran === 'Security' || me.role === 'Security';
-            const role = isSec ? 'Security' : 'Customer Fleet';
+            const role = isAdmin ? 'Super Admin' : isSec ? 'Security' : 'Customer Fleet';
+            const defaultTab = isAdmin ? 'admin-security' : isSec ? 'security-dashboard' : 'fleet-dashboard';
             useAppStore.setState({ 
               authUser: me, 
               currentUser: me.nama_lengkap || '',
               currentRole: role,
-              activeTab: isSec ? 'security-dashboard' : 'fleet-dashboard',
+              activeTab: defaultTab,
             });
             try {
               localStorage.setItem('bengkel_auth_user', JSON.stringify(me));

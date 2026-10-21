@@ -1,5 +1,7 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../../store/useAppStore';
+import { api } from '../../api/client';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -14,7 +16,10 @@ import {
   Wrench,
   LogOut,
   FileCheck,
-  History
+  History,
+  ShieldCheck,
+  UserCog,
+  Settings
 } from 'lucide-react';
 
 export interface NavItem {
@@ -25,6 +30,17 @@ export interface NavItem {
 
 export const Sidebar: React.FC = () => {
   const { activeTab, setActiveTab, bumpNav, currentRole } = useAppStore();
+
+  // Nomor WhatsApp & pesan pembuka dikelola dari Portal Admin (fallback: nomor lama).
+  const { data: pengaturan } = useQuery({
+    queryKey: ['pengaturan-publik'],
+    queryFn: api.getPengaturanPublik,
+    staleTime: 1000 * 60 * 5,
+  });
+  const waNumber = (pengaturan?.wa_cs || '6281234567890').replace(/\D/g, '');
+  const waMessage = pengaturan?.wa_cs_pesan || 'Halo Bengkel KIM3, saya butuh bantuan terkait Web Fleet';
+  const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`;
+  const waDisplay = waNumber.replace(/^62/, '0');
 
   const fleetNavigationItems: NavItem[] = [
     { id: 'fleet-dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -45,7 +61,18 @@ export const Sidebar: React.FC = () => {
     { id: 'security-memo', label: 'Memo Keluar', icon: FileCheck },
   ];
 
-  const navigationItems = currentRole === 'Security' ? securityNavigationItems : fleetNavigationItems;
+  const adminNavigationItems: NavItem[] = [
+    { id: 'admin-security', label: 'Akun Security', icon: ShieldCheck },
+    { id: 'admin-akun', label: 'Akun Admin', icon: UserCog },
+    { id: 'admin-pengaturan', label: 'Pengaturan Web', icon: Settings },
+  ];
+
+  const navigationItems =
+    currentRole === 'Super Admin'
+      ? adminNavigationItems
+      : currentRole === 'Security'
+        ? securityNavigationItems
+        : fleetNavigationItems;
 
   const isTabActive = (tabId: string) => {
     if (activeTab === tabId) return true;
@@ -56,7 +83,7 @@ export const Sidebar: React.FC = () => {
 
   const handleItemClick = (id: string) => {
     if (id === 'fleet-bantuan') {
-      window.open('https://wa.me/6281234567890?text=Halo%20Bengkel%20KIM3%2C%20saya%20butuh%20bantuan%20terkait%20Web%20Fleet', '_blank');
+      window.open(waLink, '_blank');
       return;
     }
     setActiveTab(id);
@@ -107,10 +134,10 @@ export const Sidebar: React.FC = () => {
           </p>
           <div className="flex items-center gap-2 text-xs font-bold font-mono text-[#0F172A] dark:text-white">
             <Phone className="w-3.5 h-3.5 text-[#12388F] dark:text-blue-400" />
-            <span>0812-3456-7890</span>
+            <span>{waDisplay}</span>
           </div>
           <a
-            href="https://wa.me/6281234567890?text=Halo%20Bengkel%20KIM3%2C%20saya%20butuh%20bantuan%20Web%20Fleet"
+            href={waLink}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold transition-colors shadow-2xs"

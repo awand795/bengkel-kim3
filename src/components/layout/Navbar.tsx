@@ -30,6 +30,9 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'security-checkout': { title: 'Check Out', subtitle: 'Pemeriksaan Kendaraan Keluar' },
   'security-keluar': { title: 'Selesai / Keluar', subtitle: 'Riwayat Checkout Gerbang' },
   'security-memo': { title: 'Memo Keluar', subtitle: 'Arsip Digital Gate Pass' },
+  'admin-security': { title: 'Akun Security', subtitle: 'Kelola Petugas Pos Gerbang' },
+  'admin-akun': { title: 'Akun Admin', subtitle: 'Kelola Administrator Portal' },
+  'admin-pengaturan': { title: 'Pengaturan Web', subtitle: 'Kontak & Nomor WhatsApp' },
 };
 
 export const Navbar: React.FC = () => {
@@ -37,12 +40,22 @@ export const Navbar: React.FC = () => {
   const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const defaultTab = currentRole === 'Security' ? 'security-dashboard' : 'fleet-dashboard';
+  const defaultTab =
+    currentRole === 'Super Admin'
+      ? 'admin-security'
+      : currentRole === 'Security'
+        ? 'security-dashboard'
+        : 'fleet-dashboard';
   const isRootTab = activeTab === defaultTab || activeTab === 'dashboard';
 
   const currentInfo = TAB_TITLES[activeTab] || {
     title: activeTab.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-    subtitle: currentRole === 'Security' ? 'Pos Security Gerbang' : 'Web Fleet Customer',
+    subtitle:
+      currentRole === 'Super Admin'
+        ? 'Portal Admin KIM 3'
+        : currentRole === 'Security'
+          ? 'Pos Security Gerbang'
+          : 'Web Fleet Customer',
   };
 
   const handleBack = () => {
@@ -139,6 +152,15 @@ export const Navbar: React.FC = () => {
                   </span>
                   <span className="block text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
                     Security Gate & Check Point KIM 3
+                  </span>
+                </>
+              ) : currentRole === 'Super Admin' ? (
+                <>
+                  <span className="block text-xs font-black text-[#0F172A] dark:text-white leading-tight tracking-wide">
+                    MASTER TRUCK &bull; PORTAL ADMIN
+                  </span>
+                  <span className="block text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                    Manajemen Akun & Pengaturan Web
                   </span>
                 </>
               ) : (

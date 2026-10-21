@@ -9,6 +9,7 @@ import { UnverifiedEmailView } from './views/UnverifiedEmailView';
 import { DeactivatedAccountView } from './views/DeactivatedAccountView';
 import { WebFleetCustomerView } from './views/WebFleetCustomerView';
 import { SecurityPortalView } from './views/SecurityPortalView';
+import { AdminPortalView } from './views/AdminPortalView';
 import { ToastContainer } from './components/common/Toast';
 import { ApprovalAutoPopup } from './components/common/ApprovalAutoPopup';
 
@@ -37,11 +38,13 @@ export const App: React.FC = () => {
       .getMe()
       .then((me) => {
         if (!isMounted) return;
+        const rawRole = `${me.peran || ''} ${me.role || ''}`.toLowerCase();
+        const isAdmin = rawRole.includes('admin');
         const isSec = me.peran === 'Security' || me.role === 'Security';
-        const role = isSec ? 'Security' : 'Customer Fleet';
-        const targetTab = isSec
-          ? (activeTab.startsWith('security-') ? activeTab : 'security-dashboard')
-          : (activeTab.startsWith('fleet-') ? activeTab : 'fleet-dashboard');
+        const role = isAdmin ? 'Super Admin' : isSec ? 'Security' : 'Customer Fleet';
+        const tabPrefix = isAdmin ? 'admin-' : isSec ? 'security-' : 'fleet-';
+        const defaultTab = isAdmin ? 'admin-security' : isSec ? 'security-dashboard' : 'fleet-dashboard';
+        const targetTab = activeTab.startsWith(tabPrefix) ? activeTab : defaultTab;
 
         useAppStore.setState({
           authUser: { ...me, peran: role },
@@ -122,6 +125,18 @@ export const App: React.FC = () => {
   }
 
   const renderActiveView = () => {
+    if (currentRole === 'Super Admin') {
+      switch (activeTab) {
+        case 'admin-akun':
+          return <AdminPortalView initialMenu="akun" />;
+        case 'admin-pengaturan':
+          return <AdminPortalView initialMenu="pengaturan" />;
+        case 'admin-security':
+        default:
+          return <AdminPortalView initialMenu="security" />;
+      }
+    }
+
     if (currentRole === 'Security') {
       return <SecurityPortalView />;
     }

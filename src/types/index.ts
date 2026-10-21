@@ -1,4 +1,4 @@
-export type PeranUser = 'Customer Fleet' | 'Security';
+export type PeranUser = 'Customer Fleet' | 'Security' | 'Super Admin';
 
 export interface Pengguna {
   id: number;
@@ -30,6 +30,9 @@ export interface AuthUser {
   email_verifikasi?: boolean;
   nomor_hp_verifikasi?: boolean;
   pos_verifikasi?: boolean;
+  /** Hanya untuk akun admin: true = masih memakai password sementara. */
+  harus_ganti_password?: boolean;
+  jabatan?: string | null;
 }
 
 export interface LoginResponse {
@@ -40,6 +43,63 @@ export interface LoginResponse {
   token_type: string;
   expires_in: number;
   user: AuthUser;
+}
+
+// ── Manajemen Akun (Portal Admin) ─────────────────────────────────────────
+export interface SecurityUser {
+  id: number;
+  email: string;
+  nama_lengkap: string;
+  no_telepon?: string | null;
+  pos_jaga?: string | null;
+  status_aktif: boolean;
+  created_at?: string | null;
+  update_dt?: string | null;
+  diubah_oleh?: string | null;
+}
+
+export interface SecurityUserPayload {
+  id?: number;
+  email: string;
+  nama_lengkap: string;
+  /** Wajib saat menambah akun; kosongkan saat mengubah tanpa ganti password. */
+  password?: string;
+  no_telepon?: string;
+  pos_jaga?: string;
+  status_aktif?: boolean;
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  nama_lengkap: string;
+  jabatan?: string | null;
+  no_telepon?: string | null;
+  status_aktif: boolean;
+  harus_ganti_password?: boolean;
+  last_login_at?: string | null;
+  terdaftar?: string | null;
+  update_dt?: string | null;
+  diubah_oleh?: string | null;
+}
+
+export interface AdminUserPayload {
+  id?: number;
+  email: string;
+  nama_lengkap: string;
+  jabatan?: string;
+  /** Wajib saat menambah akun; kosongkan saat mengubah tanpa ganti password. */
+  password?: string;
+  no_telepon?: string;
+  status_aktif?: boolean;
+}
+
+export interface PengaturanSitus {
+  kunci: string;
+  nilai: string;
+  keterangan?: string | null;
+  update_by?: string | null;
+  update_dt?: string | null;
 }
 
 export interface Pelanggan {
