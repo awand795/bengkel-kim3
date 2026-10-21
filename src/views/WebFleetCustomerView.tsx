@@ -1851,6 +1851,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     setHistoryDetail(null);
   }, [fleetMenu]);
 
+  // Subscribe ke event realtime SSE / differential polling (booking konfirmasi, spk, status dll.)
+  React.useEffect(() => {
+    const unsubscribe = realtimeHub.subscribe((evt) => {
+      queryClient.invalidateQueries({ queryKey: ['booking-list'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
+      queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [queryClient]);
+
   // Booking Wizard Step (image5.png Mockup 1)
   const [openBookingModal, setOpenBookingModal] = useState<boolean>(false);
   const [bookingStep, setBookingStep] = useState<number>(1);
@@ -1953,6 +1967,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: bookingList, isLoading: isLoadingBooking } = useQuery({
     queryKey: ['booking-list'],
     queryFn: api.getBooking,
+    refetchInterval: 5000,
   });
 
   const { data: spkList, isLoading: spkLoading } = useQuery({
