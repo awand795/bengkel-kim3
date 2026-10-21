@@ -527,7 +527,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     { step: 1, title: 'Check In', desc: 'Diterima Security', done: true, waktu: spk.waktu_check_in || spk.created_at },
                     { 
                       step: 2, 
-                      title: spk.status_spk === 'Waiting Part' ? 'Waiting Part' : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval') ? 'Menunggu Approval' : spk.status_spk === 'Waiting QC' ? 'Menunggu QC' : 'Proses Pekerjaan', 
+                      title: spk.status_spk === 'Waiting Part' ? 'Waiting Part' : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval') ? 'Menunggu Approval' : spk.status_spk === 'Waiting QC' ? 'Menunggu QC' : 'Proses Pengerjaan', 
                       desc: spk.status_spk === 'Waiting Part' ? 'Menunggu Part (Pending)' : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval') ? 'Estimasi Diajukan' : spk.status_spk === 'Estimasi Disetujui' ? 'WO Terbit' : spk.status_spk === 'Waiting QC' ? 'Inspeksi Foreman' : spk.status_spk === 'Dalam Pengerjaan' ? 'Mekanik Aktif' : 'Selesai Dikerjakan', 
                       done: ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(spk.status_spk as string), 
                       current: ['Waiting Part', 'Menunggu Approval Customer', 'Waiting Approval', 'Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC'].includes(spk.status_spk as string),
@@ -627,7 +627,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     }`}
                   >
                     <Clock className="w-4 h-4" />
-                    Progress Pekerjaan
+                    Progress Pengerjaan
                   </button>
                   <button
                     type="button"
@@ -732,7 +732,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         </div>
 
                         {/* Step 3: Pengecekan Mekanik & Penerbitan WO (SOP Langkah 4-6) */}
-                        {(spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Waiting QC' || !!spk.waktu_mulai_pekerjaan || spk.status_spk === 'Estimasi Disetujui' || spk.status_spk === 'Dalam Pengerjaan' || (spk.status_spk as string) === 'Proses Pekerjaan') && (
+                        {(spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Waiting QC' || !!spk.waktu_mulai_pekerjaan || spk.status_spk === 'Estimasi Disetujui' || spk.status_spk === 'Dalam Pengerjaan' || (spk.status_spk as string) === 'Proses Pengerjaan' || (spk.status_spk as string) === 'Proses Pekerjaan') && (
                           <div className="relative space-y-1">
                             <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-status-green ring-4 ring-white dark:ring-slate-900"></div>
                             <div className="font-bold text-ink">Pengecekan Mekanik & Penerbitan WO</div>
