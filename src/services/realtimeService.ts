@@ -114,10 +114,75 @@ class RealtimeNotificationHub {
     window.addEventListener('touchstart', unlock, { once: true });
   }
 
-  // Active Differential Real-time Streaming Engine
-  // Emulates live server push by continuously listening to new database notifications & dispatching events
+  // Native Server-Sent Events (SSE) Engine connected directly to DarkoSync (/api/realtime/stream)
   private initSSE() {
-    // Jalankan langsung active differential stream tanpa memicu 404 stream endpoint
+    if (typeof window === 'undefined') return;
+
+    try {
+      // Endpoint resmi RealtimeController DarkoSync
+      const sseUrl = '/api/realtime/stream?topic=general';
+      this.sseSource = new EventSource(sseUrl);
+
+      this.sseSource.addEventListener('CONNECTED', (e: any) => {
+        try {
+          const payload = JSON.parse(e.data);
+          console.info('⚡ [SSE DarkoSync] Connected to topic:', payload?.topic || 'general');
+        } catch (_) {
+          console.info('⚡ [SSE DarkoSync] Connected successfully');
+        }
+      });
+
+      this.sseSource.addEventListener('DATA_MUTATION', (e: any) => {
+        try {
+          const payload = JSON.parse(e.data);
+          const path = String(payload?.path || '');
+          let evtType: EventType = 'SPK_STATUS_CHANGED';
+
+          if (path.includes('booking')) {
+            evtType = 'BOOKING_CREATED';
+          } else if (path.includes('check-in')) {
+            evtType = 'VEHICLE_CHECKED_IN';
+          } else if (path.includes('check-out')) {
+            evtType = 'VEHICLE_CHECKED_OUT';
+          } else if (path.includes('memo')) {
+            evtType = 'MEMO_TERBIT';
+          }
+
+          const targetRoles: NotificationRole[] = path.includes('security')
+            ? ['Security']
+            : ['ALL'];
+
+          const mutationEvent: RealtimeEvent = {
+            id: `sse-mutation-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            type: evtType,
+            targetRoles,
+            title: `Update Data: ${payload?.name || payload?.operation || 'Perubahan Data'}`,
+            message: `Terdapat perubahan data realtime pada sistem (${payload?.operation || 'UPDATE'}).`,
+            urgency: 'info',
+            timestamp: new Date().toISOString(),
+          };
+
+          // Dispatch event ke seluruh subscriber komponen UI
+          this.handleIncomingEvent(mutationEvent, false);
+        } catch (err) {
+          console.warn('[SSE DarkoSync] Error parsing DATA_MUTATION event:', err);
+        }
+      });
+
+      this.sseSource.onerror = () => {
+        // Jika koneksi SSE drop / jaringan terputus sementara, fallback stream tetap aktif menjaga data
+        if (this.sseSource) {
+          this.sseSource.close();
+          this.sseSource = null;
+        }
+        // Auto-reconnect SSE setelah 10 detik
+        setTimeout(() => this.initSSE(), 10000);
+      };
+    } catch (err) {
+      console.warn('[SSE DarkoSync] Gagal inisialisasi EventSource:', err);
+    }
+
+    // Selalu jalankan differential pulse sebagai pelengkap backup deteksi notifikasi pengguna
     this.startDifferentialStream();
   }
 
