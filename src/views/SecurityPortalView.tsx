@@ -26,7 +26,11 @@ import {
   Camera,
   Package,
   X,
-  Download
+  Download,
+  Users,
+  MoreHorizontal,
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { api, getApiErrorMessage } from '../api/client';
@@ -85,6 +89,32 @@ const renderTipeKunjunganBadge = (tipe: string | undefined) => {
       );
   }
 };
+
+// ── Komponen bantu form Check In (portal Security) ───────────────────────────
+// Blok bernomor: nomornya menyampaikan urutan kerja nyata petugas gerbang
+// (baca plat → tentukan jenis → catat orang → rincian & foto).
+const CheckInSection: React.FC<{
+  step: string;
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}> = ({ step, title, hint, children }) => (
+  <section className="space-y-3.5">
+    <div className="flex items-center gap-2.5 border-b border-border pb-2">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-black tabular-nums text-white">
+        {step}
+      </span>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-ink sm:text-sm">{title}</h3>
+      {hint && <span className="ml-auto hidden text-[11px] text-ink-subtle sm:inline">{hint}</span>}
+    </div>
+    {children}
+  </section>
+);
+
+const CHECKIN_FIELD_CLASS =
+  'w-full rounded-xl border border-border bg-surface-raised px-3.5 py-2.5 text-xs text-ink placeholder:text-ink-subtle transition-colors focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 sm:text-sm';
+
+const CHECKIN_LABEL_CLASS = 'mb-1.5 block text-xs font-semibold text-ink';
 
 interface SecurityTablePaginationProps {
   currentPage: number;
@@ -390,6 +420,47 @@ export const SecurityPortalView: React.FC = () => {
     }
   };
 
+  // Pilih jenis kunjungan: isi keperluan default & PIC relevan (hanya dari data real database)
+  const applyTipeKunjungan = (tipeId: TipeKunjunganGerbang, defaultKeperluan: string) => {
+    let autoPic = '';
+    if (!checkInForm.booking_id && employeeList.length > 0) {
+      if (tipeId === 'SERVICE') {
+        const emp = employeeList.find(
+          (e) =>
+            (e.jobposition || e.department || '').toLowerCase().includes('advisor') ||
+            (e.jobposition || '').toLowerCase().includes('sa')
+        );
+        if (emp) autoPic = getEmployeeDisplayLabel(emp);
+      } else if (tipeId === 'BELI_PART') {
+        const emp = employeeList.find(
+          (e) =>
+            (e.jobposition || e.department || '').toLowerCase().includes('warehouse') ||
+            (e.jobposition || '').toLowerCase().includes('part')
+        );
+        if (emp) autoPic = getEmployeeDisplayLabel(emp);
+      } else if (tipeId === 'KUNJUNGAN') {
+        const emp = employeeList.find(
+          (e) =>
+            (e.department || '').toLowerCase().includes('admin') ||
+            (e.jobposition || '').toLowerCase().includes('admin') ||
+            (e.department || '').toLowerCase().includes('management')
+        );
+        if (emp) autoPic = getEmployeeDisplayLabel(emp);
+      }
+    }
+
+    setCheckInForm((prev) => ({
+      ...prev,
+      tipe_kunjungan: tipeId,
+      tujuan_kunjungan: prev.booking_id
+        ? prev.tujuan_kunjungan
+        : tipeId === 'LAINNYA'
+          ? (prev.tipe_kunjungan === 'LAINNYA' ? prev.tujuan_kunjungan : '')
+          : defaultKeperluan,
+      bertemu_dengan: autoPic,
+    }));
+  };
+
   // Reset Form Check In ke kondisi awal (bersih/walk-in manual)
   const resetCheckInForm = () => {
     setSelectedBooking(null);
@@ -551,6 +622,12 @@ export const SecurityPortalView: React.FC = () => {
   const countMenungguQC = onProgressList.filter(
     (x) => (x.status_progress || '').toLowerCase().includes('qc')
   ).length;
+
+  // ── Bantu form Check In ────────────────────────────────────────────────────
+  // Booking aktif (belum check-in) untuk tautan cepat di formulir gerbang.
+  const activeBookingOptions = bookingList.filter((b) => !b.sudah_checkin);
+  // Plat tanpa spasi untuk indikator status lookup (selaras ambang handlePlateSearch).
+  const cleanPlateInput = checkInForm.no_polisi.replace(/\s+/g, '').toUpperCase();
 
   return (
     <div className="space-y-6 font-sans">
@@ -846,100 +923,43 @@ export const SecurityPortalView: React.FC = () => {
       {/* ========================================================================= */}
       {currentTab === 'checkin' && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <form
+            onSubmit={handleCheckInSubmit}
+            className="mx-auto max-w-4xl space-y-4 text-xs text-ink-muted"
+          >
+          <div className="space-y-6 rounded-2xl border border-border bg-surface-raised p-6 shadow-xs sm:p-8">
+            {/* Kepala kartu */}
+            <div className="flex flex-col justify-between gap-3 border-b border-border pb-4 sm:flex-row sm:items-center">
               <div>
-                <h3 className="font-bold text-base text-slate-900">Check In</h3>
-                <p className="text-xs text-slate-500">Pencatatan kedatangan armada booking, service walk-in, pembelian sparepart, atau kunjungan tamu</p>
+                <h3 className="flex items-center gap-2 text-base font-bold text-ink">
+                  <ArrowRightCircle className="h-4 w-4 text-accent" />
+                  Check In
+                </h3>
+                <p className="mt-0.5 text-xs text-ink-muted">
+                  Pencatatan kedatangan armada booking, service walk-in, pembelian sparepart, atau kunjungan tamu
+                </p>
               </div>
               {selectedBooking && (
-                <span className="text-xs font-bold text-[#12388F] bg-[#DBEAFE] px-3 py-1 rounded-full border border-blue-200 self-start sm:self-auto">
-                  Tautan Booking: {selectedBooking.no_booking}
+                <span className="self-start rounded-full border border-accent/30 bg-accent-subtle px-3 py-1 text-xs font-bold text-accent sm:self-auto">
+                  Tautan booking: {selectedBooking.no_booking}
                 </span>
               )}
             </div>
 
-            {/* Banner Indikator jika terisi otomatis dari Booking */}
-            {selectedBooking && (
-              <div className="bg-[#EFF6FF] border border-[#12388F]/25 rounded-xl p-4 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#12388F] text-white flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-[#12388F]">
-                      Data Otomatis Terisi dari Booking: {selectedBooking.no_booking}
-                    </div>
-                    <div className="text-[11px] text-slate-600 mt-0.5">
-                      Plat: <span className="font-mono font-black text-slate-900">{selectedBooking.no_polisi}</span> &bull; {selectedBooking.nama_pelanggan} &bull; Jam: {selectedBooking.jam_booking} WIB
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={resetCheckInForm}
-                  className="text-xs text-red-600 hover:text-red-700 font-semibold underline shrink-0 cursor-pointer"
-                >
-                  Reset Form Manual
-                </button>
-              </div>
-            )}
-
-            {/* Quick Selector Reservasi Booking */}
-            {bookingList.filter((b) => !b.sudah_checkin).length > 0 && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#12388F]/10 text-[#12388F] flex items-center justify-center shrink-0">
-                    <Calendar className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-800">
-                      Tautkan Reservasi Booking ({bookingList.filter((b) => !b.sudah_checkin).length} Booking Aktif)
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      Pilih kendaraan booking untuk isi otomatis, atau pilih walk-in
-                    </div>
-                  </div>
-                </div>
-                <div className="w-full sm:w-auto min-w-[280px] sm:max-w-sm">
-                  <select
-                    value={selectedBooking?.booking_id || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (!val) {
-                        resetCheckInForm();
-                      } else {
-                        const found = bookingList.find((b) => b.booking_id === Number(val));
-                        if (found) {
-                          populateCheckInFromBooking(found);
-                        }
-                      }
-                    }}
-                    className="w-full text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-[#12388F] cursor-pointer"
-                  >
-                    <option value="">-- Check In Walk-In Manual (Tanpa Booking) --</option>
-                    {bookingList
-                      .filter((b) => !b.sudah_checkin)
-                      .map((b) => (
-                        <option key={b.booking_id} value={b.booking_id}>
-                          {b.no_polisi} • {b.nama_pelanggan} ({b.jenis_layanan})
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleCheckInSubmit} className="space-y-6 text-xs text-slate-700">
-              {/* 1. NOMOR POLISI KENDARAAN (Ditaruh Pertama, Lookup sch_pos.tbl_member_unit via sch_fleet.v_kendaraan_lookup) */}
+            {/* 01 — ARMADA MASUK */}
+            <CheckInSection step="01" title="Armada masuk" hint="Wajib — dibaca dari plat di gerbang">
               <div>
-                <label className="block font-bold text-slate-900 text-xs sm:text-sm mb-1.5">
-                  Nomor Polisi Kendaraan <span className="text-red-500">*</span>
+                <label htmlFor="checkin-nopol" className={CHECKIN_LABEL_CLASS}>
+                  Nomor polisi kendaraan <span className="text-status-red">*</span>
                 </label>
                 <div className="relative">
+                  <Truck className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-subtle" />
                   <input
+                    id="checkin-nopol"
                     type="text"
                     required
+                    autoComplete="off"
+                    spellCheck={false}
                     value={checkInForm.no_polisi}
                     onChange={(e) => {
                       const val = e.target.value.toUpperCase();
@@ -967,278 +987,330 @@ export const SecurityPortalView: React.FC = () => {
                         }
                       }
                     }}
-                    placeholder="Contoh: BK 3747 RR"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono font-black text-sm text-slate-900 uppercase focus:outline-none focus:border-[#12388F]"
+                    placeholder="BK 3747 RR"
+                    className="w-full rounded-xl border-2 border-ink/20 bg-surface-raised py-3 pl-12 pr-4 font-mono text-base font-black uppercase tracking-[0.08em] text-ink transition-colors placeholder:font-normal placeholder:tracking-normal placeholder:text-ink-subtle focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 sm:text-lg"
                   />
+                </div>
+
+                {/* Indikator status pencarian plat */}
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   {isSearchingKendaraan && (
-                    <span className="absolute right-3 top-3 text-[10px] text-blue-600 font-medium animate-pulse">
-                      Mengecek database...
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-status-blue/30 bg-status-blue-bg px-2 py-0.5 text-[11px] font-semibold text-status-blue">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Mencari di database fleet…
+                    </span>
+                  )}
+                  {!isSearchingKendaraan && matchedKendaraan && (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-status-green/30 bg-status-green-bg px-2 py-0.5 text-[11px] font-semibold text-status-green">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Terdaftar di database fleet
+                    </span>
+                  )}
+                  {!isSearchingKendaraan && !matchedKendaraan && !selectedBooking && cleanPlateInput.length >= 3 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-status-amber/30 bg-status-amber-bg px-2 py-0.5 text-[11px] font-semibold text-status-amber">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Belum terdaftar — lanjutkan sebagai walk-in atau periksa penulisan plat
                     </span>
                   )}
                 </div>
 
-                {/* Info Terhubung Pemilik / Pengguna Fleet di bawah input plat */}
+                {/* Unit terdaftar beserta pemiliknya */}
                 {matchedKendaraan && (
-                  <div className="mt-2.5 p-3 rounded-xl bg-blue-50/70 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-in fade-in duration-200">
+                  <div className="mt-3 flex flex-col gap-2 rounded-xl border border-status-blue/25 bg-status-blue-bg p-3 animate-in fade-in duration-200 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-[#12388F] text-white flex items-center justify-center shrink-0">
-                        <Truck className="w-4 h-4" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white">
+                        <Truck className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                          <span>{matchedKendaraan.nama_pengguna_fleet || matchedKendaraan.nama_perusahaan || 'Unit Terdaftar'}</span>
+                        <div className="flex items-center gap-2 text-xs font-bold text-ink">
+                          <span>{matchedKendaraan.nama_pengguna_fleet || matchedKendaraan.nama_perusahaan || 'Unit terdaftar'}</span>
                           {matchedKendaraan.user_id && (
-                            <span className="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full border border-green-200">
-                              Terhubung Akun Fleet
+                            <span className="rounded-full border border-status-green/30 bg-status-green-bg px-2 py-0.5 text-[10px] font-bold text-status-green">
+                              Terhubung akun fleet
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-slate-600 mt-0.5">
+                        <div className="mt-0.5 text-[11px] text-ink-muted">
                           {matchedKendaraan.merk ? `${matchedKendaraan.merk} ${matchedKendaraan.model || ''} • ` : ''}
-                          PIC Terdaftar: <span className="font-semibold text-slate-800">{matchedKendaraan.nama_pic || matchedKendaraan.nama_pengguna_fleet || '-'}</span>
+                          PIC terdaftar: <span className="font-semibold text-ink">{matchedKendaraan.nama_pic || matchedKendaraan.nama_pengguna_fleet || '-'}</span>
                           {matchedKendaraan.no_telepon ? ` • ${matchedKendaraan.no_telepon}` : ''}
                         </div>
                       </div>
                     </div>
-                    <span className="text-[10px] text-[#12388F] font-bold bg-white px-2.5 py-1 rounded-md border border-blue-200 shrink-0 self-start sm:self-auto">
+                    <span className="shrink-0 self-start rounded-md border border-border bg-surface-raised px-2.5 py-1 font-mono text-[10px] font-bold text-accent sm:self-auto">
                       {matchedKendaraan.no_polisi}
                     </span>
                   </div>
                 )}
-              </div>
 
-              {/* 2. TUJUAN KEDATANGAN / TIPE KUNJUNGAN (Simple Radio Button Sesuai Mockup Excel) */}
-              <div className="bg-slate-50/60 p-4 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="font-bold text-slate-900 text-xs sm:text-sm">
-                    Tujuan Kedatangan <span className="text-red-500">*</span>
-                  </label>
-                  <span className="text-[11px] text-slate-500">Pilih salah satu sesuai tujuan armada</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { id: 'SERVICE', label: 'Service', defaultKeperluan: 'Service Berkala / Perbaikan Truk' },
-                    { id: 'KUNJUNGAN', label: 'Kunjungan', defaultKeperluan: 'Kunjungan Tamu / Keperluan Kantor' },
-                    { id: 'BELI_PART', label: 'Pembelian Barang', defaultKeperluan: 'Pembelian Sparepart / Barang' },
-                    { id: 'LAINNYA', label: 'Lainnya', defaultKeperluan: '' },
-                  ].map((t) => {
-                    const isChecked = checkInForm.tipe_kunjungan === t.id;
-                    return (
-                      <label
-                        key={t.id}
-                        onClick={() => {
-                          // Otomatis tentukan PIC yang relevan HANYA dari data real database
-                          let autoPic = '';
-                          if (!checkInForm.booking_id && employeeList.length > 0) {
-                            if (t.id === 'SERVICE') {
-                              const emp = employeeList.find((e) => 
-                                (e.jobposition || e.department || '').toLowerCase().includes('advisor') || 
-                                (e.jobposition || '').toLowerCase().includes('sa')
-                              );
-                              if (emp) autoPic = getEmployeeDisplayLabel(emp);
-                            } else if (t.id === 'BELI_PART') {
-                              const emp = employeeList.find((e) => 
-                                (e.jobposition || e.department || '').toLowerCase().includes('warehouse') || 
-                                (e.jobposition || '').toLowerCase().includes('part')
-                              );
-                              if (emp) autoPic = getEmployeeDisplayLabel(emp);
-                            } else if (t.id === 'KUNJUNGAN') {
-                              const emp = employeeList.find((e) => 
-                                (e.department || '').toLowerCase().includes('admin') || 
-                                (e.jobposition || '').toLowerCase().includes('admin') ||
-                                (e.department || '').toLowerCase().includes('management')
-                              );
-                              if (emp) autoPic = getEmployeeDisplayLabel(emp);
+                {/* Tautkan reservasi booking */}
+                {activeBookingOptions.length > 0 && (
+                  <div className="mt-3 flex flex-col gap-2.5 rounded-xl border border-border bg-surface p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-subtle text-accent">
+                        <Calendar className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-ink">
+                          Tautkan reservasi booking ({activeBookingOptions.length} aktif)
+                        </div>
+                        <div className="text-[10px] text-ink-subtle">
+                          Pilih unit booking untuk isi otomatis, atau biarkan untuk walk-in
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-full min-w-0 sm:max-w-sm">
+                      <select
+                        value={selectedBooking?.booking_id || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) {
+                            resetCheckInForm();
+                          } else {
+                            const found = bookingList.find((b) => b.booking_id === Number(val));
+                            if (found) {
+                              populateCheckInFromBooking(found);
                             }
                           }
-                          setCheckInForm((prev) => ({
-                            ...prev,
-                            tipe_kunjungan: t.id as TipeKunjunganGerbang,
-                            tujuan_kunjungan: prev.booking_id 
-                              ? prev.tujuan_kunjungan 
-                              : (t.id === 'LAINNYA' 
-                                  ? (prev.tipe_kunjungan === 'LAINNYA' ? prev.tujuan_kunjungan : '') 
-                                  : t.defaultKeperluan),
-                            bertemu_dengan: autoPic,
-                          }));
                         }}
-                        className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-all ${
-                          isChecked
-                            ? 'bg-blue-50/80 border-[#12388F] text-[#12388F] font-bold shadow-2xs'
-                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                        }`}
+                        className="w-full cursor-pointer rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-semibold text-ink focus:border-accent focus:outline-none"
                       >
-                        <input
-                          type="radio"
-                          name="tipe_kunjungan"
-                          value={t.id}
-                          checked={isChecked}
-                          onChange={() => {}}
-                          className="w-4 h-4 text-[#12388F] border-slate-300 focus:ring-[#12388F] cursor-pointer"
-                        />
-                        <span className="text-xs">{t.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+                        <option value="">Check in walk-in manual (tanpa booking)</option>
+                        {activeBookingOptions.map((b) => (
+                          <option key={b.booking_id} value={b.booking_id}>
+                            {b.no_polisi} • {b.nama_pelanggan} ({b.jenis_layanan})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
 
-                {/* Input Manual Tujuan Kedatangan jika Memilih LAINNYA */}
-                {checkInForm.tipe_kunjungan === 'LAINNYA' && (
-                  <div className="mt-3 pt-3 border-t border-slate-200/80 animate-in fade-in duration-200">
-                    <label className="block font-semibold text-slate-800 text-xs mb-1.5 flex items-center justify-between">
-                      <span className="flex items-center gap-1">
-                        <span>Tuliskan Tujuan Kedatangan</span>
-                        <span className="text-red-500">*</span>
-                      </span>
-                      <span className="text-[11px] font-normal text-slate-500">Ketik bebas tujuan / keperluan kunjungan armada</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={checkInForm.tujuan_kunjungan}
-                      onChange={(e) => setCheckInForm((prev) => ({ ...prev, tujuan_kunjungan: e.target.value }))}
-                      placeholder="Contoh: Pengantaran material, survei fasilitas, audit eksternal, dropping oli, dll."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-blue-400 bg-white font-medium text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#12388F]/20 focus:border-[#12388F]"
-                      autoFocus
-                    />
+                {/* Penanda form terisi otomatis dari booking */}
+                {selectedBooking && (
+                  <div className="mt-3 flex flex-col gap-2 rounded-xl border border-accent/25 bg-accent-subtle p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-2.5">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                      <div className="text-xs font-semibold text-accent">
+                        Form terisi otomatis dari booking {selectedBooking.no_booking}
+                        <div className="mt-0.5 text-[11px] font-normal text-ink-muted">
+                          Plat <span className="font-mono font-black text-ink">{selectedBooking.no_polisi}</span> • {selectedBooking.nama_pelanggan} • {selectedBooking.jam_booking} WIB
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={resetCheckInForm}
+                      className="shrink-0 cursor-pointer self-start rounded-lg border border-accent/30 bg-surface-raised px-2.5 py-1 text-[11px] font-bold text-accent transition-colors hover:bg-surface sm:self-auto"
+                    >
+                      Lepas tautan booking
+                    </button>
                   </div>
                 )}
               </div>
+            </CheckInSection>
 
-              {/* 3. NAMA CUSTOMER & NO HP */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-slate-800 mb-1">
-                    Nama Customer / Pengemudi *
+            {/* 02 — JENIS KUNJUNGAN */}
+            <CheckInSection step="02" title="Jenis kunjungan" hint="Wajib — pilih satu">
+              <div role="radiogroup" aria-label="Jenis kunjungan" className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                {[
+                  { id: 'SERVICE', label: 'Service', Icon: Wrench, defaultKeperluan: 'Service Berkala / Perbaikan Truk' },
+                  { id: 'KUNJUNGAN', label: 'Kunjungan', Icon: Users, defaultKeperluan: 'Kunjungan Tamu / Keperluan Kantor' },
+                  { id: 'BELI_PART', label: 'Pembelian barang', Icon: Package, defaultKeperluan: 'Pembelian Sparepart / Barang' },
+                  { id: 'LAINNYA', label: 'Lainnya', Icon: MoreHorizontal, defaultKeperluan: '' },
+                ].map(({ id: tipeId, label, Icon, defaultKeperluan }) => {
+                  const isChecked = checkInForm.tipe_kunjungan === tipeId;
+                  return (
+                    <label
+                      key={tipeId}
+                      className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-3 transition-colors focus-within:ring-2 focus-within:ring-accent/30 ${
+                        isChecked
+                          ? 'border-accent bg-accent-subtle text-accent shadow-xs'
+                          : 'border-border bg-surface-raised text-ink-muted hover:border-accent/30 hover:bg-surface'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="tipe_kunjungan"
+                        value={tipeId}
+                        checked={isChecked}
+                        onChange={() => applyTipeKunjungan(tipeId as TipeKunjunganGerbang, defaultKeperluan)}
+                        className="sr-only"
+                      />
+                      <Icon className={`h-4 w-4 shrink-0 ${isChecked ? 'text-accent' : 'text-ink-subtle'}`} />
+                      <span className="text-xs font-semibold leading-tight">{label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {/* Tujuan kedatangan bebas bila memilih Lainnya */}
+              {checkInForm.tipe_kunjungan === 'LAINNYA' && (
+                <div className="animate-in space-y-1.5 border-t border-border pt-3 fade-in duration-200">
+                  <label htmlFor="checkin-lainnya" className={CHECKIN_LABEL_CLASS}>
+                    Tujuan kedatangan <span className="text-status-red">*</span>
                   </label>
                   <input
+                    id="checkin-lainnya"
                     type="text"
                     required
+                    autoFocus
+                    value={checkInForm.tujuan_kunjungan}
+                    onChange={(e) => setCheckInForm((prev) => ({ ...prev, tujuan_kunjungan: e.target.value }))}
+                    placeholder="Contoh: pengantaran material, survei fasilitas, audit eksternal"
+                    className={CHECKIN_FIELD_CLASS}
+                  />
+                </div>
+              )}
+            </CheckInSection>
+
+            {/* 03 — PENGEMUDI & KONTAK */}
+            <CheckInSection step="03" title="Pengemudi & kontak" hint="Hanya nama yang wajib">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="checkin-nama" className={CHECKIN_LABEL_CLASS}>
+                    Nama customer / pengemudi <span className="text-status-red">*</span>
+                  </label>
+                  <input
+                    id="checkin-nama"
+                    type="text"
+                    required
+                    autoComplete="name"
                     value={checkInForm.nama_pengemudi}
-                    onChange={(e) => setCheckInForm({ ...checkInForm, nama_pengemudi: e.target.value })}
+                    onChange={(e) => setCheckInForm((prev) => ({ ...prev, nama_pengemudi: e.target.value }))}
                     placeholder="Contoh: Hisar / Slamet Riyadi"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
+                    className={CHECKIN_FIELD_CLASS}
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-800 mb-1">
+                  <label htmlFor="checkin-hp" className={CHECKIN_LABEL_CLASS}>
                     No. HP / WhatsApp
                   </label>
                   <input
+                    id="checkin-hp"
                     type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     value={checkInForm.no_telepon_pengemudi}
-                    onChange={(e) => setCheckInForm({ ...checkInForm, no_telepon_pengemudi: e.target.value })}
+                    onChange={(e) => setCheckInForm((prev) => ({ ...prev, no_telepon_pengemudi: e.target.value }))}
                     placeholder="0812-3456-7890"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
+                    className={CHECKIN_FIELD_CLASS}
                   />
                 </div>
-              </div>
-
-              {/* 4. PIC / TUJUAN (API sch_fleet.v_pos_employee) & NAMA PERUSAHAAN */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block font-semibold text-slate-800">
-                      PIC / Tujuan (Opsional)
+                  <label htmlFor="checkin-perusahaan" className={CHECKIN_LABEL_CLASS}>
+                    Nama perusahaan
+                  </label>
+                  <input
+                    id="checkin-perusahaan"
+                    type="text"
+                    autoComplete="organization"
+                    value={checkInForm.nama_perusahaan}
+                    onChange={(e) => setCheckInForm((prev) => ({ ...prev, nama_perusahaan: e.target.value }))}
+                    placeholder="Contoh: PT Andi Jaya / CV / Umum"
+                    className={CHECKIN_FIELD_CLASS}
+                  />
+                </div>
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <label htmlFor="checkin-pic" className="block text-xs font-semibold text-ink">
+                      PIC / petugas bengkel
                     </label>
                     {isEmployeeLoading && (
-                      <span className="text-[10px] text-blue-600 animate-pulse">Memuat PIC...</span>
+                      <span className="animate-pulse text-[10px] text-status-blue">Memuat PIC…</span>
                     )}
                   </div>
 
                   {employeeList.length > 0 ? (
                     <select
+                      id="checkin-pic"
                       value={checkInForm.bertemu_dengan}
-                      onChange={(e) => setCheckInForm({ ...checkInForm, bertemu_dengan: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F] bg-white cursor-pointer"
+                      onChange={(e) => setCheckInForm((prev) => ({ ...prev, bertemu_dengan: e.target.value }))}
+                      className={`${CHECKIN_FIELD_CLASS} cursor-pointer`}
                     >
-                      <option value="">-- Pilih PIC / Petugas Bengkel (Database POS) --</option>
+                      <option value="">Pilih PIC / petugas bengkel</option>
                       {employeeList.map((emp) => {
                         const label = getEmployeeDisplayLabel(emp);
                         return (
-                          <option 
-                            key={emp.employeeid || emp.id} 
-                            value={label}
-                          >
+                          <option key={emp.employeeid || emp.id} value={label}>
                             {label}
                           </option>
                         );
                       })}
                     </select>
                   ) : (
-                    <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-xs flex items-center justify-between">
-                      <span>{isEmployeeLoading ? 'Memuat daftar PIC dari database...' : 'Daftar PIC database belum tersedia'}</span>
+                    <div className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-xs text-ink-subtle">
+                      {isEmployeeLoading ? 'Memuat daftar PIC dari database…' : 'Daftar PIC database belum tersedia'}
                     </div>
                   )}
                 </div>
+              </div>
+            </CheckInSection>
+
+            {/* 04 — RINCIAN & FOTO */}
+            <CheckInSection step="04" title="Rincian & foto" hint="Membantu pemeriksaan di bengkel">
+              <div className="space-y-4">
+                {checkInForm.tipe_kunjungan !== 'LAINNYA' && (
+                  <div>
+                    <label htmlFor="checkin-keperluan" className={CHECKIN_LABEL_CLASS}>
+                      Keperluan / rincian <span className="text-status-red">*</span>
+                    </label>
+                    <input
+                      id="checkin-keperluan"
+                      type="text"
+                      required
+                      value={checkInForm.tujuan_kunjungan}
+                      onChange={(e) => setCheckInForm((prev) => ({ ...prev, tujuan_kunjungan: e.target.value }))}
+                      placeholder="Contoh: pembelian sparepart, service berkala, pengambilan dokumen stok opname"
+                      className={CHECKIN_FIELD_CLASS}
+                    />
+                  </div>
+                )}
+
                 <div>
-                  <label className="block font-semibold text-slate-800 mb-1">
-                    Nama Perusahaan (Opsional)
+                  <label htmlFor="checkin-catatan" className={CHECKIN_LABEL_CLASS}>
+                    Catatan masuk gerbang
                   </label>
                   <input
+                    id="checkin-catatan"
                     type="text"
-                    value={checkInForm.nama_perusahaan}
-                    onChange={(e) => setCheckInForm({ ...checkInForm, nama_perusahaan: e.target.value })}
-                    placeholder="Contoh: PT. Andi Jaya / CV / Umum"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
+                    value={checkInForm.catatan_masuk}
+                    onChange={(e) => setCheckInForm((prev) => ({ ...prev, catatan_masuk: e.target.value }))}
+                    placeholder="Contoh: membawa dokumen fisik, kondisi truk mulus, muatan kosong"
+                    className={CHECKIN_FIELD_CLASS}
                   />
                 </div>
-              </div>
 
-              {/* Keperluan Kunjungan / Keluhan Service (hanya tampil jika bukan LAINNYA karena LAINNYA sudah diketik langsung di atas) */}
-              {checkInForm.tipe_kunjungan !== 'LAINNYA' && (
-                <div>
-                  <label className="block font-semibold text-slate-800 mb-1">
-                    Keperluan / Rincian Kunjungan *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={checkInForm.tujuan_kunjungan}
-                    onChange={(e) => setCheckInForm({ ...checkInForm, tujuan_kunjungan: e.target.value })}
-                    placeholder="Contoh: Pembelian sparepart, service berkala, pengambilan dokumen stok opname..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
-                  />
-                </div>
-              )}
-
-              {/* Catatan Masuk Gerbang */}
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">
-                  Catatan Masuk Gerbang (Opsional)
-                </label>
-                <input
-                  type="text"
-                  value={checkInForm.catatan_masuk}
-                  onChange={(e) => setCheckInForm({ ...checkInForm, catatan_masuk: e.target.value })}
-                  placeholder="Contoh: Membawa dokumen fisik, kondisi fisik truk mulus, muatan kosong..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 focus:outline-none focus:border-[#12388F]"
-                />
-              </div>
-
-              {/* Unggah Foto Masuk Gerbang (Tersimpan di sch_fleet.foto) */}
-              <div className="pt-1">
                 <PhotoUploader
-                  label="Foto Fisik Kendaraan Masuk (Opsional)"
+                  label="Foto fisik kendaraan masuk"
                   value={checkInForm.foto_kendaraan_masuk}
                   onChange={(url) => setCheckInForm((prev) => ({ ...prev, foto_kendaraan_masuk: url }))}
                 />
               </div>
-
-              {/* Submit Button persis Excel: SIMPAN CHECK IN */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isCheckInSubmitting}
-                  className="w-full py-3.5 rounded-xl bg-[#12388F] hover:bg-[#0D2A6B] text-white font-black text-sm shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 tracking-wide uppercase"
-                >
-                  <ArrowRightCircle className="w-5 h-5" />
-                  <span>{isCheckInSubmitting ? 'MENYIMPAN CHECK IN...' : 'SIMPAN CHECK IN MASUK BENGKEL'}</span>
-                </button>
-              </div>
-            </form>
+            </CheckInSection>
           </div>
+
+          {/* Aksi utama: menempel di bawah layar agar selalu terjangkau petugas */}
+          <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-2 rounded-2xl border border-border bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={resetCheckInForm}
+              disabled={isCheckInSubmitting}
+              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-surface-raised px-4 py-3 text-xs font-bold text-ink-muted transition-colors hover:bg-surface disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </button>
+            <button
+              type="submit"
+              disabled={isCheckInSubmitting}
+              className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-black text-white shadow-md transition-all hover:bg-accent-hover disabled:opacity-50 sm:min-w-[220px] sm:flex-none"
+            >
+              <ArrowRightCircle className="h-5 w-5" />
+              <span>{isCheckInSubmitting ? 'Menyimpan…' : 'Simpan check in'}</span>
+            </button>
+          </div>
+        </form>
         </div>
       )}
 
