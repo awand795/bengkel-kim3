@@ -2609,8 +2609,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     onSuccess: (res, id) => {
       const b = (bookingList || []).find((x) => x.id === id);
       queryClient.invalidateQueries({ queryKey: ['booking-list'] });
-      if (res?.rows_affected === 0) {
-        toast.warning('Booking tidak dapat dibatalkan', 'Mungkin sudah diproses / check-in oleh Security.');
+      if (res?.rows_affected === 0 || (Array.isArray(res?.data) && res.data.length === 0)) {
+        toast.warning('Booking tidak dapat dibatalkan', 'Mungkin sudah dikonfirmasi admin bengkel atau kendaraan sudah check-in di gerbang.');
         return;
       }
       realtimeHub.publish({
