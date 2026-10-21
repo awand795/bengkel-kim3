@@ -287,37 +287,43 @@ export const SecurityPortalView: React.FC = () => {
   const { data: rawStats } = useQuery({
     queryKey: ['security-dashboard'],
     queryFn: () => api.getSecurityDashboardStats(),
-    staleTime: 10000,
+    staleTime: 5000,
+    refetchInterval: 8000,
   });
 
   const { data: bookingList = [] } = useQuery({
     queryKey: ['security-booking-list'],
     queryFn: () => api.getSecurityBookingList(),
-    staleTime: 10000,
+    staleTime: 5000,
+    refetchInterval: 5000,
   });
 
   const { data: onProgressList = [] } = useQuery({
     queryKey: ['security-onprogress'],
     queryFn: () => api.getSecurityOnProgress(),
-    staleTime: 10000,
+    staleTime: 5000,
+    refetchInterval: 8000,
   });
 
   const { data: siapCheckOutList = [] } = useQuery({
     queryKey: ['security-siap-checkout'],
     queryFn: () => api.getSecuritySiapCheckOut(),
-    staleTime: 10000,
+    staleTime: 5000,
+    refetchInterval: 8000,
   });
 
   const { data: riwayatKeluarList = [] } = useQuery({
     queryKey: ['security-riwayat-keluar', riwayatPeriode],
     queryFn: () => api.getSecurityRiwayatKeluar(riwayatPeriode),
-    staleTime: 30000,
+    staleTime: 15000,
+    refetchInterval: 15000,
   });
 
   const { data: memoList = [] } = useQuery({
     queryKey: ['security-memo'],
     queryFn: () => api.getSecurityMemoKeluar(),
-    staleTime: 30000,
+    staleTime: 15000,
+    refetchInterval: 15000,
   });
 
   // Perhitungan statistik dashboard yang reaktif dan akurat
