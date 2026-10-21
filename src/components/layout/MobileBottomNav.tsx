@@ -13,7 +13,8 @@ import {
   ArrowRightCircle,
   Wrench,
   LogOut,
-  FileCheck
+  FileCheck,
+  History
 } from 'lucide-react';
 
 interface NavTab {
@@ -38,7 +39,8 @@ export const MobileBottomNav: React.FC = () => {
     { id: 'security-booking', label: 'Booking', icon: Calendar },
     { id: 'security-checkin', label: 'Check In', icon: ArrowRightCircle },
     { id: 'security-onprogress', label: 'Progress', icon: Wrench },
-    { id: 'security-keluar', label: 'Keluar', icon: LogOut },
+    { id: 'security-checkout', label: 'Check Out', icon: LogOut },
+    { id: 'security-keluar', label: 'Keluar', icon: History },
     { id: 'security-memo', label: 'Memo', icon: FileCheck },
   ];
 

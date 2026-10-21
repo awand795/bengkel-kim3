@@ -899,6 +899,18 @@ export const api = {
     }
   },
 
+  getSecuritySiapCheckOut: async (): Promise<SecurityOnProgressItem[]> => {
+    try {
+      const res = await apiClient.get('/kim3/security/siap-checkout');
+      const raw = res.data?.data ?? res.data;
+      const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? [raw] : []);
+      return list;
+    } catch (e) {
+      console.warn('API /kim3/security/siap-checkout failed:', e);
+      return [];
+    }
+  },
+
   securityCheckOut: async (payload: CheckOutPayload): Promise<any> => {
     const res = await apiClient.post('/kim3/security/check-out', payload);
     return res.data;

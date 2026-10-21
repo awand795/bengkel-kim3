@@ -208,12 +208,15 @@ export const SecurityPortalView: React.FC = () => {
   // Filter tanggal per tab
   const [bookingFilterTanggal, setBookingFilterTanggal] = useState<string>('');
   const [onProgressFilterTanggal, setOnProgressFilterTanggal] = useState<string>('');
+  const [checkoutFilterTanggal, setCheckoutFilterTanggal] = useState<string>('');
+  const [checkoutSearch, setCheckoutSearch] = useState<string>('');
   const [riwayatFilterTanggal, setRiwayatFilterTanggal] = useState<string>('');
   const [memoFilterTanggal, setMemoFilterTanggal] = useState<string>('');
 
   // Current page per tab
   const [bookingCurrentPage, setBookingCurrentPage] = useState<number>(1);
   const [onProgressCurrentPage, setOnProgressCurrentPage] = useState<number>(1);
+  const [checkoutCurrentPage, setCheckoutCurrentPage] = useState<number>(1);
   const [riwayatCurrentPage, setRiwayatCurrentPage] = useState<number>(1);
   const [memoCurrentPage, setMemoCurrentPage] = useState<number>(1);
   const [selectedBooking, setSelectedBooking] = useState<SecurityBookingItem | null>(null);
@@ -266,6 +269,12 @@ export const SecurityPortalView: React.FC = () => {
     staleTime: 10000,
   });
 
+  const { data: siapCheckOutList = [] } = useQuery({
+    queryKey: ['security-siap-checkout'],
+    queryFn: () => api.getSecuritySiapCheckOut(),
+    staleTime: 10000,
+  });
+
   const { data: riwayatKeluarList = [] } = useQuery({
     queryKey: ['security-riwayat-keluar', riwayatPeriode],
     queryFn: () => api.getSecurityRiwayatKeluar(riwayatPeriode),
@@ -290,13 +299,13 @@ export const SecurityPortalView: React.FC = () => {
   const stats: SecurityDashboardStats = useMemo(() => ({
     total_masuk_hari_ini: rawStats?.total_masuk_hari_ini ?? 0,
     total_di_dalam: rawStats?.total_di_dalam ?? 0,
-    total_siap_keluar: rawStats?.total_siap_keluar ?? 0,
+    total_siap_keluar: Math.max(rawStats?.total_siap_keluar ?? 0, siapCheckOutList.length),
     total_booking_hari_ini:
       rawStats?.total_booking_hari_ini && rawStats.total_booking_hari_ini > 0
         ? rawStats.total_booking_hari_ini
         : activeBookingsCount,
     total_keluar_hari_ini: rawStats?.total_keluar_hari_ini ?? 0,
-  }), [rawStats, activeBookingsCount]);
+  }), [rawStats, activeBookingsCount, siapCheckOutList.length]);
 
   // Helper: Format label PIC dengan jabatan/jobposition dari database
   const getEmployeeDisplayLabel = (emp?: MasterEmployee | null) => {
@@ -416,6 +425,7 @@ export const SecurityPortalView: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: ['security-dashboard'] });
         queryClient.invalidateQueries({ queryKey: ['security-booking-list'] });
         queryClient.invalidateQueries({ queryKey: ['security-onprogress'] });
+        queryClient.invalidateQueries({ queryKey: ['security-siap-checkout'] });
         queryClient.invalidateQueries({ queryKey: ['security-riwayat-keluar'] });
         queryClient.invalidateQueries({ queryKey: ['security-memo'] });
       }
@@ -463,6 +473,7 @@ export const SecurityPortalView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['security-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['security-booking-list'] });
       queryClient.invalidateQueries({ queryKey: ['security-onprogress'] });
+      queryClient.invalidateQueries({ queryKey: ['security-siap-checkout'] });
       setActiveTab('security-onprogress');
     } catch (err: any) {
       toast.error(getApiErrorMessage(err, 'Gagal memproses Check-In gerbang.'));
@@ -481,6 +492,7 @@ export const SecurityPortalView: React.FC = () => {
   const handleCheckOutSuccess = async (memoId: number, memoNo: string) => {
     queryClient.invalidateQueries({ queryKey: ['security-dashboard'] });
     queryClient.invalidateQueries({ queryKey: ['security-onprogress'] });
+    queryClient.invalidateQueries({ queryKey: ['security-siap-checkout'] });
     queryClient.invalidateQueries({ queryKey: ['security-riwayat-keluar'] });
     queryClient.invalidateQueries({ queryKey: ['security-memo'] });
     try {
@@ -593,7 +605,7 @@ export const SecurityPortalView: React.FC = () => {
               icon={Clock}
               badge={stats.total_siap_keluar > 0 ? 'Gate Pass' : undefined}
               tone="amber"
-              onClick={() => setActiveTab('security-keluar')}
+              onClick={() => setActiveTab('security-checkout')}
             />
             <StatCard
               title="Booking Hari Ini"
@@ -1467,6 +1479,209 @@ export const SecurityPortalView: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
+      {/* 4B. TAB: CHECK OUT (KENDARAAN SELESAI SERVIS / SIAP KELUAR)             */}
+      {/* ========================================================================= */}
+      {currentTab === 'checkout' && (
+        <div className="space-y-5 animate-in fade-in duration-200">
+          {/* Header Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-1">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-[#12388F] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                3
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-black tracking-wide text-slate-900 uppercase">
+                  DAFTAR KENDARAAN SIAP CHECK OUT
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Armada yang telah selesai perbaikan di bengkel dan siap diverifikasi di pos gerbang untuk penerbitan gate pass.
+                </p>
+              </div>
+            </div>
+
+            {/* Filter Controls */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="relative min-w-[220px]">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={checkoutSearch}
+                  onChange={(e) => {
+                    setCheckoutSearch(e.target.value);
+                    setCheckoutCurrentPage(1);
+                  }}
+                  placeholder="Cari No. Polisi / Driver / Tiket..."
+                  className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#12388F]"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5">
+                <span className="text-slate-400 text-[11px]">Tanggal Masuk</span>
+                <input
+                  type="date"
+                  value={checkoutFilterTanggal}
+                  onChange={(e) => {
+                    setCheckoutFilterTanggal(e.target.value);
+                    setCheckoutCurrentPage(1);
+                  }}
+                  className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer text-xs"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCheckoutSearch('');
+                  setCheckoutFilterTanggal('');
+                  setCheckoutCurrentPage(1);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+              >
+                <Filter className="w-3.5 h-3.5 text-slate-500" />
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table Siap Check Out */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="py-2.5 px-3.5">No.</th>
+                    <th className="py-2.5 px-3.5">No. Tiket</th>
+                    <th className="py-2.5 px-3.5">No. Polisi</th>
+                    <th className="py-2.5 px-3.5">Nama Customer / Pengemudi</th>
+                    <th className="py-2.5 px-3.5">No. SPK & Faktur</th>
+                    <th className="py-2.5 px-3.5">Masuk Gerbang</th>
+                    <th className="py-2.5 px-3.5">Status Pengerjaan</th>
+                    <th className="py-2.5 px-3.5 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(() => {
+                    const filtered = siapCheckOutList.filter((item) => {
+                      const matchSearch =
+                        !checkoutSearch ||
+                        item.no_polisi.toLowerCase().includes(checkoutSearch.toLowerCase()) ||
+                        (item.nama_perusahaan && item.nama_perusahaan.toLowerCase().includes(checkoutSearch.toLowerCase())) ||
+                        (item.nama_pengemudi && item.nama_pengemudi.toLowerCase().includes(checkoutSearch.toLowerCase())) ||
+                        (item.nomor_tiket && item.nomor_tiket.toLowerCase().includes(checkoutSearch.toLowerCase())) ||
+                        (item.no_spk && item.no_spk.toLowerCase().includes(checkoutSearch.toLowerCase()));
+                      const matchDate =
+                        !checkoutFilterTanggal ||
+                        (item.waktu_masuk && item.waktu_masuk.includes(checkoutFilterTanggal));
+                      return matchSearch && matchDate;
+                    });
+
+                    const totalPages = Math.max(1, Math.ceil(filtered.length / SECURITY_TABLE_PAGE_SIZE));
+                    const currentPage = Math.min(Math.max(1, checkoutCurrentPage), totalPages);
+                    const startIndex = (currentPage - 1) * SECURITY_TABLE_PAGE_SIZE;
+                    const pageItems = filtered.slice(startIndex, startIndex + SECURITY_TABLE_PAGE_SIZE);
+
+                    if (pageItems.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={8} className="py-12 text-center">
+                            <div className="flex flex-col items-center justify-center space-y-2 text-slate-400">
+                              <CheckCircle2 className="w-8 h-8 text-emerald-400/80" />
+                              <p className="text-xs font-semibold text-slate-600">Tidak ada kendaraan yang menunggu check out saat ini.</p>
+                              <p className="text-[11px] text-slate-400">Kendaraan yang berstatus 'Selesai' di bengkel akan otomatis muncul di sini untuk verifikasi gate pass.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return pageItems.map((item, idx) => (
+                      <tr key={item.kunjungan_id} className="hover:bg-amber-50/40 transition-colors">
+                        <td className="py-2.5 px-3.5 font-semibold text-slate-500">{startIndex + idx + 1}</td>
+                        <td className="py-2.5 px-3.5">
+                          <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                            {item.nomor_tiket}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3.5">
+                          <span className="font-mono font-black text-slate-900 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md text-xs">
+                            {item.no_polisi}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3.5">
+                          <div className="font-bold text-slate-800">{item.nama_pengemudi}</div>
+                          <div className="text-[11px] text-slate-400">{item.nama_perusahaan || '-'}</div>
+                        </td>
+                        <td className="py-2.5 px-3.5">
+                          <div className="font-mono text-slate-700 font-semibold text-xs">{item.no_spk || '-'}</div>
+                          {item.no_invoice && item.no_invoice !== '-' && (
+                            <div className="text-[10px] text-emerald-600 font-medium">Inv: {item.no_invoice}</div>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3.5 text-slate-600">
+                          <div>{item.waktu_masuk}</div>
+                          <div className="text-[10px] text-slate-400 font-medium">({item.durasi_jam ?? 0} Jam di Bengkel)</div>
+                        </td>
+                        <td className="py-2.5 px-3.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Servis Selesai</span>
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCheckOut({
+                              id: item.kunjungan_id,
+                              nomor_tiket: item.nomor_tiket,
+                              no_polisi: item.no_polisi,
+                              nama_pengemudi: item.nama_pengemudi,
+                              nama_perusahaan: item.nama_perusahaan,
+                              tipe_kunjungan: item.tipe_kunjungan,
+                              waktu_masuk: item.waktu_masuk,
+                            })}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors cursor-pointer"
+                          >
+                            <LogOut className="w-3.5 h-3.5" />
+                            <span>Check Out</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Dynamic Pagination Footer */}
+            {(() => {
+              const filtered = siapCheckOutList.filter((item) => {
+                const matchSearch =
+                  !checkoutSearch ||
+                  item.no_polisi.toLowerCase().includes(checkoutSearch.toLowerCase()) ||
+                  (item.nama_perusahaan && item.nama_perusahaan.toLowerCase().includes(checkoutSearch.toLowerCase())) ||
+                  (item.nama_pengemudi && item.nama_pengemudi.toLowerCase().includes(checkoutSearch.toLowerCase())) ||
+                  (item.nomor_tiket && item.nomor_tiket.toLowerCase().includes(checkoutSearch.toLowerCase())) ||
+                  (item.no_spk && item.no_spk.toLowerCase().includes(checkoutSearch.toLowerCase()));
+                const matchDate =
+                  !checkoutFilterTanggal ||
+                  (item.waktu_masuk && item.waktu_masuk.includes(checkoutFilterTanggal));
+                return matchSearch && matchDate;
+              });
+
+              return (
+                <SecurityTablePagination
+                  currentPage={checkoutCurrentPage}
+                  totalItems={filtered.length}
+                  pageSize={SECURITY_TABLE_PAGE_SIZE}
+                  onPageChange={setCheckoutCurrentPage}
+                />
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* 5. TAB: SELESAI / KELUAR                                                  */}
       {/* ========================================================================= */}
       {currentTab === 'keluar' && (
@@ -1475,7 +1690,7 @@ export const SecurityPortalView: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-1">
             <div className="flex items-center gap-3">
               <div className="w-7 h-7 rounded-full bg-[#12388F] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
-                3
+                4
               </div>
               <h2 className="text-sm sm:text-base font-black tracking-wide text-slate-900 uppercase">
                 SELURUH NOPOL YANG TELAH MENINGGALKAN BENGKEL
@@ -1681,7 +1896,7 @@ export const SecurityPortalView: React.FC = () => {
           {/* Header Bar Persis Excel */}
           <div className="flex items-center gap-3 pb-1">
             <div className="w-7 h-7 rounded-full bg-[#12388F] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
-              4
+              5
             </div>
             <h2 className="text-sm sm:text-base font-black tracking-wide text-slate-900 uppercase">
               MEMO KELUAR

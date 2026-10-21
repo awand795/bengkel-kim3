@@ -558,6 +558,11 @@ export interface SecurityOnProgressItem {
   foto_kendaraan_masuk?: string | null;
   no_spk: string;
   status_progress: string;
+  status_spk?: string;
+  no_invoice?: string;
+  status_invoice?: string;
+  total_bayar?: number;
+  nama_sa?: string;
   foreman: string;
   mekanik: string;
 }
