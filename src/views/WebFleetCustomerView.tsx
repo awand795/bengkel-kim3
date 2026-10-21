@@ -2957,7 +2957,28 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         );
       }
 
+      // Generate nomor booking urut (+1) dari database hari ini: BK-YYMMDD-XXXX
+      const today = new Date();
+      const yy = String(today.getFullYear()).slice(-2);
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const datePrefix = `BK-${yy}${mm}${dd}-`;
+
+      let maxSeq = 0;
+      (bookingList || []).forEach((item) => {
+        const no = item.no_booking || '';
+        if (no.startsWith(datePrefix)) {
+          const suffix = no.slice(datePrefix.length);
+          const seq = parseInt(suffix, 10);
+          if (!isNaN(seq) && seq > maxSeq) {
+            maxSeq = seq;
+          }
+        }
+      });
+      const nextBookingNo = `${datePrefix}${String(maxSeq + 1).padStart(4, '0')}`;
+
       return api.tambahBooking({
+        no_booking: nextBookingNo,
         id_pelanggan: myPelangganId ? Number(myPelangganId) : undefined,
         no_polisi: bookingForm.no_polisi,
         jenis_layanan: bookingForm.jenis_layanan,
