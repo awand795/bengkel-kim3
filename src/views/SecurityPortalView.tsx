@@ -632,30 +632,22 @@ export const SecurityPortalView: React.FC = () => {
   return (
     <div className="space-y-6 font-sans">
       {/* Banner Identitas Petugas & Header Pos (Warna Biru Customer Fleet #1D4ED8) */}
-      <div className="rounded-xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border-0 bg-[#1D4ED8] text-white dark:bg-[#1B42B8]">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/25 text-white text-xs font-semibold mb-2 shadow-2xs">
-            <ShieldCheck className="w-3.5 h-3.5 text-white" />
-            <span>PORTAL OPERASIONAL POS SECURITY GERBANG</span>
-          </div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">
-            Master Truck &bull; Pos Gerbang Utama
-          </h1>
-          <p className="text-xs text-white/80 mt-1 max-w-xl leading-relaxed font-normal">
-            Petugas Jaga: <span className="font-semibold text-white">{authUser?.nama_lengkap || 'Security Gerbang Utama (Pos 1)'}</span> ({authUser?.email || 'security@mastertruck.co.id'}) &bull; Kawasan Industri Medan III (KIM 3)
-          </p>
+      {/* Pola copy disamakan dengan banner dashboard portal Customer Fleet:
+          badge label, sapaan pengguna, lalu satu kalimat penjelas fungsi. */}
+      <div className="rounded-xl p-5 sm:p-6 shadow-sm border-0 bg-[#1D4ED8] text-white dark:bg-[#1B42B8]">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/25 text-white text-xs font-semibold mb-2 shadow-2xs">
+          <ShieldCheck className="w-3.5 h-3.5 text-white" />
+          <span>Portal Operasional Pos Security KIM 3</span>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab('security-checkin')}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#EFF6FF] active:bg-[#DBEAFE] text-[#1D4ED8] text-xs font-bold rounded-xl border-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] hover:-translate-y-[1px] transition-all cursor-pointer"
-          >
-            <ArrowRightCircle className="w-4 h-4" />
-            <span>+ Check In</span>
-          </button>
-        </div>
+        <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">
+          Selamat Datang, {authUser?.nama_lengkap || 'Petugas Security'}
+        </h1>
+        <p className="text-xs text-white/80 mt-1 max-w-xl leading-relaxed font-normal">
+          Kelola kendaraan masuk, pantau pengerjaan di bengkel, dan verifikasi gate pass kendaraan keluar secara realtime.
+        </p>
+        <p className="text-[11px] text-white/70 mt-1 max-w-xl leading-relaxed font-normal">
+          {authUser?.nama_perusahaan || 'Master Truck'} &bull; Pos Gerbang Utama &bull; Kawasan Industri Medan III (KIM 3) &bull; {authUser?.email || 'security@mastertruck.co.id'}
+        </p>
       </div>
 
       {/* ========================================================================= */}
@@ -727,7 +719,7 @@ export const SecurityPortalView: React.FC = () => {
               </h2>
             </div>
 
-            {/* Filter Controls (Cari, Tanggal, Filter, + Check In) */}
+            {/* Filter Controls (Cari, Tanggal, Filter) */}
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="relative min-w-[220px]">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
