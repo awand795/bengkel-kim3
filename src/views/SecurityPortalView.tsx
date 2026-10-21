@@ -222,6 +222,8 @@ export const SecurityPortalView: React.FC = () => {
   const [selectedBooking, setSelectedBooking] = useState<SecurityBookingItem | null>(null);
   const [viewingBookingDetail, setViewingBookingDetail] = useState<SecurityBookingItem | null>(null);
   const [bookingDetailModalOpen, setBookingDetailModalOpen] = useState<boolean>(false);
+  const [viewingProgressDetail, setViewingProgressDetail] = useState<SecurityOnProgressItem | null>(null);
+  const [progressDetailModalOpen, setProgressDetailModalOpen] = useState<boolean>(false);
   const [checkInForm, setCheckInForm] = useState({
     tipe_kunjungan: 'SERVICE' as TipeKunjunganGerbang,
     booking_id: null as number | null,
@@ -1392,7 +1394,14 @@ export const SecurityPortalView: React.FC = () => {
                     }
 
                     return pageItems.map((item, idx) => (
-                      <tr key={item.kunjungan_id} className="hover:bg-slate-50/80 transition-colors">
+                      <tr 
+                        key={item.kunjungan_id} 
+                        onClick={() => {
+                          setViewingProgressDetail(item);
+                          setProgressDetailModalOpen(true);
+                        }}
+                        className="hover:bg-blue-50/50 cursor-pointer transition-colors"
+                      >
                         <td className="py-2.5 px-3.5 font-semibold text-slate-500">{startIndex + idx + 1}</td>
                         <td className="py-2.5 px-3.5 font-mono font-black text-slate-900">
                           {item.no_polisi}
@@ -1427,18 +1436,13 @@ export const SecurityPortalView: React.FC = () => {
                         <td className="py-2.5 px-3.5 text-slate-700 font-medium">
                           {item.mekanik || item.foreman || '-'}
                         </td>
-                        <td className="py-2.5 px-3.5 text-center">
+                        <td className="py-2.5 px-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
-                            onClick={() => handleOpenCheckOut({
-                              id: item.kunjungan_id,
-                              nomor_tiket: item.nomor_tiket,
-                              no_polisi: item.no_polisi,
-                              nama_pengemudi: item.nama_pengemudi,
-                              nama_perusahaan: item.nama_perusahaan,
-                              tipe_kunjungan: item.tipe_kunjungan,
-                              waktu_masuk: item.waktu_masuk,
-                            })}
+                            onClick={() => {
+                              setViewingProgressDetail(item);
+                              setProgressDetailModalOpen(true);
+                            }}
                             className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg border border-[#12388F] text-[#12388F] hover:bg-blue-50 transition-colors cursor-pointer"
                           >
                             <span>Detail</span>
@@ -2221,6 +2225,165 @@ export const SecurityPortalView: React.FC = () => {
                   <span>Pilih &amp; Isi Check In</span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Detail Armada di Bengkel (Progress - Read-Only, Tidak Ada Tombol Check Out) */}
+      {progressDetailModalOpen && viewingProgressDetail && createPortal(
+        <div className="fixed inset-0 z-9999 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto animate-in fade-in zoom-in-95 duration-200">
+            {/* Header Modal - Konsisten dengan tema Pos Gerbang (#1D4ED8) */}
+            <div className="flex items-center justify-between px-6 py-4.5 bg-[#1D4ED8] text-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shadow-xs">
+                  <Wrench className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base tracking-wide leading-tight">Detail Armada di Bengkel</h3>
+                  <p className="text-[11px] text-blue-100 font-mono mt-0.5">Tiket: {viewingProgressDetail.nomor_tiket}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setProgressDetailModalOpen(false);
+                  setViewingProgressDetail(null);
+                }}
+                className="p-1.5 text-blue-100 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="overflow-y-auto p-6 space-y-4 text-xs text-slate-700">
+              {/* Card Plat & Status Pengerjaan */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-[#12388F] text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                    <Truck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">No. Polisi Armada</span>
+                    <div className="font-mono font-black text-xl sm:text-2xl text-slate-900 leading-tight">
+                      {viewingProgressDetail.no_polisi}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Status Pengerjaan</span>
+                  {(viewingProgressDetail.status_progress || '').toLowerCase().includes('part') ? (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                      Menunggu Part
+                    </span>
+                  ) : (viewingProgressDetail.status_progress || '').toLowerCase().includes('qc') ? (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                      Menunggu QC
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                      {viewingProgressDetail.status_progress || 'Sedang Dikerjakan'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Grid Rincian Informasi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Customer / Perusahaan</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingProgressDetail.nama_perusahaan || '-'}</p>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Driver / Pengemudi</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingProgressDetail.nama_pengemudi || '-'}</p>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Waktu Masuk Gerbang</span>
+                  </div>
+                  <p className="font-mono font-bold text-slate-900 text-xs sm:text-sm">{viewingProgressDetail.waktu_masuk || '-'}</p>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Durasi di Dalam</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingProgressDetail.durasi_jam || 0} Jam</p>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>No. SPK / WO</span>
+                  </div>
+                  <p className="font-mono font-bold text-[#12388F] text-xs sm:text-sm">{viewingProgressDetail.no_spk || '-'}</p>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Service Advisor (SA)</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingProgressDetail.nama_sa || '-'}</p>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Foreman (Kepala Regu)</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingProgressDetail.foreman || '-'}</p>
+                </div>
+
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-medium">
+                    <Wrench className="w-3.5 h-3.5" />
+                    <span>Teknisi Mekanik</span>
+                  </div>
+                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{viewingProgressDetail.mekanik || '-'}</p>
+                </div>
+              </div>
+
+              {/* Notice Box: Alur Gerbang yang Benar */}
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/80 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <div className="font-bold text-amber-900">Armada Masih Dalam Pengerjaan</div>
+                  <p className="text-amber-800 leading-relaxed">
+                    Kendaraan ini belum dapat di-check out karena masih dalam proses penanganan oleh teknisi bengkel. 
+                    Setelah seluruh pengerjaan servis dinyatakan <strong>Selesai</strong>, armada akan otomatis berpindah ke menu <strong>Check Out</strong> untuk diproses keluar oleh Security.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Modal Action - HANYA Tombol Tutup */}
+            <div className="flex items-center justify-end px-6 py-4 bg-slate-50 border-t border-slate-200 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setProgressDetailModalOpen(false);
+                  setViewingProgressDetail(null);
+                }}
+                className="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>,
