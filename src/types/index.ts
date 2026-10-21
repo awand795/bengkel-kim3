@@ -261,6 +261,10 @@ export interface SpkService {
     | 'Estimasi Disetujui'
     | 'Waiting Part'
     | 'Dalam Pengerjaan'
+    // Nilai lama dari aplikasi POS (ditampilkan sebagai "Proses Pengerjaan")
+    | 'Proses Pengerjaan'
+    | 'Proses Pekerjaan'
+    | 'Selesai Dikerjakan'
     | 'Pending'
     | 'Waiting QC'
     | 'QC Passed'

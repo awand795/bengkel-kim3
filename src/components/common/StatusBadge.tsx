@@ -1,4 +1,5 @@
 import React from 'react';
+import { spkStatusLabel } from '../../utils/statusLabel';
 
 interface StatusBadgeProps {
   status: string;
@@ -12,6 +13,9 @@ interface StatusBadgeProps {
  * Prinsip: Satu elemen solid penuh (warna semantik), sisanya redup (tint lembut).
  */
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' }) => {
+  // Semua status SPK dinormalisasi lebih dulu (mis. "Proses Pekerjaan" → "Proses Pengerjaan")
+  const label = spkStatusLabel(status);
+
   const getBadgeStyle = (st: string) => {
     switch (st?.toLowerCase()) {
       // Biru: Terjadwal / Booked / Estimasi Awal
@@ -25,6 +29,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
         return 'bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]/40 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/50';
 
       // Amber: Diproses / Diservis / Menunggu Pengerjaan / Sparepart
+      case 'proses pengerjaan':
       case 'dalam pengerjaan':
       case 'sedang dikerjakan':
       case 'dikerjakan':
@@ -82,11 +87,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
   return (
     <span
       className={`inline-flex items-center gap-1.5 font-sans tracking-tight tabular-nums border shadow-2xs ${getBadgeStyle(
-        status
+        label
       )} ${sizeClasses[size]}`}
     >
       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-85 shrink-0" />
-      <span className="truncate">{status || '-'}</span>
+      <span className="truncate">{label}</span>
     </span>
   );
 };

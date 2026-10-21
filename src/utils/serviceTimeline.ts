@@ -14,6 +14,7 @@
  */
 
 import type { SpkService } from '../types';
+import { normalizeSpkStatus } from './statusLabel';
 
 export type ServiceStageKey =
   | 'masuk'
@@ -75,9 +76,8 @@ export const resolveServiceTimeline = (
   spk: SpkTimelineInput | null | undefined,
   invoiceLunas = false
 ): Record<ServiceStageKey, ServiceStageState> => {
-  // Samakan status lama ("Proses Pengerjaan"/"Proses Pekerjaan") dengan status baku
-  const rawStatus = String(spk?.status_spk || '');
-  const status = rawStatus === 'Proses Pengerjaan' || rawStatus === 'Proses Pekerjaan' ? 'Dalam Pengerjaan' : rawStatus;
+  // Status lama ("Proses Pekerjaan", "Selesai Dikerjakan") disamakan ke status baku
+  const status = normalizeSpkStatus(spk?.status_spk);
   const adaStatus = (list: string[]) => list.includes(status);
 
   const masuk: ServiceStageState = ada(spk?.waktu_check_in) || ada(spk?.created_at) ? 'done' : 'active';

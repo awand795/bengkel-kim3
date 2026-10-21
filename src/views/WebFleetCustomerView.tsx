@@ -21,6 +21,7 @@ import {
   type ServiceStageKey,
   type ServiceStageState,
 } from '../utils/serviceTimeline';
+import { spkStatusLabel } from '../utils/statusLabel';
 import { StepModal } from '../components/common/StepModal';
 import { DetailModal } from '../components/common/DetailModal';
 import { ListItemCard } from '../components/common/ListItemCard';
@@ -889,7 +890,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             meta={
                               <>
                                 Mekanik: {spk.nama_mekanik || 'SYAHBANA'} | Status SPK:{' '}
-                                <span className="font-medium text-ink">{spk.status_spk}</span>
+                                <span className="font-medium text-ink">{spkStatusLabel(spk.status_spk)}</span>
                               </>
                             }
                           >
@@ -1047,7 +1048,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         ) : serviceTimeline.pengerjaan === 'blocked' ? (
                           <>tertahan karena <span className="font-semibold text-status-red">menunggu ketersediaan sparepart</span>. Kami akan menghubungi Anda begitu part siap.</>
                         ) : (
-                          <>saat ini berada pada tahap <span className="font-semibold text-accent">{spk.status_spk}</span>.</>
+                          <>saat ini berada pada tahap <span className="font-semibold text-accent">{spkStatusLabel(spk.status_spk)}</span>.</>
                         )}
                       </p>
                       <div className="bg-surface-raised p-3 rounded-xl border border-accent/30 text-ink-muted space-y-1">
@@ -2211,7 +2212,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         (s.no_spk && s.no_spk.toLowerCase().includes(q)) ||
         (s.no_polisi && s.no_polisi.toLowerCase().includes(q)) ||
         (s.keluhan_customer && s.keluhan_customer.toLowerCase().includes(q)) ||
-        (s.status_spk && s.status_spk.toLowerCase().includes(q))
+        // Cari pada label ternormalisasi agar "pengerjaan" tetap menemukan "Proses Pekerjaan"
+        spkStatusLabel(s.status_spk).toLowerCase().includes(q)
       );
     }
     return list;
