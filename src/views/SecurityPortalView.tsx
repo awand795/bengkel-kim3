@@ -47,6 +47,7 @@ import { SecurityCheckOutModal } from '../components/security/SecurityCheckOutMo
 import { DigitalMemoKeluarModal } from '../components/security/DigitalMemoKeluarModal';
 import { useAppStore } from '../store/useAppStore';
 import { realtimeHub } from '../services/realtimeService';
+import { isTanggalSamaHariIni } from '../utils/tanggal';
 
 // Pilihan Tujuan Kedatangan (Revamped dengan Ikon, Badge, dan Penjelasan)
 const renderTipeKunjunganBadge = (tipe: string | undefined) => {
@@ -290,13 +291,17 @@ export const SecurityPortalView: React.FC = () => {
   });
 
   // Perhitungan statistik dashboard yang reaktif dan akurat
-  const today = new Date().toISOString().split('T')[0];
+  // Catatan: perbandingan tanggal memakai hari lokal (WIB) via isTanggalSamaHariIni,
+  // bukan toISOString() yang berbasis UTC (bisa meleset antara 00:00-07:00 WIB).
   const activeBookingsCount = useMemo(() => {
-    return bookingList.filter((b) => {
-      const isToday = b.tanggal_booking ? b.tanggal_booking.slice(0, 10) === today : true;
-      return isToday && !b.sudah_checkin && b.status !== 'Check In' && b.status !== 'Dibatalkan';
-    }).length;
-  }, [bookingList, today]);
+    return bookingList.filter(
+      (b) =>
+        isTanggalSamaHariIni(b.tanggal_booking) &&
+        !b.sudah_checkin &&
+        b.status !== 'Check In' &&
+        b.status !== 'Dibatalkan'
+    ).length;
+  }, [bookingList]);
 
   const stats: SecurityDashboardStats = useMemo(() => ({
     total_masuk_hari_ini: rawStats?.total_masuk_hari_ini ?? 0,
