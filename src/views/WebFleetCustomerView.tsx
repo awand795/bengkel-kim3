@@ -2380,8 +2380,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     const hasSpk = (spkList || []).some((s) => {
       if (s.id_booking != null && s.id_booking === b.id) return true;
       if (bPlate && normalizePlat(s.no_polisi) === bPlate) {
-        const sTime = s.waktu_check_in || s.created_at || '';
-        const bDate = (b.tanggal_booking || '').slice(0, 10);
+        const sTime = String(s.waktu_check_in || s.created_at || '');
+        const bDate = String(b.tanggal_booking || '').slice(0, 10);
         if (!bDate || !sTime || sTime.slice(0, 10) >= bDate) return true;
       }
       return false;
@@ -2392,10 +2392,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Helper: Cek apakah jadwal booking sudah lewat dari sekarang (tanggal & jam)
   const isBookingPast = useCallback((b: BookingService): boolean => {
-    if (!b.tanggal_booking) return false;
-    const [h, m] = (b.jam_booking || '23:59').split(':').map(Number);
+    if (!b?.tanggal_booking) return false;
+    const dateStr = String(b.tanggal_booking).slice(0, 10);
+    if (!dateStr || dateStr.length < 10) return false;
+    const timeStr = String(b.jam_booking || '23:59');
+    const [h, m] = timeStr.split(':').map(Number);
     const sched = new Date(
-      `${b.tanggal_booking.slice(0, 10)}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
+      `${dateStr}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
     );
     if (isNaN(sched.getTime())) return false;
     return Date.now() > sched.getTime();
@@ -2483,13 +2486,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (bStat === 'Booking Canceled' && aStat !== 'Booking Canceled') return -1;
     if (aStat === 'Check In' && bStat !== 'Check In') return 1;
     if (bStat === 'Check In' && aStat !== 'Check In') return -1;
-    return `${a.tanggal_booking} ${a.jam_booking}`.localeCompare(`${b.tanggal_booking} ${b.jam_booking}`);
+    const aDate = String(a.tanggal_booking || '').slice(0, 10);
+    const bDate = String(b.tanggal_booking || '').slice(0, 10);
+    const aTime = String(a.jam_booking || '00:00');
+    const bTime = String(b.jam_booking || '00:00');
+    return `${aDate} ${aTime}`.localeCompare(`${bDate} ${bTime}`);
   });
 
   // ── Booking Saya: DateTile component ─────────────────────────────────────────
   const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
   const BookingDateTile = ({ dateStr }: { dateStr?: string }) => {
-    if (!dateStr) {
+    const rawDateStr = String(dateStr || '').slice(0, 10);
+    if (!rawDateStr) {
       return (
         <div className="w-[52px] h-[52px] rounded-xl bg-[#EEF2FF] dark:bg-blue-950/40 border border-[#DDE5FB] dark:border-blue-900/50 flex items-center justify-center shrink-0">
           <Calendar className="w-5 h-5 text-[#12388F] dark:text-blue-300" />
@@ -2497,7 +2505,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       );
     }
 
-    const parts = dateStr.split('-');
+    const parts = rawDateStr.split('-');
     let month = '';
     let day = '';
     if (parts.length === 3) {
@@ -2510,7 +2518,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }
 
     if (!month || !day) {
-      const d = new Date(dateStr);
+      const d = new Date(rawDateStr);
       if (!isNaN(d.getTime())) {
         month = MONTH_NAMES[d.getMonth()] || '';
         day = String(d.getDate());
@@ -2570,9 +2578,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const upcomingBookings = myBookingSorted.filter((b) => {
     const eff = getBookingEffectiveStatus(b);
     if (eff !== 'Booked' && eff !== 'Confirmed' && eff !== 'Rescheduled' && eff !== 'Menunggu Konfirmasi') return false;
-    const [h, m] = (b.jam_booking || '00:00').split(':').map(Number);
+    const dateStr = String(b.tanggal_booking || '').slice(0, 10);
+    if (!dateStr || dateStr.length < 10) return false;
+    const [h, m] = String(b.jam_booking || '00:00').split(':').map(Number);
     const sched = new Date(
-      `${b.tanggal_booking}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
+      `${dateStr}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
     );
     return !Number.isNaN(sched.getTime()) && sched.getTime() >= Date.now();
   });
