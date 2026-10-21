@@ -3334,6 +3334,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   label: 'Pilih Layanan',
                   content: (
                     <div className="space-y-4">
+                      {/* Ringkasan unit yang dipilih dari menu Kendaraan (langkah ini dapat
+                          dibuka langsung tanpa melewati langkah 1). */}
+                      {bookingForm.no_polisi && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#DCE5F5] bg-[#F5F8FD] px-3.5 py-2.5 dark:border-blue-800/50 dark:bg-blue-950/40">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#52647E] dark:text-blue-300">
+                            Kendaraan Terpilih
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <PlateChip plat={bookingForm.no_polisi} />
+                            <button
+                              type="button"
+                              onClick={() => setBookingStep(1)}
+                              className="text-[11px] font-semibold text-[#2453A6] underline-offset-2 hover:underline dark:text-blue-300"
+                            >
+                              Ganti unit
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div className="rounded-xl border border-border bg-white p-3.5 shadow-sm sm:p-4 dark:bg-surface-raised">
                         <div>
                           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#52647E] dark:text-blue-300">Jenis pekerjaan</p>
@@ -3815,8 +3834,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             no_polisi: k.no_polisi,
                             tanggal_booking: !prev.tanggal_booking || prev.tanggal_booking < minDate ? minDate : prev.tanggal_booking,
                           }));
+                          // Unit sudah terpilih dari kartu armada, jadi langsung buka wizard
+                          // booking pada langkah 2 (pilih layanan & keluhan).
+                          setBookingStep(2);
                           setFleetMenu('booking');
                           setActiveTab('fleet-booking');
+                          setOpenBookingModal(true);
+                          toast.success(
+                            'Kendaraan Siap Dijadwalkan',
+                            `Unit ${formatPlat(k.no_polisi)} sudah terpilih. Silakan tentukan jenis layanan & keluhan.`
+                          );
                         }}
                         className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#12388F] bg-[#12388F] px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-[#12388F]/15 transition-colors hover:border-[#0D2A6B] hover:bg-[#0D2A6B] dark:border-blue-600 dark:bg-blue-600 dark:hover:border-blue-500 dark:hover:bg-blue-500 ${
                           !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
