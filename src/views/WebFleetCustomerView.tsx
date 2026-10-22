@@ -1729,11 +1729,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: pekerjaanList } = useQuery({
     queryKey: ['pekerjaan-spk-list'],
     queryFn: api.getPekerjaanSpk,
+    refetchInterval: 8000,
   });
 
   const { data: partSpkList } = useQuery({
     queryKey: ['part-spk-list'],
     queryFn: api.getPartSpk,
+    refetchInterval: 8000,
   });
 
   // Faktur milik customer (untuk seksi Faktur & Pembayaran di History)
