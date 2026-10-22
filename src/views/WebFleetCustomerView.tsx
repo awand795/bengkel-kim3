@@ -1985,11 +1985,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }
   }, [openBookingModal, bookingForm.no_polisi, bookingKendaraanLimit, filteredBookingKendaraanList]);
 
-  // Filter SPK khusus kendaraan customer yang sedang login
+  // Filter SPK khusus kendaraan customer yang sedang login (Strict Armada Guard)
   const isMySpk = (s: SpkService) => {
+    // Bila customer memiliki daftar armada resmi, pelat SPK wajib terdaftar di armadanya
+    if (myPlateSet.size > 0 && s.no_polisi) {
+      return myPlateSet.has(normalizePlat(s.no_polisi));
+    }
     if (myPelangganId && s.id_pelanggan === myPelangganId) return true;
     if (myCompanyName && s.nama_customer && s.nama_customer.toLowerCase().trim() === myCompanyName) return true;
-    if (s.no_polisi && myPlateSet.has(s.no_polisi.toUpperCase().replace(/\s+/g, ''))) return true;
+    if (s.no_polisi && myPlateSet.has(normalizePlat(s.no_polisi))) return true;
     return false;
   };
 
@@ -1999,8 +2003,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 
   // Kunjungan SERVICE yang sudah check-in tapi SA belum menerbitkan WO.
-  // Endpoint sudah memfilter tenant; guard di sini hanya jaring pengaman.
+  // Endpoint sudah memfilter tenant; guard di sini memastikan nomor polisi wajib bagian dari armada resmi customer.
   const myKunjunganList = (kunjunganServiceList || []).filter((k) => {
+    // Bila customer memiliki armada terdaftar, pelat kunjungan wajib terdaftar di armadanya
+    if (myPlateSet.size > 0 && k.no_polisi) {
+      return myPlateSet.has(normalizePlat(k.no_polisi));
+    }
     if (myPelangganId && k.id_pelanggan === myPelangganId) return true;
     if (myCompanyName && k.nama_customer && k.nama_customer.toLowerCase().trim() === myCompanyName) return true;
     if (k.no_polisi && myPlateSet.has(normalizePlat(k.no_polisi))) return true;
@@ -2052,9 +2060,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Filter faktur milik kendaraan customer yang sedang login
   const myInvoiceList = (invoiceList || []).filter((inv) => {
+    if (myPlateSet.size > 0 && inv.no_polisi) {
+      return myPlateSet.has(normalizePlat(inv.no_polisi));
+    }
     if (inv.id_spk && mySpkList.some((s) => s.id === inv.id_spk)) return true;
     if (myPelangganId && inv.id_pelanggan === myPelangganId) return true;
-    if (inv.no_polisi && myPlateSet.has(inv.no_polisi.toUpperCase().replace(/\s+/g, ''))) return true;
+    if (inv.no_polisi && myPlateSet.has(normalizePlat(inv.no_polisi))) return true;
     return false;
   });
 
@@ -2161,9 +2172,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Filter Booking khusus customer yang sedang login
   const myBookingList = (bookingList || []).filter((b) => {
+    if (myPlateSet.size > 0 && b.no_polisi) {
+      return myPlateSet.has(normalizePlat(b.no_polisi));
+    }
     if (myPelangganId && b.id_pelanggan === myPelangganId) return true;
     if (myCompanyName && b.nama_perusahaan && b.nama_perusahaan.toLowerCase().trim() === myCompanyName) return true;
-    if (b.no_polisi && myPlateSet.has(b.no_polisi.toUpperCase().replace(/\s+/g, ''))) return true;
+    if (b.no_polisi && myPlateSet.has(normalizePlat(b.no_polisi))) return true;
     return false;
   });
 
