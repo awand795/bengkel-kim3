@@ -4,6 +4,7 @@ import { X, LogOut, PenTool, RotateCcw, ShieldCheck, CheckCircle2, Truck, AlertT
 import { api, getApiErrorMessage } from '../../api/client';
 import { toast } from '../common/Toast';
 import { useAppStore } from '../../store/useAppStore';
+import { PhotoUploader } from '../common/PhotoUploader';
 
 interface SecurityCheckOutModalProps {
   kunjungan: {
@@ -29,6 +30,7 @@ export const SecurityCheckOutModal: React.FC<SecurityCheckOutModalProps> = ({
   const { authUser } = useAppStore();
   const [catatanKeluar, setCatatanKeluar] = useState('');
   const [keteranganBarang, setKeteranganBarang] = useState('');
+  const [fotoKendaraanKeluar, setFotoKendaraanKeluar] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
 
@@ -40,6 +42,7 @@ export const SecurityCheckOutModal: React.FC<SecurityCheckOutModalProps> = ({
     if (isOpen) {
       setCatatanKeluar('');
       setKeteranganBarang('');
+      setFotoKendaraanKeluar('');
       setHasSignature(false);
       setTimeout(clearSignature, 100);
     }
@@ -123,6 +126,7 @@ export const SecurityCheckOutModal: React.FC<SecurityCheckOutModalProps> = ({
 
       const res = await api.securityCheckOut({
         kunjungan_id: kunjungan.id,
+        foto_kendaraan_keluar: fotoKendaraanKeluar || undefined,
         catatan_keluar: catatanKeluar.trim() || 'Unit keluar dalam keadaan aman dan tertib.',
         keterangan_barang_keluar: keteranganBarang.trim() || 'Tidak ada barang keluar / muatan kosong.',
         ttd_security: signatureDataUrl,
@@ -230,6 +234,16 @@ export const SecurityCheckOutModal: React.FC<SecurityCheckOutModalProps> = ({
               onChange={(e) => setCatatanKeluar(e.target.value)}
               placeholder="Contoh: Unit dan muatan telah diperiksa aman, lampu dan rem normal..."
               className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#12388F] focus:ring-1 focus:ring-[#12388F]"
+            />
+          </div>
+
+          {/* Foto Pemeriksaan Kendaraan Keluar */}
+          <div>
+            <PhotoUploader
+              label="Foto Kendaraan Saat Keluar Gerbang (Kamera Langsung)"
+              value={fotoKendaraanKeluar}
+              onChange={(url) => setFotoKendaraanKeluar(url)}
+              preferDirectCamera={true}
             />
           </div>
 

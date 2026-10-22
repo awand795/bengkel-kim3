@@ -1280,9 +1280,10 @@ export const SecurityPortalView: React.FC = () => {
                 </div>
 
                 <PhotoUploader
-                  label="Foto fisik kendaraan masuk"
+                  label="Foto fisik kendaraan masuk (Kamera Gerbang)"
                   value={checkInForm.foto_kendaraan_masuk}
                   onChange={(url) => setCheckInForm((prev) => ({ ...prev, foto_kendaraan_masuk: url }))}
+                  preferDirectCamera={true}
                 />
               </div>
             </CheckInSection>
