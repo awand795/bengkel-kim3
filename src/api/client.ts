@@ -885,6 +885,8 @@ export const api = {
           const isConfirmed = b.status === 'Confirmed' || b.status_pos === 'CONFIRMED' || Boolean(b.is_confirmed);
           if (!isConfirmed) return false;
           if (b.status === 'Dibatalkan' || b.status === 'Booking Canceled' || b.is_canceled) return false;
+          // Booking yang sudah masuk/keluar gerbang tidak boleh muncul lagi di daftar booking.
+          if (b.sudah_kunjungan) return false;
           const checkedIn = isCheckedInStatus(b.status);
           if (b.tanggal_booking && !checkedIn) {
             const parts = (b.jam_booking || '23:59').split(':');

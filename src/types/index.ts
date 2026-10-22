@@ -248,6 +248,7 @@ export interface BookingService {
   keterangan?: string;
   status: 'Booked' | 'Check In' | 'Checked-In' | 'Dibatalkan' | 'Booking Canceled' | 'Confirmed' | 'Rescheduled' | 'Menunggu Konfirmasi';
   status_pos?: 'CONFIRMED' | 'RESCHEDULED' | 'CANCELED' | string | null;
+  sudah_kunjungan?: boolean;
   memo_pos?: string | null;
   reschedule_date?: string | null;
   tanggal_booking_awal?: string;

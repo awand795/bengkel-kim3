@@ -133,8 +133,15 @@ export const SecurityCheckOutModal: React.FC<SecurityCheckOutModalProps> = ({
         nama_security: authUser?.nama_lengkap || 'Security Gerbang KIM 3',
       });
 
-      const memoId = res?.data?.memo_id || res?.data?.id || 1;
-      const memoNo = res?.data?.nomor_memo || 'MK-TERBIT';
+      const memo = Array.isArray(res?.data) ? res.data[0] : res?.data;
+      const memoId = memo?.memo_id ?? memo?.id;
+      const memoNo = memo?.nomor_memo;
+
+      if (!memoId || !memoNo) {
+        throw new Error(
+          'Check-out ditolak: invoice servis belum lunas atau kendaraan belum memenuhi syarat checkout.'
+        );
+      }
 
       toast.success(`Check-Out Berhasil! Memo Keluar ${memoNo} telah diterbitkan.`);
       onSuccess(memoId, memoNo);

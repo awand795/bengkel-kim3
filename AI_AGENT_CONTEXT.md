@@ -134,7 +134,7 @@ SELECT count(*) FROM sch_fleet.kunjungan_gerbang;
 ### Tabel & View Utama di `sch_fleet`:
 - `sch_fleet.kunjungan_gerbang`: Log fisik gerbang (tiket, nopol, driver, status `DI_DALAM` / `SELESAI_KELUAR`).
 - `sch_fleet.memo_keluar`: Gate pass digital (nomor memo `MK-YYMMDD-XXXX`, KM keluar, security, foto/ttd).
-- `sch_fleet.booking_service`: Pemesanan jadwal servis oleh customer.
+- `sch_fleet.booking_service`: Pemesanan jadwal servis oleh customer. Status gerbang diisi endpoint Security: `check_in` saat masuk, `check_out` saat keluar (tanpa trigger). Daftar booking Security & Customer menyembunyikan status tersebut; Customer hanya melihat booking aktif.
 - `sch_fleet.v_spk_pos_service`: Header SPK, status alur pengerjaan, milestone waktu pengerjaan s/d invoice POS.
 - `sch_fleet.v_spk_pos_item_pekerjaan`: Rincian jasa pekerjaan mekanik per SPK.
 - `sch_fleet.v_spk_pos_item_part`: Rincian suku cadang per SPK.
@@ -150,6 +150,18 @@ SELECT count(*) FROM sch_fleet.kunjungan_gerbang;
 - Koneksi gateway memakai `search_path = sch_fleet`, sedangkan `pgcrypto` terpasang di schema `public`. Selalu tulis `public.crypt(...)` dan `public.gen_salt('bf', 10)` (fungsi tanpa schema akan error).
 - Pagination gateway mengembalikan `data: []` (bukan error) bila SQL menyebut kolom/tabel yang tidak ada, atau memakai self-join/subquery pada tabel yang sama. Cek `total_records` untuk mendeteksi kasus ini.
 - `security_user` & `admin_user` punya UNIQUE(email); pesan duplikat muncul sebagai error SQL dari gateway.
+- `/kim3/security/booking-list` dapat mengembalikan `data: []` karena keterbatasan gateway; frontend otomatis fallback ke `/kim3/booking` dan menyaring `sudah_kunjungan`.
+
+### Alur Invoice, Pembayaran & Checkout Security (2026-10-22)
+- `sch_fleet.invoice_pembayaran` adalah **VIEW** di atas `sch_fleet.v_spk_pos_invoice` → `sch_pos.tbl_pos`. Jangan `INSERT`/`UPDATE` view tersebut; tulis ke `sch_pos.tbl_pos` (`transno`, `woid`, `total`, `total_dpp`, `total_ppn`, `paid`, `finish_date`, `paymentvia`, `status`).
+- `POST /kim3/pos/invoice-create` membuat invoice POS + notifikasi customer **"Invoice Diterbitkan"**. Parameter: `wo_id`, opsional `no_invoice`, `subtotal`, `ppn`, `total`, `metode`.
+- `POST /kim3/pos/invoice-pay` melunasi invoice, mengisi `finish_date`, mengubah WO menjadi `C`, dan membuat notifikasi **"Pembayaran Lunas"**. Parameter: `invoice_no` atau `wo_id`, opsional `paid_amount`.
+- `/kim3/security/on-progress` menghitung status dari SPK + invoice terbaru: `Siap Checkout` (Lunas), `Menunggu Pembayaran`, `Menunggu Invoice`, atau status pengerjaan asli.
+- `/kim3/security/siap-checkout` hanya menampilkan kunjungan `SERVICE` yang invoice terbarunya `Lunas`; kunjungan non-service mengikuti aturan durasi.
+- `/kim3/security/check-out` menolak check-out `SERVICE` bila invoice terbaru belum `Lunas`; respons sukses wajib berisi `memo_id` + `nomor_memo`.
+- `/kim3/security/dashboard` menghitung `total_siap_keluar` hanya dari invoice `Lunas` (bukan sekadar status SPK `Selesai`).
+- `sch_fleet.v_spk_pos_service.waktu_check_out`: bila ada kunjungan gerbang, nilainya `kg.waktu_keluar AT TIME ZONE 'Asia/Jakarta'`; bila belum check-out nilainya `NULL` (tidak lagi memakai `finish_date`/`servicefinishat` sebagai pengganti checkout).
+- `SecurityCheckOutModal` wajib memeriksa `memo_id`/`nomor_memo` pada respons; respons kosong berarti checkout ditolak dan tidak boleh menampilkan toast sukses.
 
 ---
 
