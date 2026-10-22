@@ -51,33 +51,18 @@ export const Sidebar: React.FC = () => {
     { id: 'fleet-profil', label: 'Profil', icon: Building2 },
   ];
 
-  const securityNavigationItems: NavItem[] = [
-    { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'security-booking', label: 'Daftar Booking', icon: Calendar },
-    { id: 'security-checkin', label: 'Check In', icon: ArrowRightCircle },
-    { id: 'security-onprogress', label: 'Dalam Bengkel', icon: Wrench },
-    { id: 'security-checkout', label: 'Check Out', icon: LogOut },
-    { id: 'security-keluar', label: 'Riwayat Keluar', icon: History },
-    { id: 'security-memo', label: 'Memo Keluar', icon: FileCheck },
-  ];
-
   const adminNavigationItems: NavItem[] = [
-    { id: 'admin-security', label: 'Akun Security', icon: ShieldCheck },
-    { id: 'admin-akun', label: 'Akun Admin', icon: UserCog },
-    { id: 'admin-pengaturan', label: 'Pengaturan Web', icon: Settings },
+    { id: 'admin-pengaturan', label: 'Pengaturan WhatsApp', icon: Settings },
   ];
 
   const navigationItems =
     currentRole === 'Super Admin'
       ? adminNavigationItems
-      : currentRole === 'Security'
-        ? securityNavigationItems
-        : fleetNavigationItems;
+      : fleetNavigationItems;
 
   const isTabActive = (tabId: string) => {
     if (activeTab === tabId) return true;
     if (tabId === 'fleet-dashboard' && activeTab === 'dashboard') return true;
-    if (tabId === 'security-dashboard' && activeTab === 'dashboard') return true;
     return false;
   };
 

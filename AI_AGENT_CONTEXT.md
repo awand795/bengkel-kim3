@@ -168,6 +168,7 @@ SELECT count(*) FROM sch_fleet.kunjungan_gerbang;
 - `/kim3/security/siap-checkout` hanya menampilkan kunjungan `SERVICE` yang invoice terbarunya `Lunas`; kunjungan non-service mengikuti aturan durasi.
 - `/kim3/security/check-out` menolak check-out `SERVICE` bila invoice terbaru belum `Lunas`; respons sukses wajib berisi `memo_id` + `nomor_memo`.
 - `/kim3/security/dashboard` menghitung `total_siap_keluar` hanya dari invoice `Lunas` (bukan sekadar status SPK `Selesai`).
+- Endpoint Security (`on-progress`, `siap-checkout`, `dashboard`, `check-out`) mencocokkan SPK ke tiket gerbang lewat `s.id_kunjungan = kg.id`, **bukan nopol**. Ini mencegah tiket aktif baru memakai WO/invoice lama untuk plat yang sama.
 - `sch_fleet.v_spk_pos_service.waktu_check_out`: bila ada kunjungan gerbang yang cocok, nilainya `kg.waktu_keluar AT TIME ZONE 'Asia/Jakarta'`; bila kunjungan cocok belum check-out nilainya `NULL`. Bila tidak ada kunjungan gerbang yang cocok, fallback ke `finish_date` / `transdate+transtime` / `servicefinishat` dari POS.
 - Pencocokan WO ke kunjungan gerbang memakai **nopol + rentang waktu siklus WO** (bukan `kg.id DESC`). Kunjungan harus sudah masuk sebelum WO selesai dan belum keluar saat WO mulai. View mengekspos `id_kunjungan` untuk hubungan exact.
 - `SecurityCheckOutModal` wajib memeriksa `memo_id`/`nomor_memo` pada respons; respons kosong berarti checkout ditolak dan tidak boleh menampilkan toast sukses.

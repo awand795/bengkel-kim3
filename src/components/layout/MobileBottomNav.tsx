@@ -49,38 +49,23 @@ export const MobileBottomNav: React.FC = () => {
     { id: 'fleet-history', label: 'Riwayat Service', icon: Receipt },
   ];
 
-  const securityTabs: NavTab[] = [
-    { id: 'security-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'security-booking', label: 'Daftar Booking', icon: Calendar },
-    { id: 'security-checkin', label: 'Check In', icon: ArrowRightCircle },
-    { id: 'security-onprogress', label: 'Dalam Bengkel', icon: Wrench },
-    { id: 'security-checkout', label: 'Check Out', icon: LogOut },
-    { id: 'security-keluar', label: 'Keluar', icon: History },
-    { id: 'security-memo', label: 'Memo', icon: FileCheck },
-  ];
-
   const moreTabs: NavTab[] = [
     { id: 'fleet-dokumen', label: 'Dokumen Saya', icon: FileText },
     { id: 'fleet-profil', label: 'Profil', icon: Building2 },
   ];
 
   const adminTabs: NavTab[] = [
-    { id: 'admin-security', label: 'Security', icon: ShieldCheck },
-    { id: 'admin-akun', label: 'Admin', icon: UserCog },
-    { id: 'admin-pengaturan', label: 'Pengaturan', icon: Settings },
+    { id: 'admin-pengaturan', label: 'Pengaturan WA', icon: Settings },
   ];
 
   const primaryTabs =
     currentRole === 'Super Admin'
       ? adminTabs
-      : currentRole === 'Security'
-        ? securityTabs
-        : fleetPrimaryTabs;
+      : fleetPrimaryTabs;
 
   const isMatchTab = (tabId: string, current: string) => {
     if (tabId === current) return true;
     if (tabId === 'fleet-dashboard' && current === 'dashboard') return true;
-    if (tabId === 'security-dashboard' && current === 'dashboard') return true;
     return false;
   };
 
