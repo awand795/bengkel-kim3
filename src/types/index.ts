@@ -361,6 +361,37 @@ export interface SpkService {
   created_at: string;
 }
 
+/**
+ * Kunjungan SERVICE yang sudah check-in di gerbang tetapi belum diterbitkan WO/SPK.
+ * Dipakai sebagai entri awal Riwayat Service customer dengan status "Check In".
+ */
+export interface KunjunganService {
+  id: number;
+  nomor_tiket: string;
+  booking_id?: number | null;
+  id_pelanggan?: number | null;
+  no_polisi: string;
+  nama_customer?: string;
+  keluhan_customer?: string;
+  tujuan_kunjungan?: string | null;
+  catatan_masuk?: string | null;
+  nama_pengemudi?: string | null;
+  nama_perusahaan?: string | null;
+  no_telepon_pengemudi?: string | null;
+  foto_kendaraan_masuk?: string | null;
+  waktu_check_in: string;
+  created_at: string;
+  status_spk: 'Check In';
+  status_keterangan: string;
+  cek_body: string;
+  cek_mesin: string;
+  cek_kelistrikan: string;
+  cek_kaki_kaki: string;
+  odometer_km: number;
+  estimasi_biaya: number;
+  estimasi_waktu_jam: number;
+}
+
 export interface SpkItemPekerjaan {
   id: number;
   id_spk: number;

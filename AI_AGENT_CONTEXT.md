@@ -92,15 +92,22 @@ SELECT endpoint_path, sql_query FROM sch_sync.api_endpoints WHERE endpoint_path 
 #### 3. Mendaftarkan Endpoint Baru
 ```bash
 ssh -i "C:\Users\awand\Downloads\awanda.pem" -p 8822 -o StrictHostKeyChecking=no awanda@94.237.69.119 "PGPASSWORD='postgre!PowerData@202608' psql -h 127.0.0.1 -p 8832 -U postgres -d data_setting_sync -c \"
-INSERT INTO sch_sync.api_endpoints (connection_id, endpoint_path, http_method, sql_query, execution_mode, is_active)
-VALUES (
-  1790050800000,
-  '/kim3/contoh/endpoint',
+INSERT INTO sch_sync.api_endpoints (
+  id, name, method, endpoint_path, connection_id, sql_query, parameters,
+  enable_pagination, is_public, auth_token, group_name, security_mode, allowed_roles
+) VALUES (
+  gen_random_uuid()::text,
+  'Contoh Endpoint',
   'GET',
+  '/kim3/contoh/endpoint',
+  '1790050800000',
   'SELECT * FROM sch_fleet.kunjungan_gerbang WHERE (:status IS NULL OR status_gerbang = :status) ORDER BY id DESC',
-  'HYBRID',
-  true
-);
+  '[]', true, false, 'KIM3-SECURE-TOKEN-2026-X998A7B6C',
+  'Dev - Web Fleet Customer Bengkel Kim3', 'HYBRID', 'Customer_Fleet,Super_Admin'
+)
+ON CONFLICT (endpoint_path) DO UPDATE SET
+  sql_query = EXCLUDED.sql_query,
+  updated_at = CURRENT_TIMESTAMP;
 \""
 ```
 
@@ -108,8 +115,9 @@ VALUES (
 ```bash
 ssh -i "C:\Users\awand\Downloads\awanda.pem" -p 8822 -o StrictHostKeyChecking=no awanda@94.237.69.119 "PGPASSWORD='postgre!PowerData@202608' psql -h 127.0.0.1 -p 8832 -U postgres -d data_setting_sync -c \"
 UPDATE sch_sync.api_endpoints
-SET sql_query = 'SELECT * FROM sch_fleet.v_spk_pos_service ORDER BY id DESC'
-WHERE endpoint_path = '/kim3/spk' AND http_method = 'GET';
+SET sql_query = 'SELECT * FROM sch_fleet.v_spk_pos_service ORDER BY id DESC',
+    updated_at = CURRENT_TIMESTAMP
+WHERE endpoint_path = '/kim3/spk' AND method = 'GET';
 \""
 ```
 
@@ -162,6 +170,14 @@ SELECT count(*) FROM sch_fleet.kunjungan_gerbang;
 - `/kim3/security/dashboard` menghitung `total_siap_keluar` hanya dari invoice `Lunas` (bukan sekadar status SPK `Selesai`).
 - `sch_fleet.v_spk_pos_service.waktu_check_out`: bila ada kunjungan gerbang, nilainya `kg.waktu_keluar AT TIME ZONE 'Asia/Jakarta'`; bila belum check-out nilainya `NULL` (tidak lagi memakai `finish_date`/`servicefinishat` sebagai pengganti checkout).
 - `SecurityCheckOutModal` wajib memeriksa `memo_id`/`nomor_memo` pada respons; respons kosong berarti checkout ditolak dan tidak boleh menampilkan toast sukses.
+
+### Riwayat Service Customer & Check-in Tanpa WO (2026-10-22)
+- Riwayat Service customer menggabungkan dua sumber: `/kim3/spk` (SPK/WO POS) dan `/kim3/kunjungan-service` (kunjungan SERVICE `DI_DALAM` yang belum diterbitkan WO).
+- Endpoint `/kim3/kunjungan-service` didaftarkan di `data_setting_sync` (file `docs/sql/20261022_kunjungan_service_endpoint.sql`). Query di-scope `id_pelanggan` untuk role `Customer_Fleet`.
+- Pencocokan kunjungan ke SPK memakai **nopol + waktu** (`s.created_at >= kg.waktu_masuk - 10 menit`), bukan `id_booking`. Kolom `v_spk_pos_service.id_booking` berasal dari `sch_pos.tbl_request_service.id`, bukan `sch_fleet.booking_service.id`, sehingga rawan salah cocok.
+- Entri gate-only tampil dengan status `Check In` + keterangan `Menunggu Penerimaan Awal oleh SA`, dan `cek_* = Belum Diperiksa`. Detailnya memakai `KunjunganServiceDetail` (tanpa tab invoice/approval).
+- `v_spk_pos_service.cek_*` tidak lagi memakai fallback `OK`; nilai absen `tbl_wo_check` menjadi `Belum Diperiksa`.
+- `v_spk_pos_service.waktu_check_in` memakai `kg.waktu_masuk AT TIME ZONE 'Asia/Jakarta'` agar sama dengan `waktu_check_out` (timestamp lokal WIB).
 
 ---
 

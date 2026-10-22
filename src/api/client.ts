@@ -10,6 +10,7 @@ import {
   DokumenKendaraan,
   BookingService,
   SpkService,
+  KunjunganService,
   SpkItemPekerjaan,
   SpkItemPart,
   PurchaseRequestPart,
@@ -540,6 +541,8 @@ export const api = {
     (await fetchList<SpkService>('/kim3/spk', { limit: LOOKUP_LIST_LIMIT })).rows,
   getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
     fetchList<SpkService>('/kim3/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+  getKunjunganService: async (): Promise<KunjunganService[]> =>
+    (await fetchList<KunjunganService>('/kim3/kunjungan-service', { limit: LOOKUP_LIST_LIMIT })).rows,
   updateSpkStatus: async (data: { id: number; status_spk?: string; catatan_sa?: string }): Promise<any> => {
     const res = await apiClient.post('/kim3/spk-status', data);
     return res.data;

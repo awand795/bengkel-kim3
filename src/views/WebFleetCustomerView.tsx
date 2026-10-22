@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, normalizePlat, formatPlat, isValidPlatIndonesia, formatPlatIndonesia, getLocalDateStr, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Kendaraan, BookingService, SpkService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart, MasterBrand, MasterType } from '../types';
+import { Kendaraan, BookingService, SpkService, KunjunganService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart, MasterBrand, MasterType } from '../types';
 import { SelectMenu, type SelectMenuOption } from '../components/common/SelectMenu';
 import { PaginationBar } from '../components/common/PaginationBar';
 import { useAppStore } from '../store/useAppStore';
@@ -25,6 +25,7 @@ import {
 import { spkStatusLabel } from '../utils/statusLabel';
 import { StepModal } from '../components/common/StepModal';
 import { DetailModal } from '../components/common/DetailModal';
+import { KunjunganServiceDetail } from '../components/customer/KunjunganServiceDetail';
 import { ListItemCard } from '../components/common/ListItemCard';
 import { StatCard } from '../components/common/StatCard';
 import { EmptyState } from '../components/common/EmptyState';
@@ -241,6 +242,16 @@ const ServiceTimelineItem: React.FC<ServiceTimelineItemProps> = ({ state, isLast
 interface WebFleetCustomerViewProps {
   initialMenu?: 'dashboard' | 'booking' | 'history' | 'kendaraan' | 'dokumen' | 'profil';
 }
+
+/**
+ * Baris riwayat service customer. Bisa berasal dari SPK/WO POS atau dari
+ * kunjungan gerbang SERVICE yang sudah check-in tetapi belum diterbitkan WO.
+ */
+type HistoryRow = SpkService & {
+  sumber: 'spk' | 'kunjungan';
+  kunjungan?: KunjunganService;
+  status_keterangan?: string;
+};
 
 interface SpkTrackingDetailProps {
   spk: SpkService;
@@ -883,7 +894,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           }
                         >
                           <div>
-                            Pemeriksaan fisik awal (Walk-around check 4 titik): Bodi [{spk.cek_body || 'OK'}], Mesin [{spk.cek_mesin || 'OK'}], Kelistrikan [{spk.cek_kelistrikan || 'OK'}], Kaki-kaki [{spk.cek_kaki_kaki || 'OK'}].
+                            Pemeriksaan fisik awal (Walk-around check 4 titik): Bodi [{spk.cek_body || 'Belum Diperiksa'}], Mesin [{spk.cek_mesin || 'Belum Diperiksa'}], Kelistrikan [{spk.cek_kelistrikan || 'Belum Diperiksa'}], Kaki-kaki [{spk.cek_kaki_kaki || 'Belum Diperiksa'}].
                           </div>
                           <div className="text-ink-muted">
                             Keluhan: <span className="font-medium text-ink">"{spk.keluhan_customer || 'Perawatan berkala armada'}"</span>
@@ -1918,10 +1929,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [historyPage, setHistoryPage] = useState(1);
   const [historyLimit, setHistoryLimit] = useState(10);
   const [historySearch, setHistorySearch] = useState('');
-  const [historyQuery, setHistoryQuery] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'semua' | 'sedang-diservis' | 'selesai'>('semua');
   // Halaman khusus detail riwayat SPK (tersembunyi dari sidebar)
-  const [historyDetail, setHistoryDetail] = useState<SpkService | null>(null);
+  const [historyDetail, setHistoryDetail] = useState<HistoryRow | null>(null);
   // Modal lightbox preview foto armada / dokumen yang membesar
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
@@ -1933,14 +1943,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }, 400);
     return () => clearTimeout(t);
   }, [armadaSearch]);
-
-  React.useEffect(() => {
-    const t = setTimeout(() => {
-      setHistoryQuery(historySearch.trim());
-      setHistoryPage(1);
-    }, 400);
-    return () => clearTimeout(t);
-  }, [historySearch]);
 
   // Kalau jumlah data menyusut (mis. filter aktif) sampai halaman aktif melewati
   // halaman terakhir, tarik kembali ke halaman terakhir yang valid.
@@ -1973,6 +1975,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: spkList, isLoading: spkLoading } = useQuery({
     queryKey: ['spk-list'],
     queryFn: api.getSpkList,
+    refetchInterval: 8000,
+  });
+
+  // Kunjungan SERVICE yang sudah check-in gerbang tetapi belum ada WO/SPK.
+  // Sumber ini membuat unit tetap terlihat di Riwayat Service dengan status
+  // "Check In — Menunggu Penerimaan Awal oleh SA".
+  const { data: kunjunganServiceList = [], isLoading: kunjunganLoading } = useQuery({
+    queryKey: ['kunjungan-service-list'],
+    queryFn: api.getKunjunganService,
     refetchInterval: 8000,
   });
 
@@ -2017,13 +2028,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     placeholderData: (prev) => prev,
     // Status di_bengkel bisa berubah kapan saja dari pos gerbang
     refetchInterval: 30000,
-  });
-
-  // Riwayat service per halaman (server-side pagination + search)
-  const { data: historyPageData, isFetching: historyFetching } = useQuery({
-    queryKey: ['spk-page', historyPage, historyLimit, historyQuery],
-    queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: historyQuery }),
-    placeholderData: (prev) => prev,
   });
 
   // Master Jenis Layanan dari view sch_fleet.v_jenis_layanan (database DEV-POS via /kim3/master/layanan)
@@ -2270,6 +2274,54 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     .filter((s) => isMySpk(s))
     .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 
+  // Kunjungan SERVICE yang sudah check-in tapi SA belum menerbitkan WO.
+  // Endpoint sudah memfilter tenant; guard di sini hanya jaring pengaman.
+  const myKunjunganList = (kunjunganServiceList || []).filter((k) => {
+    if (myPelangganId && k.id_pelanggan === myPelangganId) return true;
+    if (myCompanyName && k.nama_customer && k.nama_customer.toLowerCase().trim() === myCompanyName) return true;
+    if (k.no_polisi && myPlateSet.has(normalizePlat(k.no_polisi))) return true;
+    return false;
+  });
+
+  // Gabungan SPK + kunjungan gate-only. Endpoint sudah menyembunyikan kunjungan
+  // yang sudah naik tahap ke SPK, jadi frontend cukup menggabungkan keduanya.
+  const historyAll = React.useMemo<HistoryRow[]>(() => {
+    const spkRows: HistoryRow[] = mySpkList.map((s) => ({ ...s, sumber: 'spk' as const }));
+
+    // Endpoint /kim3/kunjungan-service sudah menyembunyikan kunjungan yang
+    // sudah punya SPK lanjutan (nopol + waktu), jadi tidak perlu dedupe lagi
+    // di frontend. Ini menghindari salah cocok karena id_booking di view
+    // berasal dari tbl_request_service, bukan booking_service.
+    const kunjunganRows: HistoryRow[] = myKunjunganList
+      .map((k) => ({
+        id: k.id,
+        no_spk: k.nomor_tiket,
+        id_booking: k.booking_id ?? undefined,
+        id_pelanggan: k.id_pelanggan ?? null,
+        no_polisi: k.no_polisi,
+        nama_customer: k.nama_customer,
+        odometer_km: k.odometer_km ?? 0,
+        keluhan_customer: k.keluhan_customer || k.tujuan_kunjungan || 'Service Kendaraan',
+        cek_body: k.cek_body,
+        cek_mesin: k.cek_mesin,
+        cek_kelistrikan: k.cek_kelistrikan,
+        cek_kaki_kaki: k.cek_kaki_kaki,
+        nama_sa: 'Menunggu SA',
+        status_spk: 'Check In',
+        estimasi_biaya: k.estimasi_biaya ?? 0,
+        estimasi_waktu_jam: k.estimasi_waktu_jam ?? 0,
+        waktu_check_in: k.waktu_check_in,
+        created_at: k.created_at,
+        sumber: 'kunjungan' as const,
+        kunjungan: k,
+        status_keterangan: k.status_keterangan || 'Menunggu Penerimaan Awal oleh SA',
+      }));
+
+    return [...spkRows, ...kunjunganRows].sort((a, b) =>
+      String(b.created_at || '').localeCompare(String(a.created_at || ''))
+    );
+  }, [mySpkList, myKunjunganList]);
+
   // Filter faktur milik kendaraan customer yang sedang login
   const myInvoiceList = (invoiceList || []).filter((inv) => {
     if (inv.id_spk && mySpkList.some((s) => s.id === inv.id_spk)) return true;
@@ -2283,9 +2335,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // agar data mitra lain tidak pernah ikut tampil.
   const armadaRows = (armadaPageData?.rows || []).filter((k) => isMyKendaraan(k));
 
-  // Filter SPK riwayat berdasarkan status pengerjaan (Sedang Diservis vs Selesai) & kata kunci pencarian
+  // Filter riwayat berdasarkan status pengerjaan (Sedang Diservis vs Selesai) & kata kunci pencarian
   const historyFiltered = React.useMemo(() => {
-    let list = mySpkList;
+    let list = historyAll;
     if (historyStatusFilter === 'sedang-diservis') {
       list = list.filter((s) => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed');
     } else if (historyStatusFilter === 'selesai') {
@@ -2298,12 +2350,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         (s.no_spk && s.no_spk.toLowerCase().includes(q)) ||
         (s.no_polisi && s.no_polisi.toLowerCase().includes(q)) ||
         (s.keluhan_customer && s.keluhan_customer.toLowerCase().includes(q)) ||
+        (s.status_keterangan && s.status_keterangan.toLowerCase().includes(q)) ||
         // Cari pada label ternormalisasi agar "pengerjaan" tetap menemukan "Proses Pekerjaan"
         spkStatusLabel(s.status_spk).toLowerCase().includes(q)
       );
     }
     return list;
-  }, [mySpkList, historyStatusFilter, historySearch]);
+  }, [historyAll, historyStatusFilter, historySearch]);
 
   const historyTotalPages = Math.max(1, Math.ceil(historyFiltered.length / historyLimit));
   const historySafePage = Math.min(historyPage, historyTotalPages);
@@ -2326,13 +2379,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (spkList === undefined) return;
     const target = mySpkList.find((s) => s.id === fleetPendingSpkId);
     if (target) {
-      setHistoryDetail(target);
+      setHistoryDetail({ ...target, sumber: 'spk' });
     }
     setFleetPendingSpkId(null);
   }, [fleetPendingSpkId, fleetMenu, spkList, mySpkList, setFleetMenu, setHistoryDetail, setFleetPendingSpkId]);
 
   React.useEffect(() => {
-    setApprovalModalOpen(!!historyDetail);
+    // Approval hanya relevan untuk SPK; entri check-in-only tidak punya transaksi.
+    setApprovalModalOpen(!!historyDetail && historyDetail.sumber !== 'kunjungan');
   }, [historyDetail, setApprovalModalOpen]);
 
   // Deep-link booking dari kartu armada (menu Kendaraan): perpindahan tab me-remount
@@ -2813,8 +2867,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return false;
   });
 
-  // Active SPK being monitored: ambil SPK aktif milik customer yang sedang berjalan
-  const activeTrackSpk = mySpkList.find(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed') || mySpkList[0];
+  // Entri aktif yang ditonjolkan di dashboard: prioritaskan yang belum selesai,
+  // termasuk kunjungan check-in yang belum diterbitkan WO.
+  const activeHistoryEntry =
+    historyAll.find((s) => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed') ||
+    historyAll[0];
+  const activeHistoryCount = historyAll.filter(
+    (s) => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed'
+  ).length;
 
   // ── DOKUMEN SAYA: Faktur & Bukti Tagihan (dari POS) + Legalitas Armada ─────
   const [dokumenSubTab, setDokumenSubTab] = useState<'faktur' | 'legalitas'>('faktur');
@@ -3392,14 +3452,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             />
             <StatCard
               title="Sedang Diservis"
-              value={mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length}
+              value={activeHistoryCount}
               subtitle="Di Bengkel KIM 3"
               icon={Wrench}
-              badge={mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length > 0 ? 'Aktif' : undefined}
+              badge={activeHistoryCount > 0 ? 'Aktif' : undefined}
               tone="amber"
               onClick={() => {
-                if (activeTrackSpk) {
-                  setHistoryDetail(activeTrackSpk);
+                if (activeHistoryEntry) {
+                  setHistoryDetail(activeHistoryEntry);
                 } else {
                   setFleetMenu('history');
                   setActiveTab('fleet-history');
@@ -5409,9 +5469,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <FilterChips
                   variant="tabs"
                   options={[
-                    { id: 'semua', label: 'Semua', count: mySpkList.length },
-                    { id: 'sedang-diservis', label: 'Sedang Diservis', count: mySpkList.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length },
-                    { id: 'selesai', label: 'Selesai', count: mySpkList.filter(s => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed').length },
+                    { id: 'semua', label: 'Semua', count: historyAll.length },
+                    { id: 'sedang-diservis', label: 'Sedang Diservis', count: historyAll.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length },
+                    { id: 'selesai', label: 'Selesai', count: historyAll.filter(s => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed').length },
                   ]}
                   selectedId={historyStatusFilter}
                   onChange={(id) => setHistoryStatusFilter(id as 'semua' | 'sedang-diservis' | 'selesai')}
@@ -5426,7 +5486,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     type="text"
                     value={historySearch}
                     onChange={(e) => setHistorySearch(e.target.value)}
-                    placeholder="Cari no. SPK, no. polisi, keluhan, atau status..."
+                    placeholder="Cari no. SPK/tiket, no. polisi, keluhan, atau status..."
                     aria-label="Cari riwayat service"
                     className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-9 text-xs text-ink placeholder:text-ink-subtle focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none dark:bg-surface"
                   />
@@ -5444,7 +5504,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
 
-            {spkLoading ? (
+            {spkLoading || kunjunganLoading ? (
               <div className="divide-y divide-border px-5">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <div key={n} className="flex items-center justify-between gap-4 py-3 animate-pulse">
@@ -5477,7 +5537,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <tbody className="divide-y divide-border">
                       {historyRows.map((spk) => (
                         <tr
-                          key={spk.id}
+                          key={`${spk.sumber}-${spk.id}`}
                           tabIndex={0}
                           onClick={() => setHistoryDetail(spk)}
                           onKeyDown={(e) => {
@@ -5489,7 +5549,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           className="group cursor-pointer transition-colors hover:bg-[#F7F9FC] focus-visible:bg-[#F7F9FC] focus-visible:outline-none dark:hover:bg-slate-800/50 dark:focus-visible:bg-slate-800/50"
                         >
                           <td className="px-5 py-3.5 font-mono text-xs font-semibold text-[#34517C] transition-[box-shadow] group-hover:[box-shadow:inset_3px_0_0_#34517C] group-focus-visible:[box-shadow:inset_3px_0_0_#34517C] dark:text-blue-300">
-                            {spk.no_spk}
+                            <div className="flex flex-col gap-0.5">
+                              <span>{spk.no_spk}</span>
+                              {spk.sumber === 'kunjungan' && (
+                                <span className="font-sans text-[10px] font-medium text-ink-subtle">Tiket Gerbang</span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3.5">
                             <PlateChip plat={spk.no_polisi} />
@@ -5501,10 +5566,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             {new Date(spk.created_at).toLocaleDateString('id-ID')}
                           </td>
                           <td className="px-4 py-3.5 text-right">
-                            <RupiahCell amount={spk.estimasi_biaya} />
+                            {spk.sumber === 'kunjungan' ? (
+                              <span className="text-xs text-ink-subtle">-</span>
+                            ) : (
+                              <RupiahCell amount={spk.estimasi_biaya} />
+                            )}
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3.5">
-                            <StatusBadge status={spk.status_spk} size="sm" />
+                          <td className="px-4 py-3.5">
+                            <div className="flex flex-col items-start gap-1">
+                              <StatusBadge status={spk.status_spk} size="sm" />
+                              {spk.sumber === 'kunjungan' && (
+                                <span className="text-[10px] font-semibold leading-tight text-status-blue">
+                                  Menunggu Penerimaan Awal oleh SA
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-5 py-3.5 text-center">
                             <button
@@ -5513,8 +5589,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 e.stopPropagation();
                                 setHistoryDetail(spk);
                               }}
-                              title={`Lihat detail tracking ${spk.no_spk}`}
-                              aria-label={`Lihat detail tracking ${spk.no_spk}`}
+                              title={`Lihat detail ${spk.sumber === 'kunjungan' ? 'check-in' : 'tracking'} ${spk.no_spk}`}
+                              aria-label={`Lihat detail ${spk.sumber === 'kunjungan' ? 'check-in' : 'tracking'} ${spk.no_spk}`}
                               className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-[#D5DDE8] bg-white px-3 text-xs font-semibold text-[#34517C] transition-colors hover:border-[#34517C] hover:bg-[#F5F8FD] dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/40"
                             >
                               <FileText className="w-3.5 h-3.5" />
@@ -5531,16 +5607,28 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <div className="block md:hidden p-4 space-y-3">
                   {historyRows.map((spk) => (
                     <div
-                      key={spk.id}
+                      key={`${spk.sumber}-${spk.id}`}
                       onClick={() => setHistoryDetail(spk)}
                       className="relative cursor-pointer overflow-hidden rounded-xl border border-border bg-white p-4 transition-colors hover:border-[#B8C7DC] hover:bg-[#FAFBFD] dark:bg-slate-800/60 dark:hover:bg-slate-800"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-md border border-[#DCE5F5] bg-[#F5F8FD] px-2.5 py-1 font-mono text-xs font-semibold text-[#34517C] dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300">
-                          <FileText className="w-3.5 h-3.5" />
-                          {spk.no_spk}
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="inline-flex flex-col gap-0.5 rounded-md border border-[#DCE5F5] bg-[#F5F8FD] px-2.5 py-1 font-mono text-xs font-semibold text-[#34517C] dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300">
+                          <span className="inline-flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5" />
+                            {spk.no_spk}
+                          </span>
+                          {spk.sumber === 'kunjungan' && (
+                            <span className="font-sans text-[9px] font-medium text-ink-subtle">Tiket Gerbang</span>
+                          )}
                         </span>
-                        <StatusBadge status={spk.status_spk} size="sm" />
+                        <div className="flex flex-col items-end gap-1">
+                          <StatusBadge status={spk.status_spk} size="sm" />
+                          {spk.sumber === 'kunjungan' && (
+                            <span className="text-right text-[10px] font-semibold leading-tight text-status-blue">
+                              Menunggu Penerimaan Awal oleh SA
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="mt-3">
@@ -5560,7 +5648,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </div>
                         <div className="rounded-lg border border-border bg-[#F8FAFC] px-3 py-2 text-right dark:bg-slate-900/50">
                           <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">Biaya</span>
-                          <RupiahCell amount={spk.estimasi_biaya} />
+                          {spk.sumber === 'kunjungan' ? (
+                            <span className="text-xs text-ink-subtle">-</span>
+                          ) : (
+                            <RupiahCell amount={spk.estimasi_biaya} />
+                          )}
                         </div>
                       </div>
 
@@ -5573,7 +5665,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         className="mt-3 inline-flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[#D5DDE8] bg-white text-xs font-semibold text-[#34517C] transition-colors hover:border-[#34517C] hover:bg-[#F5F8FD] dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/40"
                       >
                         <FileText className="w-3.5 h-3.5" />
-                        <span>Lihat Detail Service</span>
+                        <span>{spk.sumber === 'kunjungan' ? 'Lihat Detail Check In' : 'Lihat Detail Service'}</span>
                       </button>
                     </div>
                   ))}
@@ -5643,12 +5735,26 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       <DetailModal
         open={!!historyDetail}
         onClose={() => setHistoryDetail(null)}
-        title={historyDetail ? `Detail Riwayat Service` : 'Detail Service'}
-        subtitle={historyDetail ? `No. Dokumen: ${historyDetail.no_spk}` : undefined}
+        title={
+          historyDetail?.sumber === 'kunjungan'
+            ? 'Detail Check In Service'
+            : historyDetail
+              ? 'Detail Riwayat Service'
+              : 'Detail Service'
+        }
+        subtitle={
+          historyDetail
+            ? historyDetail.sumber === 'kunjungan'
+              ? `Tiket Gerbang: ${historyDetail.no_spk}`
+              : `No. Dokumen: ${historyDetail.no_spk}`
+            : undefined
+        }
         badge={undefined}
         size="xl"
       >
-        {historyDetail && (
+        {historyDetail && historyDetail.sumber === 'kunjungan' && historyDetail.kunjungan ? (
+          <KunjunganServiceDetail kunjungan={historyDetail.kunjungan} />
+        ) : historyDetail ? (
           <SpkTrackingDetail
             spk={historyDetail}
             kendaraanList={kendaraanList || armadaPageData?.rows || (armadaPageData as any)?.data}
@@ -5666,7 +5772,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             }
             onDecideEstimasi={(s, setuju) => approvalEstimasiMutation.mutate({ setuju, spk: s })}
           />
-        )}
+        ) : null}
       </DetailModal>
 
 
