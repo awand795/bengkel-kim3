@@ -12,10 +12,11 @@
 --   status "Check In" + keterangan "Menunggu Penerimaan Awal oleh SA".
 --
 -- Catatan:
---   - Pencocokan ke SPK memakai nopol + waktu. id_booking di view berasal dari
---     sch_pos.tbl_request_service.id (bukan booking_service.id), sehingga tidak
---     bisa dipakai langsung. SPK dianggap lanjutan kunjungan bila dibuat setelah
---     (atau berdekatan dengan) waktu check-in gerbang.
+--   - Pencocokan ke SPK memakai id_kunjungan dari v_spk_pos_service. View
+--     tersebut sudah mencocokkan nopol + rentang waktu siklus WO, sehingga
+--     tiket gerbang otomatis hilang begitu WO yang benar sudah terbit.
+--     id_booking di view berasal dari sch_pos.tbl_request_service.id (bukan
+--     booking_service.id), jadi tidak dipakai untuk pencocokan.
 --   - Role & tenant mengikuti pola endpoint customer lain (:sys_role / :sys_user).
 -- ==============================================================================
 
@@ -79,8 +80,7 @@ WHERE kg.tipe_kunjungan = 'SERVICE'
   AND NOT EXISTS (
     SELECT 1
     FROM sch_fleet.v_spk_pos_service s
-    WHERE REPLACE(UPPER(s.no_polisi), ' ', '') = REPLACE(UPPER(kg.no_polisi), ' ', '')
-      AND s.created_at >= (kg.waktu_masuk AT TIME ZONE 'Asia/Jakarta') - INTERVAL '10 minutes'
+    WHERE s.id_kunjungan = kg.id
   )
 ORDER BY kg.waktu_masuk DESC
   $sql$,

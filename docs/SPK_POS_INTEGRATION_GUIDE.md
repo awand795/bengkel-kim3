@@ -59,14 +59,15 @@ Semua view di bawah ini sudah aktif dan teruji di database `dba_dev_pos`:
 | `nama_sa` | `sa.employeename` (`tbl_employee`) | Nama Service Advisor bertugas |
 | `nama_mekanik` | `mek.employeename` (`tbl_employee`) | Nama teknisi/mekanik utama |
 | `status_spk` | Logika CASE dinamis | `Check In` ➔ `Proses Pekerjaan` ➔ `Selesai Dikerjakan` ➔ `QC Passed` ➔ `Selesai` |
-| `waktu_check_in` | `wo.timein` | Jam kendaraan tiba / diterima |
+| `waktu_check_in` | `kg.waktu_masuk AT TIME ZONE 'Asia/Jakarta'`, fallback `wo.timein` | Jam kendaraan tiba di gerbang / diterima |
 | `waktu_mulai_pekerjaan`| `wo.servicestartat` | Jam teknisi mulai bekerja |
 | `waktu_selesai_pekerjaan`| `wo.servicefinishat` | Jam teknisi selesai bekerja |
 | `waktu_qc` & `waktu_fir_closed` | `wo.testdrivedatefir` | Jam validasi Quality Control / FIR |
 | `waktu_invoice` | `(p.transdate + p.transtime)` | Jam transaksi kasir di `tbl_pos` |
-| `waktu_check_out` | `COALESCE(p.finish_date, transdate+time)` | Jam kendaraan keluar bengkel |
+| `waktu_check_out` | `kg.waktu_keluar`, fallback `COALESCE(p.finish_date, transdate+time, servicefinishat)` | Jam kendaraan keluar bengkel |
+| `id_kunjungan` | `kg.id` | Tiket gerbang yang cocok dengan siklus WO (nopol + rentang waktu) |
 | `lead_time_jam` | Dihitung otomatis | Durasi total kendaraan di bengkel (jam) |
-| `cek_body` s/d `cek_kaki_kaki` | `sch_pos.tbl_wo_check` | Kondisi fisik kendaraan (OK / Perlu Perhatian / Rusak) |
+| `cek_body` s/d `cek_kaki_kaki` | `sch_pos.tbl_wo_check` | Kondisi fisik kendaraan (Belum Diperiksa / Perlu Perhatian / Rusak) |
 | `no_invoice` & `total_invoice` | `p.transno` & `p.total` (`tbl_pos`) | Nomor dan total nominal faktur pembayaran |
 | `foto_kendaraan` | `sch_fleet.foto` | Foto fisik kendaraan berdasarkan no. polisi |
 

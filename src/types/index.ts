@@ -302,6 +302,7 @@ export interface SpkService {
   no_wo?: string;
   id_antrian?: number;
   id_booking?: number;
+  id_kunjungan?: number | null;
   id_pelanggan?: number | null;
   id_mekanik?: number | null;
   no_polisi: string;

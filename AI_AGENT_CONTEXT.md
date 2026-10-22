@@ -168,16 +168,18 @@ SELECT count(*) FROM sch_fleet.kunjungan_gerbang;
 - `/kim3/security/siap-checkout` hanya menampilkan kunjungan `SERVICE` yang invoice terbarunya `Lunas`; kunjungan non-service mengikuti aturan durasi.
 - `/kim3/security/check-out` menolak check-out `SERVICE` bila invoice terbaru belum `Lunas`; respons sukses wajib berisi `memo_id` + `nomor_memo`.
 - `/kim3/security/dashboard` menghitung `total_siap_keluar` hanya dari invoice `Lunas` (bukan sekadar status SPK `Selesai`).
-- `sch_fleet.v_spk_pos_service.waktu_check_out`: bila ada kunjungan gerbang, nilainya `kg.waktu_keluar AT TIME ZONE 'Asia/Jakarta'`; bila belum check-out nilainya `NULL` (tidak lagi memakai `finish_date`/`servicefinishat` sebagai pengganti checkout).
+- `sch_fleet.v_spk_pos_service.waktu_check_out`: bila ada kunjungan gerbang yang cocok, nilainya `kg.waktu_keluar AT TIME ZONE 'Asia/Jakarta'`; bila kunjungan cocok belum check-out nilainya `NULL`. Bila tidak ada kunjungan gerbang yang cocok, fallback ke `finish_date` / `transdate+transtime` / `servicefinishat` dari POS.
+- Pencocokan WO ke kunjungan gerbang memakai **nopol + rentang waktu siklus WO** (bukan `kg.id DESC`). Kunjungan harus sudah masuk sebelum WO selesai dan belum keluar saat WO mulai. View mengekspos `id_kunjungan` untuk hubungan exact.
 - `SecurityCheckOutModal` wajib memeriksa `memo_id`/`nomor_memo` pada respons; respons kosong berarti checkout ditolak dan tidak boleh menampilkan toast sukses.
 
 ### Riwayat Service Customer & Check-in Tanpa WO (2026-10-22)
 - Riwayat Service customer menggabungkan dua sumber: `/kim3/spk` (SPK/WO POS) dan `/kim3/kunjungan-service` (kunjungan SERVICE `DI_DALAM` yang belum diterbitkan WO).
 - Endpoint `/kim3/kunjungan-service` didaftarkan di `data_setting_sync` (file `docs/sql/20261022_kunjungan_service_endpoint.sql`). Query di-scope `id_pelanggan` untuk role `Customer_Fleet`.
 - Pencocokan kunjungan ke SPK memakai **nopol + waktu** (`s.created_at >= kg.waktu_masuk - 10 menit`), bukan `id_booking`. Kolom `v_spk_pos_service.id_booking` berasal dari `sch_pos.tbl_request_service.id`, bukan `sch_fleet.booking_service.id`, sehingga rawan salah cocok.
-- Entri gate-only tampil dengan status `Check In` + keterangan `Menunggu Penerimaan Awal oleh SA`, dan `cek_* = Belum Diperiksa`. Detailnya memakai `KunjunganServiceDetail` (tanpa tab invoice/approval).
+- Entri gate-only tampil dengan status `Check In` + keterangan `Menunggu Penerimaan Awal oleh SA`, dan `cek_* = Belum Diperiksa`. Detailnya memakai modal yang sama dengan SPK, yaitu `SpkTrackingDetail` dengan prop `isPreSpk`. Label `No. SPK` berubah menjadi `No. Tiket Gerbang` dan stepper menampilkan tahap `Penerimaan SA` sampai WO terbit. Tidak ada modal detail kedua.
 - `v_spk_pos_service.cek_*` tidak lagi memakai fallback `OK`; nilai absen `tbl_wo_check` menjadi `Belum Diperiksa`.
 - `v_spk_pos_service.waktu_check_in` memakai `kg.waktu_masuk AT TIME ZONE 'Asia/Jakarta'` agar sama dengan `waktu_check_out` (timestamp lokal WIB).
+- `/kim3/kunjungan-service` menyembunyikan tiket gerbang dengan `NOT EXISTS (... s.id_kunjungan = kg.id)`, sehingga nomor tiket otomatis berganti menjadi nomor WO saat WO terbit.
 
 ---
 
