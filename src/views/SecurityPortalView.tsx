@@ -269,6 +269,12 @@ export const SecurityPortalView: React.FC = () => {
   });
   const [isCheckInSubmitting, setIsCheckInSubmitting] = useState(false);
 
+  // Karena komponen tidak lagi di-remount saat pindah tab internal, posisi
+  // scroll container perlu dikembalikan ke atas secara manual.
+  useEffect(() => {
+    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentTab]);
+
   // Modal Checkout & Memo states
   const [checkOutModalOpen, setCheckOutModalOpen] = useState(false);
   const [selectedKunjunganForCheckOut, setSelectedKunjunganForCheckOut] = useState<any>(null);
