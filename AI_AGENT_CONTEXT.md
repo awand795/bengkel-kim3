@@ -11,9 +11,9 @@ Dokumen ini adalah panduan lengkap (*single source of truth*) yang disusun agar 
 - **Repositori Git**: `https://github.com/awand795/bengkel-kim3.git` (Branch: `main`)
 - **Teknologi Frontend**: React 18, Vite 5, TypeScript, Tailwind CSS v4, Zustand, TanStack React Query v5, Axios, Lucide React
 - **Port Lokal Vite**: `http://localhost:3000` (Proxy `/api` ➔ `http://94.237.69.119:8081`)
-- **Dua Portal Utama**:
-  1. **Web Fleet Customer**: Dashboard monitoring armada, live SPK tracking milestone, persetujuan estimasi & pekerjaan tambahan, cetak faktur/invoice resmi POS, reservasi jadwal booking, manajemen armada & dokumen legalitas.
-  2. **Security Gate Portal**: Pos Gerbang Utama KIM 3, pencatatan check-in armada (tamu/servis), monitoring armada di dalam bengkel (*On Progress*), eksekusi *Check Out* saat servis selesai, penerbitan Gate Pass digital (*Memo Keluar*), serta arsip riwayat keluar.
+- **Dua Aplikasi Terkait (Multi-Repo)**:
+  1. **Web Fleet Customer & Admin Portal (`Bengkel-Kim3`)**: Repositori ini (`http://localhost:3000`). Dashboard monitoring armada, live SPK tracking milestone, persetujuan estimasi & pekerjaan tambahan, cetak faktur/invoice resmi POS, reservasi jadwal booking, manajemen armada & dokumen legalitas.
+  2. **Security Gate Portal (`Bengkel-Kim3-Security`)**: Repositori terpisah di direktori tetangga `../Bengkel-Kim3-Security` (`http://localhost:3500`). Khusus staf pos security gerbang untuk pencatatan check-in fisik, foto 4 sudut (`sch_pos.ms_foto`), live status armada di bengkel, check-out, dan gate pass digital (`memo_keluar`). Terintegrasi dengan DarkoPOS login.
 
 ---
 
@@ -209,7 +209,36 @@ SELECT count(*) FROM sch_fleet.kunjungan_gerbang;
 
 ---
 
-## 6. Verifikasi Build & Pengujian
+## 7. Hubungan Antar-Proyek (Web Fleet & Security Portal) & Workspace OpenCode
+
+Kedua repositori ini berada di bawah satu folder induk: `D:\my-project\Project Backendless`
+
+```
+D:\my-project\Project Backendless\
+├── Bengkel-Kim3\              # Web Fleet Customer & Admin Portal (Port 3000) - REPO INI
+│   ├── AI_AGENT_CONTEXT.md    # Dokumen ini
+│   └── src\                   # View Customer, SPK Tracking, Booking Reservasi
+│
+└── Bengkel-Kim3-Security\     # Pos Security Gerbang Portal (Port 3500)
+    ├── AI_AGENT_CONTEXT.md    # Konteks khusus Pos Security Gerbang
+    └── src\                   # View CheckIn, CheckOut, ActiveInside, MemoKeluar
+```
+
+### Integrasi Alur Data Lintas Proyek:
+1. **Booking ➔ Check-In**:
+   - Customer membuat booking jadwal di `Bengkel-Kim3` (masuk ke `sch_fleet.booking_service`).
+   - Staf security di `Bengkel-Kim3-Security` memasukkan nopol di form Check-In. Sistem mendeteksi booking dan mengunci status jika belum terkonfirmasi, atau menyetujui jika `CONFIRMED`.
+2. **Kunjungan Gerbang ➔ Web Fleet Live Tracking**:
+   - Security menyelesaikan Check-In (`sch_pos.kunjungan_masuk` & `sch_pos.ms_foto`).
+   - Customer di Web Fleet langsung melihat status armada masuk via `sch_fleet.v_kunjungan_gerbang` / `/kim3/kunjungan-service` bahkan sebelum WO / SPK diterbitkan SA.
+3. **Penyelesaian WO & Pembayaran ➔ Check-Out Security**:
+   - SA dan teknisi menyelesaikan servis, kasir menerbitkan faktur dan melunasi pembayaran (`sch_pos.tbl_pos`).
+   - Portal Security mendeteksi bahwa invoice sudah **Lunas**, sehingga armada masuk daftar **Siap Checkout** di `Bengkel-Kim3-Security`.
+   - Security melakukan Check-Out, menghasilkan nomor Memo Keluar / Gate Pass digital. Di Web Fleet, SPK dinyatakan selesai lengkap dengan `waktu_check_out`.
+
+---
+
+## 8. Verifikasi Build & Pengujian
 
 Sebelum melakukan commit dan push ke repositori GitHub:
 ```bash
