@@ -2801,28 +2801,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         );
       }
 
-      // Generate nomor booking urut (+1) dari database hari ini: BK-YYMMDD-XXXX
-      const today = new Date();
-      const yy = String(today.getFullYear()).slice(-2);
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      const datePrefix = `BK-${yy}${mm}${dd}-`;
-
-      let maxSeq = 0;
-      (bookingList || []).forEach((item) => {
-        const no = item.no_booking || '';
-        if (no.startsWith(datePrefix)) {
-          const suffix = no.slice(datePrefix.length);
-          const seq = parseInt(suffix, 10);
-          if (!isNaN(seq) && seq > maxSeq) {
-            maxSeq = seq;
-          }
-        }
-      });
-      const nextBookingNo = `${datePrefix}${String(maxSeq + 1).padStart(4, '0')}`;
-
       return api.tambahBooking({
-        no_booking: nextBookingNo,
         id_pelanggan: myPelangganId ? Number(myPelangganId) : undefined,
         no_polisi: bookingForm.no_polisi,
         jenis_layanan: bookingForm.jenis_layanan,
@@ -2835,19 +2814,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         nama_cabang: bookingForm.nama_cabang || (masterCabangList.length > 0 ? masterCabangList[0].nama_cabang : undefined),
       });
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['booking-list'] });
+      const createdNoBooking = res?.data?.no_booking || res?.no_booking || '';
       realtimeHub.publish({
         type: 'BOOKING_CREATED',
         targetRoles: ['SA', 'Security'],
         title: 'Booking Baru Diterima',
-        message: `Customer telah membuat booking service nopol ${formatPlat(bookingForm.no_polisi)} (${bookingForm.jenis_layanan}) untuk ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking}.`,
+        message: `Customer telah membuat booking service ${createdNoBooking ? `(${createdNoBooking}) ` : ''}nopol ${formatPlat(bookingForm.no_polisi)} (${bookingForm.jenis_layanan}) untuk ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking}.`,
         linkTab: 'security-booking',
         urgency: 'info',
       });
       toast.success(
         'Booking Service Berhasil Dibuat!',
-        `Kendaraan ${formatPlat(bookingForm.no_polisi)} dijadwalkan pada ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking} WIB.`
+        `Kendaraan ${formatPlat(bookingForm.no_polisi)} dijadwalkan pada ${bookingForm.tanggal_booking} jam ${bookingForm.jam_booking} WIB.${createdNoBooking ? ` (No. Booking: ${createdNoBooking})` : ''}`
       );
       setOpenBookingModal(false);
       setBookingStep(1);
