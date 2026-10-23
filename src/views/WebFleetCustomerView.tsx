@@ -1607,7 +1607,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [bookingServiceCategory, setBookingServiceCategory] = useState('Semua');
   const [showAllBookingServices, setShowAllBookingServices] = useState(false);
   const [bookingKendaraanSearch, setBookingKendaraanSearch] = useState('');
-  const [bookingCabangSearch, setBookingCabangSearch] = useState('');
   const [bookingKendaraanPage, setBookingKendaraanPage] = useState(1);
   const [bookingKendaraanLimit, setBookingKendaraanLimit] = useState(5);
   const [bookingForm, setBookingForm] = useState({
@@ -2853,8 +2852,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         jam_booking: '08:30',
         keluhan: '',
         catatan: '',
-        kode_cabang: masterCabangList.length > 0 ? masterCabangList[0].kode_cabang : '',
-        nama_cabang: masterCabangList.length > 0 ? masterCabangList[0].nama_cabang : '',
+        kode_cabang: masterCabangList.length === 1 ? masterCabangList[0].kode_cabang : '',
+        nama_cabang: masterCabangList.length === 1 ? masterCabangList[0].nama_cabang : '',
       });
       setFleetMenu('booking');
       setActiveTab('fleet-booking');
@@ -2886,6 +2885,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   });
 
   // Opsi dropdown merk & tipe unit kendaraan (form tambah + form edit).
+  const bookingCabangOptions = useMemo<SelectMenuOption[]>(() => {
+    return masterCabangList.map((c) => ({
+      value: c.kode_cabang,
+      label: `${c.kode_cabang} - ${c.nama_cabang}${c.alamat ? ` (${c.alamat})` : ''}`,
+    }));
+  }, [masterCabangList]);
+
   const armadaMerkOptions = useMemo(
     () => buildMerkOptions(masterMerkList, armadaForm.merk),
     [masterMerkList, armadaForm.merk]
@@ -3979,121 +3985,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            {/* Input Pencarian Cabang */}
-                            <div className="relative">
-                              <Search className="w-3.5 h-3.5 text-ink-muted absolute left-3 top-1/2 -translate-y-1/2" />
-                              <input
-                                type="text"
-                                value={bookingCabangSearch}
-                                onChange={(e) => setBookingCabangSearch(e.target.value)}
-                                placeholder="Cari nama cabang, kode, atau alamat..."
-                                className="w-full pl-8.5 pr-8 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface text-ink"
-                              />
-                              {bookingCabangSearch && (
-                                <button
-                                  type="button"
-                                  onClick={() => setBookingCabangSearch('')}
-                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink p-1 cursor-pointer"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-
-                            {/* Daftar Cabang Scrollable dengan default 'Pilih Cabang' */}
-                            <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1 border border-border/70 rounded-xl p-1.5 bg-surface-sunken/30">
-                              {/* Opsi default belum memilih cabang */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setBookingForm({
-                                    ...bookingForm,
-                                    kode_cabang: '',
-                                    nama_cabang: '',
-                                  });
-                                }}
-                                className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-left transition-all ${
-                                  !bookingForm.kode_cabang
-                                    ? 'border-accent bg-accent/10 font-bold text-accent dark:bg-accent/20'
-                                    : 'border-transparent hover:bg-surface text-ink-muted hover:text-ink'
-                                }`}
-                              >
-                                <span className="text-xs">-- Pilih Cabang --</span>
-                                {!bookingForm.kode_cabang && (
-                                  <Check className="w-3.5 h-3.5 text-accent shrink-0" />
-                                )}
-                              </button>
-
-                              {/* Daftar Cabang Hasil Filter */}
-                              {masterCabangList
-                                .filter((cabang) => {
-                                  if (!bookingCabangSearch.trim()) return true;
-                                  const q = bookingCabangSearch.toLowerCase();
-                                  return (
-                                    cabang.nama_cabang?.toLowerCase().includes(q) ||
-                                    cabang.kode_cabang?.toLowerCase().includes(q) ||
-                                    cabang.alamat?.toLowerCase().includes(q) ||
-                                    cabang.shortname?.toLowerCase().includes(q)
-                                  );
-                                })
-                                .map((cabang) => {
-                                  const isSelected = bookingForm.kode_cabang === cabang.kode_cabang;
-                                  return (
-                                    <button
-                                      key={cabang.id || cabang.kode_cabang}
-                                      type="button"
-                                      onClick={() => {
-                                        setBookingForm({
-                                          ...bookingForm,
-                                          kode_cabang: cabang.kode_cabang,
-                                          nama_cabang: cabang.nama_cabang,
-                                        });
-                                      }}
-                                      className={`w-full flex items-start justify-between p-2.5 rounded-lg border text-left transition-all ${
-                                        isSelected
-                                          ? 'border-accent bg-accent/10 font-bold text-ink dark:bg-accent/20'
-                                          : 'border-border/60 hover:border-accent/40 bg-surface hover:bg-surface-raised text-ink'
-                                      }`}
-                                    >
-                                      <div className="min-w-0 flex-1 pr-2">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-xs font-bold text-ink">
-                                            {cabang.nama_cabang}
-                                          </span>
-                                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-sunken text-ink-muted border border-border/50">
-                                            {cabang.kode_cabang}
-                                          </span>
-                                        </div>
-                                        {cabang.alamat && (
-                                          <p className="text-[11px] text-ink-muted truncate mt-0.5">
-                                            {cabang.alamat}
-                                          </p>
-                                        )}
-                                      </div>
-                                      {isSelected && (
-                                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                                      )}
-                                    </button>
-                                  );
-                                })}
-
-                              {masterCabangList.filter((cabang) => {
-                                if (!bookingCabangSearch.trim()) return true;
-                                const q = bookingCabangSearch.toLowerCase();
-                                return (
-                                  cabang.nama_cabang?.toLowerCase().includes(q) ||
-                                  cabang.kode_cabang?.toLowerCase().includes(q) ||
-                                  cabang.alamat?.toLowerCase().includes(q)
-                                );
-                              }).length === 0 && (
-                                <div className="p-4 text-center text-xs text-ink-muted">
-                                  Tidak ada cabang yang cocok dengan pencarian "{bookingCabangSearch}"
-                                </div>
-                              )}
-                            </div>
-
-                            <p className="text-[11px] text-ink-muted">
+                          <div>
+                            <SelectMenu
+                              id="booking-cabang"
+                              value={bookingForm.kode_cabang}
+                              onChange={(kode) => {
+                                const selected = masterCabangList.find((c) => c.kode_cabang === kode);
+                                setBookingForm({
+                                  ...bookingForm,
+                                  kode_cabang: kode,
+                                  nama_cabang: selected ? selected.nama_cabang : '',
+                                });
+                              }}
+                              options={bookingCabangOptions}
+                              placeholder="Pilih Cabang…"
+                              searchable
+                              searchPlaceholder="Cari nama, kode, atau alamat cabang…"
+                              emptyMessage="Cabang tidak ditemukan"
+                            />
+                            <p className="text-[11px] text-ink-muted mt-1.5">
                               Pilih lokasi cabang bengkel yang ingin Anda tuju untuk servis kendaraan.
                             </p>
                           </div>
