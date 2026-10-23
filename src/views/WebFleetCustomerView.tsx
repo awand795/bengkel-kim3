@@ -1616,6 +1616,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     jam_booking: '08:30',
     keluhan: '',
     catatan: '',
+    kode_cabang: '',
+    nama_cabang: '',
   });
 
   // ── Pagination & pencarian server-side (API Builder) ────────────────────────
@@ -1681,6 +1683,33 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryFn: api.getMasterMerk,
     staleTime: 1000 * 60 * 30,
   });
+
+  const { data: masterCabangList = [] } = useQuery({
+    queryKey: ['master-cabang-list'],
+    queryFn: api.getMasterCabang,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  // Otomatis isi kode & nama cabang jika daftar cabang hanya 1 atau belum terisi
+  React.useEffect(() => {
+    if (masterCabangList.length === 1) {
+      const single = masterCabangList[0];
+      setBookingForm((prev) => {
+        if (prev.kode_cabang !== single.kode_cabang || prev.nama_cabang !== single.nama_cabang) {
+          return { ...prev, kode_cabang: single.kode_cabang, nama_cabang: single.nama_cabang };
+        }
+        return prev;
+      });
+    } else if (masterCabangList.length > 1) {
+      setBookingForm((prev) => {
+        if (!prev.kode_cabang) {
+          const first = masterCabangList[0];
+          return { ...prev, kode_cabang: first.kode_cabang, nama_cabang: first.nama_cabang };
+        }
+        return prev;
+      });
+    }
+  }, [masterCabangList]);
 
   const { data: masterTipeList = [] } = useQuery({
     queryKey: ['master-tipe-list'],
@@ -2804,6 +2833,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         keluhan: bookingForm.keluhan,
         catatan: bookingForm.catatan,
         prioritas: 'Prioritas Booking',
+        kode_cabang: bookingForm.kode_cabang || (masterCabangList.length > 0 ? masterCabangList[0].kode_cabang : undefined),
+        nama_cabang: bookingForm.nama_cabang || (masterCabangList.length > 0 ? masterCabangList[0].nama_cabang : undefined),
       });
     },
     onSuccess: () => {
@@ -2829,6 +2860,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         jam_booking: '08:30',
         keluhan: '',
         catatan: '',
+        kode_cabang: masterCabangList.length > 0 ? masterCabangList[0].kode_cabang : '',
+        nama_cabang: masterCabangList.length > 0 ? masterCabangList[0].nama_cabang : '',
       });
       setFleetMenu('booking');
       setActiveTab('fleet-booking');
@@ -3862,9 +3895,73 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 },
                 {
                   id: 'jadwal',
-                  label: 'Tanggal & Waktu',
+                  label: 'Cabang & Jadwal',
                   content: (
                     <div className="space-y-4">
+                      {/* Pilihan Toko / Cabang Bengkel */}
+                      <div className="rounded-2xl border border-accent/20 bg-surface-raised p-4 sm:p-5 shadow-2xs space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                            <Building2 className="w-4 h-4 text-accent" />
+                            <span>Lokasi Cabang / Toko Bengkel</span>
+                            <span className="text-status-red">*</span>
+                          </label>
+                          {masterCabangList.length <= 1 && (
+                            <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                              Otomatis Terpilih
+                            </span>
+                          )}
+                        </div>
+
+                        {masterCabangList.length <= 1 ? (
+                          <div className="rounded-xl border border-border/80 bg-surface-sunken/60 p-3.5 flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-accent/10 text-accent shrink-0 mt-0.5">
+                              <Building2 className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-xs text-ink">
+                                  {bookingForm.nama_cabang || (masterCabangList[0]?.nama_cabang || 'BENGKEL MASTER TRUK KIM 3')}
+                                </span>
+                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 bg-accent/15 text-accent rounded">
+                                  {bookingForm.kode_cabang || (masterCabangList[0]?.kode_cabang || 'C01')}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-ink-muted mt-0.5">
+                                {masterCabangList[0]?.alamat || 'Kawasan Industri Medan (KIM) 3'}
+                              </p>
+                              <div className="text-[10px] text-ink-muted/80 mt-1.5 flex items-center gap-1 italic">
+                                <span>* Saat ini operasional terpusat di cabang ini. Opsi pemilihan cabang dinonaktifkan sementara.</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <select
+                              value={bookingForm.kode_cabang}
+                              onChange={(e) => {
+                                const selected = masterCabangList.find((c) => c.kode_cabang === e.target.value);
+                                setBookingForm({
+                                  ...bookingForm,
+                                  kode_cabang: e.target.value,
+                                  nama_cabang: selected ? selected.nama_cabang : '',
+                                });
+                              }}
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface text-ink font-semibold"
+                            >
+                              {masterCabangList.map((cabang) => (
+                                <option key={cabang.id || cabang.kode_cabang} value={cabang.kode_cabang}>
+                                  {cabang.kode_cabang} - {cabang.nama_cabang} {cabang.alamat ? `(${cabang.alamat})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-[11px] text-ink-muted mt-1.5">
+                              Pilih lokasi cabang bengkel yang ingin Anda tuju untuk servis kendaraan.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="rounded-2xl border border-accent/15 bg-gradient-to-br from-accent-subtle/80 via-accent-subtle/30 to-transparent p-4 sm:p-5">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -3930,13 +4027,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </span>
                       </div>
 
-                      <div className="grid divide-y divide-[#E8EAED] dark:divide-slate-700 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                      <div className="grid divide-y divide-[#E8EAED] dark:divide-slate-700 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
                         <div className="min-w-0 px-4 py-3.5 sm:px-5">
                           <span className="mb-2 block text-xs font-medium text-[#626B75] dark:text-slate-400">
                             Kendaraan
                           </span>
                           <span className="inline-flex max-w-full items-center rounded-md border-2 border-[#424A53] bg-white px-2.5 py-1 font-mono text-base font-bold tracking-[0.08em] text-[#252A31] shadow-[0_1px_0_#C5CBD2] dark:border-slate-400 dark:bg-slate-800 dark:text-slate-100">
                             <span className="truncate">{formatPlat(bookingForm.no_polisi)}</span>
+                          </span>
+                        </div>
+
+                        <div className="min-w-0 px-4 py-3.5 sm:px-5">
+                          <span className="mb-1.5 block text-xs font-medium text-[#626B75] dark:text-slate-400">
+                            Cabang / Toko
+                          </span>
+                          <span className="block font-semibold leading-snug text-[#30363C] dark:text-slate-100">
+                            {bookingForm.nama_cabang || 'BENGKEL MASTER TRUK KIM 3'}
+                          </span>
+                          <span className="mt-0.5 block text-[11px] font-mono text-accent">
+                            Kode: {bookingForm.kode_cabang || 'C01'}
                           </span>
                         </div>
 

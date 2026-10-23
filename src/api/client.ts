@@ -3,6 +3,7 @@ import {
   Kendaraan,
   MasterBrand,
   MasterType,
+  MasterStore,
   MasterJenisLayanan,
   MasterKeluhan,
   MasterEmployee,
@@ -468,6 +469,18 @@ export const api = {
       const res = await apiClient.get('/kim3/master/tipe', {
         params: brand ? { brand } : undefined,
       });
+      if (Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res.data?.data)) return res.data.data;
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Master Cabang / Store (sch_pos.tbl_store via sch_fleet.v_store)
+  getMasterCabang: async (): Promise<MasterStore[]> => {
+    try {
+      const res = await apiClient.get('/kim3/master/cabang');
       if (Array.isArray(res.data)) return res.data;
       if (Array.isArray(res.data?.data)) return res.data.data;
       return [];

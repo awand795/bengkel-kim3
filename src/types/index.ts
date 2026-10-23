@@ -166,6 +166,15 @@ export interface MasterType {
   brandname?: string;
 }
 
+export interface MasterStore {
+  id: number;
+  kode_cabang: string;
+  nama_cabang: string;
+  shortname?: string;
+  alamat?: string;
+  no_telepon?: string;
+}
+
 export interface MasterJenisLayanan {
   id: number;
   jenis_layanan: string;
