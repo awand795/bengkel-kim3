@@ -469,8 +469,16 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         <span className="text-xs sm:text-sm font-bold text-accent block truncate">Menunggu SA</span>
                         <span className="text-[11px] text-ink-muted block truncate">Penerimaan Awal</span>
                       </>
-                    ) : spk.status_spk === 'Selesai' ? (
+                    ) : spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' ? (
                       (() => {
+                        if (spk.status_spk === 'Siap Keluar') {
+                          return (
+                            <>
+                              <span className="text-xs sm:text-sm font-bold text-status-green block">Siap Keluar</span>
+                              <span className="text-[11px] text-ink-muted block truncate">Menunggu Pos Security</span>
+                            </>
+                          );
+                        }
                         const tOut = spk.waktu_check_out || spk.waktu_fir_closed || spk.waktu_qc || spk.waktu_selesai_pekerjaan;
                         if (!tOut || isNaN(new Date(tOut).getTime())) {
                           return (
@@ -665,14 +673,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         : spk.status_spk === 'Dalam Pengerjaan'
                         ? 'Mekanik Aktif'
                         : 'Selesai Dikerjakan',
-                      done: !isPreSpk && ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'].includes(spk.status_spk as string),
+                      done: !isPreSpk && ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'].includes(spk.status_spk as string),
                       current: isPreSpk || ['Waiting Part', 'Menunggu Approval Customer', 'Waiting Approval', 'Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC'].includes(spk.status_spk as string),
                       isWaitingPart: !isPreSpk && spk.status_spk === 'Waiting Part',
                       waktu: isPreSpk ? null : spk.waktu_mulai_pekerjaan
                     },
-                    { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai', current: spk.status_spk === 'Waiting QC', waktu: spk.waktu_qc || spk.tanggal_qc },
-                    { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai', waktu: spk.waktu_fir_closed },
-                    { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: spk.status_spk === 'Selesai' || activeInvoiceLunas, waktu: activeInvoice?.tanggal_invoice || (spk.status_spk === 'Selesai' ? spk.waktu_fir_closed : null) },
+                    { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai', current: spk.status_spk === 'Waiting QC', waktu: spk.waktu_qc || spk.tanggal_qc },
+                    { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: spk.status_spk === 'FIR Closed' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai', waktu: spk.waktu_fir_closed },
+                    { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai' || activeInvoiceLunas, waktu: activeInvoice?.tanggal_invoice || (spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' ? spk.waktu_fir_closed : null) },
                     { step: 6, title: 'Check Out', desc: 'Kendaraan Keluar', done: !!spk.waktu_check_out, waktu: spk.waktu_check_out },
                   ].map((s, idx, arr) => {
                     const isLast = idx === arr.length - 1;

@@ -347,6 +347,7 @@ export interface SpkService {
     | 'Waiting QC'
     | 'QC Passed'
     | 'FIR Closed'
+    | 'Siap Keluar'
     | 'Selesai';
   estimasi_biaya: number;
   estimasi_waktu_jam: number;

@@ -43,13 +43,13 @@ export const SERVICE_STAGE_ORDER: ServiceStageKey[] = [
 /** Status SPK yang menandakan tahap pengecekan mekanik masih berjalan. */
 const STATUS_CEK_MEKANIK = ['Menunggu Pengecekan Mekanik', 'Pengecekan Mekanik', 'Estimasi Dibuat'];
 /** Status SPK yang menandakan WO sudah terbit (tahap pengecekan selesai). */
-const STATUS_WO_TERBIT = ['Estimasi Disetujui', 'Waiting Part', 'Dalam Pengerjaan', 'Pending', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'];
+const STATUS_WO_TERBIT = ['Estimasi Disetujui', 'Waiting Part', 'Dalam Pengerjaan', 'Pending', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'];
 /** Status SPK yang menandakan pengerjaan teknisi sudah tuntas. */
-const STATUS_PENGERJAAN_SELESAI = ['Waiting QC', 'QC Passed', 'FIR Closed', 'Selesai'];
+const STATUS_PENGERJAAN_SELESAI = ['Waiting QC', 'QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'];
 /** Status SPK setelah QC lulus. */
-const STATUS_LOLOS_QC = ['QC Passed', 'FIR Closed', 'Selesai'];
+const STATUS_LOLOS_QC = ['QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'];
 /** Status SPK setelah FIR ditutup. */
-const STATUS_FIR_CLOSED = ['FIR Closed', 'Selesai'];
+const STATUS_FIR_CLOSED = ['FIR Closed', 'Siap Keluar', 'Selesai'];
 
 type SpkTimelineInput = Pick<
   SpkService,

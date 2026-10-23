@@ -272,7 +272,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                 if (spk.status_spk === 'Waiting Part') {
                   return `Pengerjaan di stall servis ditunda sementara menunggu ketersediaan komponen/sparepart (${pc} part dibutuhkan).`;
                 }
-                if (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Waiting QC') {
+                if (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Waiting QC') {
                   return `Teknisi telah menyelesaikan seluruh instruksi pengerjaan pada unit (${jText} dan ${pText}). Unit diserahkan untuk inspeksi pengujian mutu.`;
                 }
                 if (spk.waktu_mulai_pekerjaan) {
