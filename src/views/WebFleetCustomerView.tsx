@@ -1607,6 +1607,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [bookingServiceCategory, setBookingServiceCategory] = useState('Semua');
   const [showAllBookingServices, setShowAllBookingServices] = useState(false);
   const [bookingKendaraanSearch, setBookingKendaraanSearch] = useState('');
+  const [bookingCabangSearch, setBookingCabangSearch] = useState('');
   const [bookingKendaraanPage, setBookingKendaraanPage] = useState(1);
   const [bookingKendaraanLimit, setBookingKendaraanLimit] = useState(5);
   const [bookingForm, setBookingForm] = useState({
@@ -1690,21 +1691,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     staleTime: 1000 * 60 * 30,
   });
 
-  // Otomatis isi kode & nama cabang jika daftar cabang hanya 1 atau belum terisi
+  // Otomatis isi kode & nama cabang HANYA jika daftar cabang tepat 1
   React.useEffect(() => {
     if (masterCabangList.length === 1) {
       const single = masterCabangList[0];
       setBookingForm((prev) => {
         if (prev.kode_cabang !== single.kode_cabang || prev.nama_cabang !== single.nama_cabang) {
           return { ...prev, kode_cabang: single.kode_cabang, nama_cabang: single.nama_cabang };
-        }
-        return prev;
-      });
-    } else if (masterCabangList.length > 1) {
-      setBookingForm((prev) => {
-        if (!prev.kode_cabang) {
-          const first = masterCabangList[0];
-          return { ...prev, kode_cabang: first.kode_cabang, nama_cabang: first.nama_cabang };
         }
         return prev;
       });
@@ -3472,6 +3465,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   }
                   setBookingStep(3);
                 } else if (bookingStep === 3) {
+                  if (masterCabangList.length > 1 && !bookingForm.kode_cabang) {
+                    toast.warning('Pilih Cabang', 'Silakan pilih lokasi cabang bengkel terlebih dahulu.');
+                    return;
+                  }
                   const minBookingDate = getLocalDateStr(1);
                   if (!bookingForm.tanggal_booking) {
                     toast.error('Tanggal Belum Dipilih', 'Silakan pilih tanggal rencana masuk.');
@@ -3898,7 +3895,49 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   label: 'Cabang & Jadwal',
                   content: (
                     <div className="space-y-4">
-                      {/* Pilihan Toko / Cabang Bengkel */}
+                      {/* Tanggal & Waktu Rencana Masuk */}
+                      <div className="rounded-2xl border border-accent/15 bg-gradient-to-br from-accent-subtle/80 via-accent-subtle/30 to-transparent p-4 sm:p-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-accent" />
+                              Tanggal Rencana Masuk <span className="text-status-red">* (Minimal H+1)</span>
+                            </label>
+                            <input
+                              type="date"
+                              min={getLocalDateStr(1)}
+                              value={bookingForm.tanggal_booking}
+                              onChange={(e) => {
+                                const minDate = getLocalDateStr(1);
+                                if (e.target.value && e.target.value < minDate) {
+                                  toast.warning('Tanggal Tidak Valid', 'Pemesanan booking service wajib minimal H+1 dari hari ini (mulai besok).');
+                                  setBookingForm({ ...bookingForm, tanggal_booking: minDate });
+                                  return;
+                                }
+                                setBookingForm({ ...bookingForm, tanggal_booking: e.target.value });
+                              }}
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-border font-mono text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
+                            />
+                            <div className="mt-2 rounded-lg bg-amber-500/10 border border-amber-500/25 p-2.5 text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
+                              <span className="font-bold">Catatan:</span> Pemesanan booking service wajib dilakukan minimal H+1 dari hari ini (mulai besok) untuk persiapan jadwal dan ketersediaan mekanik / stall bengkel.
+                            </div>
+                          </div>
+                          <div>
+                            <TimePickerInput
+                              label="Pilih Jam Kedatangan"
+                              required
+                              selectedDate={bookingForm.tanggal_booking}
+                              value={bookingForm.jam_booking}
+                              onChange={(time) => setBookingForm({ ...bookingForm, jam_booking: time })}
+                            />
+                            <div className="text-xs text-ink-muted mt-1.5 font-medium">
+                              Jam operasional bengkel: 08:00 - 17:00 WIB
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pilihan Toko / Cabang Bengkel (Diletakkan di bagian bawah form jadwal) */}
                       <div className="rounded-2xl border border-accent/20 bg-surface-raised p-4 sm:p-5 shadow-2xs space-y-3">
                         <div className="flex items-center justify-between">
                           <label className="text-xs font-bold text-ink flex items-center gap-1.5">
@@ -3906,9 +3945,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             <span>Lokasi Cabang / Toko Bengkel</span>
                             <span className="text-status-red">*</span>
                           </label>
-                          {masterCabangList.length <= 1 && (
+                          {masterCabangList.length <= 1 ? (
                             <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                               Otomatis Terpilih
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-ink-muted font-medium">
+                              {masterCabangList.length} Cabang Tersedia
                             </span>
                           )}
                         </div>
@@ -3936,71 +3979,125 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             </div>
                           </div>
                         ) : (
-                          <div>
-                            <select
-                              value={bookingForm.kode_cabang}
-                              onChange={(e) => {
-                                const selected = masterCabangList.find((c) => c.kode_cabang === e.target.value);
-                                setBookingForm({
-                                  ...bookingForm,
-                                  kode_cabang: e.target.value,
-                                  nama_cabang: selected ? selected.nama_cabang : '',
-                                });
-                              }}
-                              className="w-full px-3.5 py-2.5 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface text-ink font-semibold"
-                            >
-                              {masterCabangList.map((cabang) => (
-                                <option key={cabang.id || cabang.kode_cabang} value={cabang.kode_cabang}>
-                                  {cabang.kode_cabang} - {cabang.nama_cabang} {cabang.alamat ? `(${cabang.alamat})` : ''}
-                                </option>
-                              ))}
-                            </select>
-                            <p className="text-[11px] text-ink-muted mt-1.5">
+                          <div className="space-y-2">
+                            {/* Input Pencarian Cabang */}
+                            <div className="relative">
+                              <Search className="w-3.5 h-3.5 text-ink-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                value={bookingCabangSearch}
+                                onChange={(e) => setBookingCabangSearch(e.target.value)}
+                                placeholder="Cari nama cabang, kode, atau alamat..."
+                                className="w-full pl-8.5 pr-8 py-2 rounded-xl border border-border text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface text-ink"
+                              />
+                              {bookingCabangSearch && (
+                                <button
+                                  type="button"
+                                  onClick={() => setBookingCabangSearch('')}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink p-1 cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Daftar Cabang Scrollable dengan default 'Pilih Cabang' */}
+                            <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1 border border-border/70 rounded-xl p-1.5 bg-surface-sunken/30">
+                              {/* Opsi default belum memilih cabang */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBookingForm({
+                                    ...bookingForm,
+                                    kode_cabang: '',
+                                    nama_cabang: '',
+                                  });
+                                }}
+                                className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-left transition-all ${
+                                  !bookingForm.kode_cabang
+                                    ? 'border-accent bg-accent/10 font-bold text-accent dark:bg-accent/20'
+                                    : 'border-transparent hover:bg-surface text-ink-muted hover:text-ink'
+                                }`}
+                              >
+                                <span className="text-xs">-- Pilih Cabang --</span>
+                                {!bookingForm.kode_cabang && (
+                                  <Check className="w-3.5 h-3.5 text-accent shrink-0" />
+                                )}
+                              </button>
+
+                              {/* Daftar Cabang Hasil Filter */}
+                              {masterCabangList
+                                .filter((cabang) => {
+                                  if (!bookingCabangSearch.trim()) return true;
+                                  const q = bookingCabangSearch.toLowerCase();
+                                  return (
+                                    cabang.nama_cabang?.toLowerCase().includes(q) ||
+                                    cabang.kode_cabang?.toLowerCase().includes(q) ||
+                                    cabang.alamat?.toLowerCase().includes(q) ||
+                                    cabang.shortname?.toLowerCase().includes(q)
+                                  );
+                                })
+                                .map((cabang) => {
+                                  const isSelected = bookingForm.kode_cabang === cabang.kode_cabang;
+                                  return (
+                                    <button
+                                      key={cabang.id || cabang.kode_cabang}
+                                      type="button"
+                                      onClick={() => {
+                                        setBookingForm({
+                                          ...bookingForm,
+                                          kode_cabang: cabang.kode_cabang,
+                                          nama_cabang: cabang.nama_cabang,
+                                        });
+                                      }}
+                                      className={`w-full flex items-start justify-between p-2.5 rounded-lg border text-left transition-all ${
+                                        isSelected
+                                          ? 'border-accent bg-accent/10 font-bold text-ink dark:bg-accent/20'
+                                          : 'border-border/60 hover:border-accent/40 bg-surface hover:bg-surface-raised text-ink'
+                                      }`}
+                                    >
+                                      <div className="min-w-0 flex-1 pr-2">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-xs font-bold text-ink">
+                                            {cabang.nama_cabang}
+                                          </span>
+                                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-sunken text-ink-muted border border-border/50">
+                                            {cabang.kode_cabang}
+                                          </span>
+                                        </div>
+                                        {cabang.alamat && (
+                                          <p className="text-[11px] text-ink-muted truncate mt-0.5">
+                                            {cabang.alamat}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {isSelected && (
+                                        <Check className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+
+                              {masterCabangList.filter((cabang) => {
+                                if (!bookingCabangSearch.trim()) return true;
+                                const q = bookingCabangSearch.toLowerCase();
+                                return (
+                                  cabang.nama_cabang?.toLowerCase().includes(q) ||
+                                  cabang.kode_cabang?.toLowerCase().includes(q) ||
+                                  cabang.alamat?.toLowerCase().includes(q)
+                                );
+                              }).length === 0 && (
+                                <div className="p-4 text-center text-xs text-ink-muted">
+                                  Tidak ada cabang yang cocok dengan pencarian "{bookingCabangSearch}"
+                                </div>
+                              )}
+                            </div>
+
+                            <p className="text-[11px] text-ink-muted">
                               Pilih lokasi cabang bengkel yang ingin Anda tuju untuk servis kendaraan.
                             </p>
                           </div>
                         )}
-                      </div>
-
-                      <div className="rounded-2xl border border-accent/15 bg-gradient-to-br from-accent-subtle/80 via-accent-subtle/30 to-transparent p-4 sm:p-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-accent" />
-                            Tanggal Rencana Masuk <span className="text-status-red">* (Minimal H+1)</span>
-                          </label>
-                          <input
-                            type="date"
-                            min={getLocalDateStr(1)}
-                            value={bookingForm.tanggal_booking}
-                            onChange={(e) => {
-                              const minDate = getLocalDateStr(1);
-                              if (e.target.value && e.target.value < minDate) {
-                                toast.warning('Tanggal Tidak Valid', 'Pemesanan booking service wajib minimal H+1 dari hari ini (mulai besok).');
-                                setBookingForm({ ...bookingForm, tanggal_booking: minDate });
-                                return;
-                              }
-                              setBookingForm({ ...bookingForm, tanggal_booking: e.target.value });
-                            }}
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-border font-mono text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
-                          />
-                          <div className="mt-2 rounded-lg bg-amber-500/10 border border-amber-500/25 p-2.5 text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
-                            <span className="font-bold">Catatan:</span> Pemesanan booking service wajib dilakukan minimal H+1 dari hari ini (mulai besok) untuk persiapan jadwal dan ketersediaan mekanik / stall bengkel.
-                          </div>
-                        </div>
-                        <div>
-                          <TimePickerInput
-                            label="Pilih Jam Kedatangan"
-                            required
-                            selectedDate={bookingForm.tanggal_booking}
-                            value={bookingForm.jam_booking}
-                            onChange={(time) => setBookingForm({ ...bookingForm, jam_booking: time })}
-                          />
-                          <div className="text-xs text-ink-muted mt-1.5 font-medium">
-                            Jam operasional bengkel: 08:00 - 17:00 WIB
-                          </div>
-                        </div>
-                      </div>
                       </div>
                     </div>
                   ),
