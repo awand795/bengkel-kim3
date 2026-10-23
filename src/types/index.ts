@@ -390,8 +390,10 @@ export interface KunjunganService {
   no_telepon_pengemudi?: string | null;
   foto_kendaraan_masuk?: string | null;
   waktu_check_in: string;
+  waktu_check_out?: string | null;
+  nomor_memo?: string | null;
   created_at: string;
-  status_spk: 'Check In';
+  status_spk: 'Check In' | 'Selesai' | string;
   status_keterangan: string;
   cek_body: string;
   cek_mesin: string;

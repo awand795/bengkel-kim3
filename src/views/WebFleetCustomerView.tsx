@@ -851,21 +851,21 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </p>
                       <div className="bg-surface-raised p-3 rounded-xl border border-accent/30 text-ink-muted space-y-1">
                         <div className="font-medium text-ink">
-                          {isPreSpk
-                            ? 'Status Penerimaan:'
-                            : spk.waktu_check_out
+                          {spk.waktu_check_out
                             ? 'Selesai:'
+                            : isPreSpk
+                            ? 'Status Penerimaan:'
                             : serviceTimeline.pengerjaan === 'blocked'
                             ? 'Status Pengerjaan:'
                             : 'Estimasi Selesai:'}
                         </div>
                         <div>
-                          {isPreSpk ? (
+                          {spk.waktu_check_out ? (
+                            <span className="font-semibold text-status-green">{fmtWaktuFull(spk.waktu_check_out)}</span>
+                          ) : isPreSpk ? (
                             <span className="font-semibold text-accent">
                               {statusNote || 'Menunggu Penerimaan Awal oleh SA'}
                             </span>
-                          ) : spk.waktu_check_out ? (
-                            <span className="font-semibold text-status-green">{fmtWaktuFull(spk.waktu_check_out)}</span>
                           ) : serviceTimeline.pengerjaan === 'blocked' ? (
                             <span className="font-semibold text-status-red">Tertunda — menunggu ketersediaan sparepart</span>
                           ) : (
@@ -1943,7 +1943,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     });
     if (inSpk) return true;
     const inKunjungan = (kunjunganServiceList || []).some((k) => {
-      return normalizePlat(k.no_polisi) === cleanP;
+      return normalizePlat(k.no_polisi) === cleanP && !k.waktu_check_out && k.status_spk !== 'Selesai';
     });
     return inKunjungan;
   }, [spkList, kunjunganServiceList]);
@@ -2068,15 +2068,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         cek_mesin: k.cek_mesin,
         cek_kelistrikan: k.cek_kelistrikan,
         cek_kaki_kaki: k.cek_kaki_kaki,
-        nama_sa: 'Menunggu SA',
-        status_spk: 'Check In',
+        nama_sa: k.waktu_check_out || k.status_spk === 'Selesai' ? 'Pos Security (Keluar)' : 'Menunggu SA',
+        status_spk: ((k.status_spk as any) || (k.waktu_check_out ? 'Selesai' : 'Check In')),
         estimasi_biaya: k.estimasi_biaya ?? 0,
         estimasi_waktu_jam: k.estimasi_waktu_jam ?? 0,
         waktu_check_in: k.waktu_check_in,
+        waktu_check_out: k.waktu_check_out || undefined,
         created_at: k.created_at,
         sumber: 'kunjungan' as const,
         kunjungan: k,
-        status_keterangan: k.status_keterangan || 'Menunggu Penerimaan Awal oleh SA',
+        status_keterangan: k.status_keterangan || (k.waktu_check_out ? 'Selesai & Keluar Gerbang' : 'Menunggu Penerimaan Awal oleh SA'),
       }));
 
     return [...spkRows, ...kunjunganRows].sort((a, b) =>
