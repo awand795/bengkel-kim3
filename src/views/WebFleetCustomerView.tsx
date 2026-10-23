@@ -2021,7 +2021,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Urut eksplisit terbaru dulu agar pelacakan selalu ambil 1 data service terkini
   const mySpkList = (spkList || [])
     .filter((s) => isMySpk(s))
-    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    .sort((a, b) => String(b.waktu_check_in || b.created_at || '').localeCompare(String(a.waktu_check_in || a.created_at || '')));
 
   // Kunjungan SERVICE yang sudah check-in tapi SA belum menerbitkan WO.
   // Endpoint sudah memfilter tenant; guard di sini memastikan nomor polisi wajib bagian dari armada resmi customer.
@@ -2075,7 +2075,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       }));
 
     return [...spkRows, ...kunjunganRows].sort((a, b) =>
-      String(b.created_at || '').localeCompare(String(a.created_at || ''))
+      String(b.waktu_check_in || b.created_at || '').localeCompare(String(a.waktu_check_in || a.created_at || ''))
     );
   }, [mySpkList, myKunjunganList]);
 
@@ -5421,7 +5421,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             {spk.keluhan_customer}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3.5 text-xs font-medium tabular-nums text-ink-muted">
-                            {new Date(spk.created_at).toLocaleDateString('id-ID')}
+                            {(() => {
+                              const t = spk.waktu_check_in || spk.created_at;
+                              if (!t || isNaN(new Date(t).getTime())) return '-';
+                              const d = new Date(t);
+                              return (
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-ink">
+                                    {d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </span>
+                                  <span className="text-[10px] text-ink-subtle">
+                                    {d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-3.5 text-right">
                             {spk.sumber === 'kunjungan' ? (
@@ -5500,9 +5514,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 text-xs">
                         <div className="rounded-lg border border-border bg-[#F8FAFC] px-3 py-2 dark:bg-slate-900/50">
                           <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">Tanggal Masuk</span>
-                          <span className="text-xs font-semibold tabular-nums text-ink">
-                            {new Date(spk.created_at).toLocaleDateString('id-ID')}
-                          </span>
+                          {(() => {
+                            const t = spk.waktu_check_in || spk.created_at;
+                            if (!t || isNaN(new Date(t).getTime())) return <span className="text-xs font-semibold tabular-nums text-ink">-</span>;
+                            const d = new Date(t);
+                            return (
+                              <div className="flex flex-col">
+                                <span className="text-xs font-semibold tabular-nums text-ink">
+                                  {d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                                <span className="text-[10px] text-ink-subtle">
+                                  {d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="rounded-lg border border-border bg-[#F8FAFC] px-3 py-2 text-right dark:bg-slate-900/50">
                           <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">Biaya</span>
