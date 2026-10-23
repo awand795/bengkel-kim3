@@ -5454,8 +5454,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             <div className="flex flex-col items-start gap-1">
                               <StatusBadge status={spk.status_spk} size="sm" />
                               {spk.sumber === 'kunjungan' && (
-                                <span className="text-[10px] font-semibold leading-tight text-status-blue">
-                                  Menunggu Penerimaan Awal oleh SA
+                                <span className={`text-[10px] font-semibold leading-tight ${spk.status_spk === 'Selesai' ? 'text-status-green' : 'text-status-blue'}`}>
+                                  {spk.status_keterangan || (spk.status_spk === 'Selesai' ? 'Selesai & Keluar Gerbang' : 'Menunggu Penerimaan Awal oleh SA')}
                                 </span>
                               )}
                             </div>
@@ -5502,8 +5502,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <div className="flex flex-col items-end gap-1">
                           <StatusBadge status={spk.status_spk} size="sm" />
                           {spk.sumber === 'kunjungan' && (
-                            <span className="text-right text-[10px] font-semibold leading-tight text-status-blue">
-                              Menunggu Penerimaan Awal oleh SA
+                            <span className={`text-right text-[10px] font-semibold leading-tight ${spk.status_spk === 'Selesai' ? 'text-status-green' : 'text-status-blue'}`}>
+                              {spk.status_keterangan || (spk.status_spk === 'Selesai' ? 'Selesai & Keluar Gerbang' : 'Menunggu Penerimaan Awal oleh SA')}
                             </span>
                           )}
                         </div>
