@@ -1937,11 +1937,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (!nopol) return false;
     const cleanP = normalizePlat(nopol);
     if (!cleanP) return false;
-    return (spkList || []).some((s) => {
+    const inSpk = (spkList || []).some((s) => {
       if (normalizePlat(s.no_polisi) !== cleanP) return false;
       return s.status_spk !== 'Selesai' && !s.waktu_check_out;
     });
-  }, [spkList]);
+    if (inSpk) return true;
+    const inKunjungan = (kunjunganServiceList || []).some((k) => {
+      return normalizePlat(k.no_polisi) === cleanP;
+    });
+    return inKunjungan;
+  }, [spkList, kunjunganServiceList]);
 
   // Helper: unit tidak boleh dibooking selama masih di dalam bengkel.
   // Sumber utama = kolom di_bengkel dari /kim3/kendaraan (kunjungan gerbang
