@@ -5397,7 +5397,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <thead className="sticky top-0 z-10 border-b border-border bg-[#F6F8FB] dark:bg-slate-800/70">
                       <tr>
                         <th scope="col" className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">No. Booking / SPK</th>
-                        <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Kendaraan</th>
+                        <th scope="col" className="whitespace-nowrap px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Kendaraan</th>
                         <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Layanan</th>
                         <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Tanggal Masuk</th>
                         <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Biaya</th>
@@ -5427,7 +5427,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3.5">
+                          <td className="whitespace-nowrap px-4 py-3.5">
                             <PlateChip plat={spk.no_polisi} />
                           </td>
                           <td className="max-w-[260px] px-4 py-3.5 text-xs leading-relaxed text-ink-muted" title={spk.keluhan_customer}>
