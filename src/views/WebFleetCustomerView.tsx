@@ -459,16 +459,23 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   <div className="min-w-0 space-y-1">
                     <span className="text-xs font-medium text-ink-subtle block">
                       {isPreSpk
-                        ? 'Status Penerimaan'
+                        ? (spk.waktu_check_out ? 'Status Kunjungan' : 'Status Penerimaan')
                         : spk.status_spk === 'Selesai'
                         ? 'Waktu Selesai'
                         : 'Estimasi Selesai'}
                     </span>
                     {isPreSpk ? (
-                      <>
-                        <span className="text-xs sm:text-sm font-bold text-accent block truncate">Menunggu SA</span>
-                        <span className="text-[11px] text-ink-muted block truncate">Penerimaan Awal</span>
-                      </>
+                      spk.waktu_check_out ? (
+                        <>
+                          <span className="text-xs sm:text-sm font-bold text-status-green block truncate">Keluar Gerbang</span>
+                          <span className="text-[11px] text-ink-muted block truncate">Tanpa Servis</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs sm:text-sm font-bold text-accent block truncate">Menunggu SA</span>
+                          <span className="text-[11px] text-ink-muted block truncate">Penerimaan Awal</span>
+                        </>
+                      )
                     ) : spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' ? (
                       (() => {
                         if (spk.status_spk === 'Siap Keluar') {
@@ -661,7 +668,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         ? 'Menunggu QC'
                         : 'Proses Pengerjaan',
                       desc: isPreSpk
-                        ? 'Menunggu Penerimaan Awal'
+                        ? (spk.waktu_check_out ? 'Dilewati (Tanpa SPK)' : 'Menunggu Penerimaan Awal')
                         : spk.status_spk === 'Waiting Part'
                         ? 'Menunggu Part (Pending)'
                         : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval')
@@ -674,14 +681,39 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         ? 'Mekanik Aktif'
                         : 'Selesai Dikerjakan',
                       done: !isPreSpk && ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'].includes(spk.status_spk as string),
-                      current: isPreSpk || ['Waiting Part', 'Menunggu Approval Customer', 'Waiting Approval', 'Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC'].includes(spk.status_spk as string),
+                      current: isPreSpk ? !spk.waktu_check_out : ['Waiting Part', 'Menunggu Approval Customer', 'Waiting Approval', 'Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC'].includes(spk.status_spk as string),
                       isWaitingPart: !isPreSpk && spk.status_spk === 'Waiting Part',
                       waktu: isPreSpk ? null : spk.waktu_mulai_pekerjaan
                     },
-                    { step: 3, title: 'QC Passed', desc: 'Inspeksi Foreman', done: spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai', current: spk.status_spk === 'Waiting QC', waktu: spk.waktu_qc || spk.tanggal_qc },
-                    { step: 4, title: 'FIR Closed', desc: 'Final Check SA', done: spk.status_spk === 'FIR Closed' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai', waktu: spk.waktu_fir_closed },
-                    { step: 5, title: 'Invoice', desc: 'Proses Kasir', done: spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai' || activeInvoiceLunas, waktu: activeInvoice?.tanggal_invoice || (spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' ? spk.waktu_fir_closed : null) },
-                    { step: 6, title: 'Check Out', desc: 'Kendaraan Keluar', done: !!spk.waktu_check_out, waktu: spk.waktu_check_out },
+                    { 
+                      step: 3, 
+                      title: 'QC Passed', 
+                      desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Inspeksi Foreman', 
+                      done: !isPreSpk && (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai'), 
+                      current: !isPreSpk && spk.status_spk === 'Waiting QC', 
+                      waktu: isPreSpk ? null : (spk.waktu_qc || spk.tanggal_qc) 
+                    },
+                    { 
+                      step: 4, 
+                      title: 'FIR Closed', 
+                      desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Final Check SA', 
+                      done: !isPreSpk && (spk.status_spk === 'FIR Closed' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai'), 
+                      waktu: isPreSpk ? null : spk.waktu_fir_closed 
+                    },
+                    { 
+                      step: 5, 
+                      title: 'Invoice', 
+                      desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Proses Kasir', 
+                      done: !isPreSpk && (spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai' || activeInvoiceLunas), 
+                      waktu: isPreSpk ? null : (activeInvoice?.tanggal_invoice || (spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' ? spk.waktu_fir_closed : null)) 
+                    },
+                    { 
+                      step: 6, 
+                      title: 'Check Out', 
+                      desc: isPreSpk ? 'Keluar Gerbang' : 'Kendaraan Keluar', 
+                      done: !!spk.waktu_check_out, 
+                      waktu: spk.waktu_check_out 
+                    },
                   ].map((s, idx, arr) => {
                     const isLast = idx === arr.length - 1;
                     const nextStep = !isLast ? arr[idx + 1] : null;
@@ -840,7 +872,11 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       <p className="text-ink-muted leading-relaxed">
                         Kendaraan <span className="font-semibold font-mono text-ink">{formatPlat(spk.no_polisi)}</span>{' '}
                         {spk.waktu_check_out ? (
-                          <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> pada {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB. Terima kasih telah menggunakan Bengkel KIM 3.</>
+                          isPreSpk ? (
+                            <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> melalui pos security pada {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB (tanpa pengerjaan servis). Terima kasih telah berkunjung di Bengkel KIM 3.</>
+                          ) : (
+                            <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> pada {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB. Terima kasih telah menggunakan Bengkel KIM 3.</>
+                          )
                         ) : isPreSpk ? (
                           <>sudah tercatat masuk di Pos Security KIM 3 dan saat ini <span className="font-semibold text-accent">menunggu penerimaan awal oleh SA</span>. WO belum diterbitkan.</>
                         ) : spk.status_spk === 'Waiting QC' ? (
@@ -2085,7 +2121,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         created_at: k.created_at,
         sumber: 'kunjungan' as const,
         kunjungan: k,
-        status_keterangan: k.status_keterangan || (k.waktu_check_out ? 'Selesai & Keluar Gerbang' : 'Menunggu Penerimaan Awal oleh SA'),
+        status_keterangan: k.status_keterangan || (k.waktu_check_out ? 'Keluar Gerbang (Tanpa Servis)' : 'Menunggu Penerimaan Awal oleh SA'),
       }));
 
     return [...spkRows, ...kunjunganRows].sort((a, b) =>
@@ -2272,16 +2308,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // 3. 'Confirmed' bila sudah dikonfirmasi admin bengkel melalui POS
   // 4. 'Rescheduled' bila jadwal diubah oleh admin bengkel melalui POS
   // 5. 'Menunggu Konfirmasi' bila masih baru dan belum diverifikasi admin
-  const getBookingEffectiveStatus = useCallback((b: BookingService): 'Confirmed' | 'Rescheduled' | 'Menunggu Konfirmasi' | 'Booked' | 'Check In' | 'Booking Canceled' => {
+  const getBookingEffectiveStatus = useCallback((b: BookingService): string => {
     const rawStatus = (b.status as string) || '';
     if (rawStatus === 'Booking Canceled' || rawStatus === 'Dibatalkan' || b.is_canceled || b.status_pos === 'CANCELED') return 'Booking Canceled';
-    if (rawStatus === 'Check In' || rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN' || isBookingCheckedIn(b)) return 'Check In';
+    // Jika status dari API sudah menunjukkan tahapan pengerjaan POS bengkel atau gerbang
+    if (['Check Out', 'Selesai', 'FIR Closed', 'QC Passed', 'Selesai Dikerjakan', 'Proses Pekerjaan', 'Dalam Pengerjaan', 'Waiting Part', 'Waiting QC', 'Estimasi Disetujui', 'Check In'].includes(rawStatus)) {
+      return rawStatus;
+    }
+    if (rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN' || isBookingCheckedIn(b)) return 'Check In';
     // PENTING: Jika jadwal sudah lewat dari sekarang dan belum dikerjakan / check-in -> Otomatis Batal (Expired)
     if (isBookingPast(b)) return 'Booking Canceled';
     if (rawStatus === 'Confirmed' || b.status_pos === 'CONFIRMED' || b.is_confirmed) return 'Confirmed';
     if (rawStatus === 'Rescheduled' || b.status_pos === 'RESCHEDULED') return 'Rescheduled';
     if (rawStatus === 'Menunggu Konfirmasi' || (!b.is_confirmed && !b.status_pos)) return 'Menunggu Konfirmasi';
-    return 'Booked';
+    return rawStatus || 'Booked';
   }, [isBookingCheckedIn, isBookingPast]);
 
   // Helper: Status badge masa berlaku dokumen (berlaku > 30 hari, mendekati <= 30 hari, kadaluarsa < 0)

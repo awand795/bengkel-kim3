@@ -62,7 +62,10 @@ type SpkTimelineInput = Pick<
   | 'tanggal_qc'
   | 'waktu_fir_closed'
   | 'waktu_check_out'
->;
+> & {
+  sumber?: 'spk' | 'kunjungan';
+  isPreSpk?: boolean;
+};
 
 const ada = (v?: string | null): boolean => !!v && String(v).trim() !== '';
 
@@ -76,6 +79,23 @@ export const resolveServiceTimeline = (
   spk: SpkTimelineInput | null | undefined,
   invoiceLunas = false
 ): Record<ServiceStageKey, ServiceStageState> => {
+  // Khusus data kunjungan gerbang saja (gate-only / tanpa SPK pengerjaan bengkel):
+  // - Bila kendaraan langsung check out dari gerbang (misal batal servis / kunjungan biasa):
+  //   hanya tampil 2 tahap: masuk (done) dan keluar (done). Tahap bengkel lainnya pending (tidak tampil).
+  // - Bila masih di dalam bengkel: masuk (done), penerimaan SA (active: Menunggu SA), sisanya pending.
+  if (spk?.sumber === 'kunjungan') {
+    const masuk: ServiceStageState = ada(spk?.waktu_check_in) || ada(spk?.created_at) ? 'done' : 'active';
+    const keluar: ServiceStageState = ada(spk?.waktu_check_out) ? 'done' : 'pending';
+    const penerimaan: ServiceStageState = ada(spk?.waktu_check_out) ? 'pending' : 'active';
+    const wo: ServiceStageState = 'pending';
+    const pengerjaan: ServiceStageState = 'pending';
+    const qc: ServiceStageState = 'pending';
+    const fir: ServiceStageState = 'pending';
+    const pembayaran: ServiceStageState = 'pending';
+
+    return { masuk, penerimaan, wo, pengerjaan, qc, fir, pembayaran, keluar };
+  }
+
   // Status lama ("Proses Pekerjaan", "Selesai Dikerjakan") disamakan ke status baku
   const status = normalizeSpkStatus(spk?.status_spk);
   const adaStatus = (list: string[]) => list.includes(status);

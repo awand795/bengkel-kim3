@@ -370,6 +370,7 @@ export interface SpkService {
   total_bayar?: number;
   status_invoice?: string;
   created_at: string;
+  sumber?: 'spk' | 'kunjungan';
 }
 
 /**

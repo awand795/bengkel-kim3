@@ -160,33 +160,35 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
         </ServiceTimelineItem>
 
         {/* Step 2: Penerimaan & Cek Awal oleh SA */}
-        <ServiceTimelineItem
-          state={serviceTimeline.penerimaan}
-          isLast={isLastStage('penerimaan')}
-          title="Penerimaan & Cek Awal oleh SA"
-          time={(() => {
-            const tIn = spk.waktu_check_in ? new Date(spk.waktu_check_in).getTime() : NaN;
-            const tCr = spk.created_at ? new Date(spk.created_at).getTime() : NaN;
-            // Penerimaan SA tidak mungkin terjadi sebelum kendaraan masuk gerbang.
-            const t = !isNaN(tIn) && (isNaN(tCr) || tIn > tCr) ? spk.waktu_check_in : spk.created_at;
-            return fmtWaktuFull(t || spk.waktu_check_in) || '-';
-          })()}
-          meta={
-            <>
-              SA: {spk.nama_sa || 'Fajar Rivaldi'} | Odometer: {spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}
-            </>
-          }
-        >
-          {statusNote && (
-            <div className="font-semibold text-status-blue">{statusNote}</div>
-          )}
-          <div>
-            Pemeriksaan fisik awal (Walk-around check 4 titik): Bodi [{spk.cek_body || 'Belum Diperiksa'}], Mesin [{spk.cek_mesin || 'Belum Diperiksa'}], Kelistrikan [{spk.cek_kelistrikan || 'Belum Diperiksa'}], Kaki-kaki [{spk.cek_kaki_kaki || 'Belum Diperiksa'}].
-          </div>
-          <div className="text-ink-muted">
-            Keluhan: <span className="font-medium text-ink">"{spk.keluhan_customer || 'Perawatan berkala armada'}"</span>
-          </div>
-        </ServiceTimelineItem>
+        {serviceTimeline.penerimaan !== 'pending' && (
+          <ServiceTimelineItem
+            state={serviceTimeline.penerimaan}
+            isLast={isLastStage('penerimaan')}
+            title="Penerimaan & Cek Awal oleh SA"
+            time={(() => {
+              const tIn = spk.waktu_check_in ? new Date(spk.waktu_check_in).getTime() : NaN;
+              const tCr = spk.created_at ? new Date(spk.created_at).getTime() : NaN;
+              // Penerimaan SA tidak mungkin terjadi sebelum kendaraan masuk gerbang.
+              const t = !isNaN(tIn) && (isNaN(tCr) || tIn > tCr) ? spk.waktu_check_in : spk.created_at;
+              return fmtWaktuFull(t || spk.waktu_check_in) || '-';
+            })()}
+            meta={
+              <>
+                SA: {spk.nama_sa || '-'} | Odometer: {spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}
+              </>
+            }
+          >
+            {statusNote && (
+              <div className="font-semibold text-status-blue">{statusNote}</div>
+            )}
+            <div>
+              Pemeriksaan fisik awal (Walk-around check 4 titik): Bodi [{spk.cek_body || 'Belum Diperiksa'}], Mesin [{spk.cek_mesin || 'Belum Diperiksa'}], Kelistrikan [{spk.cek_kelistrikan || 'Belum Diperiksa'}], Kaki-kaki [{spk.cek_kaki_kaki || 'Belum Diperiksa'}].
+            </div>
+            <div className="text-ink-muted">
+              Keluhan: <span className="font-medium text-ink">"{spk.keluhan_customer || 'Perawatan berkala armada'}"</span>
+            </div>
+          </ServiceTimelineItem>
+        )}
 
         {/* Step 3: Pengecekan Mekanik & Penerbitan WO (SOP Langkah 4-6) */}
         {serviceTimeline.wo !== 'pending' && (
@@ -197,7 +199,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={spk.waktu_mulai_pekerjaan ? fmtWaktuFull(spk.waktu_mulai_pekerjaan) : (spk.waktu_check_in ? fmtWaktuFull(spk.waktu_check_in) : '-')}
             meta={
               <>
-                Foreman & SA: {spk.nama_sa || 'Fajar Rivaldi'} | Status WO:{' '}
+                Foreman & SA: {spk.nama_sa || '-'} | Status WO:{' '}
                 {serviceTimeline.wo === 'done' ? (
                   <span className="font-semibold text-status-green">Disetujui</span>
                 ) : serviceTimeline.wo === 'attention' ? (
@@ -209,7 +211,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             }
           >
             <div>
-              Foreman mendistribusikan penanganan ke teknisi <span className="font-semibold text-ink">{spk.nama_mekanik || 'SYAHBANA'}</span> untuk inspeksi detail di stall servis.
+              Foreman mendistribusikan penanganan ke teknisi <span className="font-semibold text-ink">{spk.nama_mekanik || 'Teknisi'}</span> untuk inspeksi detail di stall servis.
             </div>
             <div className="text-ink-muted">
               {serviceTimeline.wo === 'done'
@@ -258,7 +260,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             }
             meta={
               <>
-                Mekanik: {spk.nama_mekanik || 'SYAHBANA'} | Status SPK:{' '}
+                Mekanik: {spk.nama_mekanik || '-'} | Status SPK:{' '}
                 <span className="font-medium text-ink">{spkStatusLabel(spk.status_spk)}</span>
               </>
             }
@@ -313,7 +315,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || '-'}
             meta={
               <>
-                Foreman: {spk.nama_foreman || 'Foreman Bengkel KIM 3'} | Hasil Uji:{' '}
+                Foreman: {spk.nama_foreman || '-'} | Hasil Uji:{' '}
                 {serviceTimeline.qc === 'done' ? (
                   <span className="font-semibold text-status-green">QC PASSED</span>
                 ) : (
@@ -335,7 +337,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(spk.waktu_fir_closed || spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || '-'}
             meta={
               <>
-                SA: {spk.nama_sa || 'Fajar Rivaldi'} | Dokumen: Faktur Servis
+                SA: {spk.nama_sa || '-'} | Dokumen: Faktur Servis
               </>
             }
           >
@@ -388,7 +390,11 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             }
           >
             {serviceTimeline.keluar === 'done' ? (
-              <>Verifikasi Gate Pass / Memo Keluar di Pos Security KIM 3 selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel.</>
+              spk.sumber === 'kunjungan' ? (
+                <>Verifikasi Gate Pass / Memo Keluar di Pos Security KIM 3 selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel (tanpa pengerjaan servis bengkel).</>
+              ) : (
+                <>Verifikasi Gate Pass / Memo Keluar di Pos Security KIM 3 selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel.</>
+              )
             ) : (
               <>Kendaraan menunggu diverifikasi dan dicatat keluar oleh Pos Security KIM 3.</>
             )}
