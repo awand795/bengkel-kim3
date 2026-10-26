@@ -2632,37 +2632,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             'Booking Dikonfirmasi',
             `Booking ${bookingCode} (${platStr}) telah dikonfirmasi oleh Admin Bengkel. Silakan datang sesuai jadwal.`
           );
-          api.kirimNotifikasi({
-            id_pengguna: authUser?.id,
-            title: 'Booking Dikonfirmasi Admin Bengkel',
-            pesan: `Booking ${bookingCode} untuk unit ${platStr} jadwal ${b.tanggal_booking} ${b.jam_booking} WIB telah dikonfirmasi. Kendaraan Anda dapat check-in di gerbang security sesuai jadwal.`,
-            link_tab: 'fleet-booking',
-            urgency: 'success',
-          }).catch(() => {});
         } else if (rawPosStatus === 'RESCHEDULED') {
           toast.info(
             'Jadwal Booking Di-reschedule',
             `Booking ${bookingCode} diubah jadwalnya menjadi ${b.tanggal_booking} ${b.jam_booking} WIB.${b.memo_pos ? ` Catatan: ${b.memo_pos}` : ''}`
           );
-          api.kirimNotifikasi({
-            id_pengguna: authUser?.id,
-            title: 'Jadwal Booking Di-reschedule',
-            pesan: `Jadwal booking ${bookingCode} (${platStr}) disesuaikan oleh pihak bengkel menjadi ${b.tanggal_booking} pukul ${b.jam_booking} WIB.${b.memo_pos ? ` Catatan Bengkel: ${b.memo_pos}` : ''}`,
-            link_tab: 'fleet-booking',
-            urgency: 'warning',
-          }).catch(() => {});
         } else if (rawPosStatus === 'CANCELED') {
           toast.warning(
             'Booking Dibatalkan Bengkel',
             `Booking ${bookingCode} (${platStr}) dibatalkan oleh pihak bengkel.${b.memo_pos ? ` Catatan: ${b.memo_pos}` : ''}`
           );
-          api.kirimNotifikasi({
-            id_pengguna: authUser?.id,
-            title: 'Booking Dibatalkan Bengkel',
-            pesan: `Booking ${bookingCode} (${platStr}) tidak dapat diproses dan dibatalkan oleh bengkel.${b.memo_pos ? ` Alasan: ${b.memo_pos}` : ''}`,
-            link_tab: 'fleet-booking',
-            urgency: 'urgent',
-          }).catch(() => {});
         }
       }
     });

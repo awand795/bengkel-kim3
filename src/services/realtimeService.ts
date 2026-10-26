@@ -277,33 +277,9 @@ class RealtimeNotificationHub {
       }
     }
 
-    // Persist ke database backend agar tersimpan di lonceng notifikasi:
-    // - Jika ditargetkan untuk Security (linkTab 'security-*' atau targetRoles 'Security'), id_pengguna harus null
-    //   karena user Security ada di sch_pos.tbl_pengguna (bukan foreign key sch_fleet.pengguna).
-    //   link_tab 'security-*' akan otomatis difilter di NotificationDropdown agar HANYA tampil untuk role Security.
-    // - Jika ditargetkan untuk Customer Fleet tertentu, gunakan id_pengguna / targetUserId.
-    if (typeof window !== 'undefined') {
-      const isSecurityTarget =
-        event.targetRoles?.includes('Security') ||
-        Boolean(event.linkTab && event.linkTab.startsWith('security-'));
-
-      const targetUserId = isSecurityTarget ? null : (event.id_pengguna ?? event.targetUserId ?? null);
-      const linkTab = event.linkTab || (isSecurityTarget ? 'security-booking' : undefined);
-
-      import('../api/client').then(({ api }) => {
-        api.kirimNotifikasi({
-          id_pengguna: targetUserId,
-          title: event.title,
-          pesan: event.message,
-          link_tab: linkTab,
-          urgency: event.urgency || 'info',
-        }).catch((err) => {
-          console.warn('[RealtimeHub] kirimNotifikasi error:', err);
-        });
-      }).catch(() => {});
-    }
-
-    // Process in current tab
+    // Broadcast event ke semua listener lokal tab
+    // Catatan: Notifikasi ke database sudah dibuat secara otomatis oleh GET /kim3/notifikasi
+    // sehingga frontend TIDAK BOLEH memanggil api.kirimNotifikasi agar tidak terjadi duplikasi (double notifikasi).
     this.handleIncomingEvent(fullEvent, true);
   }
 
