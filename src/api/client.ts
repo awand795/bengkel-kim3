@@ -211,6 +211,24 @@ export const formatPlatIndonesia = (nopol?: string | null): string => {
   return clean;
 };
 
+/**
+ * Format plat nomor untuk input interaktif (auto-spasi saat mengetik):
+ * Contoh bertahap: "b" -> "B", "bk" -> "BK", "bk1" -> "BK 1", "bk1234abc" -> "BK 1234 ABC"
+ * Menghasilkan tampilan rapi berspasi, sedangkan yang dikirim ke database tetap memakai normalizePlat().
+ */
+export const formatPlatInput = (value?: string | null): string => {
+  const clean = (value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  if (!clean) return '';
+
+  const match = clean.match(/^([A-Z]{1,2})(\d{1,4})([A-Z]{0,3})$/);
+  if (match) {
+    return [match[1], match[2], match[3]].filter(Boolean).join(' ');
+  }
+
+  const groups = clean.match(/[A-Z]+|\d+/g);
+  return groups ? groups.join(' ') : clean;
+};
+
 export const formatPlat = (nopol?: string | null): string => {
   if (!nopol) return '-';
   const clean = String(nopol).trim().toUpperCase().replace(/\s+/g, '');
@@ -397,7 +415,7 @@ export const api = {
 
     const payload = {
       ...data,
-      no_polisi: formatPlatIndonesia(rawPlat),
+      no_polisi: normalizePlat(rawPlat),
       merk,
       model,
       type,
@@ -417,6 +435,8 @@ export const api = {
   updateKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
     const payload = {
       ...data,
+      id: data.id ? Number(data.id) : undefined,
+      no_polisi: data.no_polisi ? normalizePlat(data.no_polisi) : undefined,
       merk: data.merk !== undefined ? cleanField(data.merk).toUpperCase() : undefined,
       model: data.model !== undefined ? cleanField(data.model).toUpperCase() : undefined,
       type: (data.type || data.jenis_armada) !== undefined ? cleanField(data.type || data.jenis_armada).toUpperCase() : undefined,

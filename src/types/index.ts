@@ -546,6 +546,9 @@ export interface InvoicePembayaran {
   id_pelanggan?: number;
   no_polisi: string;
   nama_customer?: string;
+  alamat_customer?: string;
+  npwp_customer?: string;
+  jatuh_tempo?: string;
   tanggal_invoice: string;
   subtotal: number;
   ppn_nominal: number;
@@ -553,11 +556,13 @@ export interface InvoicePembayaran {
   tipe_pajak?: string;
   diskon: number;
   grand_total: number;
-  metode_pembayaran: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC';
+  metode_pembayaran: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC' | string;
   status_pembayaran: 'Unpaid' | 'Paid' | 'Batal' | 'Lunas' | 'Menunggu Pembayaran';
   tanggal_bayar?: string;
   kasir_pic?: string;
   bukti_pembayaran?: string;
+  catatan?: string;
+  is_proforma?: boolean;
 }
 
 export interface MemoKeluar {

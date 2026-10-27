@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, normalizePlat, formatPlat, isValidPlatIndonesia, formatPlatIndonesia, getLocalDateStr, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
+import { api, normalizePlat, formatPlat, isValidPlatIndonesia, formatPlatIndonesia, formatPlatInput, getLocalDateStr, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Kendaraan, BookingService, SpkService, KunjunganService, InvoicePembayaran, SpkItemPekerjaan, SpkItemPart, DokumenKendaraan, PekerjaanTambahan, PurchaseRequestPart, MasterBrand, MasterType } from '../types';
 import { SelectMenu, type SelectMenuOption } from '../components/common/SelectMenu';
@@ -1450,23 +1450,25 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
       <DigitalFakturModal
         invoice={activeInvoice || {
           id: spk.id,
-          no_invoice: spk.no_invoice || `FJ-${spk.no_spk}`,
+          no_invoice: spk.no_invoice || `EST-${spk.no_spk}`,
           id_spk: spk.id,
           no_polisi: spk.no_polisi,
           nama_customer: spk.nama_customer,
           tanggal_invoice: spk.waktu_invoice || spk.waktu_fir_closed || spk.created_at || new Date().toISOString(),
           subtotal: Number(spk.estimasi_biaya || 0),
-          ppn_nominal: Math.round(Number(spk.estimasi_biaya || 0) * 0.11),
+          ppn_nominal: 0,
           diskon: 0,
           grand_total: Number(spk.total_invoice || spk.estimasi_biaya || 0),
-          metode_pembayaran: 'Transfer Bank',
+          metode_pembayaran: '-',
           status_pembayaran: spk.status_spk === 'Selesai' ? 'Lunas' : 'Menunggu Pembayaran',
-          tanggal_bayar: spk.waktu_check_out || spk.waktu_fir_closed,
-          kasir_pic: 'Kasir Bengkel KIM 3'
+          tanggal_bayar: spk.status_spk === 'Selesai' ? (spk.waktu_check_out || spk.waktu_fir_closed) : undefined,
+          is_proforma: !activeInvoice && !spk.no_invoice,
         }}
         isOpen={spkFakturModalOpen}
         onClose={() => setSpkFakturModalOpen(false)}
         noSpk={spk.no_spk}
+        pekerjaanList={activePekerjaan}
+        partList={activeParts}
       />
     </div>
   );
@@ -2960,11 +2962,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         throw new Error('Tahun pembuatan kendaraan tidak valid.');
       }
 
-      // Plat dinormalisasi (primary key walk-in); konflik pemilik ditolak server.
-      const formattedPlat = formatPlatIndonesia(rawPlat);
-      const plat = normalizePlat(formattedPlat);
+      // Plat dinormalisasi (primary key walk-in); disimpan tanpa spasi ke database.
+      const plat = normalizePlat(rawPlat);
       const res = await api.tambahKendaraan({
-        no_polisi: formattedPlat,
+        no_polisi: plat,
         no_inventaris: data.no_inventaris ? data.no_inventaris.trim().toUpperCase() : undefined,
         unit_name: data.unit_name ? data.unit_name.trim().toUpperCase() : undefined,
         jenis_armada: typeUpper as any,
@@ -3044,6 +3045,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Edit Kendaraan Mutation (server guard: customer hanya unit miliknya)
   const editArmadaMutation = useMutation({
     mutationFn: (data: typeof editArmadaForm) => {
+      const rawPlat = data.no_polisi || editArmadaData?.no_polisi || '';
+      const plat = normalizePlat(rawPlat);
+      if (!plat) {
+        throw new Error('Nomor polisi kendaraan wajib diisi.');
+      }
+      if (!isValidPlatIndonesia(plat)) {
+        throw new Error('Format nomor polisi belum sesuai standar Indonesia (misal: BK 1234 ABC).');
+      }
+
       const merkUpper = cleanField(data.merk).toUpperCase();
       if (!merkUpper) {
         throw new Error('Merk kendaraan wajib diisi.');
@@ -3065,7 +3075,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       }
 
       return api.updateKendaraan({
-        no_polisi: editArmadaData?.no_polisi || data.no_polisi || '',
+        id: editArmadaData?.id,
+        no_polisi: plat,
         no_inventaris: data.no_inventaris ? data.no_inventaris.trim().toUpperCase() : undefined,
         unit_name: data.unit_name ? data.unit_name.trim().toUpperCase() : undefined,
         jenis_armada: typeUpper as any,
@@ -3086,7 +3097,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
       queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
-      toast.success('Unit Kendaraan Diperbarui', `Data ${editArmadaData?.no_polisi ? formatPlat(editArmadaData.no_polisi) : ''} berhasil disimpan.`);
+      toast.success('Unit Kendaraan Diperbarui', `Data kendaraan berhasil disimpan.`);
       setEditArmadaData(null);
     },
     onError: (err) => toast.error('Gagal Memperbarui Unit', getApiErrorMessage(err, 'Periksa kembali data kendaraan Anda.')),
@@ -4211,7 +4222,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           className="flex h-[76px] w-[76px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#CBD5E1] bg-slate-50 text-[#64748B] transition-colors hover:border-[#34517C] hover:text-[#34517C] dark:border-slate-700 dark:bg-slate-800/60"
                           onClick={() => {
                             setEditArmadaForm({
-                              no_polisi: k.no_polisi,
+                              no_polisi: formatPlatInput(k.no_polisi),
                               no_inventaris: k.no_inventaris || '',
                               unit_name: k.unit_name || '',
                               merk: k.merk || '',
@@ -4345,7 +4356,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         type="button"
                         onClick={() => {
                           setEditArmadaForm({
-                            no_polisi: k.no_polisi,
+                            no_polisi: formatPlatInput(k.no_polisi),
                             no_inventaris: k.no_inventaris || '',
                             unit_name: k.unit_name || '',
                             merk: k.merk || '',
@@ -5751,7 +5762,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           required
                           placeholder="BK 1234 ABC"
                           value={armadaForm.no_polisi}
-                          onChange={(e) => setArmadaForm({ ...armadaForm, no_polisi: e.target.value.toUpperCase() })}
+                          onChange={(e) => setArmadaForm({ ...armadaForm, no_polisi: formatPlatInput(e.target.value) })}
                           className={`w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:outline-hidden focus:ring-2 ${
                             armadaForm.no_polisi.trim()
                               ? isValidPlatIndonesia(armadaForm.no_polisi)
@@ -6117,7 +6128,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="min-w-0">
                       <h3 className="text-sm font-bold tracking-tight text-ink sm:text-base">Edit Unit Kendaraan</h3>
                       <p className="mt-0.5 truncate font-mono text-[11px] text-ink-muted">
-                        {formatPlat(editArmadaData.no_polisi)} · Nomor polisi tidak dapat diubah
+                        {formatPlat(editArmadaForm.no_polisi || editArmadaData.no_polisi)}
                       </p>
                     </div>
                   </div>
@@ -6135,6 +6146,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  if (!cleanField(editArmadaForm.no_polisi)) {
+                    toast.warning('Nomor polisi kendaraan wajib diisi.');
+                    return;
+                  }
+                  if (!isValidPlatIndonesia(editArmadaForm.no_polisi)) {
+                    toast.warning('Format nomor polisi belum sesuai standar Indonesia (misal: BK 1234 ABC).');
+                    return;
+                  }
                   if (!cleanField(editArmadaForm.merk)) {
                     toast.warning('Merk kendaraan wajib dipilih / diisi.');
                     return;
@@ -6163,7 +6182,37 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <h4 id="edit-armada-identitas" className="text-xs font-bold text-ink">Identitas unit</h4>
                     </div>
                     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-                      <div className="sm:col-span-2">
+                      <div>
+                        <label htmlFor="edit-armada-no-polisi" className="mb-1.5 block text-xs font-semibold text-ink-muted">
+                          Nomor Polisi <span className="text-status-red">*</span>
+                        </label>
+                        <input
+                          id="edit-armada-no-polisi"
+                          type="text"
+                          required
+                          placeholder="BK 1234 ABC"
+                          value={editArmadaForm.no_polisi}
+                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, no_polisi: formatPlatInput(e.target.value) })}
+                          className={`w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:outline-hidden focus:ring-2 ${
+                            editArmadaForm.no_polisi.trim()
+                              ? isValidPlatIndonesia(editArmadaForm.no_polisi)
+                                ? 'border-emerald-500/60 focus:border-emerald-500 focus:ring-emerald-500/30'
+                                : 'border-rose-500/70 focus:border-rose-500 focus:ring-rose-500/30'
+                              : 'border-border focus:ring-accent'
+                          }`}
+                        />
+                        {editArmadaForm.no_polisi.trim().length > 0 && !isValidPlatIndonesia(editArmadaForm.no_polisi) && (
+                          <p className="mt-1 text-[11px] text-rose-500 leading-tight">
+                            Format belum sesuai. Contoh: BK 1234 ABC.
+                          </p>
+                        )}
+                        {editArmadaForm.no_polisi.trim().length > 0 && isValidPlatIndonesia(editArmadaForm.no_polisi) && (
+                          <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3 inline" /> Plat valid ({formatPlatIndonesia(editArmadaForm.no_polisi)})
+                          </p>
+                        )}
+                      </div>
+                      <div>
                         <label htmlFor="edit-armada-unit-name" className="mb-1.5 block text-xs font-semibold text-ink-muted">Nama Unit <span className="font-normal text-ink-subtle">(opsional)</span></label>
                         <input
                           id="edit-armada-unit-name"
@@ -6421,6 +6470,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         invoice={selectedFakturForPrint}
         isOpen={fakturModalOpen}
         onClose={() => setFakturModalOpen(false)}
+        pekerjaanList={pekerjaanList}
+        partList={partSpkList}
       />
 
     </div>
