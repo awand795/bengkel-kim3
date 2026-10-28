@@ -92,7 +92,7 @@ export const NotificationDropdown: React.FC = () => {
   const { data: notifikasiList = [], isLoading } = useQuery({
     queryKey: ['notifikasi-list'],
     queryFn: api.getNotifikasi,
-    refetchInterval: 4000,
+    refetchInterval: 20000,
   });
 
   // 2. Mark Single Notification as Read
@@ -171,8 +171,6 @@ export const NotificationDropdown: React.FC = () => {
       }
 
       if (isForMe) {
-        // Play chime sound
-        realtimeHub.playChime(evt.urgency || 'info');
         // Instantly re-fetch notifications from database API
         queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
       }

@@ -57,6 +57,7 @@ class RealtimeNotificationHub {
   private streamIntervalId: any = null;
   private lastKnownNotifIds: Set<number> = new Set();
   private isStreaming = false;
+  private lastChimeTime = 0;
 
   private loadKnownNotifIds(): Set<number> {
     try {
@@ -138,7 +139,7 @@ class RealtimeNotificationHub {
         const notifs = await api.getNotifikasi();
         if (Array.isArray(notifs) && notifs.length > 0) {
           if (this.lastKnownNotifIds.size === 0) {
-            // First run: seed existing IDs so we only alert on NEW incoming items
+            // First run: seed all existing IDs so we NEVER alert on historic items
             notifs.forEach((n) => this.lastKnownNotifIds.add(n.id));
             this.saveKnownNotifIds();
             return;
@@ -151,7 +152,23 @@ class RealtimeNotificationHub {
             this.saveKnownNotifIds();
           }
 
-          incoming.forEach((n) => {
+          // HANYA bunyikan audio dan tampilkan toast untuk notifikasi yang benar-benar BARU terjadi (< 3 menit)
+          const nowMs = Date.now();
+          const freshIncoming = incoming.filter((n) => {
+            if (!n.created_at) return false;
+            try {
+              const cleanStr = String(n.created_at).replace(' ', 'T');
+              const t = new Date(cleanStr).getTime();
+              if (isNaN(t)) return false;
+              // Batas umur maksimal 3 menit dari sekarang
+              return (nowMs - t) >= -30000 && (nowMs - t) <= 180000;
+            } catch {
+              return false;
+            }
+          });
+
+          // Batasi maksimal 2 notifikasi realtime per pulse agar browser tetap ringan
+          freshIncoming.slice(0, 2).forEach((n) => {
             // Infer event type from notification title & link_tab
             let evtType: EventType = 'SPK_STATUS_CHANGED';
             const titleLower = (n.title || '').toLowerCase();
@@ -190,9 +207,9 @@ class RealtimeNotificationHub {
       }
     };
 
-    // First check after 1s, then active stream interval every 3.5s
-    setTimeout(streamPulse, 1000);
-    this.streamIntervalId = setInterval(streamPulse, 3500);
+    // First check after 1.5s, then differential stream interval every 15s (tenang & hening)
+    setTimeout(streamPulse, 1500);
+    this.streamIntervalId = setInterval(streamPulse, 15000);
 
     // Instant pulse on tab focus
     window.addEventListener('visibilitychange', () => {
@@ -205,6 +222,13 @@ class RealtimeNotificationHub {
   // Play audio chime synthesized with Web Audio API (no external MP3 asset needed!)
   public playChime(urgency: 'urgent' | 'warning' | 'info' | 'success' = 'info') {
     try {
+      const nowMs = Date.now();
+      if (nowMs - this.lastChimeTime < 3000) {
+        // Debounce chime: cegah pemutaran audio beruntun dalam 3 detik
+        return;
+      }
+      this.lastChimeTime = nowMs;
+
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();

@@ -44,7 +44,18 @@ export const FloatingNotificationToast: React.FC = () => {
         return;
       }
 
-      // 3. Deduplikasi event toast agar tidak muncul berulang kali pada tab atau sesi yang sama
+      // 3. Batasi hanya untuk event baru (< 3 menit dari sekarang)
+      if (event.timestamp) {
+        try {
+          const cleanStr = String(event.timestamp).replace(' ', 'T');
+          const t = new Date(cleanStr).getTime();
+          if (!isNaN(t) && Math.abs(Date.now() - t) > 180000) {
+            return; // Data historis, jangan tampilkan toast popup
+          }
+        } catch {}
+      }
+
+      // 4. Deduplikasi event toast agar tidak muncul berulang kali pada tab atau sesi yang sama
       const eventKey = `seen_toast_${event.id}`;
       try {
         if (typeof sessionStorage !== 'undefined') {
