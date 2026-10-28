@@ -5091,7 +5091,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
                 <div className="bg-surface p-3 rounded-xl border border-border/60">
                   <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Service Tercatat</span>
-                  <span className="text-lg font-black text-ink mt-0.5 block">{spkList?.length || 0} Kali Servis</span>
+                  <span className="text-lg font-black text-ink mt-0.5 block">{(historyTotalRecords || spkList?.length || 0).toLocaleString('id-ID')} Kali Servis</span>
                 </div>
                 <div className="bg-surface p-3 rounded-xl border border-border/60">
                   <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Dokumen Digital</span>
@@ -5388,12 +5388,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <FilterChips
                   variant="tabs"
                   options={[
-                    { id: 'semua', label: 'Semua', count: historyAll.length },
-                    { id: 'sedang-diservis', label: 'Sedang Diservis', count: historyAll.filter(s => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed').length },
-                    { id: 'selesai', label: 'Selesai', count: historyAll.filter(s => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed').length },
+                    { id: 'semua', label: 'Semua', count: historyTotalRecords },
+                    { id: 'sedang-diservis', label: 'Sedang Diservis', count: activeHistoryCount },
+                    { id: 'selesai', label: 'Selesai', count: Math.max(0, historyTotalRecords - activeHistoryCount) },
                   ]}
                   selectedId={historyStatusFilter}
-                  onChange={(id) => setHistoryStatusFilter(id as 'semua' | 'sedang-diservis' | 'selesai')}
+                  onChange={(id) => {
+                    setHistoryStatusFilter(id as 'semua' | 'sedang-diservis' | 'selesai');
+                    setHistoryPage(1);
+                  }}
                 />
               </div>
 
