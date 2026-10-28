@@ -1764,7 +1764,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: spkList, isLoading: spkLoading } = useQuery({
     queryKey: ['spk-list'],
     queryFn: api.getSpkList,
-    refetchInterval: 8000,
+    refetchInterval: 15000,
+  });
+
+  // Server-Side Paginated SPK untuk Riwayat Service Penuh
+  const {
+    data: spkPageData,
+    isLoading: spkPageLoading,
+  } = useQuery({
+    queryKey: ['spk-page', historyPage, historyLimit, historySearch],
+    queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: historySearch }),
+    placeholderData: (prev) => prev,
+    refetchInterval: 15000,
   });
 
   // Kunjungan SERVICE yang sudah check-in gerbang tetapi belum ada WO/SPK.
@@ -2147,35 +2158,61 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // agar data mitra lain tidak pernah ikut tampil.
   const armadaRows = (armadaPageData?.rows || []).filter((k) => isMyKendaraan(k));
 
-  // Filter riwayat berdasarkan status pengerjaan (Sedang Diservis vs Selesai) & kata kunci pencarian
-  const historyFiltered = React.useMemo(() => {
-    let list = historyAll;
+  // Riwayat Service baris halaman aktif (dari server-side pagination)
+  const historyRows: HistoryRow[] = React.useMemo(() => {
+    const rawRows = (spkPageData?.rows || []).map((s) => ({ ...s, sumber: 'spk' as const }));
+
+    // Di halaman 1 tanpa kata kunci pencarian, sertakan kunjungan gerbang yang belum naik ke SPK
+    if (historyPage === 1 && !historySearch.trim()) {
+      let kList = myKunjunganList;
+      if (historyStatusFilter === 'sedang-diservis') {
+        kList = kList.filter((s) => s.status_spk !== 'Selesai');
+      } else if (historyStatusFilter === 'selesai') {
+        kList = kList.filter((s) => s.status_spk === 'Selesai');
+      }
+
+      const kunjunganRows: HistoryRow[] = kList.map((k) => ({
+        id: k.id,
+        no_spk: k.nomor_tiket,
+        id_booking: k.booking_id ?? undefined,
+        id_pelanggan: k.id_pelanggan ?? null,
+        no_polisi: k.no_polisi,
+        nama_customer: k.nama_customer,
+        odometer_km: k.odometer_km ?? 0,
+        jenis_layanan: 'Service Kendaraan',
+        foto_kendaraan: k.foto_kendaraan_masuk ?? undefined,
+        keluhan_customer: k.keluhan_customer || k.tujuan_kunjungan || 'Service Kendaraan',
+        cek_body: k.cek_body,
+        cek_mesin: k.cek_mesin,
+        cek_kelistrikan: k.cek_kelistrikan,
+        cek_kaki_kaki: k.cek_kaki_kaki,
+        nama_sa: k.waktu_check_out || k.status_spk === 'Selesai' ? 'Pos Security (Keluar)' : 'Menunggu SA',
+        status_spk: ((k.status_spk as any) || (k.waktu_check_out ? 'Selesai' : 'Check In')),
+        estimasi_biaya: k.estimasi_biaya ?? 0,
+        estimasi_waktu_jam: k.estimasi_waktu_jam ?? 0,
+        waktu_check_in: k.waktu_check_in,
+        waktu_check_out: k.waktu_check_out || undefined,
+        created_at: k.created_at,
+        sumber: 'kunjungan' as const,
+        kunjungan: k,
+        status_keterangan: k.status_keterangan || (k.waktu_check_out ? 'Keluar Gerbang (Tanpa Servis)' : 'Menunggu Penerimaan Awal oleh SA'),
+      }));
+
+      return [...kunjunganRows, ...rawRows];
+    }
+
     if (historyStatusFilter === 'sedang-diservis') {
-      list = list.filter((s) => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed');
+      return rawRows.filter((s) => s.status_spk !== 'Selesai' && s.status_spk !== 'FIR Closed');
     } else if (historyStatusFilter === 'selesai') {
-      list = list.filter((s) => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed');
+      return rawRows.filter((s) => s.status_spk === 'Selesai' || s.status_spk === 'FIR Closed');
     }
 
-    const q = historySearch.trim().toLowerCase();
-    if (q) {
-      list = list.filter((s) =>
-        (s.no_spk && s.no_spk.toLowerCase().includes(q)) ||
-        (s.no_polisi && s.no_polisi.toLowerCase().includes(q)) ||
-        (s.keluhan_customer && s.keluhan_customer.toLowerCase().includes(q)) ||
-        (s.status_keterangan && s.status_keterangan.toLowerCase().includes(q)) ||
-        // Cari pada label ternormalisasi agar "pengerjaan" tetap menemukan "Proses Pekerjaan"
-        spkStatusLabel(s.status_spk).toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }, [historyAll, historyStatusFilter, historySearch]);
+    return rawRows;
+  }, [spkPageData, myKunjunganList, historyPage, historySearch, historyStatusFilter]);
 
-  const historyTotalPages = Math.max(1, Math.ceil(historyFiltered.length / historyLimit));
+  const historyTotalPages = Math.max(1, spkPageData?.pagination?.total_pages ?? 1);
+  const historyTotalRecords = spkPageData?.pagination?.total_records ?? historyRows.length;
   const historySafePage = Math.min(historyPage, historyTotalPages);
-  const historyRows = historyFiltered.slice(
-    (historySafePage - 1) * historyLimit,
-    historySafePage * historyLimit
-  );
 
   React.useEffect(() => {
     setHistoryPage(1);
@@ -5386,7 +5423,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             </div>
 
-            {spkLoading || kunjunganLoading ? (
+            {spkPageLoading || kunjunganLoading ? (
               <div className="divide-y divide-border px-5">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <div key={n} className="flex items-center justify-between gap-4 py-3 animate-pulse">
@@ -5583,7 +5620,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <PaginationBar
                   page={historySafePage}
                   totalPages={historyTotalPages}
-                  totalRecords={historyFiltered.length}
+                  totalRecords={historyTotalRecords}
                   limit={historyLimit}
                   label="riwayat service"
                   className="bg-[#FAFBFD] px-4 py-3 sm:px-5 dark:bg-slate-900/40"
