@@ -1,0 +1,17 @@
+services:
+  webfleet-dev:
+    container_name: webfleet-mastertruck-dev
+    image: awandadarkotech/webfleet-mastertruck:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    restart: unless-stopped

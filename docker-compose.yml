@@ -1,0 +1,10 @@
+services:
+  webfleet:
+    container_name: webfleet-mastertruck
+    image: awandadarkotech/webfleet-mastertruck:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    restart: unless-stopped
