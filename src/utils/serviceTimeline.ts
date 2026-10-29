@@ -43,13 +43,13 @@ export const SERVICE_STAGE_ORDER: ServiceStageKey[] = [
 /** Status SPK yang menandakan tahap pengecekan mekanik masih berjalan. */
 const STATUS_CEK_MEKANIK = ['Menunggu Pengecekan Mekanik', 'Pengecekan Mekanik', 'Estimasi Dibuat'];
 /** Status SPK yang menandakan WO sudah terbit (tahap pengecekan selesai). */
-const STATUS_WO_TERBIT = ['Estimasi Disetujui', 'Waiting Part', 'Dalam Pengerjaan', 'Pending', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'];
+const STATUS_WO_TERBIT = ['Estimasi Disetujui', 'Waiting Part', 'Dalam Pengerjaan', 'Pending', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Menunggu Invoice/Kasir', 'Siap Keluar (Lunas)', 'Siap Keluar', 'Selesai'];
 /** Status SPK yang menandakan pengerjaan teknisi sudah tuntas. */
-const STATUS_PENGERJAAN_SELESAI = ['Waiting QC', 'QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'];
+const STATUS_PENGERJAAN_SELESAI = ['Waiting QC', 'QC Passed', 'FIR Closed', 'Menunggu Invoice/Kasir', 'Siap Keluar (Lunas)', 'Siap Keluar', 'Selesai'];
 /** Status SPK setelah QC lulus. */
-const STATUS_LOLOS_QC = ['QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'];
+const STATUS_LOLOS_QC = ['QC Passed', 'FIR Closed', 'Menunggu Invoice/Kasir', 'Siap Keluar (Lunas)', 'Siap Keluar', 'Selesai'];
 /** Status SPK setelah FIR ditutup. */
-const STATUS_FIR_CLOSED = ['FIR Closed', 'Siap Keluar', 'Selesai'];
+const STATUS_FIR_CLOSED = ['FIR Closed', 'Menunggu Invoice/Kasir', 'Siap Keluar (Lunas)', 'Siap Keluar', 'Selesai'];
 
 type SpkTimelineInput = Pick<
   SpkService,
@@ -100,6 +100,20 @@ export const resolveServiceTimeline = (
   const status = normalizeSpkStatus(spk?.status_spk);
   const adaStatus = (list: string[]) => list.includes(status);
 
+  // Bila unit sudah resmi check out dari gerbang atau berstatus Selesai, SEMUA tahap servis tuntas (done)
+  if (ada(spk?.waktu_check_out) || status === 'Selesai') {
+    return {
+      masuk: 'done',
+      penerimaan: 'done',
+      wo: 'done',
+      pengerjaan: 'done',
+      qc: 'done',
+      fir: 'done',
+      pembayaran: 'done',
+      keluar: 'done',
+    };
+  }
+
   const masuk: ServiceStageState = ada(spk?.waktu_check_in) || ada(spk?.created_at) ? 'done' : 'active';
 
   // SPK dibuat oleh SA saat penerimaan; status 'Check In' berarti masih di meja SA.
@@ -124,12 +138,12 @@ export const resolveServiceTimeline = (
   else if (status === 'QC Passed') fir = 'active';
 
   let pembayaran: ServiceStageState = 'pending';
-  if (invoiceLunas) pembayaran = 'done';
-  else if (adaStatus(STATUS_FIR_CLOSED)) pembayaran = 'active';
+  if (invoiceLunas || status === 'Siap Keluar (Lunas)' || status === 'Siap Keluar') pembayaran = 'done';
+  else if (status === 'Menunggu Invoice/Kasir' || adaStatus(STATUS_FIR_CLOSED)) pembayaran = 'active';
 
   let keluar: ServiceStageState = 'pending';
   if (ada(spk?.waktu_check_out)) keluar = 'done';
-  else if (invoiceLunas || status === 'Selesai') keluar = 'active';
+  else if (invoiceLunas || status === 'Siap Keluar (Lunas)' || status === 'Siap Keluar') keluar = 'active';
 
   return { masuk, penerimaan, wo, pengerjaan, qc, fir, pembayaran, keluar };
 };

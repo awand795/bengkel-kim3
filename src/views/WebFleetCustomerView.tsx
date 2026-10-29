@@ -647,10 +647,21 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
               )}
 
               {/* Stepper Progress Bar */}
+              {(() => {
+                const isFullyFinished = !!spk.waktu_check_out || spk.status_spk === 'Selesai';
+                return (
               <div className="py-6 px-4 sm:px-6 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] via-surface-raised to-surface-raised dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
                 <div className="flex items-start justify-between min-w-[780px] relative">
                   {[
-                    { step: 1, title: 'Check In', desc: 'Diterima Security', done: true, waktu: spk.waktu_check_in || spk.created_at },
+                    {
+                      step: 1,
+                      title: 'Check In',
+                      desc: 'Diterima Security',
+                      done: true,
+                      current: false,
+                      isWaitingPart: false,
+                      waktu: spk.waktu_check_in || spk.created_at
+                    },
                     { 
                       step: 2, 
                       title: isPreSpk
@@ -659,7 +670,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         ? 'Waiting Part'
                         : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval')
                         ? 'Menunggu Approval'
-                        : spk.status_spk === 'Waiting QC'
+                        : spk.status_spk === 'Waiting QC' || (spk.status_spk as any) === 'Menunggu QC'
                         ? 'Menunggu QC'
                         : 'Proses Pengerjaan',
                       desc: isPreSpk
@@ -670,49 +681,56 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         ? 'Estimasi Diajukan'
                         : spk.status_spk === 'Estimasi Disetujui'
                         ? 'WO Terbit'
-                        : spk.status_spk === 'Waiting QC'
+                        : spk.status_spk === 'Waiting QC' || (spk.status_spk as any) === 'Menunggu QC'
                         ? 'Inspeksi Foreman'
-                        : spk.status_spk === 'Dalam Pengerjaan'
+                        : spk.status_spk === 'Dalam Pengerjaan' || spk.status_spk === 'Proses Pengerjaan'
                         ? 'Mekanik Aktif'
                         : 'Selesai Dikerjakan',
-                      done: !isPreSpk && ['Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC', 'QC Passed', 'FIR Closed', 'Siap Keluar', 'Selesai'].includes(spk.status_spk as string),
-                      current: isPreSpk ? !spk.waktu_check_out : ['Waiting Part', 'Menunggu Approval Customer', 'Waiting Approval', 'Estimasi Disetujui', 'Dalam Pengerjaan', 'Waiting QC'].includes(spk.status_spk as string),
-                      isWaitingPart: !isPreSpk && spk.status_spk === 'Waiting Part',
-                      waktu: isPreSpk ? null : spk.waktu_mulai_pekerjaan
+                      done: isFullyFinished || serviceTimeline.pengerjaan === 'done',
+                      current: !isFullyFinished && (serviceTimeline.pengerjaan === 'active' || serviceTimeline.pengerjaan === 'blocked' || serviceTimeline.pengerjaan === 'attention'),
+                      isWaitingPart: !isFullyFinished && serviceTimeline.pengerjaan === 'blocked',
+                      waktu: isPreSpk ? null : (spk.waktu_selesai_pekerjaan || spk.waktu_mulai_pekerjaan)
                     },
                     { 
                       step: 3, 
                       title: 'QC Passed', 
                       desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Inspeksi Foreman', 
-                      done: !isPreSpk && (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai'), 
-                      current: !isPreSpk && spk.status_spk === 'Waiting QC', 
-                      waktu: isPreSpk ? null : (spk.waktu_qc || spk.tanggal_qc) 
+                      done: isFullyFinished || serviceTimeline.qc === 'done', 
+                      current: !isFullyFinished && serviceTimeline.qc === 'active', 
+                      isWaitingPart: false,
+                      waktu: isPreSpk ? null : (spk.waktu_qc || spk.tanggal_qc || (isFullyFinished ? (spk.waktu_selesai_pekerjaan || spk.waktu_check_in) : null)) 
                     },
                     { 
                       step: 4, 
                       title: 'FIR Closed', 
                       desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Final Check SA', 
-                      done: !isPreSpk && (spk.status_spk === 'FIR Closed' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai'), 
-                      waktu: isPreSpk ? null : spk.waktu_fir_closed 
+                      done: isFullyFinished || serviceTimeline.fir === 'done', 
+                      current: !isFullyFinished && serviceTimeline.fir === 'active', 
+                      isWaitingPart: false,
+                      waktu: isPreSpk ? null : (spk.waktu_fir_closed || (isFullyFinished ? (spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) : null)) 
                     },
                     { 
                       step: 5, 
                       title: 'Invoice', 
                       desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Proses Kasir', 
-                      done: !isPreSpk && (spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Selesai' || activeInvoiceLunas), 
-                      waktu: isPreSpk ? null : (activeInvoice?.tanggal_invoice || (spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' ? spk.waktu_fir_closed : null)) 
+                      done: isFullyFinished || serviceTimeline.pembayaran === 'done', 
+                      current: !isFullyFinished && serviceTimeline.pembayaran === 'active', 
+                      isWaitingPart: false,
+                      waktu: isPreSpk ? null : (activeInvoice?.tanggal_bayar || activeInvoice?.tanggal_invoice || (isFullyFinished ? (spk.waktu_check_out || spk.waktu_fir_closed) : null)) 
                     },
                     { 
                       step: 6, 
                       title: 'Check Out', 
                       desc: isPreSpk ? 'Keluar Gerbang' : 'Kendaraan Keluar', 
-                      done: !!spk.waktu_check_out, 
+                      done: isFullyFinished || serviceTimeline.keluar === 'done', 
+                      current: !isFullyFinished && serviceTimeline.keluar === 'active', 
+                      isWaitingPart: false,
                       waktu: spk.waktu_check_out 
                     },
                   ].map((s, idx, arr) => {
                     const isLast = idx === arr.length - 1;
                     const nextStep = !isLast ? arr[idx + 1] : null;
-                    const lineDone = s.done && (nextStep?.done || nextStep?.current);
+                    const lineDone = isFullyFinished || (s.done && (nextStep?.done || nextStep?.current));
                     const wt = s.waktu ? fmtWaktuStep(s.waktu as string) : null;
 
                     return (
@@ -783,6 +801,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   })}
                 </div>
               </div>
+                );
+              })()}
 
               {/* 4 Detail Tabs di bawah Tracker Status Service */}
               <div className="border-t border-border pt-5 space-y-4">
@@ -2216,7 +2236,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         created_at: k.created_at,
         sumber: 'kunjungan' as const,
         kunjungan: k,
-        status_keterangan: k.status_keterangan || (!active ? 'Selesai & Keluar Gerbang' : 'Menunggu Penerimaan Awal oleh SA'),
+        status_keterangan: k.status_keterangan || (!active ? 'Selesai' : 'Menunggu Penerimaan Awal oleh SA'),
       };
     });
 
@@ -5616,7 +5636,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               <StatusBadge status={spk.status_spk} size="sm" />
                               {spk.sumber === 'kunjungan' && (
                                 <span className={`text-[10px] font-semibold leading-tight ${spk.status_spk === 'Selesai' ? 'text-status-green' : 'text-status-blue'}`}>
-                                  {spk.status_keterangan || (spk.status_spk === 'Selesai' ? 'Selesai & Keluar Gerbang' : 'Menunggu Penerimaan Awal oleh SA')}
+                                  {spk.status_keterangan || (spk.status_spk === 'Selesai' ? 'Selesai' : 'Menunggu Penerimaan Awal oleh SA')}
                                 </span>
                               )}
                             </div>
@@ -5664,7 +5684,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           <StatusBadge status={spk.status_spk} size="sm" />
                           {spk.sumber === 'kunjungan' && (
                             <span className={`text-right text-[10px] font-semibold leading-tight ${spk.status_spk === 'Selesai' ? 'text-status-green' : 'text-status-blue'}`}>
-                              {spk.status_keterangan || (spk.status_spk === 'Selesai' ? 'Selesai & Keluar Gerbang' : 'Menunggu Penerimaan Awal oleh SA')}
+                              {spk.status_keterangan || (spk.status_spk === 'Selesai' ? 'Selesai' : 'Menunggu Penerimaan Awal oleh SA')}
                             </span>
                           )}
                         </div>

@@ -19,7 +19,7 @@ const SPK_STATUS_LABEL: Record<string, string> = {
   'fir closed': 'FIR Closed',
   'menunggu invoice/kasir': 'Menunggu Invoice/Kasir',
   'siap keluar (lunas)': 'Siap Keluar (Lunas)',
-  'selesai & keluar': 'Selesai & Keluar',
+  'selesai & keluar': 'Selesai',
   'selesai': 'Selesai',
 };
 
@@ -79,7 +79,7 @@ export const getSpkDynamicStatus = (item?: DynamicStatusInput | null): string =>
 
   // 1. Truk sudah resmi checkout dan melintas keluar gerbang pos security
   if (item.waktu_check_out && String(item.waktu_check_out).trim() !== '') {
-    return 'Selesai & Keluar';
+    return 'Selesai';
   }
 
   // Khusus kunjungan gate-only (belum terbit WO oleh SA)
