@@ -79,7 +79,8 @@ import {
   ClipboardCheck,
   SlidersHorizontal,
   Sparkles,
-  Lightbulb
+  Lightbulb,
+  Loader2
 } from 'lucide-react';
 
 // Tipe / bentuk karoseri armada yang paling sering dipakai di bengkel.
@@ -1697,6 +1698,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [hapusArmadaTarget, setHapusArmadaTarget] = useState<Kendaraan | null>(null);
 
   const [historyPage, setHistoryPage] = useState(1);
+  const historyContainerRef = React.useRef<HTMLDivElement>(null);
+  const armadaContainerRef = React.useRef<HTMLDivElement>(null);
+  const fakturContainerRef = React.useRef<HTMLDivElement>(null);
+  const dokumenContainerRef = React.useRef<HTMLDivElement>(null);
+  const bookingContainerRef = React.useRef<HTMLDivElement>(null);
+  const modalKendaraanContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToTopRef = React.useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      if (rect.top < 120) {
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, []);
   const [historyLimit, setHistoryLimit] = useState(10);
   const [historySearch, setHistorySearch] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'semua' | 'sedang-diservis' | 'selesai'>('semua');
@@ -1775,6 +1791,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const {
     data: spkPageData,
     isLoading: spkPageLoading,
+    isFetching: spkPageFetching,
   } = useQuery({
     queryKey: ['spk-page', historyPage, historyLimit, historySearch],
     queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: historySearch }),
@@ -3401,7 +3418,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
             <div>
             {isLoadingBooking ? (
-              <div className="divide-y divide-border">
+              <div ref={modalKendaraanContainerRef} className="divide-y divide-border scroll-mt-10">
                 {[1, 2, 3, 4].map((n) => (
                   <div key={n} className="flex animate-pulse items-center gap-4 px-5 py-4">
                     <div className="h-9 w-24 rounded-md bg-slate-200 dark:bg-slate-800" />
@@ -3797,10 +3814,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           limitOptions={[5, 10, 20]}
                           label="kendaraan"
                           className="border-t-0 bg-[#FAFBFD] px-3 py-2.5 dark:bg-surface"
-                          onPageChange={setBookingKendaraanPage}
+                          onPageChange={(p) => { setBookingKendaraanPage(p); scrollToTopRef(modalKendaraanContainerRef); }}
                           onLimitChange={(l) => {
                             setBookingKendaraanLimit(l);
                             setBookingKendaraanPage(1);
+                            scrollToTopRef(modalKendaraanContainerRef);
                           }}
                         />
                       )}
@@ -4256,7 +4274,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
           {armadaRows.length > 0 ? (
             <>
-              <div className="space-y-3">
+              <div ref={armadaContainerRef} className="relative scroll-mt-20">
+                {armadaFetching && (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl dark:bg-slate-900/40">
+                    <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-accent shadow-md dark:bg-surface-raised dark:border-border">
+                      <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                      <span>Memuat armada halaman {armadaPage}...</span>
+                    </div>
+                  </div>
+                )}
+                <div className={`space-y-3 transition-opacity duration-200 ${armadaFetching ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
               {armadaRows.map((k) => {
                 const sedangDiBengkel = isUnitInWorkshop(k);
                 return (
@@ -4481,6 +4508,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 );
               })}
             </div>
+              </div>
             <PaginationBar
               page={armadaPage}
               totalPages={armadaPageData?.pagination?.total_pages ?? 1}
@@ -4489,10 +4517,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               label="kendaraan"
               isLoading={armadaFetching}
               className="rounded-xl border border-border bg-[#FAFBFD] px-4 py-3 sm:px-5 dark:bg-surface-raised"
-              onPageChange={setArmadaPage}
+              onPageChange={(p) => {
+                setArmadaPage(p);
+                scrollToTopRef(armadaContainerRef);
+              }}
               onLimitChange={(l) => {
                 setArmadaLimit(l);
                 setArmadaPage(1);
+                scrollToTopRef(armadaContainerRef);
               }}
             />
             </>
@@ -4669,7 +4701,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
               {/* Table Faktur */}
               {fakturRows.length > 0 ? (
-                <div className="overflow-hidden bg-surface-raised">
+                <div ref={fakturContainerRef} className="overflow-hidden bg-surface-raised relative scroll-mt-20">
+                  {fakturPageFetching && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-slate-900/40">
+                      <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-accent shadow-md dark:bg-surface-raised dark:border-border">
+                        <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                        <span>Memuat faktur halaman {fakturSafePage}...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className={`transition-opacity duration-200 ${fakturPageFetching ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="border-b border-border bg-[#F8FAFC] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-subtle dark:bg-slate-900/40">
@@ -4793,6 +4834,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     })}
                   </div>
 
+                  </div>
                   {/* Pagination Faktur */}
                   <div className="border-t border-border bg-white px-4 pb-3 dark:bg-surface-raised">
                     <PaginationBar
@@ -4802,10 +4844,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       limit={fakturLimit}
                       label="faktur"
                       isLoading={fakturPageFetching}
-                      onPageChange={setFakturPage}
+                      onPageChange={(p) => {
+                        setFakturPage(p);
+                        scrollToTopRef(fakturContainerRef);
+                      }}
                       onLimitChange={(l) => {
                         setFakturLimit(l);
                         setFakturPage(1);
+                        scrollToTopRef(fakturContainerRef);
                       }}
                     />
                   </div>
@@ -5416,7 +5462,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           </div>
 
           {/* Satu kartu tunggal */}
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-sm">
+          <div ref={historyContainerRef} className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-sm scroll-mt-20">
             {/* Toolbar: Tab di kiri, pencarian di kanan */}
             <div className="flex flex-col justify-between gap-3 border-b border-border bg-white px-4 pt-3 sm:px-5 md:flex-row md:items-center dark:bg-surface-raised">
               {/* Tab Filter Status */}
@@ -5478,8 +5524,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
             ) : historyRows.length > 0 ? (
               <>
-                {/* Desktop Table: langsung di dalam kartu */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="relative">
+                  {spkPageFetching && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-slate-900/40">
+                      <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-accent shadow-md dark:bg-surface-raised dark:border-border">
+                        <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                        <span>Memuat data halaman {historySafePage}...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className={`transition-opacity duration-200 ${spkPageFetching ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+                    {/* Desktop Table: langsung di dalam kartu */}
+                    <div className="hidden md:block overflow-x-auto">
                   <table className="w-full min-w-[900px] text-left text-xs">
                     <thead className="sticky top-0 z-10 border-b border-border bg-[#F6F8FB] dark:bg-slate-800/70">
                       <tr>
@@ -5654,6 +5710,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     </div>
                   ))}
                 </div>
+                  </div>
+                </div>
 
                 {/* Footer Pagination langsung di dasar kartu */}
                 <PaginationBar
@@ -5662,11 +5720,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   totalRecords={historyTotalRecords}
                   limit={historyLimit}
                   label="riwayat service"
+                  isLoading={spkPageFetching}
                   className="bg-[#FAFBFD] px-4 py-3 sm:px-5 dark:bg-slate-900/40"
-                  onPageChange={setHistoryPage}
+                  onPageChange={(p) => {
+                    setHistoryPage(p);
+                    scrollToTopRef(historyContainerRef);
+                  }}
                   onLimitChange={(l) => {
                     setHistoryLimit(l);
                     setHistoryPage(1);
+                    scrollToTopRef(historyContainerRef);
                   }}
                 />
               </>

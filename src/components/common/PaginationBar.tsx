@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 
 export interface PaginationBarProps {
   /** Halaman aktif (1-based). */
@@ -42,7 +43,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
   const startCount = totalRecords === 0 ? 0 : (safeCurrentPage - 1) * limit + 1;
   const endCount = Math.min(safeCurrentPage * limit, totalRecords);
 
-  const renderPageButtons = () => {
+    const renderPageButtons = () => {
     if (safeTotalPages <= 7) {
       return Array.from({ length: safeTotalPages }).map((_, i) => {
         const pageNum = i + 1;
@@ -53,7 +54,9 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
             type="button"
             disabled={isLoading}
             onClick={() => onPageChange(pageNum)}
-            className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+            className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${
+              isLoading ? 'cursor-wait opacity-60' : 'cursor-pointer'
+            } ${
               isActive
                 ? 'bg-[#12388F] text-white shadow-xs'
                 : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:bg-surface dark:border-border dark:text-slate-300 dark:hover:bg-surface-raised'
@@ -97,7 +100,9 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
           type="button"
           disabled={isLoading}
           onClick={() => onPageChange(p)}
-          className={`px-2.5 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+          className={`px-2.5 py-1 rounded text-xs font-bold transition-all ${
+            isLoading ? 'cursor-wait opacity-60' : 'cursor-pointer'
+          } ${
             isActive
               ? 'bg-[#12388F] text-white shadow-xs'
               : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:bg-surface dark:border-border dark:text-slate-300 dark:hover:bg-surface-raised'
@@ -113,8 +118,17 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
     <div
       className={`px-4 py-2.5 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 dark:bg-surface-raised dark:border-border dark:text-slate-400 ${className}`}
     >
-      <div>
-        Menampilkan {startCount} - {endCount} dari {totalRecords} {label}
+      <div className="flex items-center gap-2 min-h-[24px]">
+        {isLoading ? (
+          <span className="inline-flex items-center gap-1.5 text-accent font-medium animate-pulse">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
+            <span>Memuat data halaman {safeCurrentPage}...</span>
+          </span>
+        ) : (
+          <span>
+            Menampilkan {startCount} - {endCount} dari {totalRecords} {label}
+          </span>
+        )}
       </div>
       {safeTotalPages > 1 ? (
         <div className="flex items-center gap-1">
@@ -122,9 +136,11 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
             type="button"
             disabled={safeCurrentPage <= 1 || isLoading}
             onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))}
-            className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs dark:bg-surface dark:border-border dark:text-slate-300"
+            className={`px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 text-xs dark:bg-surface dark:border-border dark:text-slate-300 ${
+              isLoading ? 'cursor-wait opacity-60' : 'cursor-pointer'
+            }`}
             aria-label="Previous Page"
-            title={safeCurrentPage <= 1 ? 'Sudah di halaman pertama' : 'Halaman sebelumnya'}
+            title={safeCurrentPage <= 1 ? 'Sudah di halaman pertama' : isLoading ? 'Sedang memuat data...' : 'Halaman sebelumnya'}
           >
             &lt;
           </button>
@@ -133,9 +149,11 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
             type="button"
             disabled={safeCurrentPage >= safeTotalPages || isLoading}
             onClick={() => onPageChange(Math.min(safeTotalPages, safeCurrentPage + 1))}
-            className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs dark:bg-surface dark:border-border dark:text-slate-300"
+            className={`px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 text-xs dark:bg-surface dark:border-border dark:text-slate-300 ${
+              isLoading ? 'cursor-wait opacity-60' : 'cursor-pointer'
+            }`}
             aria-label="Next Page"
-            title={safeCurrentPage >= safeTotalPages ? 'Sudah di halaman terakhir' : 'Halaman berikutnya'}
+            title={safeCurrentPage >= safeTotalPages ? 'Sudah di halaman terakhir' : isLoading ? 'Sedang memuat data...' : 'Halaman berikutnya'}
           >
             &gt;
           </button>
