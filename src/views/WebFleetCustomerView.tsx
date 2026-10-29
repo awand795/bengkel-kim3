@@ -2232,7 +2232,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, [spkPageData, myKunjunganList, historyPage, historySearch, historyStatusFilter]);
 
   const historyTotalPages = Math.max(1, spkPageData?.pagination?.total_pages ?? 1);
-  const historyTotalRecords = spkPageData?.pagination?.total_records ?? historyRows.length;
+  const historyTotalRecords = spkPageData?.pagination?.total_records ?? historyAll.length;
   const historySafePage = Math.min(historyPage, historyTotalPages);
 
   React.useEffect(() => {
@@ -5087,11 +5087,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 </div>
                 <div className="bg-surface p-3 rounded-xl border border-border/60">
                   <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Service Tercatat</span>
-                  <span className="text-lg font-black text-ink mt-0.5 block">{(historyTotalRecords || spkList?.length || 0).toLocaleString('id-ID')} Kali Servis</span>
+                  <span className="text-lg font-black text-ink mt-0.5 block">{(spkPageData?.pagination?.total_records ?? historyAll.length).toLocaleString('id-ID')} Kali Servis</span>
                 </div>
                 <div className="bg-surface p-3 rounded-xl border border-border/60">
                   <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Dokumen Digital</span>
-                  <span className="text-lg font-black text-ink mt-0.5 block">{dokumenList?.length || 0} Berkas</span>
+                  <span className="text-lg font-black text-ink mt-0.5 block">{myDokumenList.length.toLocaleString('id-ID')} Berkas</span>
                 </div>
                 <div className="bg-surface p-3 rounded-xl border border-border/60">
                   <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Status Akun</span>

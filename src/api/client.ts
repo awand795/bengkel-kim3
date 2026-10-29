@@ -160,7 +160,7 @@ export interface ListQuery {
 }
 
 export const DEFAULT_PAGE_LIMIT = 10;
-export const LOOKUP_LIST_LIMIT = 1000;
+export const LOOKUP_LIST_LIMIT = 50000;
 
 const normalizeList = <T,>(payload: any): PaginatedResult<T> => {
   if (Array.isArray(payload)) {
