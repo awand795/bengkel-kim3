@@ -312,7 +312,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             state={serviceTimeline.qc}
             isLast={isLastStage('qc')}
             title={serviceTimeline.qc === 'done' ? 'Quality Control (QC) Lulus' : 'Quality Control (QC) — Inspeksi Foreman'}
-            time={fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || '-'}
+            time={fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || (serviceTimeline.qc === 'done' ? 'Selesai (Otomatis Bersama WO)' : '-')}
             meta={
               <>
                 Foreman: {spk.nama_foreman || '-'} | Hasil Uji:{' '}
@@ -334,7 +334,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             state={serviceTimeline.fir}
             isLast={isLastStage('fir')}
             title="FIR Closed — Final Check SA"
-            time={fmtWaktuFull(spk.waktu_fir_closed || spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || '-'}
+            time={fmtWaktuFull(spk.waktu_fir_closed || spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || (serviceTimeline.fir === 'done' ? 'Selesai (Otomatis Bersama WO)' : '-')}
             meta={
               <>
                 SA: {spk.nama_sa || '-'} | Dokumen: Faktur Servis

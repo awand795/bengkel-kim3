@@ -56,6 +56,18 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'jadwal ulang':
         return 'bg-[#EDE9FE] text-[#6D28D9] border-[#C4B5FD]/40 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/50';
 
+      // Indigo: Menunggu Kasir / Faktur
+      case 'menunggu invoice/kasir':
+      case 'menunggu invoice':
+      case 'proses kasir':
+      case 'menunggu faktur':
+        return 'bg-[#EEF2FF] text-[#4338CA] border-[#C7D2FE]/50 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800/50';
+
+      // Teal: Siap Keluar (Lunas)
+      case 'siap keluar (lunas)':
+      case 'siap keluar':
+        return 'bg-[#CCFBF1] text-[#0F766E] border-[#5EEAD4]/50 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800/50';
+
       // Hijau: Selesai / QC Passed / Ready / Paid / Confirmed
       case 'confirmed':
       case 'dikonfirmasi':
@@ -66,6 +78,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'paid':
       case 'selesai':
       case 'fir closed':
+      case 'selesai & keluar':
       case 'selesai — siap check-out':
       case 'fir closed — siap check-out':
       case 'qc passed — siap check-out':
