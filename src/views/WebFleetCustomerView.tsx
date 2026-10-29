@@ -1700,6 +1700,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [historyLimit, setHistoryLimit] = useState(10);
   const [historySearch, setHistorySearch] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'semua' | 'sedang-diservis' | 'selesai'>('semua');
+  const [fakturPage, setFakturPage] = useState(1);
+  const [fakturLimit, setFakturLimit] = useState(10);
+  const [fakturSearch, setFakturSearch] = useState('');
+  const [fakturFilterPlat, setFakturFilterPlat] = useState('');
   // Halaman khusus detail riwayat SPK (tersembunyi dari sidebar)
   const [historyDetail, setHistoryDetail] = useState<HistoryRow | null>(null);
   // Modal lightbox preview foto armada / dokumen yang membesar
@@ -1820,6 +1824,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: invoiceList } = useQuery({
     queryKey: ['invoice-list'],
     queryFn: api.getInvoiceList,
+    refetchInterval: 15000,
+  });
+
+  // Server-Side Paginated Faktur / Invoice
+  const {
+    data: fakturPageData,
+    isLoading: fakturPageLoading,
+    isFetching: fakturPageFetching,
+  } = useQuery({
+    queryKey: ['faktur-page', fakturPage, fakturLimit, fakturSearch, fakturFilterPlat],
+    queryFn: () =>
+      api.getInvoiceListPage({
+        page: fakturPage,
+        limit: fakturLimit,
+        q: fakturSearch || (fakturFilterPlat ? normalizePlat(fakturFilterPlat) : undefined),
+      }),
+    placeholderData: (prev) => prev,
     refetchInterval: 15000,
   });
 
@@ -2715,38 +2736,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [dokumenSubTab, setDokumenSubTab] = useState<'faktur' | 'legalitas'>('faktur');
   const [selectedFakturForPrint, setSelectedFakturForPrint] = useState<InvoicePembayaran | null>(null);
   const [fakturModalOpen, setFakturModalOpen] = useState(false);
-  const [fakturSearch, setFakturSearch] = useState('');
-  const [fakturFilterPlat, setFakturFilterPlat] = useState('');
-  const [fakturPage, setFakturPage] = useState(1);
-  const [fakturLimit, setFakturLimit] = useState(10);
 
-  const fakturSemuaList = useMemo(() => {
-    return [...myInvoiceList].sort((a, b) => {
-      return String(b.tanggal_invoice || b.tanggal_bayar || '').localeCompare(String(a.tanggal_invoice || a.tanggal_bayar || ''));
-    });
-  }, [myInvoiceList]);
-
-  const fakturTerfilterList = useMemo(() => {
-    return fakturSemuaList.filter((inv) => {
-      if (fakturFilterPlat) {
-        const platClean = (inv.no_polisi || '').toUpperCase().replace(/\s+/g, '');
-        const targetClean = fakturFilterPlat.toUpperCase().replace(/\s+/g, '');
-        if (platClean !== targetClean) return false;
-      }
-      if (fakturSearch.trim()) {
-        const q = fakturSearch.toLowerCase().trim();
-        const noInv = (inv.no_invoice || '').toLowerCase();
-        const plat = (inv.no_polisi || '').toLowerCase();
-        const spk = inv.id_spk ? `spk-${inv.id_spk}` : '';
-        if (!noInv.includes(q) && !plat.includes(q) && !spk.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [fakturSemuaList, fakturFilterPlat, fakturSearch]);
-
-  const fakturTotalPages = Math.max(1, Math.ceil(fakturTerfilterList.length / fakturLimit));
+  // Server-side paginated Faktur calculation
+  const fakturTotalPages = Math.max(1, fakturPageData?.pagination?.total_pages ?? 1);
+  const fakturTotalRecords = fakturPageData?.pagination?.total_records ?? myInvoiceList.length;
   const fakturSafePage = Math.min(fakturPage, fakturTotalPages);
-  const fakturRows = fakturTerfilterList.slice((fakturSafePage - 1) * fakturLimit, fakturSafePage * fakturLimit);
+  const fakturRows = fakturPageData?.rows ?? [];
 
   React.useEffect(() => {
     setFakturPage(1);
@@ -3276,7 +3271,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             />
             <StatCard
               title="Total Kendaraan"
-              value={myKendaraanList.length}
+              value={armadaPageData?.pagination?.total_records ?? myKendaraanList.length}
               subtitle="Unit Terdaftar"
               icon={Truck}
               tone="accent"
@@ -4564,8 +4559,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               >
                 <FileText className="w-4 h-4" />
                 <span>Faktur & Bukti Tagihan</span>
-                <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-white dark:bg-slate-800 text-ink-muted border border-border">
-                  {myInvoiceList.length}
+                <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-white dark:bg-slate-800 text-ink-muted border border-border font-semibold">
+                  {fakturTotalRecords.toLocaleString('id-ID')}
                 </span>
               </button>
               <button
@@ -4763,9 +4758,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <PaginationBar
                       page={fakturSafePage}
                       totalPages={fakturTotalPages}
-                      totalRecords={fakturTerfilterList.length}
+                      totalRecords={fakturTotalRecords}
                       limit={fakturLimit}
                       label="faktur"
+                      isLoading={fakturPageFetching}
                       onPageChange={setFakturPage}
                       onLimitChange={(l) => {
                         setFakturLimit(l);
@@ -5087,7 +5083,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-border/80">
                 <div className="bg-surface p-3 rounded-xl border border-border/60">
                   <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Unit Armada</span>
-                  <span className="text-lg font-black text-ink mt-0.5 block">{myKendaraanList.length} Kendaraan</span>
+                  <span className="text-lg font-black text-ink mt-0.5 block">{(armadaPageData?.pagination?.total_records ?? myKendaraanList.length).toLocaleString('id-ID')} Kendaraan</span>
                 </div>
                 <div className="bg-surface p-3 rounded-xl border border-border/60">
                   <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Service Tercatat</span>
