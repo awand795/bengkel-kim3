@@ -124,6 +124,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
             onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))}
             className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs dark:bg-surface dark:border-border dark:text-slate-300"
             aria-label="Previous Page"
+            title={safeCurrentPage <= 1 ? 'Sudah di halaman pertama' : 'Halaman sebelumnya'}
           >
             &lt;
           </button>
@@ -134,6 +135,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
             onClick={() => onPageChange(Math.min(safeTotalPages, safeCurrentPage + 1))}
             className="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer text-xs dark:bg-surface dark:border-border dark:text-slate-300"
             aria-label="Next Page"
+            title={safeCurrentPage >= safeTotalPages ? 'Sudah di halaman terakhir' : 'Halaman berikutnya'}
           >
             &gt;
           </button>

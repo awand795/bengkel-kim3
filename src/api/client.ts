@@ -81,7 +81,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const errorMsg = String(error.response?.data?.message || '');
+    const isAuthError = status === 401 || (status === 403 && (errorMsg.includes('JWT') || errorMsg.includes('token') || errorMsg.includes('Autentikasi')));
+    if (isAuthError) {
       const reqUrl: string = originalRequest.url || '';
       if (reqUrl.includes('/auth/login') || reqUrl.includes('/auth/refresh-token')) {
         return Promise.reject(error);
