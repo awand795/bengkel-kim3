@@ -114,6 +114,24 @@ export interface ServiceActivityTimelineProps {
  * Satu-satunya implementasi timeline Riwayat Aktivitas Service.
  * Dipakai oleh detail SPK maupun detail check-in gerbang (sebelum WO terbit).
  */
+const getDurasiPengerjaan = (spk: SpkService): string | null => {
+  if (spk.waktu_selesai_pekerjaan && spk.waktu_mulai_pekerjaan) {
+    const ms = new Date(spk.waktu_selesai_pekerjaan).getTime() - new Date(spk.waktu_mulai_pekerjaan).getTime();
+    if (!isNaN(ms) && ms >= 0) {
+      const totalMinutes = Math.round(ms / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      if (hours > 0 && mins > 0) return `${hours} Jam ${mins} Menit`;
+      if (hours > 0) return `${hours} Jam`;
+      return `${mins} Menit`;
+    }
+  }
+  if (spk.estimasi_waktu_jam && Number(spk.estimasi_waktu_jam) > 0) {
+    return `${spk.estimasi_waktu_jam} Jam (Estimasi)`;
+  }
+  return null;
+};
+
 export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = ({
   spk,
   pekerjaanList,
@@ -241,17 +259,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             }
             time={
               spk.waktu_selesai_pekerjaan ? (
-                <>
-                  Selesai {fmtWaktuFull(spk.waktu_selesai_pekerjaan)}
-                  {(() => {
-                    if (!spk.waktu_mulai_pekerjaan) return null;
-                    const ms = new Date(spk.waktu_selesai_pekerjaan).getTime() - new Date(spk.waktu_mulai_pekerjaan).getTime();
-                    if (isNaN(ms) || ms < 0) return null;
-                    const h = Math.floor(ms / 3600000);
-                    const m = Math.round((ms % 3600000) / 60000);
-                    return <span> • Durasi: {h > 0 ? `${h} jam ` : ''}{m} menit</span>;
-                  })()}
-                </>
+                <>Selesai {fmtWaktuFull(spk.waktu_selesai_pekerjaan)}</>
               ) : spk.waktu_mulai_pekerjaan ? (
                 <>Mulai pengerjaan: {fmtWaktuFull(spk.waktu_mulai_pekerjaan)}</>
               ) : (
@@ -260,8 +268,17 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             }
             meta={
               <>
-                Mekanik: {spk.nama_mekanik || '-'} | Status SPK:{' '}
-                <span className="font-medium text-ink">{spkStatusLabel(spk.status_spk)}</span>
+                Mekanik: {spk.nama_mekanik || '-'}
+                {(() => {
+                  const durasi = getDurasiPengerjaan(spk);
+                  if (!durasi) return null;
+                  return (
+                    <>
+                      {' '}| Durasi Pengerjaan:{' '}
+                      <span className="font-medium text-ink">{durasi}</span>
+                    </>
+                  );
+                })()}
               </>
             }
           >

@@ -2175,17 +2175,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     status_invoice?: string | null;
     no_invoice?: string | null;
   }): boolean => {
-    // 1. Jika sudah ada waktu_check_out (pos security / checkout fisik), pasti sudah selesai
-    if (s.waktu_check_out) return false;
+    // 1. Jika sudah ada waktu_check_out (pos security / checkout fisik), pasti sudah selesai keluar
+    if (s.waktu_check_out && String(s.waktu_check_out).trim() !== '') return false;
 
-    // 2. Status final selesai
-    const status = (s.status_spk || '').trim();
-    if (status === 'Selesai' || status === 'FIR Closed') return false;
-
-    // 3. Jika invoice lunas
-    if (s.status_invoice === 'Lunas') return false;
-
-    // 4. Jaring pengaman transaksi lama di POS: jika waktu masuk / dibuat sudah lebih dari 7 hari lalu
+    // 2. Jaring pengaman transaksi lama di POS: jika waktu masuk / dibuat sudah lebih dari 7 hari lalu
+    // tanpa checkout, kemungkinan data historis lama yang tidak dicatat checkout oleh security
     const dateStr = s.waktu_check_in || s.created_at;
     if (dateStr) {
       const entryTime = new Date(dateStr).getTime();
@@ -2195,20 +2189,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       }
     }
 
+    // 3. Selama waktu_check_out belum ada dan dalam 7 hari terakhir:
+    // Kendaraan masih aktif berada di bengkel (proses pengerjaan, QC, kasir, atau siap keluar gerbang)
     return true;
   }, []);
 
   // Gabungan SPK + kunjungan gate-only. Endpoint sudah menyembunyikan kunjungan
   // yang sudah naik tahap ke SPK, jadi frontend cukup menggabungkan keduanya.
   const historyAll = React.useMemo<HistoryRow[]>(() => {
-    const spkRows: HistoryRow[] = mySpkList.map((s) => {
-      const active = isServiceActive(s);
-      return {
-        ...s,
-        status_spk: active ? s.status_spk : (s.status_spk === 'FIR Closed' ? 'FIR Closed' : 'Selesai'),
-        sumber: 'spk' as const,
-      };
-    });
+    const spkRows: HistoryRow[] = mySpkList.map((s) => ({
+      ...s,
+      status_spk: getSpkDynamicStatus(s) as any,
+      sumber: 'spk' as const,
+    }));
 
     const kunjunganRows: HistoryRow[] = myKunjunganList.map((k) => {
       const active = isServiceActive(k);
@@ -2263,8 +2256,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // Kunjungan SERVICE gerbang yang belum check-out (benar-benar aktif di bengkel saat ini)
   const activeUnits: HistoryRow[] = React.useMemo(() => {
-    return myKunjunganList
-      .filter((k) => !k.waktu_check_out && k.status_spk !== 'Selesai')
+    const activeKunjungan: HistoryRow[] = myKunjunganList
+      .filter((k) => isServiceActive(k))
       .map((k) => ({
         id: k.id,
         no_spk: k.nomor_tiket,
@@ -2291,7 +2284,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         kunjungan: k,
         status_keterangan: k.status_keterangan || 'Menunggu Penerimaan Awal oleh SA',
       }));
-  }, [myKunjunganList]);
+
+    const activeSpk: HistoryRow[] = mySpkList
+      .filter((s) => isServiceActive(s))
+      .map((s) => ({
+        ...s,
+        status_spk: getSpkDynamicStatus(s) as any,
+        sumber: 'spk' as const,
+      }));
+
+    return [...activeKunjungan, ...activeSpk].sort((a, b) =>
+      String(b.waktu_check_in || b.created_at || '').localeCompare(String(a.waktu_check_in || a.created_at || ''))
+    );
+  }, [myKunjunganList, mySpkList, isServiceActive]);
 
   const spkTotalRecords = spkPageData?.pagination?.total_records ?? (spkPageData?.rows?.length ?? 0);
   const activeHistoryCount = activeUnits.length;
@@ -2318,7 +2323,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }));
 
     if (historySafePage === 1 && !historySearch.trim() && historyStatusFilter === 'semua' && activeUnits.length > 0) {
-      return [...activeUnits, ...rawRows];
+      const rawIds = new Set(rawRows.map((r) => r.id));
+      const prependedUnits = activeUnits.filter((u) => !rawIds.has(u.id));
+      return [...prependedUnits, ...rawRows];
     }
 
     return rawRows;
