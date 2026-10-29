@@ -160,7 +160,6 @@ export interface ListQuery {
 }
 
 export const DEFAULT_PAGE_LIMIT = 10;
-export const LOOKUP_LIST_LIMIT = 50000;
 
 const normalizeList = <T,>(payload: any): PaginatedResult<T> => {
   if (Array.isArray(payload)) {
@@ -385,7 +384,7 @@ export const api = {
 
   // Kendaraan Saya
   getKendaraan: async (): Promise<Kendaraan[]> =>
-    (await fetchList<Kendaraan>('/kim3/kendaraan', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<Kendaraan>('/kim3/kendaraan')).rows,
   getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
     fetchList<Kendaraan>('/kim3/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
@@ -543,7 +542,7 @@ export const api = {
 
   // Dokumen Saya
   getDokumen: async (): Promise<DokumenKendaraan[]> =>
-    (await fetchList<DokumenKendaraan>('/kim3/dokumen', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<DokumenKendaraan>('/kim3/dokumen')).rows,
   getDokumenPage: (query: ListQuery = {}): Promise<PaginatedResult<DokumenKendaraan>> =>
     fetchList<DokumenKendaraan>('/kim3/dokumen', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahDokumen: async (data: Partial<DokumenKendaraan>): Promise<any> => {
@@ -553,7 +552,7 @@ export const api = {
 
   // Booking Service
   getBooking: async (): Promise<BookingService[]> =>
-    (await fetchList<BookingService>('/kim3/booking', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<BookingService>('/kim3/booking')).rows,
   getBookingPage: (query: ListQuery = {}): Promise<PaginatedResult<BookingService>> =>
     fetchList<BookingService>('/kim3/booking', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahBooking: async (data: Partial<BookingService>): Promise<any> => {
@@ -571,11 +570,11 @@ export const api = {
 
   // SPK Service (Pelacakan & Riwayat Service)
   getSpkList: async (): Promise<SpkService[]> =>
-    (await fetchList<SpkService>('/kim3/spk', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<SpkService>('/kim3/spk')).rows,
   getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
     fetchList<SpkService>('/kim3/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   getKunjunganService: async (): Promise<KunjunganService[]> =>
-    (await fetchList<KunjunganService>('/kim3/kunjungan-service', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<KunjunganService>('/kim3/kunjungan-service')).rows,
   updateSpkStatus: async (data: { id: number; status_spk?: string; catatan_sa?: string }): Promise<any> => {
     const res = await apiClient.post('/kim3/spk-status', data);
     return res.data;
@@ -583,17 +582,17 @@ export const api = {
 
   // Pekerjaan & Part SPK
   getPekerjaanSpk: async (): Promise<SpkItemPekerjaan[]> =>
-    (await fetchList<SpkItemPekerjaan>('/kim3/spk-pekerjaan', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<SpkItemPekerjaan>('/kim3/spk-pekerjaan')).rows,
   getPartSpk: async (): Promise<SpkItemPart[]> =>
-    (await fetchList<SpkItemPart>('/kim3/spk-part', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<SpkItemPart>('/kim3/spk-part')).rows,
 
   // Purchasing & ETA Part
   getPurchasingList: async (): Promise<PurchaseRequestPart[]> =>
-    (await fetchList<PurchaseRequestPart>('/kim3/purchasing', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<PurchaseRequestPart>('/kim3/purchasing')).rows,
 
   // Tambahan Pekerjaan & Persetujuan Customer
   getTambahanPekerjaan: async (): Promise<PekerjaanTambahan[]> =>
-    (await fetchList<PekerjaanTambahan>('/kim3/pekerjaan-tambahan', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<PekerjaanTambahan>('/kim3/pekerjaan-tambahan')).rows,
   approvalCustomer: async (data: { id: number; status_approval_customer: 'Disetujui' | 'Ditolak' }): Promise<any> => {
     const res = await apiClient.post('/kim3/approval-customer', data);
     return res.data;
@@ -601,7 +600,7 @@ export const api = {
 
   // Invoice & Pembayaran (Riwayat & Bukti Tagihan)
   getInvoiceList: async (): Promise<InvoicePembayaran[]> =>
-    (await fetchList<InvoicePembayaran>('/kim3/invoice', { limit: LOOKUP_LIST_LIMIT })).rows,
+    (await fetchList<InvoicePembayaran>('/kim3/invoice')).rows,
   getInvoiceListPage: (query: ListQuery = {}): Promise<PaginatedResult<InvoicePembayaran>> =>
     fetchList<InvoicePembayaran>('/kim3/invoice', { limit: DEFAULT_PAGE_LIMIT, ...query }),
 
