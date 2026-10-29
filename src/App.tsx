@@ -144,7 +144,8 @@ export const App: React.FC = () => {
     }
   };
 
-  const viewKey = activeTab;
+  const isFleetView = activeTab.startsWith('fleet-');
+  const viewKey = isFleetView ? 'fleet-customer-view' : activeTab;
 
   return (
     <div className="app-layout min-h-screen bg-surface flex flex-col font-sans text-ink pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">

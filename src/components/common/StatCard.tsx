@@ -81,6 +81,7 @@ export interface StatCardProps {
   onClick?: () => void;
   active?: boolean;
   className?: string;
+  isLoading?: boolean;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -94,6 +95,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   onClick,
   active = false,
   className = '',
+  isLoading = false,
 }) => {
   const theme = TONE_STYLES[tone] || TONE_STYLES.accent;
   const valueStr = String(value);
@@ -142,14 +144,18 @@ export const StatCard: React.FC<StatCardProps> = ({
             </div>
           )}
 
-          <div
-            className={`font-sans font-semibold tabular-nums text-right truncate max-w-full leading-none ${theme.textAccent} dark:text-white ${
-              isLongValue ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
-            }`}
-            title={valueStr}
-          >
-            {value}
-          </div>
+          {isLoading ? (
+            <div className="h-7 w-16 bg-slate-200 dark:bg-slate-700/60 rounded-lg animate-pulse" />
+          ) : (
+            <div
+              className={`font-sans font-semibold tabular-nums text-right truncate max-w-full leading-none ${theme.textAccent} dark:text-white ${
+                isLongValue ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'
+              }`}
+              title={valueStr}
+            >
+              {value}
+            </div>
+          )}
         </div>
 
         {/* Title and Subtitle Below (Sejajar sempurna antar card) */}

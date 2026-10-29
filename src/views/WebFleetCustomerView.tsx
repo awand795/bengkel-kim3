@@ -1698,6 +1698,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [hapusArmadaTarget, setHapusArmadaTarget] = useState<Kendaraan | null>(null);
 
   const [historyPage, setHistoryPage] = useState(1);
+  const [isChangingHistoryPage, setIsChangingHistoryPage] = useState(false);
+  const [isChangingArmadaPage, setIsChangingArmadaPage] = useState(false);
+  const [isChangingFakturPage, setIsChangingFakturPage] = useState(false);
   const historyContainerRef = React.useRef<HTMLDivElement>(null);
   const armadaContainerRef = React.useRef<HTMLDivElement>(null);
   const fakturContainerRef = React.useRef<HTMLDivElement>(null);
