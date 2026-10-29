@@ -456,14 +456,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     })()}
                   </div>
 
-                  {/* Kolom 4: Status Penerimaan / Estimasi Selesai / Waktu Selesai */}
+                  {/* Kolom 4: Status Penerimaan / Waktu Selesai / Status Pengerjaan */}
                   <div className="min-w-0 space-y-1">
                     <span className="text-xs font-medium text-ink-subtle block">
                       {isPreSpk
                         ? (spk.waktu_check_out ? 'Status Kunjungan' : 'Status Penerimaan')
-                        : spk.status_spk === 'Selesai'
+                        : spk.waktu_check_out
                         ? 'Waktu Selesai'
-                        : 'Estimasi Selesai'}
+                        : 'Status Pengerjaan'}
                     </span>
                     {isPreSpk ? (
                       spk.waktu_check_out ? (
@@ -477,42 +477,36 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           <span className="text-[11px] text-ink-muted block truncate">Penerimaan Awal</span>
                         </>
                       )
-                    ) : spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' ? (
+                    ) : spk.waktu_check_out ? (
                       (() => {
-                        if (spk.status_spk === 'Siap Keluar') {
-                          return (
-                            <>
-                              <span className="text-xs sm:text-sm font-bold text-status-green block">Siap Keluar</span>
-                              <span className="text-[11px] text-ink-muted block truncate">Menunggu Pos Security</span>
-                            </>
-                          );
-                        }
-                        const tOut = spk.waktu_check_out || spk.waktu_fir_closed || spk.waktu_qc || spk.waktu_selesai_pekerjaan;
-                        if (!tOut || isNaN(new Date(tOut).getTime())) {
-                          return (
-                            <>
-                              <span className="text-xs sm:text-sm font-bold text-status-green block">Selesai</span>
-                              <span className="text-[11px] text-ink-muted block">Inspeksi Lulus</span>
-                            </>
-                          );
-                        }
+                        const tOut = spk.waktu_check_out;
                         const dOut = new Date(tOut);
-                        const tglOut = dOut.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                        const jamOut = dOut.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+                        const isValid = !isNaN(dOut.getTime());
+                        const tglOut = isValid ? dOut.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+                        const jamOut = isValid ? dOut.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '';
                         return (
                           <>
                             <span className="text-xs sm:text-sm font-bold text-ink block truncate">{tglOut}</span>
-                            <span className="text-[11px] text-ink-muted block">{jamOut}</span>
+                            <span className="text-[11px] text-ink-muted block">{jamOut || 'Kendaraan Keluar'}</span>
                           </>
                         );
                       })()
                     ) : (
-                      <>
-                        <span className="text-xs sm:text-sm font-mono font-bold text-accent block">
-                          {(() => { const e = etaSpk(spk); return e.jam != null ? `${e.jam} Jam` : '-'; })()}
-                        </span>
-                        <span className="text-[11px] text-ink-muted block truncate">{labelSumberEta(etaSpk(spk).sumber)}</span>
-                      </>
+                      (() => {
+                        const dynamicStatus = getSpkDynamicStatus(spk);
+                        return (
+                          <>
+                            <span className="text-xs sm:text-sm font-bold text-accent block truncate">{dynamicStatus}</span>
+                            <span className="text-[11px] text-ink-muted block truncate">
+                              {dynamicStatus === 'Menunggu Invoice/Kasir'
+                                ? 'Pengerjaan Selesai — Menunggu Kasir'
+                                : dynamicStatus === 'Siap Keluar (Lunas)'
+                                ? 'Invoice Lunas — Siap Keluar'
+                                : 'Dalam Proses Pengerjaan'}
+                            </span>
+                          </>
+                        );
+                      })()
                     )}
                   </div>
                 </div>
@@ -1873,6 +1867,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 30000,
   });
 
+  React.useEffect(() => {
+    if (!spkPageFetching) setIsChangingHistoryPage(false);
+  }, [spkPageFetching]);
+
+  React.useEffect(() => {
+    if (!armadaFetching) setIsChangingArmadaPage(false);
+  }, [armadaFetching]);
+
+  React.useEffect(() => {
+    if (!fakturPageFetching) setIsChangingFakturPage(false);
+  }, [fakturPageFetching]);
+
   // Master Jenis Layanan dari view sch_fleet.v_jenis_layanan (database DEV-POS via /kim3/master/layanan)
   const { data: masterLayananList = [] } = useQuery({
     queryKey: ['master-jenis-layanan'],
@@ -2287,7 +2293,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
     const rawRows: HistoryRow[] = (spkPageData?.rows || []).map((s) => ({
       ...s,
-      status_spk: (s.status_spk === 'FIR Closed' ? 'FIR Closed' : 'Selesai') as any,
+      status_spk: getSpkDynamicStatus(s) as any,
       sumber: 'spk' as const,
     }));
 
@@ -2312,7 +2318,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (spkList === undefined) return;
     const target = mySpkList.find((s) => s.id === fleetPendingSpkId);
     if (target) {
-      setHistoryDetail({ ...target, sumber: 'spk' });
+      setHistoryDetail({ ...target, status_spk: getSpkDynamicStatus(target) as any, sumber: 'spk' });
     }
     setFleetPendingSpkId(null);
   }, [fleetPendingSpkId, fleetMenu, spkList, mySpkList, setFleetMenu, setHistoryDetail, setFleetPendingSpkId]);
@@ -4278,7 +4284,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           {armadaRows.length > 0 ? (
             <>
               <div ref={armadaContainerRef} className="relative scroll-mt-20">
-                {armadaFetching && (
+                {isChangingArmadaPage && (
                   <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl dark:bg-slate-900/40">
                     <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-accent shadow-md dark:bg-surface-raised dark:border-border">
                       <Loader2 className="w-4 h-4 animate-spin text-accent" />
@@ -4286,7 +4292,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     </div>
                   </div>
                 )}
-                <div className={`space-y-3 transition-opacity duration-200 ${armadaFetching ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+                <div className={`space-y-3 transition-opacity duration-200 ${isChangingArmadaPage ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
               {armadaRows.map((k) => {
                 const sedangDiBengkel = isUnitInWorkshop(k);
                 return (
@@ -4518,9 +4524,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               totalRecords={armadaPageData?.pagination?.total_records ?? armadaRows.length}
               limit={armadaLimit}
               label="kendaraan"
-              isLoading={armadaFetching}
+              isLoading={isChangingArmadaPage}
               className="rounded-xl border border-border bg-[#FAFBFD] px-4 py-3 sm:px-5 dark:bg-surface-raised"
               onPageChange={(p) => {
+                setIsChangingArmadaPage(true);
                 setArmadaPage(p);
                 scrollToTopRef(armadaContainerRef);
               }}
@@ -4705,7 +4712,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               {/* Table Faktur */}
               {fakturRows.length > 0 ? (
                 <div ref={fakturContainerRef} className="overflow-hidden bg-surface-raised relative scroll-mt-20">
-                  {fakturPageFetching && (
+                  {isChangingFakturPage && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-slate-900/40">
                       <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-accent shadow-md dark:bg-surface-raised dark:border-border">
                         <Loader2 className="w-4 h-4 animate-spin text-accent" />
@@ -4713,7 +4720,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       </div>
                     </div>
                   )}
-                  <div className={`transition-opacity duration-200 ${fakturPageFetching ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+                  <div className={`transition-opacity duration-200 ${isChangingFakturPage ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="border-b border-border bg-[#F8FAFC] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-subtle dark:bg-slate-900/40">
@@ -4846,8 +4853,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       totalRecords={fakturTotalRecords}
                       limit={fakturLimit}
                       label="faktur"
-                      isLoading={fakturPageFetching}
+                      isLoading={isChangingFakturPage}
                       onPageChange={(p) => {
+                        setIsChangingFakturPage(true);
                         setFakturPage(p);
                         scrollToTopRef(fakturContainerRef);
                       }}
@@ -5528,7 +5536,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             ) : historyRows.length > 0 ? (
               <>
                 <div className="relative">
-                  {spkPageFetching && (
+                  {isChangingHistoryPage && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-slate-900/40">
                       <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-accent shadow-md dark:bg-surface-raised dark:border-border">
                         <Loader2 className="w-4 h-4 animate-spin text-accent" />
@@ -5536,7 +5544,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       </div>
                     </div>
                   )}
-                  <div className={`transition-opacity duration-200 ${spkPageFetching ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+                  <div className={`transition-opacity duration-200 ${isChangingHistoryPage ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                     {/* Desktop Table: langsung di dalam kartu */}
                     <div className="hidden md:block overflow-x-auto">
                   <table className="w-full min-w-[900px] text-left text-xs">
@@ -5723,9 +5731,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   totalRecords={historyTotalRecords}
                   limit={historyLimit}
                   label="riwayat service"
-                  isLoading={spkPageFetching}
+                  isLoading={isChangingHistoryPage}
                   className="bg-[#FAFBFD] px-4 py-3 sm:px-5 dark:bg-slate-900/40"
                   onPageChange={(p) => {
+                    setIsChangingHistoryPage(true);
                     setHistoryPage(p);
                     scrollToTopRef(historyContainerRef);
                   }}

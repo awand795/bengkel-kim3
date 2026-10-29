@@ -573,7 +573,7 @@ export const api = {
 
   // SPK Service (Pelacakan & Riwayat Service)
   getSpkList: async (): Promise<SpkService[]> =>
-    (await fetchList<SpkService>('/kim3/spk')).rows,
+    (await fetchList<SpkService>('/kim3/spk', { limit: 1000 })).rows,
   getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
     fetchList<SpkService>('/kim3/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   getKunjunganService: async (): Promise<KunjunganService[]> =>
