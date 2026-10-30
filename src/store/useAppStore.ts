@@ -58,29 +58,44 @@ const roleDefaultTabs: Record<PeranUser, string> = {
   'Super Admin': 'admin-security',
 };
 
-// Initial state from localStorage
-const savedToken = typeof localStorage !== 'undefined' ? localStorage.getItem('bengkel_jwt_token') : null;
+// Initial state from localStorage with 1-day expiration check
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+let savedToken: string | null = null;
 let initialUser = '';
 let initialRole: PeranUser = 'Customer Fleet';
 let initialAuthUser: AuthUser | null = null;
 
-try {
-  const savedUserJson = typeof localStorage !== 'undefined' ? localStorage.getItem('bengkel_auth_user') : null;
-  if (savedUserJson) {
-    const parsed = JSON.parse(savedUserJson);
-    initialAuthUser = parsed;
-    if (parsed.nama_lengkap) initialUser = parsed.nama_lengkap;
-    const savedRole = `${parsed.peran || ''} ${parsed.role || ''}`.toLowerCase();
-    if (savedRole.includes('admin')) {
-      initialRole = 'Super Admin';
-    } else if (parsed.peran === 'Security' || parsed.role === 'Security') {
-      initialRole = 'Security';
-    } else {
-      initialRole = 'Customer Fleet';
+if (typeof localStorage !== 'undefined') {
+  const rawLoginAt = localStorage.getItem('bengkel_login_at');
+  const loginAt = rawLoginAt ? Number(rawLoginAt) : 0;
+  const isExpired = !loginAt || (Date.now() - loginAt > ONE_DAY_MS);
+
+  if (isExpired) {
+    localStorage.removeItem('bengkel_jwt_token');
+    localStorage.removeItem('bengkel_refresh_token');
+    localStorage.removeItem('bengkel_auth_user');
+    localStorage.removeItem('bengkel_login_at');
+  } else {
+    savedToken = localStorage.getItem('bengkel_jwt_token');
+    try {
+      const savedUserJson = localStorage.getItem('bengkel_auth_user');
+      if (savedUserJson) {
+        const parsed = JSON.parse(savedUserJson);
+        initialAuthUser = parsed;
+        if (parsed.nama_lengkap) initialUser = parsed.nama_lengkap;
+        const savedRole = `${parsed.peran || ''} ${parsed.role || ''}`.toLowerCase();
+        if (savedRole.includes('admin')) {
+          initialRole = 'Super Admin';
+        } else if (parsed.peran === 'Security' || parsed.role === 'Security') {
+          initialRole = 'Security';
+        } else {
+          initialRole = 'Customer Fleet';
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse saved auth user:', e);
     }
   }
-} catch (e) {
-  console.error('Failed to parse saved auth user:', e);
 }
 
 // Initial theme from localStorage
@@ -162,6 +177,7 @@ export const useAppStore = create<AppState>((set) => ({
       localStorage.setItem('bengkel_jwt_token', token);
       if (refreshToken) localStorage.setItem('bengkel_refresh_token', refreshToken);
       localStorage.setItem('bengkel_auth_user', JSON.stringify(fullUser));
+      localStorage.setItem('bengkel_login_at', String(Date.now()));
     }
 
     set({
@@ -180,6 +196,7 @@ export const useAppStore = create<AppState>((set) => ({
       localStorage.removeItem('bengkel_jwt_token');
       localStorage.removeItem('bengkel_refresh_token');
       localStorage.removeItem('bengkel_auth_user');
+      localStorage.removeItem('bengkel_login_at');
     }
     set({
       jwtToken: null,
