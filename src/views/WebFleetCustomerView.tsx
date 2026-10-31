@@ -30,6 +30,8 @@ import { FilterChips } from '../components/common/FilterChips';
 import { PlateChip } from '../components/common/PlateChip';
 import { RupiahCell } from '../components/common/RupiahCell';
 import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
+import { DashboardHtmlBanner } from '../components/common/DashboardHtmlBanner';
+import { DEFAULT_DASHBOARD_BANNER_HTML } from '../config/bannerTemplate';
 import { 
   Truck, 
   Calendar, 
@@ -1852,6 +1854,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 15000,
   });
 
+  // Pengaturan Publik (Banner Iklan Dashboard & Kontak WhatsApp)
+  const { data: pengaturanPublik } = useQuery({
+    queryKey: ['pengaturan-publik'],
+    queryFn: api.getPengaturanPublik,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const isBannerAktif = pengaturanPublik?.dashboard_banner_aktif !== 'false';
+  const bannerHtml =
+    pengaturanPublik?.dashboard_banner_html !== undefined
+      ? pengaturanPublik.dashboard_banner_html
+      : DEFAULT_DASHBOARD_BANNER_HTML;
+
   // Kunjungan SERVICE yang sudah check-in gerbang tetapi belum ada WO/SPK.
   // Sumber ini membuat unit tetap terlihat di Riwayat Service dengan status
   // "Check In — Menunggu Penerimaan Awal oleh SA".
@@ -2437,6 +2452,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     setOpenBookingModal(true);
     setFleetPendingBookingPlate(null);
   }, [fleetPendingBookingPlate, fleetMenu, setFleetPendingBookingPlate, kendaraanList, isUnitInWorkshop]);
+
+  // Handler untuk event tombol CTA banner iklan (misal klik "Booking Service Sekarang")
+  React.useEffect(() => {
+    const handleOpenBooking = () => {
+      if (!isVerifiedByAdmin) {
+        toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+        return;
+      }
+      setFleetMenu('booking');
+      setActiveTab('fleet-booking');
+      setBookingStep(1);
+      setOpenBookingModal(true);
+    };
+    window.addEventListener('open-booking-modal', handleOpenBooking);
+    return () => window.removeEventListener('open-booking-modal', handleOpenBooking);
+  }, [isVerifiedByAdmin, setActiveTab]);
 
   // Kalau jumlah data menyusut (mis. filter pencarian aktif) sampai halaman aktif
   // melewati halaman terakhir, tarik kembali ke halaman terakhir yang valid.
@@ -3454,6 +3485,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               }}
             />
           </div>
+
+          {/* Banner Iklan Dashboard (HTML / Carousel) di bagian paling bawah dashboard */}
+          {isBannerAktif && bannerHtml && bannerHtml.trim() !== '' && (
+            <div className="pt-2">
+              <DashboardHtmlBanner html={bannerHtml} />
+            </div>
+          )}
         </div>
       )}
 

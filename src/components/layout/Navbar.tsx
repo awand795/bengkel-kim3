@@ -32,7 +32,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'security-memo': { title: 'Memo Keluar', subtitle: 'Arsip Digital Gate Pass' },
   'admin-security': { title: 'Akun Security', subtitle: 'Kelola Petugas Pos Gerbang' },
   'admin-akun': { title: 'Akun Admin', subtitle: 'Kelola Administrator Portal' },
-  'admin-pengaturan': { title: 'Pengaturan Web', subtitle: 'Kontak & Nomor WhatsApp' },
+  'admin-pengaturan': { title: 'Pengaturan Web', subtitle: 'Kontak WhatsApp & Banner Iklan' },
 };
 
 export const Navbar: React.FC = () => {

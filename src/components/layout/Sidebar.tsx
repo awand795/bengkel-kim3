@@ -52,7 +52,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   const adminNavigationItems: NavItem[] = [
-    { id: 'admin-pengaturan', label: 'Pengaturan WhatsApp', icon: Settings },
+    { id: 'admin-pengaturan', label: 'Pengaturan Web & Banner', icon: Settings },
   ];
 
   const navigationItems =
