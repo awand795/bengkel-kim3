@@ -17,7 +17,7 @@ import { toast } from '../components/common/Toast';
 import { TimePickerInput } from '../components/common/TimePickerInput';
 import { etaSpk, labelSumberEta } from '../utils/eta';
 import { fmtWaktuFull } from '../utils/dateFormat';
-import { resolveServiceTimeline } from '../utils/serviceTimeline';
+import { resolveServiceTimeline, hasServiceBooking } from '../utils/serviceTimeline';
 import { spkStatusLabel, getSpkDynamicStatus } from '../utils/statusLabel';
 import { StepModal } from '../components/common/StepModal';
 import { DetailModal } from '../components/common/DetailModal';
@@ -30,6 +30,8 @@ import { FilterChips } from '../components/common/FilterChips';
 import { PlateChip } from '../components/common/PlateChip';
 import { RupiahCell } from '../components/common/RupiahCell';
 import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
+import { DashboardHtmlBanner } from '../components/common/DashboardHtmlBanner';
+import { DEFAULT_DASHBOARD_BANNER_HTML } from '../config/bannerTemplate';
 import { 
   Truck, 
   Calendar, 
@@ -649,21 +651,39 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
               {/* Stepper Progress Bar */}
               {(() => {
                 const isFullyFinished = !!spk.waktu_check_out || spk.status_spk === 'Selesai';
+                const isBooking = hasServiceBooking(spk);
+                const bookingTimeStr = isBooking
+                  ? (spk.waktu_booking ||
+                      (spk.tanggal_booking
+                        ? `${spk.tanggal_booking}T${spk.jam_booking || '08:00'}:00`
+                        : null))
+                  : null;
                 return (
               <div className="py-6 px-4 sm:px-6 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] via-surface-raised to-surface-raised dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
-                <div className="flex items-start justify-between min-w-[780px] relative">
+                <div className="flex items-start justify-between min-w-[860px] relative">
                   {[
                     {
                       step: 1,
+                      title: 'Booking',
+                      desc: isBooking ? (spk.no_booking || 'Terjadwal') : 'Non Booking',
+                      done: isBooking,
+                      current: false,
+                      isWaitingPart: false,
+                      isNonBooking: !isBooking,
+                      waktu: bookingTimeStr
+                    },
+                    {
+                      step: 2,
                       title: 'Check In',
                       desc: 'Diterima Security',
                       done: true,
                       current: false,
                       isWaitingPart: false,
+                      isNonBooking: false,
                       waktu: spk.waktu_check_in || spk.created_at
                     },
                     { 
-                      step: 2, 
+                      step: 3, 
                       title: isPreSpk
                         ? 'Penerimaan SA'
                         : spk.status_spk === 'Waiting Part'
@@ -689,52 +709,57 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       done: isFullyFinished || serviceTimeline.pengerjaan === 'done',
                       current: !isFullyFinished && (serviceTimeline.pengerjaan === 'active' || serviceTimeline.pengerjaan === 'blocked' || serviceTimeline.pengerjaan === 'attention'),
                       isWaitingPart: !isFullyFinished && serviceTimeline.pengerjaan === 'blocked',
+                      isNonBooking: false,
                       waktu: isPreSpk ? null : (spk.waktu_selesai_pekerjaan || spk.waktu_mulai_pekerjaan)
                     },
                     { 
-                      step: 3, 
+                      step: 4, 
                       title: 'QC Passed', 
                       desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Inspeksi Foreman', 
                       done: isFullyFinished || serviceTimeline.qc === 'done', 
                       current: !isFullyFinished && serviceTimeline.qc === 'active', 
                       isWaitingPart: false,
+                      isNonBooking: false,
                       waktu: isPreSpk ? null : (spk.waktu_qc || spk.tanggal_qc || (isFullyFinished ? (spk.waktu_selesai_pekerjaan || spk.waktu_check_in) : null)) 
                     },
                     { 
-                      step: 4, 
+                      step: 5, 
                       title: 'FIR Closed', 
                       desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Final Check SA', 
                       done: isFullyFinished || serviceTimeline.fir === 'done', 
                       current: !isFullyFinished && serviceTimeline.fir === 'active', 
                       isWaitingPart: false,
+                      isNonBooking: false,
                       waktu: isPreSpk ? null : (spk.waktu_fir_closed || (isFullyFinished ? (spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) : null)) 
                     },
                     { 
-                      step: 5, 
+                      step: 6, 
                       title: 'Invoice', 
                       desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Proses Kasir', 
                       done: isFullyFinished || serviceTimeline.pembayaran === 'done', 
                       current: !isFullyFinished && serviceTimeline.pembayaran === 'active', 
                       isWaitingPart: false,
+                      isNonBooking: false,
                       waktu: isPreSpk ? null : (activeInvoice?.tanggal_bayar || activeInvoice?.tanggal_invoice || (isFullyFinished ? (spk.waktu_check_out || spk.waktu_fir_closed) : null)) 
                     },
                     { 
-                      step: 6, 
+                      step: 7, 
                       title: 'Check Out', 
                       desc: isPreSpk ? 'Keluar Gerbang' : 'Kendaraan Keluar', 
                       done: isFullyFinished || serviceTimeline.keluar === 'done', 
                       current: !isFullyFinished && serviceTimeline.keluar === 'active', 
                       isWaitingPart: false,
+                      isNonBooking: false,
                       waktu: spk.waktu_check_out 
                     },
                   ].map((s, idx, arr) => {
                     const isLast = idx === arr.length - 1;
                     const nextStep = !isLast ? arr[idx + 1] : null;
-                    const lineDone = isFullyFinished || (s.done && (nextStep?.done || nextStep?.current));
+                    const lineDone = s.done && (isFullyFinished || nextStep?.done || nextStep?.current);
                     const wt = s.waktu ? fmtWaktuStep(s.waktu as string) : null;
 
                     return (
-                      <div key={s.step} className="flex-1 flex items-start relative min-w-[125px]">
+                      <div key={s.step} className="flex-1 flex items-start relative min-w-[120px]">
                         {/* Connecting Line to next step */}
                         {!isLast && (
                           <div 
@@ -759,7 +784,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               ? 'bg-gradient-to-br from-[#16A34A] to-[#22C55E] text-white shadow-sm' 
                               : 'bg-white dark:bg-slate-900 text-ink-subtle border-2 border-dashed border-border'
                           }`}>
-                            {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.step}
+                            {s.done ? <CheckCircle2 className="w-5 h-5" /> : s.isNonBooking ? '—' : s.step}
                           </div>
 
                           {/* Step Title */}
@@ -1662,8 +1687,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Booking Wizard Step (image5.png Mockup 1)
   const [openBookingModal, setOpenBookingModal] = useState<boolean>(false);
   const [bookingStep, setBookingStep] = useState<number>(1);
+  const [selectedServices, setSelectedServices] = useState<string[]>([
+    'Service Berkala (Ganti Oli & Filter)',
+  ]);
   const [isCustomService, setIsCustomService] = useState(false);
   const [customServiceText, setCustomServiceText] = useState('');
+  const buildJenisLayananString = useCallback(
+    (services: string[], customEnabled: boolean, customText: string): string => {
+      const items = [...services];
+      if (customEnabled) {
+        items.push(customText.trim() || 'Perbaikan Kustom');
+      }
+      return items.join(', ');
+    },
+    []
+  );
   const [bookingServiceSearch, setBookingServiceSearch] = useState('');
   const [bookingServiceCategory, setBookingServiceCategory] = useState('Semua');
   const [showAllBookingServices, setShowAllBookingServices] = useState(false);
@@ -1815,6 +1853,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     placeholderData: (prev) => prev,
     refetchInterval: 15000,
   });
+
+  // Pengaturan Publik (Banner Iklan Dashboard & Kontak WhatsApp)
+  const { data: pengaturanPublik } = useQuery({
+    queryKey: ['pengaturan-publik'],
+    queryFn: api.getPengaturanPublik,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const isBannerAktif = pengaturanPublik?.dashboard_banner_aktif !== 'false';
+  const bannerHtml =
+    pengaturanPublik?.dashboard_banner_html !== undefined
+      ? pengaturanPublik.dashboard_banner_html
+      : DEFAULT_DASHBOARD_BANNER_HTML;
 
   // Kunjungan SERVICE yang sudah check-in gerbang tetapi belum ada WO/SPK.
   // Sumber ini membuat unit tetap terlihat di Riwayat Service dengan status
@@ -2209,11 +2260,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         id: k.id,
         no_spk: k.nomor_tiket,
         id_booking: k.booking_id ?? undefined,
+        booking_id: k.booking_id ?? null,
+        no_booking: k.no_booking ?? null,
+        tanggal_booking: k.tanggal_booking ?? null,
+        jam_booking: k.jam_booking ?? null,
+        jenis_layanan_booking: k.jenis_layanan_booking ?? null,
+        waktu_booking: k.waktu_booking ?? null,
+        is_booking: k.is_booking ?? (k.booking_id != null),
         id_pelanggan: k.id_pelanggan ?? null,
         no_polisi: k.no_polisi,
         nama_customer: k.nama_customer,
         odometer_km: k.odometer_km ?? 0,
-        jenis_layanan: 'Service Kendaraan',
+        jenis_layanan: k.jenis_layanan_booking || 'Service Kendaraan',
         foto_kendaraan: k.foto_kendaraan_masuk ?? undefined,
         keluhan_customer: k.keluhan_customer || k.tujuan_kunjungan || 'Service Kendaraan',
         cek_body: k.cek_body,
@@ -2262,11 +2320,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         id: k.id,
         no_spk: k.nomor_tiket,
         id_booking: k.booking_id ?? undefined,
+        booking_id: k.booking_id ?? null,
+        no_booking: k.no_booking ?? null,
+        tanggal_booking: k.tanggal_booking ?? null,
+        jam_booking: k.jam_booking ?? null,
+        jenis_layanan_booking: k.jenis_layanan_booking ?? null,
+        waktu_booking: k.waktu_booking ?? null,
+        is_booking: k.is_booking ?? (k.booking_id != null),
         id_pelanggan: k.id_pelanggan ?? null,
         no_polisi: k.no_polisi,
         nama_customer: k.nama_customer,
         odometer_km: k.odometer_km ?? 0,
-        jenis_layanan: 'Service Kendaraan',
+        jenis_layanan: k.jenis_layanan_booking || 'Service Kendaraan',
         foto_kendaraan: k.foto_kendaraan_masuk ?? undefined,
         keluhan_customer: k.keluhan_customer || k.tujuan_kunjungan || 'Service Kendaraan',
         cek_body: k.cek_body,
@@ -2387,6 +2452,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     setOpenBookingModal(true);
     setFleetPendingBookingPlate(null);
   }, [fleetPendingBookingPlate, fleetMenu, setFleetPendingBookingPlate, kendaraanList, isUnitInWorkshop]);
+
+  // Handler untuk event tombol CTA banner iklan (misal klik "Booking Service Sekarang")
+  React.useEffect(() => {
+    const handleOpenBooking = () => {
+      if (!isVerifiedByAdmin) {
+        toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+        return;
+      }
+      setFleetMenu('booking');
+      setActiveTab('fleet-booking');
+      setBookingStep(1);
+      setOpenBookingModal(true);
+    };
+    window.addEventListener('open-booking-modal', handleOpenBooking);
+    return () => window.removeEventListener('open-booking-modal', handleOpenBooking);
+  }, [isVerifiedByAdmin, setActiveTab]);
 
   // Kalau jumlah data menyusut (mis. filter pencarian aktif) sampai halaman aktif
   // melewati halaman terakhir, tarik kembali ke halaman terakhir yang valid.
@@ -2985,6 +3066,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       );
       setOpenBookingModal(false);
       setBookingStep(1);
+      setSelectedServices(['Service Berkala (Ganti Oli & Filter)']);
+      setIsCustomService(false);
+      setCustomServiceText('');
       setBookingForm({
         no_polisi: '',
         jenis_layanan: 'Service Berkala (Ganti Oli & Filter)',
@@ -3401,6 +3485,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               }}
             />
           </div>
+
+          {/* Banner Iklan Dashboard (HTML / Carousel) di bagian paling bawah dashboard */}
+          {isBannerAktif && bannerHtml && bannerHtml.trim() !== '' && (
+            <div className="pt-2">
+              <DashboardHtmlBanner html={bannerHtml} />
+            </div>
+          )}
         </div>
       )}
 
@@ -3864,6 +3955,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 {
                   id: 'layanan',
                   label: 'Pilih Layanan',
+                  isValid: (selectedServices.length > 0 || isCustomService) && Boolean(bookingForm.jenis_layanan.trim()),
                   content: (
                     <div className="space-y-4">
                       {/* Ringkasan unit yang dipilih dari menu Kendaraan (langkah ini dapat
@@ -3886,15 +3978,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </div>
                       )}
                       <div className="rounded-xl border border-border bg-white p-3.5 shadow-sm sm:p-4 dark:bg-surface-raised">
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#52647E] dark:text-blue-300">Jenis pekerjaan</p>
-                          <h3 className="mt-0.5 text-sm font-bold tracking-tight text-ink">Apa yang perlu dikerjakan?</h3>
-                          <p className="mt-0.5 text-[11px] text-ink-muted">Pilih layanan paling sesuai.</p>
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#52647E] dark:text-blue-300">Jenis pekerjaan</p>
+                            <h3 className="mt-0.5 text-sm font-bold tracking-tight text-ink">Apa yang perlu dikerjakan?</h3>
+                            <p className="mt-0.5 text-[11px] text-ink-muted">Pilih satu atau beberapa layanan yang dibutuhkan.</p>
+                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE5F5] bg-[#F5F8FD] px-2.5 py-1 text-[11px] font-bold text-[#34517C] dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-300">
+                            {selectedServices.length + (isCustomService ? 1 : 0)} layanan dipilih
+                          </span>
                         </div>
 
                         <div className="mt-3 space-y-1.5">
                         {availableServiceOptions.map((srv) => {
-                          const isSelected = !isCustomService && bookingForm.jenis_layanan === srv.title;
+                          const isSelected = selectedServices.includes(srv.title);
                           const IconComp = srv.icon;
                           return (
                             <button
@@ -3902,8 +3999,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               type="button"
                               aria-pressed={isSelected}
                               onClick={() => {
-                                setIsCustomService(false);
-                                setBookingForm({ ...bookingForm, jenis_layanan: srv.title });
+                                const nextServices = isSelected
+                                  ? selectedServices.filter((item) => item !== srv.title)
+                                  : [...selectedServices, srv.title];
+                                setSelectedServices(nextServices);
+                                setBookingForm({
+                                  ...bookingForm,
+                                  jenis_layanan: buildJenisLayananString(nextServices, isCustomService, customServiceText),
+                                });
                               }}
                               className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                                 isSelected
@@ -3923,7 +4026,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               <span className="hidden shrink-0 rounded-md border border-border bg-white px-2 py-1 text-[9px] font-semibold text-ink-subtle sm:inline dark:bg-surface-raised">
                                 {srv.tag}
                               </span>
-                              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
                                 isSelected ? 'border-[#34517C] bg-[#34517C] text-white' : 'border-[#CBD5E1] text-transparent dark:border-slate-600'
                               }`}>
                                 <Check className="h-3 w-3" />
@@ -3938,10 +4041,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             type="button"
                             aria-pressed={isCustomService}
                             onClick={() => {
-                              setIsCustomService(true);
+                              const nextCustom = !isCustomService;
+                              setIsCustomService(nextCustom);
                               setBookingForm({
                                 ...bookingForm,
-                                jenis_layanan: customServiceText.trim() || 'Perbaikan Kustom',
+                                jenis_layanan: buildJenisLayananString(selectedServices, nextCustom, customServiceText),
                               });
                             }}
                             className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
@@ -3962,7 +4066,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             <span className="hidden shrink-0 rounded-md border border-border bg-white px-2 py-1 text-[9px] font-semibold text-ink-subtle sm:inline dark:bg-surface-raised">
                               Kustom
                             </span>
-                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
                               isCustomService ? 'border-[#34517C] bg-[#34517C] text-white' : 'border-[#CBD5E1] text-transparent dark:border-slate-600'
                             }`}>
                               <Check className="h-3 w-3" />
@@ -3983,7 +4087,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                   setCustomServiceText(val);
                                   setBookingForm({
                                     ...bookingForm,
-                                    jenis_layanan: val.trim() || 'Perbaikan Kustom',
+                                    jenis_layanan: buildJenisLayananString(selectedServices, true, val),
                                   });
                                 }}
                                 className="w-full pl-3.5 pr-8 py-2.5 rounded-lg border border-accent/50 text-xs focus:ring-2 focus:ring-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
@@ -3993,7 +4097,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                   type="button"
                                   onClick={() => {
                                     setCustomServiceText('');
-                                    setBookingForm({ ...bookingForm, jenis_layanan: 'Perbaikan Kustom' });
+                                    setBookingForm({
+                                      ...bookingForm,
+                                      jenis_layanan: buildJenisLayananString(selectedServices, true, ''),
+                                    });
                                   }}
                                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink p-1 cursor-pointer"
                                   title="Hapus teks"
@@ -4004,6 +4111,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             </div>
                           )}
                         </div>
+                        {selectedServices.length === 0 && !isCustomService && (
+                          <p className="pt-1 text-[11px] font-medium text-status-red">
+                            Pilih minimal satu layanan untuk melanjutkan ke langkah berikutnya.
+                          </p>
+                        )}
                         </div>
                       </div>
 

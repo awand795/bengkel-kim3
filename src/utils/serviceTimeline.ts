@@ -17,6 +17,7 @@ import type { SpkService } from '../types';
 import { normalizeSpkStatus } from './statusLabel';
 
 export type ServiceStageKey =
+  | 'booking'
   | 'masuk'
   | 'penerimaan'
   | 'wo'
@@ -30,6 +31,7 @@ export type ServiceStageState = 'done' | 'active' | 'blocked' | 'attention' | 'p
 
 /** Urutan tahap sesuai SOP bengkel (dipakai untuk menentukan tahap terakhir yang tampil). */
 export const SERVICE_STAGE_ORDER: ServiceStageKey[] = [
+  'booking',
   'masuk',
   'penerimaan',
   'wo',
@@ -62,12 +64,34 @@ type SpkTimelineInput = Pick<
   | 'tanggal_qc'
   | 'waktu_fir_closed'
   | 'waktu_check_out'
+  | 'is_booking'
+  | 'booking_id'
+  | 'no_booking'
+  | 'waktu_booking'
+  | 'tanggal_booking'
 > & {
   sumber?: 'spk' | 'kunjungan';
   isPreSpk?: boolean;
 };
 
 const ada = (v?: string | null): boolean => !!v && String(v).trim() !== '';
+
+/** Cek apakah suatu entri SPK / Kunjungan berasal dari Booking Service. */
+export const hasServiceBooking = (
+  spk?: {
+    is_booking?: boolean | null;
+    booking_id?: number | null;
+    no_booking?: string | null;
+    waktu_booking?: string | null;
+    tanggal_booking?: string | null;
+  } | null
+): boolean => {
+  if (!spk) return false;
+  if (spk.is_booking === true) return true;
+  if (spk.booking_id != null && Number(spk.booking_id) > 0) return true;
+  if (ada(spk.no_booking)) return true;
+  return false;
+};
 
 /**
  * Tentukan state tiap tahap timeline servis.
@@ -79,6 +103,8 @@ export const resolveServiceTimeline = (
   spk: SpkTimelineInput | null | undefined,
   invoiceLunas = false
 ): Record<ServiceStageKey, ServiceStageState> => {
+  const booking: ServiceStageState = hasServiceBooking(spk) ? 'done' : 'pending';
+
   // Khusus data kunjungan gerbang saja (gate-only / tanpa SPK pengerjaan bengkel):
   // - Bila kendaraan langsung check out dari gerbang (misal batal servis / kunjungan biasa):
   //   hanya tampil 2 tahap: masuk (done) dan keluar (done). Tahap bengkel lainnya pending (tidak tampil).
@@ -93,7 +119,7 @@ export const resolveServiceTimeline = (
     const fir: ServiceStageState = 'pending';
     const pembayaran: ServiceStageState = 'pending';
 
-    return { masuk, penerimaan, wo, pengerjaan, qc, fir, pembayaran, keluar };
+    return { booking, masuk, penerimaan, wo, pengerjaan, qc, fir, pembayaran, keluar };
   }
 
   // Status lama ("Proses Pekerjaan", "Selesai Dikerjakan") disamakan ke status baku
@@ -103,6 +129,7 @@ export const resolveServiceTimeline = (
   // Bila unit sudah resmi check out dari gerbang atau berstatus Selesai, SEMUA tahap servis tuntas (done)
   if (ada(spk?.waktu_check_out) || status === 'Selesai') {
     return {
+      booking,
       masuk: 'done',
       penerimaan: 'done',
       wo: 'done',
@@ -145,7 +172,7 @@ export const resolveServiceTimeline = (
   if (ada(spk?.waktu_check_out)) keluar = 'done';
   else if (invoiceLunas || status === 'Siap Keluar (Lunas)' || status === 'Siap Keluar') keluar = 'active';
 
-  return { masuk, penerimaan, wo, pengerjaan, qc, fir, pembayaran, keluar };
+  return { booking, masuk, penerimaan, wo, pengerjaan, qc, fir, pembayaran, keluar };
 };
 
 /** Ambil tahap yang perlu ditampilkan (semua yang sudah tercapai atau sedang berjalan). */

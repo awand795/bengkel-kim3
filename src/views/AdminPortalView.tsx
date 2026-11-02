@@ -10,11 +10,18 @@ import {
   AlertTriangle,
   CheckCircle2,
   Lock,
+  Layout,
+  Code,
+  Sparkles,
+  Eye,
+  RotateCcw,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../api/client';
 import { PengaturanSitus } from '../types';
 import { toast } from '../components/common/Toast';
+import { DashboardHtmlBanner } from '../components/common/DashboardHtmlBanner';
+import { DEFAULT_DASHBOARD_BANNER_HTML } from '../config/bannerTemplate';
 
 const fmtTanggal = (value?: string | null): string => {
   if (!value) return '-';
@@ -95,12 +102,16 @@ const ModalShell: React.FC<{
   </div>
 );
 
-// ── Tab: Pengaturan Web & Kontak WhatsApp ───────────────────────────────────
+// ── Tab: Pengaturan Web, Banner Iklan & WhatsApp ────────────────────────────
 const PengaturanTab: React.FC = () => {
   const queryClient = useQueryClient();
   const [waNomor, setWaNomor] = useState('');
   const [waPesan, setWaPesan] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [savingWa, setSavingWa] = useState(false);
+
+  const [bannerAktif, setBannerAktif] = useState(true);
+  const [bannerHtml, setBannerHtml] = useState(DEFAULT_DASHBOARD_BANNER_HTML);
+  const [savingBanner, setSavingBanner] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-pengaturan'],
@@ -118,14 +129,20 @@ const PengaturanTab: React.FC = () => {
     if (!data) return;
     setWaNomor(map.wa_cs?.nilai || '');
     setWaPesan(map.wa_cs_pesan?.nilai || '');
+    if (map.dashboard_banner_aktif?.nilai !== undefined) {
+      setBannerAktif(map.dashboard_banner_aktif.nilai !== 'false');
+    }
+    if (map.dashboard_banner_html?.nilai !== undefined) {
+      setBannerHtml(map.dashboard_banner_html.nilai || '');
+    }
   }, [data]);
 
   const nomorFinal = normalisasiWa(waNomor);
   const linkPratinjau = nomorFinal
-    ? `https://wa.me/${nomorFinal}?text=${encodeURIComponent(waPesan || 'Halo Bengkel KIM3')}`
+    ? `https://wa.me/${nomorFinal}?text=${encodeURIComponent(waPesan || 'Halo Master Truck')}`
     : '';
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSaveWa = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nomorFinal || nomorFinal.length < 10) {
       return toast.warning('Nomor WhatsApp tidak valid', 'Gunakan nomor Indonesia, mis. 081234567890 atau 6281234567890.');
@@ -134,7 +151,7 @@ const PengaturanTab: React.FC = () => {
       return toast.warning('Pesan otomatis wajib diisi', 'Pesan ini dipakai sebagai teks awal saat pelanggan membuka WhatsApp.');
     }
 
-    setSaving(true);
+    setSavingWa(true);
     try {
       await api.simpanPengaturan({
         kunci: 'wa_cs',
@@ -150,18 +167,156 @@ const PengaturanTab: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: ['admin-pengaturan'] }),
         queryClient.invalidateQueries({ queryKey: ['pengaturan-publik'] }),
       ]);
-      toast.success('Pengaturan disimpan', 'Nomor WhatsApp pada sidebar & menu mobile langsung diperbarui.');
+      toast.success('Pengaturan WhatsApp disimpan', 'Nomor WhatsApp pada sidebar & menu mobile langsung diperbarui.');
     } catch (err) {
-      toast.error('Gagal menyimpan pengaturan', describeError(err, 'Coba beberapa saat lagi.'));
+      toast.error('Gagal menyimpan WhatsApp', describeError(err, 'Coba beberapa saat lagi.'));
     } finally {
-      setSaving(false);
+      setSavingWa(false);
+    }
+  };
+
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingBanner(true);
+    try {
+      await api.simpanPengaturan({
+        kunci: 'dashboard_banner_aktif',
+        nilai: bannerAktif ? 'true' : 'false',
+        keterangan: 'Status aktifasi banner iklan dashboard (true/false)',
+      });
+      await api.simpanPengaturan({
+        kunci: 'dashboard_banner_html',
+        nilai: bannerHtml.trim(),
+        keterangan: 'Kode HTML konten banner iklan dashboard customer',
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-pengaturan'] }),
+        queryClient.invalidateQueries({ queryKey: ['pengaturan-publik'] }),
+      ]);
+      toast.success('Pengaturan Banner Disimpan', 'Banner iklan pada dashboard customer berhasil diperbarui.');
+    } catch (err) {
+      toast.error('Gagal menyimpan banner iklan', describeError(err, 'Coba beberapa saat lagi.'));
+    } finally {
+      setSavingBanner(false);
     }
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-200">
-      <div className="rounded-xl bg-surface-raised border border-border">
-        <div className="px-4 py-3.5 border-b border-border flex items-center gap-2">
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* ── KARTU 1: PENGATURAN BANNER IKLAN DASHBOARD (HTML / CAROUSEL) ── */}
+      <div className="rounded-xl bg-surface-raised border border-border overflow-hidden">
+        <div className="px-4 py-3.5 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-surface/50">
+          <div className="flex items-center gap-2">
+            <Layout className="w-4 h-4 text-[#1D4ED8]" />
+            <div>
+              <h2 className="text-xs font-bold text-ink">Banner Iklan Dashboard Customer (HTML)</h2>
+              <p className="text-[10px] text-ink-muted">
+                Atur konten promosi/banner HTML yang tampil di bagian paling bawah halaman dashboard customer.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={bannerAktif}
+                onChange={(e) => setBannerAktif(e.target.checked)}
+                className="w-4 h-4 rounded text-accent accent-[#1D4ED8] focus:ring-accent/30 cursor-pointer"
+              />
+              <span className={bannerAktif ? 'text-status-green font-bold' : 'text-ink-muted'}>
+                {bannerAktif ? 'Banner Aktif' : 'Banner Dinonaktifkan'}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-xs text-ink-muted">
+            <Loader2 className="w-4 h-4 animate-spin" /> Memuat banner...
+          </div>
+        ) : (
+          <form onSubmit={handleSaveBanner} className="p-4 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-ink flex items-center gap-1.5">
+                <Code className="w-3.5 h-3.5 text-accent" />
+                Editor Kode HTML Banner
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBannerHtml(DEFAULT_DASHBOARD_BANNER_HTML);
+                    toast.info('Template Dimuat', 'Template sample slider iklan 3 slide telah dimuat ke editor.');
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-accent/30 bg-accent-subtle/50 text-accent hover:bg-accent-subtle text-[11px] font-semibold transition cursor-pointer"
+                  title="Pakai template slider otomatis 3 slide promosi Master Truck"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Pakai Template Sample Slider Truk
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBannerHtml('')}
+                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-border bg-surface text-ink-muted hover:text-status-red text-[11px] font-medium transition cursor-pointer"
+                  title="Kosongkan HTML"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Bersihkan
+                </button>
+              </div>
+            </div>
+
+            <textarea
+              value={bannerHtml}
+              onChange={(e) => setBannerHtml(e.target.value)}
+              rows={10}
+              placeholder="<!-- Masukkan kode HTML & inline CSS banner di sini... -->"
+              className="w-full px-3.5 py-3 rounded-xl border border-border bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
+              spellCheck={false}
+            />
+
+            {/* Live Interactive Preview Box */}
+            <div className="rounded-xl border border-border bg-surface/60 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold text-ink-muted uppercase tracking-wide flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5 text-accent" />
+                  Live Pratinjau Tampilan Dashboard
+                </p>
+                <span className="text-[10px] text-ink-subtle">
+                  {bannerAktif ? 'Tampil di dashboard pelanggan' : 'Disembunyikan dari dashboard pelanggan'}
+                </span>
+              </div>
+              {bannerHtml.trim() ? (
+                <div className="rounded-xl overflow-hidden border border-border shadow-xs bg-surface">
+                  <DashboardHtmlBanner html={bannerHtml} />
+                </div>
+              ) : (
+                <div className="p-6 text-center text-xs text-ink-muted border border-dashed border-border rounded-xl">
+                  Kode HTML masih kosong. Klik &quot;Pakai Template Sample Slider Truk&quot; di atas untuk mencoba template sample.
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <p className="text-[10px] text-ink-muted">
+                Terakhir diubah: {map.dashboard_banner_html?.update_dt ? fmtTanggal(map.dashboard_banner_html.update_dt) : '-'}
+              </p>
+              <button
+                type="submit"
+                disabled={savingBanner}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-xs"
+              >
+                {savingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Simpan Banner Iklan
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* ── KARTU 2: PENGATURAN WHATSAPP LAYANAN PELANGGAN ── */}
+      <div className="rounded-xl bg-surface-raised border border-border overflow-hidden">
+        <div className="px-4 py-3.5 border-b border-border flex items-center gap-2 bg-surface/50">
           <MessageCircle className="w-4 h-4 text-[#16A34A]" />
           <div>
             <h2 className="text-xs font-bold text-ink">Kontak WhatsApp Layanan Pelanggan</h2>
@@ -173,10 +328,10 @@ const PengaturanTab: React.FC = () => {
 
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-10 text-xs text-ink-muted">
-            <Loader2 className="w-4 h-4 animate-spin" /> Memuat pengaturan...
+            <Loader2 className="w-4 h-4 animate-spin" /> Memuat WhatsApp...
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-4 space-y-3.5">
+          <form onSubmit={handleSaveWa} className="p-4 space-y-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <Field
                 id="set-wa"
@@ -202,7 +357,7 @@ const PengaturanTab: React.FC = () => {
                   onChange={(e) => setWaPesan(e.target.value)}
                   rows={2}
                   className={`${inputClass} resize-none`}
-                  placeholder="Halo Bengkel KIM3, saya butuh bantuan..."
+                  placeholder="Halo Master Truck, saya butuh bantuan..."
                 />
               </Field>
             </div>
@@ -217,7 +372,7 @@ const PengaturanTab: React.FC = () => {
               </div>
               <div className="rounded-lg bg-[#DCFCE7] dark:bg-emerald-950/40 border border-[#BBF7D0] dark:border-emerald-900 px-3 py-2">
                 <p className="text-[11px] text-[#166534] dark:text-emerald-200 leading-relaxed break-words">
-                  {waPesan || 'Halo Bengkel KIM3, saya butuh bantuan...'}
+                  {waPesan || 'Halo Master Truck, saya butuh bantuan...'}
                 </p>
               </div>
               {linkPratinjau && (
@@ -238,10 +393,10 @@ const PengaturanTab: React.FC = () => {
               </p>
               <button
                 type="submit"
-                disabled={saving}
+                disabled={savingWa}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#12388F] hover:bg-[#0F2F78] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                {savingWa ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                 Simpan Nomor WhatsApp
               </button>
             </div>
@@ -252,7 +407,7 @@ const PengaturanTab: React.FC = () => {
       <div className="rounded-xl border border-border bg-surface/60 p-3.5 flex items-start gap-2.5">
         <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
         <p className="text-[11px] text-ink-muted leading-relaxed">
-          Nomor ini tampil di portal Customer Fleet. Gunakan nomor layanan resmi bengkel KIM 3 yang aktif menerima chat pelanggan.
+          Pengaturan ini berlaku secara realtime untuk seluruh pelanggan di portal Web Fleet Customer Master Truck.
         </p>
       </div>
     </div>

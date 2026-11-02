@@ -311,6 +311,13 @@ export interface SpkService {
   no_wo?: string;
   id_antrian?: number;
   id_booking?: number;
+  booking_id?: number | null;
+  no_booking?: string | null;
+  tanggal_booking?: string | null;
+  jam_booking?: string | null;
+  jenis_layanan_booking?: string | null;
+  waktu_booking?: string | null;
+  is_booking?: boolean | null;
   id_kunjungan?: number | null;
   id_pelanggan?: number | null;
   id_mekanik?: number | null;
@@ -381,6 +388,12 @@ export interface KunjunganService {
   id: number;
   nomor_tiket: string;
   booking_id?: number | null;
+  no_booking?: string | null;
+  tanggal_booking?: string | null;
+  jam_booking?: string | null;
+  jenis_layanan_booking?: string | null;
+  waktu_booking?: string | null;
+  is_booking?: boolean | null;
   id_pelanggan?: number | null;
   no_polisi: string;
   nama_customer?: string;

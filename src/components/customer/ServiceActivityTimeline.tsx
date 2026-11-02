@@ -166,15 +166,65 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
         Timeline Riwayat Aktivitas Service:
       </span>
       <div className="space-y-4 relative pl-4 border-l-2 border-border ml-2">
+        {/* Step Booking: hanya tampil bila servis ini berasal dari Booking Service */}
+        {serviceTimeline.booking !== 'pending' && (
+          <ServiceTimelineItem
+            state={serviceTimeline.booking}
+            isLast={isLastStage('booking')}
+            title="Booking Service Terjadwal"
+            time={
+              fmtWaktuFull(
+                spk.waktu_booking ||
+                  (spk.tanggal_booking
+                    ? `${spk.tanggal_booking}T${spk.jam_booking || '08:00'}:00`
+                    : undefined)
+              ) ||
+              (spk.tanggal_booking
+                ? `${spk.tanggal_booking}${spk.jam_booking ? ` • ${spk.jam_booking} WIB` : ''}`
+                : '-')
+            }
+            meta={
+              <>
+                No. Booking:{' '}
+                <span className="font-mono font-semibold text-ink">
+                  {spk.no_booking || (spk.booking_id ? `#${spk.booking_id}` : '-')}
+                </span>
+                {spk.tanggal_booking && (
+                  <>
+                    {' '}
+                    | Jadwal Kedatangan:{' '}
+                    <span className="font-medium text-ink">
+                      {spk.tanggal_booking}
+                      {spk.jam_booking ? ` (${spk.jam_booking} WIB)` : ''}
+                    </span>
+                  </>
+                )}
+              </>
+            }
+          >
+            <div>
+              Unit <span className="font-semibold text-ink">{formatPlat(spk.no_polisi)}</span> telah didaftarkan melalui layanan Booking Service sebelum kedatangan ke bengkel.
+            </div>
+            {(spk.jenis_layanan_booking || spk.jenis_layanan) && (
+              <div className="text-ink-muted">
+                Layanan Dibooking:{' '}
+                <span className="font-medium text-ink">
+                  {spk.jenis_layanan_booking || spk.jenis_layanan}
+                </span>
+              </div>
+            )}
+          </ServiceTimelineItem>
+        )}
+
         {/* Step 1: Kendaraan Masuk di Pos Security */}
         <ServiceTimelineItem
           state={serviceTimeline.masuk}
           isLast={isLastStage('masuk')}
           title="Kendaraan Masuk di Pos Security"
           time={fmtWaktuFull(spk.waktu_check_in || spk.created_at) || '-'}
-          meta="Petugas: Pos Security KIM 3"
+          meta="Petugas: Pos Security Master Truck"
         >
-          Kendaraan tiba di area gerbang bengkel KIM 3. Petugas security melakukan pemeriksaan kedatangan, validasi nomor polisi ({formatPlat(spk.no_polisi)}), dan pencatatan tiket masuk armada.
+          Kendaraan tiba di area gerbang Master Truck. Petugas security melakukan pemeriksaan kedatangan, validasi nomor polisi ({formatPlat(spk.no_polisi)}), dan pencatatan tiket masuk armada.
         </ServiceTimelineItem>
 
         {/* Step 2: Penerimaan & Cek Awal oleh SA */}
@@ -375,7 +425,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(activeInvoice?.tanggal_bayar || activeInvoice?.tanggal_invoice || spk.waktu_fir_closed) || '-'}
             meta={
               <>
-                Kasir & Keuangan: Bengkel KIM 3
+                Kasir & Keuangan: Master Truck
                 {activeInvoice ? <> | Metode: {activeInvoice.metode_pembayaran || 'Transfer'}</> : null}
               </>
             }
@@ -400,20 +450,20 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(spk.waktu_check_out) || '-'}
             meta={
               serviceTimeline.keluar === 'done' ? (
-                <>Petugas: Pos Security KIM 3 | Gate Pass: Valid</>
+                <>Petugas: Pos Security Master Truck | Gate Pass: Valid</>
               ) : (
-                <>Petugas: Pos Security KIM 3 | Gate Pass: Menunggu Verifikasi</>
+                <>Petugas: Pos Security Master Truck | Gate Pass: Menunggu Verifikasi</>
               )
             }
           >
             {serviceTimeline.keluar === 'done' ? (
               spk.sumber === 'kunjungan' ? (
-                <>Verifikasi Gate Pass / Memo Keluar di Pos Security KIM 3 selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel (tanpa pengerjaan servis bengkel).</>
+                <>Verifikasi Gate Pass / Memo Keluar di Pos Security Master Truck selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel (tanpa pengerjaan servis bengkel).</>
               ) : (
-                <>Verifikasi Gate Pass / Memo Keluar di Pos Security KIM 3 selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel.</>
+                <>Verifikasi Gate Pass / Memo Keluar di Pos Security Master Truck selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel.</>
               )
             ) : (
-              <>Kendaraan menunggu diverifikasi dan dicatat keluar oleh Pos Security KIM 3.</>
+              <>Kendaraan menunggu diverifikasi dan dicatat keluar oleh Pos Security Master Truck.</>
             )}
           </ServiceTimelineItem>
         )}
