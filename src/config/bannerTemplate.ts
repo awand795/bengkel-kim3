@@ -206,30 +206,57 @@ export const DEFAULT_DASHBOARD_BANNER_HTML = `<div class="mt-fleet-banners-group
       color: #64748b;
       margin: 0;
     }
-    .mt-product-slider-card .slider-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
+    .mt-product-slider-card .cards-carousel-container {
+      position: relative;
+      width: 100%;
     }
-    .mt-product-slider-card .control-btn {
-      width: 32px;
-      height: 32px;
+    .mt-product-slider-card .cards-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 15;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background: #f8fafc;
+      background: rgba(255, 255, 255, 0.96);
       border: 1px solid #cbd5e1;
-      color: #334155;
+      color: #00236f;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 700;
-      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18), 0 1px 3px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      backdrop-filter: blur(4px);
     }
-    .mt-product-slider-card .control-btn:hover {
+    .mt-product-slider-card .cards-nav-btn:hover {
       background: #00236f;
       color: #ffffff;
       border-color: #00236f;
+      box-shadow: 0 6px 20px rgba(0, 35, 111, 0.35);
+      transform: translateY(-50%) scale(1.1);
+    }
+    .mt-product-slider-card .cards-nav-btn:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+    .mt-product-slider-card .prev-card-btn {
+      left: -8px;
+    }
+    .mt-product-slider-card .next-card-btn {
+      right: -8px;
+    }
+    @media (max-width: 640px) {
+      .mt-product-slider-card .cards-nav-btn {
+        width: 32px;
+        height: 32px;
+      }
+      .mt-product-slider-card .prev-card-btn {
+        left: -4px;
+      }
+      .mt-product-slider-card .next-card-btn {
+        right: -4px;
+      }
     }
     .mt-product-slider-card .cards-track {
       display: flex;
@@ -470,13 +497,15 @@ export const DEFAULT_DASHBOARD_BANNER_HTML = `<div class="mt-fleet-banners-group
         <h4 class="slider-title">Paket Servis Hemat &amp; Sparepart Pilihan</h4>
         <p class="slider-subtitle">Geser ke kanan untuk menjelajahi promo paket armada &amp; suku cadang fast-moving</p>
       </div>
-      <div class="slider-controls">
-        <button type="button" class="control-btn" onclick="document.getElementById('mt-cards-track').scrollBy({left: -260, behavior: 'smooth'})" title="Geser Kiri">&#10094;</button>
-        <button type="button" class="control-btn" onclick="document.getElementById('mt-cards-track').scrollBy({left: 260, behavior: 'smooth'})" title="Geser Kanan">&#10095;</button>
-      </div>
     </div>
 
-    <div class="cards-track" id="mt-cards-track">
+    <div class="cards-carousel-container">
+      <!-- Tombol Navigasi Kiri (Vertikal di Tengah Kartu) -->
+      <button type="button" class="cards-nav-btn prev-card-btn" onclick="document.getElementById('mt-cards-track').scrollBy({left: -280, behavior: 'smooth'})" title="Geser Kiri" aria-label="Geser Kiri">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+
+      <div class="cards-track" id="mt-cards-track">
       <!-- Card 1 -->
       <div class="mt-pkg-card">
         <div class="card-thumb-wrap">
@@ -651,5 +680,11 @@ export const DEFAULT_DASHBOARD_BANNER_HTML = `<div class="mt-fleet-banners-group
         </div>
       </div>
     </div>
+
+    <!-- Tombol Navigasi Kanan (Vertikal di Tengah Kartu) -->
+    <button type="button" class="cards-nav-btn next-card-btn" onclick="document.getElementById('mt-cards-track').scrollBy({left: 280, behavior: 'smooth'})" title="Geser Kanan" aria-label="Geser Kanan">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
   </div>
+</div>
 </div>`;
