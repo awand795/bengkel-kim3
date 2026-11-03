@@ -60,20 +60,37 @@ function formatNotificationTime(dateVal?: string | number | null): string {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMins / 60);
 
     // Tangani kemungkinan waktu sedikit lebih maju karena drift jam server/klien
     if (diffMs < 0 || diffMins < 1) return 'Baru saja';
     if (diffMins < 60) return `${diffMins} menit lalu`;
-    if (diffHours < 24) {
-      return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday =
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
+    const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.') + ' WIB';
+
+    if (isToday) {
+      return timeStr;
+    }
+    if (isYesterday) {
+      return `Kemarin, ${timeStr}`;
     }
     return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
       minute: '2-digit',
-    }) + ' WIB';
+    }).replace(':', '.') + ' WIB';
   } catch {
     return 'Baru saja';
   }
@@ -228,9 +245,10 @@ export const NotificationDropdown: React.FC = () => {
   }, []);
 
   // Filter notifikasi sesuai role aktif (mencegah notifikasi pos Security tampil di Customer Fleet & sebaliknya)
+  // serta urutkan kronologis murni (terbaru -> terlama) berdasarkan jam kejadian aktual
   const roleFilteredList = useMemo(() => {
     const myRole = currentRole || (authUser?.peran ?? 'Customer Fleet');
-    return notifikasiList.filter((n) => {
+    const filtered = notifikasiList.filter((n) => {
       const link = n.link_tab || '';
       if (myRole === 'Customer Fleet') {
         // Customer Fleet tidak boleh melihat notifikasi internal security
@@ -240,6 +258,27 @@ export const NotificationDropdown: React.FC = () => {
         if (link.startsWith('fleet-')) return false;
       }
       return true;
+    });
+
+    return [...filtered].sort((a, b) => {
+      const parseTime = (val: any) => {
+        if (!val) return 0;
+        if (typeof val === 'number') return val;
+        if (!isNaN(Number(val)) && !String(val).includes('-') && !String(val).includes(':')) {
+          return Number(val);
+        }
+        const clean = String(val).replace(' ', 'T');
+        const t = new Date(clean).getTime();
+        return isNaN(t) ? 0 : t;
+      };
+
+      const timeA = parseTime(a.created_at);
+      const timeB = parseTime(b.created_at);
+
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+      return b.id - a.id;
     });
   }, [notifikasiList, currentRole, authUser]);
 
