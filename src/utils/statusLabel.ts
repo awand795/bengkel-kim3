@@ -90,28 +90,12 @@ export const getSpkDynamicStatus = (item?: DynamicStatusInput | null): string =>
   const raw = String(item.status_spk || '').trim();
   const normalized = normalizeSpkStatus(raw);
 
-  // 2. Tahap Pasca-Pengerjaan Mekanik (Pengerjaan teknis tuntas, WO Closed, QC, FIR)
-  const isWorkDone =
-    ['Selesai', 'FIR Closed', 'Siap Keluar', 'QC Passed'].includes(normalized) ||
-    !!item.waktu_selesai_pekerjaan ||
-    !!item.waktu_fir_closed;
-
-  if (isWorkDone) {
-    const isLunas =
-      item.status_invoice === '01' ||
-      item.status_invoice === 'Lunas' ||
-      (typeof item.total_invoice === 'number' &&
-        item.total_invoice > 0 &&
-        typeof item.total_bayar === 'number' &&
-        item.total_bayar >= item.total_invoice);
-
-    if (isLunas) {
-      return 'Siap Keluar (Lunas)';
-    }
-    return 'Menunggu Invoice/Kasir';
+  // 2. Jika status SPK dasar sudah 'Selesai', WO sudah ditutup & pengerjaan tuntas
+  if (normalized === 'Selesai' || raw.toLowerCase() === 'selesai' || raw.toLowerCase() === 'selesai & keluar') {
+    return 'Selesai';
   }
 
-  // 3. Tahap Pengerjaan & Inspeksi Teknis
+  // 3. Tahap Pengerjaan & Inspeksi Teknis Aktif
   if (normalized === 'Waiting QC' || raw === 'Selesai Dikerjakan') {
     return 'Menunggu QC';
   }
@@ -132,6 +116,23 @@ export const getSpkDynamicStatus = (item?: DynamicStatusInput | null): string =>
   }
   if (normalized === 'Check In') {
     return 'Check In';
+  }
+
+  // 4. Tahap Pasca-Pengerjaan Mekanik / FIR / QC (hanya jika WO belum ditutup / belum berstatus Selesai)
+  const isPostInspection = ['FIR Closed', 'Siap Keluar', 'QC Passed'].includes(normalized) || !!item.waktu_fir_closed;
+  if (isPostInspection) {
+    const isLunas =
+      item.status_invoice === '01' ||
+      item.status_invoice === 'Lunas' ||
+      (typeof item.total_invoice === 'number' &&
+        item.total_invoice > 0 &&
+        typeof item.total_bayar === 'number' &&
+        item.total_bayar >= item.total_invoice);
+
+    if (isLunas) {
+      return 'Siap Keluar (Lunas)';
+    }
+    return 'Menunggu Invoice/Kasir';
   }
 
   return spkStatusLabel(raw);

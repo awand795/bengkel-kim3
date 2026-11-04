@@ -1842,14 +1842,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 15000,
   });
 
+  const effectiveSpkQuery = historyStatusFilter === 'selesai' && !historySearch.trim()
+    ? 'Selesai'
+    : historySearch;
+
   // Server-Side Paginated SPK untuk Riwayat Service Penuh
   const {
     data: spkPageData,
     isLoading: spkPageLoading,
     isFetching: spkPageFetching,
   } = useQuery({
-    queryKey: ['spk-page', historyPage, historyLimit, historySearch],
-    queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: historySearch }),
+    queryKey: ['spk-page', historyPage, historyLimit, effectiveSpkQuery],
+    queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: effectiveSpkQuery }),
     placeholderData: (prev) => prev,
     refetchInterval: 15000,
   });
@@ -2224,22 +2228,26 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     // 1. Jika sudah ada waktu_check_out resmi (pos security / checkout fisik), pasti sudah selesai keluar
     if (s.waktu_check_out && String(s.waktu_check_out).trim() !== '') return false;
 
-    // 2. Evaluasi status dinamis: jika status dinamis adalah 'Selesai', unit sudah tidak aktif
+    // 2. Jika status SPK dasar sudah 'Selesai', WO sudah ditutup & pengerjaan tuntas
+    const rawStatus = String(s.status_spk || '').trim().toLowerCase();
+    if (rawStatus === 'selesai' || rawStatus === 'selesai & keluar') return false;
+
+    // 3. Evaluasi status dinamis: jika status dinamis adalah 'Selesai', unit sudah tidak aktif
     const dynStatus = getSpkDynamicStatus(s);
     if (dynStatus === 'Selesai') return false;
 
-    // 3. Jaring pengaman transaksi lama di POS: jika waktu masuk / dibuat sudah lebih dari 14 hari lalu
+    // 4. Jaring pengaman transaksi lama di POS: jika waktu masuk / dibuat sudah lebih dari 7 hari lalu
     // tanpa checkout, kemungkinan data historis lama yang tidak dicatat checkout oleh security
     const dateStr = s.waktu_check_in || s.created_at;
     if (dateStr) {
       const entryTime = new Date(dateStr).getTime();
       if (!isNaN(entryTime)) {
         const diffDays = (Date.now() - entryTime) / (1000 * 60 * 60 * 24);
-        if (diffDays > 14) return false;
+        if (diffDays > 7) return false;
       }
     }
 
-    // 4. Selama waktu_check_out belum ada dan status belum selesai dalam 14 hari:
+    // 5. Selama waktu_check_out belum ada dan status belum selesai dalam 7 hari:
     // Kendaraan masih aktif berada di bengkel (proses pengerjaan, QC, kasir, atau siap keluar gerbang)
     return true;
   }, []);
