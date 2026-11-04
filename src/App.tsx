@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useAppStore } from './store/useAppStore';
+import { useAppStore, isSessionExpired } from './store/useAppStore';
 import { api } from './api/client';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
@@ -25,8 +25,12 @@ export const App: React.FC = () => {
 
   // Validasi sesi aktif dari database saat web dibuka atau di-refresh (F5)
   useEffect(() => {
+    const rawLoginAt = localStorage.getItem('bengkel_login_at');
+    const loginAt = rawLoginAt ? Number(rawLoginAt) : 0;
     const token = localStorage.getItem('bengkel_jwt_token');
-    if (!token) {
+
+    // Jika sudah berganti hari kalender (besoknya) atau >= 24 jam, langsung buang sesi
+    if (!token || !loginAt || isSessionExpired(loginAt)) {
       setIsVerifyingSession(false);
       if (isLoggedIn) logout();
       return;
@@ -66,7 +70,31 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Deteksi live jika akun belum diverifikasi lalu di-approve oleh admin POS di background
+
+  // Periksa sesi kedaluwarsa secara aktif (saat tab difokuskan kembali, tab aktif, atau tiap 30 detik)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const checkSessionExpiry = () => {
+      const rawLoginAt = localStorage.getItem('bengkel_login_at');
+      const loginAt = rawLoginAt ? Number(rawLoginAt) : 0;
+      if (!loginAt || isSessionExpired(loginAt)) {
+        logout();
+      }
+    };
+
+    window.addEventListener('focus', checkSessionExpiry);
+    document.addEventListener('visibilitychange', checkSessionExpiry);
+    const intervalId = setInterval(checkSessionExpiry, 30000);
+
+    return () => {
+      window.removeEventListener('focus', checkSessionExpiry);
+      document.removeEventListener('visibilitychange', checkSessionExpiry);
+      clearInterval(intervalId);
+    };
+  }, [isLoggedIn, logout]);
+
+    // Deteksi live jika akun belum diverifikasi lalu di-approve oleh admin POS di background
   useEffect(() => {
     if (!isLoggedIn || !authUser || authUser.pos_verifikasi) return;
 

@@ -35,7 +35,7 @@ import {
   AdminUserPayload,
   PengaturanSitus
 } from '../types';
-import { useAppStore } from '../store/useAppStore';
+import { useAppStore, isSessionExpired } from '../store/useAppStore';
 
 // In Vite development, requests to /api are proxied to http://94.237.69.119:8081
 // For standalone production builds or direct access, fallback to server IP
@@ -91,6 +91,13 @@ apiClient.interceptors.response.use(
       }
 
       if (!originalRequest._retry) {
+        const rawLoginAt = localStorage.getItem('bengkel_login_at');
+        const loginAt = rawLoginAt ? Number(rawLoginAt) : 0;
+        if (!loginAt || isSessionExpired(loginAt)) {
+          useAppStore.getState().logout();
+          return Promise.reject(error);
+        }
+
         const storedRefreshToken = localStorage.getItem('bengkel_refresh_token');
         if (!storedRefreshToken) {
           useAppStore.getState().logout();
@@ -615,6 +622,7 @@ export const api = {
     });
     if (res.data?.access_token) {
       localStorage.setItem('bengkel_jwt_token', res.data.access_token);
+      localStorage.setItem('bengkel_login_at', String(Date.now()));
       if (res.data?.refresh_token) {
         localStorage.setItem('bengkel_refresh_token', res.data.refresh_token);
       }
@@ -700,6 +708,7 @@ export const api = {
     const res = await apiClient.post<LoginResponse>('/mastertruck/auth/refresh-token', { refresh_token: rToken });
     if (res.data?.access_token) {
       localStorage.setItem('bengkel_jwt_token', res.data.access_token);
+      localStorage.setItem('bengkel_login_at', String(Date.now()));
       if (res.data?.refresh_token) {
         localStorage.setItem('bengkel_refresh_token', res.data.refresh_token);
       }
@@ -711,6 +720,7 @@ export const api = {
     localStorage.removeItem('bengkel_jwt_token');
     localStorage.removeItem('bengkel_refresh_token');
     localStorage.removeItem('bengkel_auth_user');
+    localStorage.removeItem('bengkel_login_at');
   },
 
   // Verifikasi Sesi & Identity User aktif dari Database
