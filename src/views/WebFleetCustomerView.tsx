@@ -4255,9 +4255,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               <p className="text-[11px] text-ink-muted mt-0.5">
                                 {masterCabangList[0]?.alamat || 'Kawasan Industri Medan (KIM) 3'}
                               </p>
-                              <div className="text-[10px] text-ink-muted/80 mt-1.5 flex items-center gap-1 italic">
-                                <span>* Saat ini operasional terpusat di cabang ini. Opsi pemilihan cabang dinonaktifkan sementara.</span>
-                              </div>
                             </div>
                           </div>
                         ) : (
