@@ -19,11 +19,12 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../api/client';
-import { PengaturanSitus } from '../types';
+import { PengaturanSitus, MediaIklan } from '../types';
 import { toast } from '../components/common/Toast';
 import { DashboardHtmlBanner } from '../components/common/DashboardHtmlBanner';
 import { DEFAULT_DASHBOARD_BANNER_HTML } from '../config/bannerTemplate';
 import { MediaGalleryTab } from '../components/admin/MediaGalleryTab';
+import { HtmlCodeEditor } from '../components/admin/HtmlCodeEditor';
 
 const fmtTanggal = (value?: string | null): string => {
   if (!value) return '-';
@@ -109,14 +110,14 @@ interface PengaturanTabProps {
   bannerHtml: string;
   setBannerHtml: React.Dispatch<React.SetStateAction<string>>;
   onOpenMediaGallery: () => void;
-  mediaCount?: number;
+  mediaList?: MediaIklan[];
 }
 
 const PengaturanTab: React.FC<PengaturanTabProps> = ({
   bannerHtml,
   setBannerHtml,
   onOpenMediaGallery,
-  mediaCount = 0,
+  mediaList = [],
 }) => {
   const queryClient = useQueryClient();
   const [waNomor, setWaNomor] = useState('');
@@ -188,8 +189,8 @@ const PengaturanTab: React.FC<PengaturanTabProps> = ({
     }
   };
 
-  const handleSaveBanner = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveBanner = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSavingBanner(true);
     try {
       await api.simpanPengaturan({
@@ -249,52 +250,29 @@ const PengaturanTab: React.FC<PengaturanTabProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSaveBanner} className="p-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs font-bold text-ink flex items-center gap-1.5">
-                <Code className="w-3.5 h-3.5 text-accent" />
-                Editor Kode HTML Banner
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={onOpenMediaGallery}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 text-[11px] font-semibold transition cursor-pointer"
-                  title="Buka galeri gambar untuk menyalin tag <img> atau menyisipkan foto baru"
-                >
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  Galeri Media ({mediaCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBannerHtml(DEFAULT_DASHBOARD_BANNER_HTML);
-                    toast.info('Template Dimuat', 'Template sample slider iklan 3 slide telah dimuat ke editor.');
-                  }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-accent/30 bg-accent-subtle/50 text-accent hover:bg-accent-subtle text-[11px] font-semibold transition cursor-pointer"
-                  title="Pakai template slider otomatis 3 slide promosi Master Truck"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  Pakai Template Sample Slider Truk
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBannerHtml('')}
-                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-border bg-surface text-ink-muted hover:text-status-red text-[11px] font-medium transition cursor-pointer"
-                  title="Kosongkan HTML"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Bersihkan
-                </button>
-              </div>
-            </div>
-
-            <textarea
+            <HtmlCodeEditor
               value={bannerHtml}
-              onChange={(e) => setBannerHtml(e.target.value)}
-              rows={10}
-              placeholder="<!-- Masukkan kode HTML & inline CSS banner di sini... -->"
-              className="w-full px-3.5 py-3 rounded-xl border border-border bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
-              spellCheck={false}
+              onChange={setBannerHtml}
+              onSave={() => handleSaveBanner()}
+              isSaving={savingBanner}
+              onResetTemplate={() => {
+                setBannerHtml(DEFAULT_DASHBOARD_BANNER_HTML);
+                toast.info('Template Dimuat', 'Template sample slider iklan 3 slide telah dimuat ke editor.');
+              }}
+              onClear={() => setBannerHtml('')}
+              mediaList={mediaList}
+              onOpenMediaTab={onOpenMediaGallery}
+              previewComponent={
+                bannerHtml.trim() ? (
+                  <div className="rounded-xl overflow-hidden border border-border shadow-xs bg-surface">
+                    <DashboardHtmlBanner html={bannerHtml} />
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-xs text-ink-muted border border-dashed border-border rounded-xl">
+                    Kode HTML masih kosong. Klik &quot;Pakai Template&quot; untuk mencoba template sample.
+                  </div>
+                )
+              }
             />
 
             {/* Live Interactive Preview Box */}
@@ -583,7 +561,7 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
           bannerHtml={bannerHtml}
           setBannerHtml={setBannerHtml}
           onOpenMediaGallery={() => setActiveTab('admin-media')}
-          mediaCount={mediaList.length}
+          mediaList={mediaList}
         />
       )}
 
