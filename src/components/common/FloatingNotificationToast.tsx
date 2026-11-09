@@ -26,6 +26,8 @@ export const FloatingNotificationToast: React.FC = () => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   useEffect(() => {
+    if (currentRole === 'Super Admin') return;
+
     const unsubscribe = realtimeHub.subscribe((event) => {
       // 1. Role matching check: Jika event memiliki targetRoles, role user aktif wajib cocok!
       if (event.targetRoles && event.targetRoles.length > 0 && !event.targetRoles.includes('ALL')) {
@@ -102,7 +104,7 @@ export const FloatingNotificationToast: React.FC = () => {
     dismissToast(toast.id);
   };
 
-  if (toasts.length === 0) return null;
+  if (currentRole === 'Super Admin' || toasts.length === 0) return null;
 
   return (
     <div className="fixed top-20 right-4 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none px-2 sm:px-0">

@@ -110,6 +110,7 @@ export const NotificationDropdown: React.FC = () => {
     queryKey: ['notifikasi-list'],
     queryFn: api.getNotifikasi,
     refetchInterval: 20000,
+    enabled: currentRole !== 'Super Admin',
   });
 
   // 2. Mark Single Notification as Read
@@ -250,6 +251,10 @@ export const NotificationDropdown: React.FC = () => {
     const myRole = currentRole || (authUser?.peran ?? 'Customer Fleet');
     const filtered = notifikasiList.filter((n) => {
       const link = n.link_tab || '';
+      if (myRole === 'Super Admin') {
+        // Super Admin tidak mengurusi operasional fleet / security
+        return false;
+      }
       if (myRole === 'Customer Fleet') {
         // Customer Fleet tidak boleh melihat notifikasi internal security
         if (link.startsWith('security-')) return false;
@@ -352,6 +357,10 @@ export const NotificationDropdown: React.FC = () => {
         return 'bg-accent-subtle border-accent/30 text-accent';
     }
   };
+
+  if (currentRole === 'Super Admin') {
+    return null;
+  }
 
   return (
     <div className="relative font-sans" ref={dropdownRef}>

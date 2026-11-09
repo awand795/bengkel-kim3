@@ -114,7 +114,7 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
-            <NotificationDropdown />
+            {currentRole !== 'Super Admin' && <NotificationDropdown />}
 
             <button
               type="button"
@@ -194,7 +194,7 @@ export const Navbar: React.FC = () => {
             </button>
 
             {/* Notification Center */}
-            <NotificationDropdown />
+            {currentRole !== 'Super Admin' && <NotificationDropdown />}
 
             {/* User Profile Pill & Logout */}
             <div className="flex items-center gap-3 pl-3 border-l border-border">

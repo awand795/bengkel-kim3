@@ -135,6 +135,18 @@ class RealtimeNotificationHub {
       try {
         const token = localStorage.getItem('bengkel_jwt_token');
         if (!token) return; // Jangan request jika belum login / belum ada token valid
+
+        // Super Admin mengelola web & galeri, tidak perlu memantau notifikasi operasional pelanggan / security
+        const authUserRaw = localStorage.getItem('bengkel_auth_user');
+        if (authUserRaw) {
+          try {
+            const parsed = JSON.parse(authUserRaw);
+            const roleStr = `${parsed.peran || ''} ${parsed.role || ''}`.toLowerCase();
+            if (roleStr.includes('admin')) {
+              return;
+            }
+          } catch {}
+        }
         const { api } = await import('../api/client');
         const notifs = await api.getNotifikasi();
         if (Array.isArray(notifs) && notifs.length > 0) {
@@ -313,8 +325,20 @@ class RealtimeNotificationHub {
     this.eventHistory.unshift(event);
     if (this.eventHistory.length > 50) this.eventHistory.pop();
 
-    // Play sound chime
-    this.playChime(event.urgency || 'info');
+    // Play sound chime (kecuali jika user yang sedang login adalah Super Admin)
+    let isAdmin = false;
+    try {
+      const authUserRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('bengkel_auth_user') : null;
+      if (authUserRaw) {
+        const parsed = JSON.parse(authUserRaw);
+        const roleStr = `${parsed.peran || ''} ${parsed.role || ''}`.toLowerCase();
+        if (roleStr.includes('admin')) isAdmin = true;
+      }
+    } catch {}
+
+    if (!isAdmin) {
+      this.playChime(event.urgency || 'info');
+    }
 
     // Notify registered UI listeners (Toasts, Dropdown, etc.)
     this.listeners.forEach((callback) => {
