@@ -222,7 +222,11 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
           isLast={isLastStage('masuk')}
           title="Kendaraan Masuk di Pos Security"
           time={fmtWaktuFull(spk.waktu_check_in || spk.created_at) || '-'}
-          meta="Petugas: Pos Security Master Truck"
+          meta={
+            <>
+              Petugas: <strong className="font-bold text-ink">Pos Security Master Truck</strong>
+            </>
+          }
         >
           Kendaraan tiba di area gerbang Master Truck. Petugas security melakukan pemeriksaan kedatangan, validasi nomor polisi ({formatPlat(spk.no_polisi)}), dan pencatatan tiket masuk armada.
         </ServiceTimelineItem>
@@ -242,7 +246,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             })()}
             meta={
               <>
-                SA: {spk.nama_sa || '-'} | Odometer: {spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}
+                SA: <strong className="font-bold text-ink">{spk.nama_sa || '-'}</strong> | Odometer: <span className="font-semibold text-ink">{spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</span>
               </>
             }
           >
@@ -267,7 +271,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={spk.waktu_mulai_pekerjaan ? fmtWaktuFull(spk.waktu_mulai_pekerjaan) : (spk.waktu_check_in ? fmtWaktuFull(spk.waktu_check_in) : '-')}
             meta={
               <>
-                Foreman & SA: {spk.nama_sa || '-'} | Status WO:{' '}
+                Foreman & SA: <strong className="font-bold text-ink">{spk.nama_sa || '-'}</strong> | Status WO:{' '}
                 {serviceTimeline.wo === 'done' ? (
                   <span className="font-semibold text-status-green">Disetujui</span>
                 ) : serviceTimeline.wo === 'attention' ? (
@@ -279,7 +283,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             }
           >
             <div>
-              Foreman mendistribusikan penanganan ke teknisi <span className="font-semibold text-ink">{spk.nama_mekanik || 'Teknisi'}</span> untuk inspeksi detail di stall servis.
+              Foreman mendistribusikan penanganan ke teknisi <strong className="font-bold text-ink">{spk.nama_mekanik || 'Teknisi'}</strong> untuk inspeksi detail di stall servis.
             </div>
             <div className="text-ink-muted">
               {serviceTimeline.wo === 'done'
@@ -318,14 +322,14 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             }
             meta={
               <>
-                Mekanik: {spk.nama_mekanik || '-'}
+                Mekanik: <strong className="font-bold text-ink">{spk.nama_mekanik || '-'}</strong>
                 {(() => {
                   const durasi = getDurasiPengerjaan(spk);
                   if (!durasi) return null;
                   return (
                     <>
                       {' '}| Durasi Pengerjaan:{' '}
-                      <span className="font-medium text-ink">{durasi}</span>
+                      <span className="font-semibold text-ink">{durasi}</span>
                     </>
                   );
                 })()}
@@ -382,7 +386,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || (serviceTimeline.qc === 'done' ? 'Selesai (Otomatis Bersama WO)' : '-')}
             meta={
               <>
-                Foreman: {spk.nama_foreman || '-'} | Hasil Uji:{' '}
+                Foreman: <strong className="font-bold text-ink">{spk.nama_foreman || '-'}</strong> | Hasil Uji:{' '}
                 {serviceTimeline.qc === 'done' ? (
                   <span className="font-semibold text-status-green">QC PASSED</span>
                 ) : (
@@ -404,7 +408,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(spk.waktu_fir_closed || spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || (serviceTimeline.fir === 'done' ? 'Selesai (Otomatis Bersama WO)' : '-')}
             meta={
               <>
-                SA: {spk.nama_sa || '-'} | Dokumen: Faktur Servis
+                SA: <strong className="font-bold text-ink">{spk.nama_sa || '-'}</strong> | Dokumen: Faktur Servis
               </>
             }
           >
@@ -425,7 +429,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(activeInvoice?.tanggal_bayar || activeInvoice?.tanggal_invoice || spk.waktu_fir_closed) || '-'}
             meta={
               <>
-                Kasir & Keuangan: Master Truck
+                Kasir & Keuangan: <strong className="font-bold text-ink">Master Truck</strong>
                 {activeInvoice ? <> | Metode: {activeInvoice.metode_pembayaran || 'Transfer'}</> : null}
               </>
             }
@@ -450,9 +454,9 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(spk.waktu_check_out) || '-'}
             meta={
               serviceTimeline.keluar === 'done' ? (
-                <>Petugas: Pos Security Master Truck | Gate Pass: Valid</>
+                <>Petugas: <strong className="font-bold text-ink">Pos Security Master Truck</strong> | Gate Pass: Valid</>
               ) : (
-                <>Petugas: Pos Security Master Truck | Gate Pass: Menunggu Verifikasi</>
+                <>Petugas: <strong className="font-bold text-ink">Pos Security Master Truck</strong> | Gate Pass: Menunggu Verifikasi</>
               )
             }
           >
