@@ -19,7 +19,8 @@ import {
   History,
   ShieldCheck,
   UserCog,
-  Settings
+  Settings,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export interface NavItem {
@@ -53,6 +54,7 @@ export const Sidebar: React.FC = () => {
 
   const adminNavigationItems: NavItem[] = [
     { id: 'admin-pengaturan', label: 'Pengaturan Web & Banner', icon: Settings },
+    { id: 'admin-media', label: 'Galeri Media Iklan', icon: ImageIcon },
   ];
 
   const navigationItems =

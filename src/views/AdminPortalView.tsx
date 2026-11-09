@@ -15,6 +15,7 @@ import {
   Sparkles,
   Eye,
   RotateCcw,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { api } from '../api/client';
@@ -22,6 +23,7 @@ import { PengaturanSitus } from '../types';
 import { toast } from '../components/common/Toast';
 import { DashboardHtmlBanner } from '../components/common/DashboardHtmlBanner';
 import { DEFAULT_DASHBOARD_BANNER_HTML } from '../config/bannerTemplate';
+import { MediaGalleryTab } from '../components/admin/MediaGalleryTab';
 
 const fmtTanggal = (value?: string | null): string => {
   if (!value) return '-';
@@ -103,14 +105,25 @@ const ModalShell: React.FC<{
 );
 
 // ── Tab: Pengaturan Web, Banner Iklan & WhatsApp ────────────────────────────
-const PengaturanTab: React.FC = () => {
+interface PengaturanTabProps {
+  bannerHtml: string;
+  setBannerHtml: React.Dispatch<React.SetStateAction<string>>;
+  onOpenMediaGallery: () => void;
+  mediaCount?: number;
+}
+
+const PengaturanTab: React.FC<PengaturanTabProps> = ({
+  bannerHtml,
+  setBannerHtml,
+  onOpenMediaGallery,
+  mediaCount = 0,
+}) => {
   const queryClient = useQueryClient();
   const [waNomor, setWaNomor] = useState('');
   const [waPesan, setWaPesan] = useState('');
   const [savingWa, setSavingWa] = useState(false);
 
   const [bannerAktif, setBannerAktif] = useState(true);
-  const [bannerHtml, setBannerHtml] = useState(DEFAULT_DASHBOARD_BANNER_HTML);
   const [savingBanner, setSavingBanner] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -242,6 +255,15 @@ const PengaturanTab: React.FC = () => {
                 Editor Kode HTML Banner
               </span>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onOpenMediaGallery}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 text-[11px] font-semibold transition cursor-pointer"
+                  title="Buka galeri gambar untuk menyalin tag <img> atau menyisipkan foto baru"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  Galeri Media ({mediaCount})
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -417,10 +439,29 @@ const PengaturanTab: React.FC = () => {
 // ── View utama Admin Portal ────────────────────────────────────────────────
 export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
   const authUser = useAppStore((s) => s.authUser);
+  const activeTab = useAppStore((s) => s.activeTab);
+  const setActiveTab = useAppStore((s) => s.setActiveTab);
+
+  const [bannerHtml, setBannerHtml] = useState(DEFAULT_DASHBOARD_BANNER_HTML);
   const [pwdOpen, setPwdOpen] = useState(false);
   const [pwdBaru, setPwdBaru] = useState('');
   const [pwdUlang, setPwdUlang] = useState('');
   const [pwdSaving, setPwdSaving] = useState(false);
+
+  // Fetch count of media
+  const { data: mediaList = [] } = useQuery({
+    queryKey: ['admin-media-iklan'],
+    queryFn: () => api.getMediaIklan(),
+    staleTime: 30000,
+  });
+
+  const handleInsertToBannerHtml = (snippet: string) => {
+    setBannerHtml((prev) => {
+      if (!prev.trim()) return snippet.trim();
+      return prev + '\n' + snippet;
+    });
+    setActiveTab('admin-pengaturan');
+  };
 
   const handleGantiPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -463,7 +504,7 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
           Panel Administrator
         </h1>
         <p className="text-xs text-white/80 mt-1 max-w-xl leading-relaxed font-normal">
-          Konfigurasi nomor WhatsApp resmi layanan pelanggan Bengkel KIM 3.
+          Konfigurasi nomor WhatsApp resmi layanan pelanggan, banner promosi, dan galeri media iklan.
         </p>
         <p className="text-[11px] text-white/70 mt-1 max-w-xl leading-relaxed font-normal">
           {authUser?.nama_lengkap || 'Admin'} &bull; {authUser?.email || 'admin@mastertruck.co.id'}
@@ -494,8 +535,57 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
         </div>
       )}
 
-      {/* Konten Utama: Pengaturan Nomor WA */}
-      <PengaturanTab />
+      {/* ── Tab Navigasi Admin: Pengaturan vs Galeri Media ── */}
+      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-surface-raised border border-border">
+        <button
+          type="button"
+          onClick={() => setActiveTab('admin-pengaturan')}
+          className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            activeTab !== 'admin-media'
+              ? 'bg-[#1D4ED8] text-white shadow-xs'
+              : 'text-ink-muted hover:text-ink hover:bg-surface'
+          }`}
+        >
+          <SettingsIcon className="w-4 h-4" />
+          <span>Pengaturan Web & Banner Iklan</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('admin-media')}
+          className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'admin-media'
+              ? 'bg-[#1D4ED8] text-white shadow-xs'
+              : 'text-ink-muted hover:text-ink hover:bg-surface'
+          }`}
+        >
+          <ImageIcon className="w-4 h-4" />
+          <span>Galeri Media Gambar</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
+              activeTab === 'admin-media'
+                ? 'bg-white/20 text-white'
+                : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+            }`}
+          >
+            {mediaList.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Konten Tab Aktif */}
+      {activeTab === 'admin-media' ? (
+        <MediaGalleryTab
+          onInsertToHtml={handleInsertToBannerHtml}
+          onGoToBannerEditor={() => setActiveTab('admin-pengaturan')}
+        />
+      ) : (
+        <PengaturanTab
+          bannerHtml={bannerHtml}
+          setBannerHtml={setBannerHtml}
+          onOpenMediaGallery={() => setActiveTab('admin-media')}
+          mediaCount={mediaList.length}
+        />
+      )}
 
       {/* Modal ganti password admin */}
       {pwdOpen && (

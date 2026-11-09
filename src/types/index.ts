@@ -102,6 +102,17 @@ export interface PengaturanSitus {
   update_dt?: string | null;
 }
 
+export interface MediaIklan {
+  id: number;
+  referensi_id: string;
+  keterangan?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  size_bytes?: number | null;
+  foto_data: string;
+}
+
 export interface Pelanggan {
   id: number;
   nama_perusahaan: string;

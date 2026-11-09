@@ -33,7 +33,8 @@ import {
   SecurityUserPayload,
   AdminUser,
   AdminUserPayload,
-  PengaturanSitus
+  PengaturanSitus,
+  MediaIklan
 } from '../types';
 import { useAppStore, isSessionExpired } from '../store/useAppStore';
 
@@ -841,6 +842,30 @@ export const api = {
 
   gantiPasswordAdmin: async (password_baru: string): Promise<any> => {
     const res = await apiClient.post('/mastertruck/auth/ganti-password-admin', { password_baru });
+    return res.data;
+  },
+
+  // ── Galeri Media Iklan Banner ─────────────────────────────────────────────
+  getMediaIklan: async (): Promise<MediaIklan[]> => {
+    const res = await apiClient.get('/mastertruck/admin/media-iklan');
+    const raw = res.data?.value ?? res.data?.data ?? res.data;
+    return Array.isArray(raw) ? raw : raw ? [raw] : [];
+  },
+
+  simpanMediaIklan: async (payload: {
+    referensi_id: string;
+    foto_data: string;
+    keterangan?: string;
+  }): Promise<any> => {
+    const res = await apiClient.post('/mastertruck/admin/media-iklan/simpan', payload);
+    return res.data;
+  },
+
+  hapusMediaIklan: async (payload: {
+    id?: number;
+    referensi_id?: string;
+  }): Promise<any> => {
+    const res = await apiClient.post('/mastertruck/admin/media-iklan/hapus', payload);
     return res.data;
   },
 
