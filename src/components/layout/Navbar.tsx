@@ -32,7 +32,10 @@ const TAB_TITLES: Record<string, { title: string; subtitle?: string }> = {
   'security-memo': { title: 'Memo Keluar', subtitle: 'Arsip Digital Gate Pass' },
   'admin-security': { title: 'Akun Security', subtitle: 'Kelola Petugas Pos Gerbang' },
   'admin-akun': { title: 'Akun Admin', subtitle: 'Kelola Administrator Portal' },
-  'admin-pengaturan': { title: 'Pengaturan Web', subtitle: 'Kontak WhatsApp & Banner Iklan' },
+  'admin-banner': { title: 'Banner Iklan Dashboard', subtitle: 'Editor HTML & Pratinjau Promo' },
+  'admin-media': { title: 'Galeri Media Iklan', subtitle: 'Upload & Kelola Gambar Banner' },
+  'admin-wa': { title: 'Kontak WhatsApp', subtitle: 'Nomor CS & Pesan Otomatis' },
+  'admin-pengaturan': { title: 'Banner Iklan Dashboard', subtitle: 'Editor HTML & Pratinjau Promo' },
 };
 
 export const Navbar: React.FC = () => {
@@ -42,7 +45,7 @@ export const Navbar: React.FC = () => {
 
   const defaultTab =
     currentRole === 'Super Admin'
-      ? 'admin-security'
+      ? 'admin-banner'
       : currentRole === 'Security'
         ? 'security-dashboard'
         : 'fleet-dashboard';

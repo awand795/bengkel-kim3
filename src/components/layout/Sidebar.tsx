@@ -20,7 +20,8 @@ import {
   ShieldCheck,
   UserCog,
   Settings,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Sparkles
 } from 'lucide-react';
 
 export interface NavItem {
@@ -53,8 +54,9 @@ export const Sidebar: React.FC = () => {
   ];
 
   const adminNavigationItems: NavItem[] = [
-    { id: 'admin-pengaturan', label: 'Pengaturan Web & Banner', icon: Settings },
+    { id: 'admin-banner', label: 'Banner Iklan Dashboard', icon: Sparkles },
     { id: 'admin-media', label: 'Galeri Media Iklan', icon: ImageIcon },
+    { id: 'admin-wa', label: 'Kontak WhatsApp', icon: MessageCircle },
   ];
 
   const navigationItems =
@@ -65,6 +67,7 @@ export const Sidebar: React.FC = () => {
   const isTabActive = (tabId: string) => {
     if (activeTab === tabId) return true;
     if (tabId === 'fleet-dashboard' && activeTab === 'dashboard') return true;
+    if (tabId === 'admin-banner' && activeTab === 'admin-pengaturan') return true;
     return false;
   };
 

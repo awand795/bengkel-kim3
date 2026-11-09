@@ -105,25 +105,21 @@ const ModalShell: React.FC<{
   </div>
 );
 
-// ── Tab: Pengaturan Web, Banner Iklan & WhatsApp ────────────────────────────
-interface PengaturanTabProps {
+// ── Tab: Banner Iklan Dashboard ────────────────────────────────────────────
+interface BannerTabProps {
   bannerHtml: string;
   setBannerHtml: React.Dispatch<React.SetStateAction<string>>;
   onOpenMediaGallery: () => void;
   mediaList?: MediaIklan[];
 }
 
-const PengaturanTab: React.FC<PengaturanTabProps> = ({
+const BannerTab: React.FC<BannerTabProps> = ({
   bannerHtml,
   setBannerHtml,
   onOpenMediaGallery,
   mediaList = [],
 }) => {
   const queryClient = useQueryClient();
-  const [waNomor, setWaNomor] = useState('');
-  const [waPesan, setWaPesan] = useState('');
-  const [savingWa, setSavingWa] = useState(false);
-
   const [bannerAktif, setBannerAktif] = useState(true);
   const [savingBanner, setSavingBanner] = useState(false);
 
@@ -141,8 +137,6 @@ const PengaturanTab: React.FC<PengaturanTabProps> = ({
 
   useEffect(() => {
     if (!data) return;
-    setWaNomor(map.wa_cs?.nilai || '');
-    setWaPesan(map.wa_cs_pesan?.nilai || '');
     if (map.dashboard_banner_aktif?.nilai !== undefined) {
       setBannerAktif(map.dashboard_banner_aktif.nilai !== 'false');
     }
@@ -150,44 +144,6 @@ const PengaturanTab: React.FC<PengaturanTabProps> = ({
       setBannerHtml(map.dashboard_banner_html.nilai || '');
     }
   }, [data]);
-
-  const nomorFinal = normalisasiWa(waNomor);
-  const linkPratinjau = nomorFinal
-    ? `https://wa.me/${nomorFinal}?text=${encodeURIComponent(waPesan || 'Halo Master Truck')}`
-    : '';
-
-  const handleSaveWa = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nomorFinal || nomorFinal.length < 10) {
-      return toast.warning('Nomor WhatsApp tidak valid', 'Gunakan nomor Indonesia, mis. 081234567890 atau 6281234567890.');
-    }
-    if (!waPesan.trim()) {
-      return toast.warning('Pesan otomatis wajib diisi', 'Pesan ini dipakai sebagai teks awal saat pelanggan membuka WhatsApp.');
-    }
-
-    setSavingWa(true);
-    try {
-      await api.simpanPengaturan({
-        kunci: 'wa_cs',
-        nilai: nomorFinal,
-        keterangan: 'Nomor WhatsApp layanan pelanggan (format 62...)',
-      });
-      await api.simpanPengaturan({
-        kunci: 'wa_cs_pesan',
-        nilai: waPesan.trim(),
-        keterangan: 'Pesan otomatis WhatsApp',
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['admin-pengaturan'] }),
-        queryClient.invalidateQueries({ queryKey: ['pengaturan-publik'] }),
-      ]);
-      toast.success('Pengaturan WhatsApp disimpan', 'Nomor WhatsApp pada sidebar & menu mobile langsung diperbarui.');
-    } catch (err) {
-      toast.error('Gagal menyimpan WhatsApp', describeError(err, 'Coba beberapa saat lagi.'));
-    } finally {
-      setSavingWa(false);
-    }
-  };
 
   const handleSaveBanner = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -217,7 +173,6 @@ const PengaturanTab: React.FC<PengaturanTabProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* ── KARTU 1: PENGATURAN BANNER IKLAN DASHBOARD (HTML / CAROUSEL) ── */}
       <div className="rounded-xl bg-surface-raised border border-border overflow-hidden">
         <div className="px-4 py-3.5 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-surface/50">
           <div className="flex items-center gap-2">
@@ -313,8 +268,75 @@ const PengaturanTab: React.FC<PengaturanTabProps> = ({
           </form>
         )}
       </div>
+    </div>
+  );
+};
 
-      {/* ── KARTU 2: PENGATURAN WHATSAPP LAYANAN PELANGGAN ── */}
+// ── Tab: Kontak WhatsApp Layanan Pelanggan ──────────────────────────────────
+const WhatsAppTab: React.FC = () => {
+  const queryClient = useQueryClient();
+  const [waNomor, setWaNomor] = useState('');
+  const [waPesan, setWaPesan] = useState('');
+  const [savingWa, setSavingWa] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-pengaturan'],
+    queryFn: api.getPengaturan,
+  });
+
+  const map = useMemo(() => {
+    return (data || []).reduce<Record<string, PengaturanSitus>>((acc, item) => {
+      acc[item.kunci] = item;
+      return acc;
+    }, {});
+  }, [data]);
+
+  useEffect(() => {
+    if (!data) return;
+    setWaNomor(map.wa_cs?.nilai || '');
+    setWaPesan(map.wa_cs_pesan?.nilai || '');
+  }, [data]);
+
+  const nomorFinal = normalisasiWa(waNomor);
+  const linkPratinjau = nomorFinal
+    ? `https://wa.me/${nomorFinal}?text=${encodeURIComponent(waPesan || 'Halo Master Truck')}`
+    : '';
+
+  const handleSaveWa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nomorFinal || nomorFinal.length < 10) {
+      return toast.warning('Nomor WhatsApp tidak valid', 'Gunakan nomor Indonesia, mis. 081234567890 atau 6281234567890.');
+    }
+    if (!waPesan.trim()) {
+      return toast.warning('Pesan otomatis wajib diisi', 'Pesan ini dipakai sebagai teks awal saat pelanggan membuka WhatsApp.');
+    }
+
+    setSavingWa(true);
+    try {
+      await api.simpanPengaturan({
+        kunci: 'wa_cs',
+        nilai: nomorFinal,
+        keterangan: 'Nomor WhatsApp layanan pelanggan (format 62...)',
+      });
+      await api.simpanPengaturan({
+        kunci: 'wa_cs_pesan',
+        nilai: waPesan.trim(),
+        keterangan: 'Pesan otomatis WhatsApp',
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-pengaturan'] }),
+        queryClient.invalidateQueries({ queryKey: ['pengaturan-publik'] }),
+      ]);
+      toast.success('Pengaturan WhatsApp disimpan', 'Nomor WhatsApp pada sidebar & menu mobile langsung diperbarui.');
+    } catch (err) {
+      toast.error('Gagal menyimpan WhatsApp', describeError(err, 'Coba beberapa saat lagi.'));
+    } finally {
+      setSavingWa(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-200">
       <div className="rounded-xl bg-surface-raised border border-border overflow-hidden">
         <div className="px-4 py-3.5 border-b border-border flex items-center gap-2 bg-surface/50">
           <MessageCircle className="w-4 h-4 text-[#16A34A]" />
@@ -438,7 +460,7 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
       if (!prev.trim()) return snippet.trim();
       return prev + '\n' + snippet;
     });
-    setActiveTab('admin-pengaturan');
+    setActiveTab('admin-banner');
   };
 
   const handleGantiPassword = async (e: React.FormEvent) => {
@@ -513,51 +535,16 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
         </div>
       )}
 
-      {/* ── Tab Navigasi Admin: Pengaturan vs Galeri Media ── */}
-      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-surface-raised border border-border">
-        <button
-          type="button"
-          onClick={() => setActiveTab('admin-pengaturan')}
-          className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-            activeTab !== 'admin-media'
-              ? 'bg-[#1D4ED8] text-white shadow-xs'
-              : 'text-ink-muted hover:text-ink hover:bg-surface'
-          }`}
-        >
-          <SettingsIcon className="w-4 h-4" />
-          <span>Pengaturan Web & Banner Iklan</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('admin-media')}
-          className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'admin-media'
-              ? 'bg-[#1D4ED8] text-white shadow-xs'
-              : 'text-ink-muted hover:text-ink hover:bg-surface'
-          }`}
-        >
-          <ImageIcon className="w-4 h-4" />
-          <span>Galeri Media Gambar</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
-              activeTab === 'admin-media'
-                ? 'bg-white/20 text-white'
-                : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-            }`}
-          >
-            {mediaList.length}
-          </span>
-        </button>
-      </div>
-
-      {/* Konten Tab Aktif */}
-      {activeTab === 'admin-media' ? (
+      {/* Konten Tab Aktif Sesuai Pilihan Sidebar */}
+      {activeTab === 'admin-wa' ? (
+        <WhatsAppTab />
+      ) : activeTab === 'admin-media' ? (
         <MediaGalleryTab
           onInsertToHtml={handleInsertToBannerHtml}
-          onGoToBannerEditor={() => setActiveTab('admin-pengaturan')}
+          onGoToBannerEditor={() => setActiveTab('admin-banner')}
         />
       ) : (
-        <PengaturanTab
+        <BannerTab
           bannerHtml={bannerHtml}
           setBannerHtml={setBannerHtml}
           onOpenMediaGallery={() => setActiveTab('admin-media')}

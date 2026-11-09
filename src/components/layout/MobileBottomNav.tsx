@@ -19,7 +19,10 @@ import {
   History,
   ShieldCheck,
   UserCog,
-  Settings
+  Settings,
+  Sparkles,
+  Image as ImageIcon,
+  MessageCircle
 } from 'lucide-react';
 
 interface NavTab {
@@ -55,7 +58,9 @@ export const MobileBottomNav: React.FC = () => {
   ];
 
   const adminTabs: NavTab[] = [
-    { id: 'admin-pengaturan', label: 'Pengaturan WA', icon: Settings },
+    { id: 'admin-banner', label: 'Banner Iklan', icon: Sparkles },
+    { id: 'admin-media', label: 'Galeri Media', icon: ImageIcon },
+    { id: 'admin-wa', label: 'Kontak WA', icon: MessageCircle },
   ];
 
   const primaryTabs =
@@ -66,6 +71,7 @@ export const MobileBottomNav: React.FC = () => {
   const isMatchTab = (tabId: string, current: string) => {
     if (tabId === current) return true;
     if (tabId === 'fleet-dashboard' && current === 'dashboard') return true;
+    if (tabId === 'admin-banner' && current === 'admin-pengaturan') return true;
     return false;
   };
 

@@ -55,7 +55,7 @@ interface AppState {
 const roleDefaultTabs: Record<PeranUser, string> = {
   'Customer Fleet': 'fleet-dashboard',
   'Security': 'security-dashboard',
-  'Super Admin': 'admin-security',
+  'Super Admin': 'admin-banner',
 };
 
 // Validasi kedaluwarsa sesi: wajib login ulang jika sudah >= 24 jam atau sudah berganti hari kalender (besoknya)
