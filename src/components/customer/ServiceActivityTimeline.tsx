@@ -429,7 +429,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(activeInvoice?.tanggal_bayar || activeInvoice?.tanggal_invoice || spk.waktu_fir_closed) || '-'}
             meta={
               <>
-                Kasir & Keuangan: <strong className="font-bold text-ink">{activeInvoice?.kasir_pic || 'Kasir Bengkel KIM 3'}</strong>
+                Kasir & Keuangan: <strong className="font-bold text-ink">{activeInvoice?.kasir_pic || '-'}</strong>
                 {activeInvoice ? <> | Metode: {activeInvoice.metode_pembayaran || 'Transfer'}</> : null}
               </>
             }
