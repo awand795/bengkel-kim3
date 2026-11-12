@@ -432,7 +432,7 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
               )}
             </div>
 
-            {/* Kolom Kanan: Detail Armada & Referensi SPK/WO */}
+            {/* Kolom Kanan: Detail Armada */}
             <div className="space-y-1 text-right">
               <div>
                 <span className="text-[10px] text-slate-600 uppercase tracking-wider block font-bold">
@@ -440,14 +440,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                 </span>
                 <span className="font-bold text-slate-900 text-xs px-2 py-0.5 bg-white border border-slate-300 rounded inline-block mt-0.5">
                   {formatPlat(invoice.no_polisi)}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-600 uppercase tracking-wider block font-bold">
-                  Referensi SPK / WO:
-                </span>
-                <span className="font-bold text-slate-800 text-xs">
-                  {noSpk || (invoice.id_spk ? `SPK #${invoice.id_spk}` : 'Pembelian Langsung')}
                 </span>
               </div>
             </div>
@@ -573,36 +565,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                   </p>
                 </div>
 
-                {/* Blok Pembayaran & Status Terpadu (Ringkas) */}
-                <div className="p-2.5 bg-white rounded border border-slate-300 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-                      Status Pembayaran:
-                    </span>
-                    {isLunas ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        LUNAS
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        BELUM LUNAS
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between text-slate-700 pt-0.5">
-                    <span className="text-[11px]">Metode:</span>
-                    <span className="font-semibold text-slate-800">{invoice.metode_pembayaran || '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-700">
-                    <span className="text-[11px]">Tanggal Bayar:</span>
-                    <span className="tabular-nums text-slate-800 font-medium">
-                      {invoice.tanggal_bayar ? formatTanggalWaktu(invoice.tanggal_bayar) : '-'}
-                    </span>
-                  </div>
-                </div>
-
                 {/* Rekening Tujuan Transfer Resmi (HANYA tampil jika BELUM lunas) */}
                 {showBankAccounts && (
                   <div className="p-2.5 bg-white rounded border border-slate-300 text-xs space-y-1">
@@ -669,42 +631,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
               </div>
             </div>
 
-            {/* 5. TANDA TANGAN & STEMPEL RESMI (avoid-break) */}
-            <div className="pt-3 border-t border-slate-300 grid grid-cols-2 gap-8 text-center text-xs">
-              {/* Kolom Kiri: Pelanggan */}
-              <div className="space-y-1">
-                <div className="text-slate-700 font-medium text-xs">Diterima oleh Pelanggan / Sopir,</div>
-                <div className="h-16 flex items-center justify-center">
-                  {/* Ruang kosong untuk tanda tangan basah pelanggan */}
-                </div>
-                <div className="border-b border-slate-400 w-44 mx-auto"></div>
-                <div className="font-semibold text-slate-800 text-xs">
-                  ( {invoice.nama_customer || 'Pelanggan'} )
-                </div>
-              </div>
-
-              {/* Kolom Kanan: Kasir & Keuangan Bengkel KIM 3 */}
-              <div className="space-y-1">
-                <div className="text-slate-700 font-medium text-xs">Kasir & Keuangan Bengkel KIM 3,</div>
-                <div className="h-16 flex items-center justify-center relative">
-                  {/* Stempel PAID / LUNAS tunggal, diposisikan aman tanpa menimpa teks kasir */}
-                  {isLunas && (
-                    <div className="border-2 border-emerald-600 text-emerald-700 font-black text-xs uppercase px-3 py-1 rounded tracking-widest rotate-[-5deg] opacity-85 select-none pointer-events-none">
-                      PAID / LUNAS
-                    </div>
-                  )}
-                </div>
-                <div className="border-b border-slate-400 w-44 mx-auto"></div>
-                <div className="font-semibold text-slate-800 text-xs">
-                  {invoice.kasir_pic ? `( ${invoice.kasir_pic} )` : '( ___________________________ )'}
-                </div>
-              </div>
-            </div>
-
-            {/* Catatan Kaki Dokumen (Minimal slate-600) */}
-            <div className="text-[10px] text-slate-600 text-center pt-1 leading-relaxed">
-              Dokumen ini merupakan Faktur Penjualan Komersial resmi yang diterbitkan secara elektronik oleh Sistem Bengkel KIM 3.
-            </div>
           </div>
         </div>
       </div>

@@ -4856,7 +4856,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <tr>
                           <th className="px-5 py-3 font-semibold">No. Faktur</th>
                           <th className="px-4 py-3 font-semibold">Kendaraan</th>
-                          <th className="px-4 py-3 font-semibold">Referensi SPK</th>
                           <th className="px-4 py-3 font-semibold">Tanggal Terbit</th>
                           <th className="px-4 py-3 font-semibold text-right">Total Tagihan</th>
                           <th className="px-5 py-3 text-right font-semibold">Aksi</th>
@@ -4878,9 +4877,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 <span className="inline-flex rounded-md border border-border bg-white px-2.5 py-1 font-mono text-xs font-bold text-ink dark:bg-surface">
                                   {formatPlat(inv.no_polisi)}
                                 </span>
-                              </td>
-                              <td className="px-4 py-3.5 font-mono text-ink-muted">
-                                {inv.id_spk ? `SPK #${inv.id_spk}` : 'Beli Sparepart'}
                               </td>
                               <td className="px-4 py-3.5 text-ink-muted">
                                 {fmtWaktuFull(inv.tanggal_invoice || inv.tanggal_bayar) || '-'}
@@ -4918,9 +4914,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               <div className="mt-1 flex items-center gap-2">
                                 <span className="inline-flex rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-xs font-bold text-ink">
                                   {formatPlat(inv.no_polisi)}
-                                </span>
-                                <span className="text-xs text-ink-muted">
-                                  {inv.id_spk ? `SPK #${inv.id_spk}` : 'Beli Sparepart'}
                                 </span>
                               </div>
                             </div>
