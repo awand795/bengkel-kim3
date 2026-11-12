@@ -128,6 +128,10 @@ class RealtimeNotificationHub {
   }
 
   public startDifferentialStream() {
+    // [DINONAKTIFKAN SEMENTARA: Hemat resource server/klien, polling dimatikan tapi kode tetap ada]
+    const ENABLE_REALTIME_STREAM_POLLING = false;
+    if (!ENABLE_REALTIME_STREAM_POLLING) return;
+
     if (this.streamIntervalId || typeof window === 'undefined') return;
     this.isStreaming = true;
 

@@ -106,11 +106,13 @@ export const NotificationDropdown: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 1. Fetch Real Database Notifications via API
+  // [DINONAKTIFKAN SEMENTARA: Hemat resource, polling dinonaktifkan tanpa menghapus fitur]
+  const ENABLE_NOTIF_POLLING = false;
   const { data: notifikasiList = [], isLoading } = useQuery({
     queryKey: ['notifikasi-list'],
     queryFn: api.getNotifikasi,
-    refetchInterval: 20000,
-    enabled: currentRole !== 'Super Admin',
+    refetchInterval: ENABLE_NOTIF_POLLING ? 20000 : false,
+    enabled: ENABLE_NOTIF_POLLING && currentRole !== 'Super Admin',
   });
 
   // 2. Mark Single Notification as Read

@@ -117,7 +117,8 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
-            {currentRole !== 'Super Admin' && <NotificationDropdown />}
+            {/* Notification Center (Mobile) - Dinonaktifkan sementara sesuai permintaan user, tidak dihapus */}
+            {/* {currentRole !== 'Super Admin' && <NotificationDropdown />} */}
 
             <button
               type="button"
@@ -197,7 +198,8 @@ export const Navbar: React.FC = () => {
             </button>
 
             {/* Notification Center */}
-            {currentRole !== 'Super Admin' && <NotificationDropdown />}
+            {/* Notification Center (Mobile) - Dinonaktifkan sementara sesuai permintaan user, tidak dihapus */}
+            {/* {currentRole !== 'Super Admin' && <NotificationDropdown />} */}
 
             {/* User Profile Pill & Logout */}
             <div className="flex items-center gap-3 pl-3 border-l border-border">
@@ -237,8 +239,8 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
 
-        {/* Real-time Floating Notification Toasts */}
-        <FloatingNotificationToast />
+        {/* Real-time Floating Notification Toasts - Dinonaktifkan sementara sesuai permintaan user, tidak dihapus */}
+        {/* <FloatingNotificationToast /> */}
       </header>
 
       {/* Mobile User Profile Sheet */}

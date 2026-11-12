@@ -410,35 +410,9 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                   </div>
                 </div>
 
-                {/* Garis Pembatas Vertikal & Sisi Kanan: 4 Kolom Informasi (Persis Seperti Referensi) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 lg:border-l lg:border-border lg:pl-8 flex-1 pt-4 lg:pt-0 border-t lg:border-t-0 border-border">
-                  {/* Kolom 1: No. SPK / Tiket Gerbang */}
-                  <div className="min-w-0 space-y-1">
-                    <span className="text-xs font-medium text-ink-subtle block">
-                      {isPreSpk ? 'No. Tiket Gerbang' : 'No. SPK'}
-                    </span>
-                    <span className="text-xs sm:text-sm font-bold font-mono text-ink block truncate" title={spk.no_spk}>
-                      {spk.no_spk}
-                    </span>
-                    {spk.nama_customer && (
-                      <span className="text-[11px] text-ink-muted block truncate" title={spk.nama_customer}>
-                        {spk.nama_customer}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Kolom 2: Layanan & Pekerjaan */}
-                  <div className="min-w-0 space-y-1">
-                    <span className="text-xs font-medium text-ink-subtle block">Layanan</span>
-                    <span className="text-xs sm:text-sm font-bold text-ink block truncate" title={spk.jenis_layanan || 'Service Kendaraan'}>
-                      {spk.jenis_layanan || 'Service Kendaraan'}
-                    </span>
-                    <span className="text-[11px] text-ink-muted block truncate" title={spk.keluhan_customer || 'Perawatan Berkala'}>
-                      {spk.keluhan_customer || 'Perawatan Berkala'}
-                    </span>
-                  </div>
-
-                  {/* Kolom 3: Check In */}
+                {/* Garis Pembatas Vertikal & Sisi Kanan: 2 Kolom Informasi (Check In & Status Pengerjaan) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:border-l lg:border-border lg:pl-8 flex-1 pt-4 lg:pt-0 border-t lg:border-t-0 border-border">
+                  {/* Kolom 1: Check In */}
                   <div className="min-w-0 space-y-1">
                     <span className="text-xs font-medium text-ink-subtle block">Check In</span>
                     {(() => {
@@ -5636,7 +5610,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     type="text"
                     value={historySearch}
                     onChange={(e) => setHistorySearch(e.target.value)}
-                    placeholder="Cari no. SPK/tiket, no. polisi, keluhan, atau status..."
+                    placeholder="Cari no. polisi, status..."
                     aria-label="Cari riwayat service"
                     className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-9 text-xs text-ink placeholder:text-ink-subtle focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none dark:bg-surface"
                   />
@@ -5658,9 +5632,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div className="divide-y divide-border px-5">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <div key={n} className="flex items-center justify-between gap-4 py-3 animate-pulse">
-                    <div className="w-24 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
                     <div className="w-20 h-6 bg-slate-200 dark:bg-slate-800 rounded-md" />
-                    <div className="w-44 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
                     <div className="w-24 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
                     <div className="w-20 h-4 bg-slate-200 dark:bg-slate-800 rounded" />
                     <div className="w-24 h-6 bg-slate-200 dark:bg-slate-800 rounded-full" />
@@ -5682,12 +5654,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div className={`transition-opacity duration-200 ${isChangingHistoryPage ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
                     {/* Desktop Table: langsung di dalam kartu */}
                     <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full min-w-[900px] text-left text-xs">
+                  <table className="w-full min-w-[750px] text-left text-xs">
                     <thead className="sticky top-0 z-10 border-b border-border bg-[#F6F8FB] dark:bg-slate-800/70">
                       <tr>
-                        <th scope="col" className="px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">No. Booking / SPK</th>
-                        <th scope="col" className="whitespace-nowrap px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Kendaraan</th>
-                        <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Layanan</th>
+                        <th scope="col" className="whitespace-nowrap px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Kendaraan</th>
                         <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Tanggal Masuk</th>
                         <th scope="col" className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Biaya</th>
                         <th scope="col" className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-ink-subtle">Status</th>
@@ -5708,19 +5678,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           }}
                           className="group cursor-pointer transition-colors hover:bg-[#F7F9FC] focus-visible:bg-[#F7F9FC] focus-visible:outline-none dark:hover:bg-slate-800/50 dark:focus-visible:bg-slate-800/50"
                         >
-                          <td className="px-5 py-3.5 font-mono text-xs font-semibold text-[#34517C] transition-[box-shadow] group-hover:[box-shadow:inset_3px_0_0_#34517C] group-focus-visible:[box-shadow:inset_3px_0_0_#34517C] dark:text-blue-300">
-                            <div className="flex flex-col gap-0.5">
-                              <span>{spk.no_spk}</span>
-                              {spk.sumber === 'kunjungan' && (
-                                <span className="font-sans text-[10px] font-medium text-ink-subtle">Tiket Gerbang</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3.5">
+                          <td className="whitespace-nowrap px-5 py-3.5 transition-[box-shadow] group-hover:[box-shadow:inset_3px_0_0_#34517C] group-focus-visible:[box-shadow:inset_3px_0_0_#34517C]">
                             <PlateChip plat={spk.no_polisi} />
-                          </td>
-                          <td className="max-w-[260px] px-4 py-3.5 text-xs leading-relaxed text-ink-muted" title={spk.keluhan_customer}>
-                            {spk.keluhan_customer}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3.5 text-xs font-medium tabular-nums text-ink-muted">
                             {(() => {
@@ -5786,15 +5745,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       className="relative cursor-pointer overflow-hidden rounded-xl border border-border bg-white p-4 transition-colors hover:border-[#B8C7DC] hover:bg-[#FAFBFD] dark:bg-slate-800/60 dark:hover:bg-slate-800"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="inline-flex flex-col gap-0.5 rounded-md border border-[#DCE5F5] bg-[#F5F8FD] px-2.5 py-1 font-mono text-xs font-semibold text-[#34517C] dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300">
-                          <span className="inline-flex items-center gap-1.5">
-                            <FileText className="w-3.5 h-3.5" />
-                            {spk.no_spk}
-                          </span>
-                          {spk.sumber === 'kunjungan' && (
-                            <span className="font-sans text-[9px] font-medium text-ink-subtle">Tiket Gerbang</span>
-                          )}
-                        </span>
+                        <PlateChip plat={spk.no_polisi} />
                         <div className="flex flex-col items-end gap-1">
                           <StatusBadge status={spk.status_spk} size="sm" />
                           {spk.sumber === 'kunjungan' && (
@@ -5804,14 +5755,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           )}
                         </div>
                       </div>
-
-                      <div className="mt-3">
-                        <PlateChip plat={spk.no_polisi} />
-                      </div>
-
-                      <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-muted" title={spk.keluhan_customer}>
-                        {spk.keluhan_customer}
-                      </p>
 
                       <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 text-xs">
                         <div className="rounded-lg border border-border bg-[#F8FAFC] px-3 py-2 dark:bg-slate-900/50">
@@ -5930,13 +5873,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         open={!!historyDetail}
         onClose={() => setHistoryDetail(null)}
         title="Detail Riwayat Service"
-        subtitle={
-          historyDetail
-            ? historyDetail.sumber === 'kunjungan'
-              ? `Tiket Gerbang: ${historyDetail.no_spk}`
-              : `No. Dokumen: ${historyDetail.no_spk}`
-            : undefined
-        }
         badge={undefined}
         size="xl"
       >
