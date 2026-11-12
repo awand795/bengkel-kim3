@@ -298,7 +298,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
   const hasPhone = isValidCompanyField(COMPANY_PROFILE.phone);
   const hasEmail = isValidCompanyField(COMPANY_PROFILE.email);
   const hasAnyContact = hasNpwp || hasPhone || hasEmail;
-  const isCompanyProfileIncomplete = !hasNpwp || !hasPhone || !hasEmail;
 
   return createPortal(
     <div className="printable-container fixed inset-0 z-9999 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
@@ -341,16 +340,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Notifikasi Layar: Jika identitas perusahaan belum lengkap di konfigurasi */}
-        {isCompanyProfileIncomplete && (
-          <div className="no-print mx-5 my-2.5 px-3.5 py-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-lg text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2 shrink-0">
-            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>
-              <strong>Perhatian:</strong> Lengkapi data perusahaan di konfigurasi sebelum mencetak.
-            </span>
-          </div>
-        )}
 
         {/* Konten Dokumen Faktur (Bisa Dicetak A4 Portrait) */}
         <div
