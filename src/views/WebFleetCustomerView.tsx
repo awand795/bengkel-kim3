@@ -1093,9 +1093,14 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               <div>
                                 <div className="font-bold text-ink flex items-center gap-1.5">
                                   <span>Faktur_{activeInvoice?.no_invoice || spk.no_invoice || spk.no_spk}.pdf</span>
-                                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${activeInvoiceLunas || spk.status_spk === 'Selesai' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                    {activeInvoiceLunas || spk.status_spk === 'Selesai' ? 'LUNAS' : 'RESMI'}
-                                  </span>
+                                  {(() => {
+                                    const isRealLunas = activeInvoiceLunas || (spk as any).status_invoice === 'Lunas';
+                                    return (
+                                      <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${isRealLunas ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                        {isRealLunas ? 'LUNAS' : 'BELUM LUNAS'}
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
                                 <div className="text-xs text-ink-subtle">
                                   Faktur Servis Resmi • Rp {Number(activeInvoice?.grand_total || spk.total_invoice || spk.estimasi_biaya || 0).toLocaleString('id-ID')}
@@ -1500,8 +1505,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
           diskon: 0,
           grand_total: Number(spk.total_invoice || spk.estimasi_biaya || 0),
           metode_pembayaran: '-',
-          status_pembayaran: spk.status_spk === 'Selesai' ? 'Lunas' : 'Menunggu Pembayaran',
-          tanggal_bayar: spk.status_spk === 'Selesai' ? (spk.waktu_check_out || spk.waktu_fir_closed) : undefined,
+          status_pembayaran: (spk as any).status_invoice === 'Lunas' ? 'Lunas' : 'Menunggu Pembayaran',
+          tanggal_bayar: (spk as any).status_invoice === 'Lunas' ? (spk.waktu_check_out || spk.waktu_fir_closed) : undefined,
           is_proforma: !activeInvoice && !spk.no_invoice,
         }}
         isOpen={spkFakturModalOpen}
@@ -4880,13 +4885,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           <th className="px-4 py-3 font-semibold">Referensi SPK</th>
                           <th className="px-4 py-3 font-semibold">Tanggal Terbit</th>
                           <th className="px-4 py-3 font-semibold text-right">Total Tagihan</th>
-                          <th className="px-4 py-3 font-semibold">Status Bayar</th>
                           <th className="px-5 py-3 text-right font-semibold">Aksi</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border/70">
                         {fakturRows.map((inv) => {
-                          const isLunas = inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas';
                           return (
                             <tr key={`inv-${inv.id}`} className="transition-colors hover:bg-surface/70">
                               <td className="px-5 py-3.5 font-bold text-ink">
@@ -4911,16 +4914,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               <td className="px-4 py-3.5 text-right font-mono font-bold text-ink">
                                 Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}
                               </td>
-                              <td className="px-4 py-3.5">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                  isLunas
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                                }`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${isLunas ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                  {isLunas ? 'Lunas' : 'Menunggu Bayar'}
-                                </span>
-                              </td>
                               <td className="px-5 py-3.5 text-right">
                                 <button
                                   type="button"
@@ -4943,7 +4936,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   {/* Mobile Faktur Cards */}
                   <div className="block space-y-2.5 p-3 md:hidden">
                     {fakturRows.map((inv) => {
-                      const isLunas = inv.status_pembayaran === 'Paid' || inv.status_pembayaran === 'Lunas';
                       return (
                         <div key={`inv-m-${inv.id}`} className="rounded-xl border border-border bg-white p-3.5 dark:bg-surface space-y-2.5">
                           <div className="flex items-start justify-between gap-2">
@@ -4958,13 +4950,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 </span>
                               </div>
                             </div>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                              isLunas
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}>
-                              {isLunas ? 'Lunas' : 'Menunggu Bayar'}
-                            </span>
                           </div>
 
                           <div className="flex items-center justify-between border-t border-border pt-2 text-xs">

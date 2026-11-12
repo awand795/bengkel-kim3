@@ -49,6 +49,11 @@ tmp/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Planning documents
+rencana_integrasi_faktur_dan_status_bayar_erp.md
+
+Thumbs.db
 Desktop.ini
 
 # Sub-projects
