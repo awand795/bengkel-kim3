@@ -935,7 +935,31 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                 )}
 
                 {/* TAB 2: Detail Pekerjaan & Sparepart */}
-                {subTab === 'detail' && (
+                {subTab === 'detail' && (() => {
+                  const totalJasa = activePekerjaan.reduce((acc, p) => acc + Number(p.biaya_jasa || 0), 0);
+                  const totalParts = activeParts.reduce((acc, pt) => acc + Number(pt.subtotal || (Number(pt.harga_satuan || 0) * Number(pt.jumlah || 1)) || 0), 0);
+                  const subtotalItems = totalJasa + totalParts;
+                  const invSubtotal = activeInvoice ? Number(activeInvoice.subtotal || 0) : 0;
+                  const diskon = activeInvoice ? Number(activeInvoice.diskon || 0) : 0;
+                  const dppBase = invSubtotal > 0 ? Math.max(0, invSubtotal - diskon) : (subtotalItems > 0 ? subtotalItems : Number(spk.estimasi_biaya || 0));
+                  const tipePajak = String(activeInvoice?.tipe_pajak || '').toUpperCase();
+                  const hasTarif = activeInvoice?.tarif_ppn_persen != null && !isNaN(Number(activeInvoice.tarif_ppn_persen));
+                  const tarifPpn = hasTarif ? Number(activeInvoice!.tarif_ppn_persen) : 11;
+                  const ppnNominal = activeInvoice
+                    ? Number(activeInvoice.ppn_nominal || 0)
+                    : (Number(spk.total_invoice || 0) > dppBase ? Number(spk.total_invoice) - dppBase : 0);
+                  const grandTotal = activeInvoice && Number(activeInvoice.grand_total || 0) > 0
+                    ? Number(activeInvoice.grand_total)
+                    : Number(spk.total_invoice || 0) > 0
+                      ? Number(spk.total_invoice)
+                      : dppBase + ppnNominal;
+                  const ppnLabel = tipePajak === 'I'
+                    ? `PPN (${tarifPpn}%) (Include)`
+                    : tipePajak === 'N'
+                      ? 'PPN (Non-PKP)'
+                      : `PPN (${tarifPpn}%) (Exclude)`;
+
+                  return (
                   <div className="space-y-4 pt-1 text-xs">
                     {/* Daftar Jasa */}
                     <div className="border border-border rounded-xl overflow-hidden">
@@ -947,18 +971,27 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
                         {activePekerjaan.length > 0 ? (
-                          activePekerjaan.map((p, idx) => (
-                            <div key={idx} className="p-3 flex justify-between items-center">
-                              <div>
-                                <div className="font-semibold text-ink">{p.nama_pekerjaan || p.kategori}</div>
-                                <div className="text-xs text-ink-subtle">Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}</div>
+                          activePekerjaan.map((p, idx) => {
+                            const qty = Number(p.qty || 1);
+                            const hargaSatuan = Number(p.harga_satuan || 0) > 0
+                              ? Number(p.harga_satuan)
+                              : (qty > 0 ? Number(p.biaya_jasa || 0) / qty : Number(p.biaya_jasa || 0));
+                            const subtotalJasa = Number(p.biaya_jasa || 0);
+                            return (
+                              <div key={idx} className="p-3 flex justify-between items-center gap-3">
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-ink">{p.nama_pekerjaan || p.kategori}</div>
+                                  <div className="text-xs text-ink-subtle tabular-nums">
+                                    {qty} × Rp {hargaSatuan.toLocaleString('id-ID')} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="font-bold text-ink tabular-nums">Rp {subtotalJasa.toLocaleString('id-ID')}</div>
+                                  <span className="text-xs text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
+                                </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-bold text-ink">Rp {(p.biaya_jasa || 0).toLocaleString('id-ID')}</div>
-                                <span className="text-xs text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
-                              </div>
-                            </div>
-                          ))
+                            );
+                          })
                         ) : (
                           <div className="p-4 text-center text-xs text-ink-subtle">
                             Belum ada rincian jasa pengerjaan untuk unit ini.
@@ -977,18 +1010,25 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
                         {activeParts.length > 0 ? (
-                          activeParts.map((pt, idx) => (
-                            <div key={idx} className="p-3 flex justify-between items-center">
-                              <div>
-                                <div className="font-semibold text-ink">{pt.nama_part}</div>
-                                <div className="text-xs text-ink-subtle">Jumlah: {pt.jumlah} {pt.satuan || 'pcs'}</div>
+                          activeParts.map((pt, idx) => {
+                            const qty = Number(pt.jumlah || 1);
+                            const hargaSatuan = Number(pt.harga_satuan || 0);
+                            const subtotalPart = Number(pt.subtotal || (hargaSatuan * qty) || 0);
+                            return (
+                              <div key={idx} className="p-3 flex justify-between items-center gap-3">
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-ink">{pt.nama_part}</div>
+                                  <div className="text-xs text-ink-subtle tabular-nums">
+                                    {qty} {pt.satuan || 'Pcs'} × Rp {hargaSatuan.toLocaleString('id-ID')}
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="font-bold text-ink tabular-nums">Rp {subtotalPart.toLocaleString('id-ID')}</div>
+                                  <span className="text-xs text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
+                                </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-bold text-ink">Rp {((pt.harga_satuan || 0) * (pt.jumlah || 1)).toLocaleString('id-ID')}</div>
-                                <span className="text-xs text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
-                              </div>
-                            </div>
-                          ))
+                            );
+                          })
                         ) : (
                           <div className="p-4 text-center text-xs text-ink-subtle">
                             Belum ada rincian sparepart untuk unit ini.
@@ -996,6 +1036,48 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         )}
                       </div>
                     </div>
+
+                    {/* Ringkasan Rincian Biaya & Pajak (Sesuai Faktur ERP) */}
+                    {(activePekerjaan.length > 0 || activeParts.length > 0 || grandTotal > 0) && (
+                      <div className="border border-border rounded-xl overflow-hidden bg-surface-raised">
+                        <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center border-b border-border">
+                          <span>Ringkasan Biaya & Pajak (ERP)</span>
+                          <span className="text-[11px] font-medium text-ink-subtle">
+                            {activeInvoice?.no_invoice || spk.no_invoice || 'Belum Terbit Faktur'}
+                          </span>
+                        </div>
+                        <div className="p-4 space-y-2 text-xs">
+                          <div className="flex justify-between text-ink-muted">
+                            <span>Subtotal Pekerjaan / Jasa</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {totalJasa.toLocaleString('id-ID')}</span>
+                          </div>
+                          <div className="flex justify-between text-ink-muted">
+                            <span>Subtotal Sparepart & Material</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {totalParts.toLocaleString('id-ID')}</span>
+                          </div>
+                          {diskon > 0 && (
+                            <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                              <span>Diskon</span>
+                              <span className="font-mono font-semibold tabular-nums">- Rp {diskon.toLocaleString('id-ID')}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-ink-muted pt-1.5 border-t border-dashed border-border">
+                            <span>Subtotal (DPP)</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {dppBase.toLocaleString('id-ID')}</span>
+                          </div>
+                          {(ppnNominal > 0 || activeInvoice) && (
+                            <div className="flex justify-between text-ink-muted">
+                              <span>{ppnLabel}</span>
+                              <span className="font-mono font-semibold text-ink tabular-nums">Rp {ppnNominal.toLocaleString('id-ID')}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center pt-2 border-t border-border text-sm font-extrabold text-[#12388F] dark:text-blue-300">
+                            <span>{activeInvoice || spk.no_invoice ? 'Total Tagihan (Grand Total)' : 'Total Estimasi'}</span>
+                            <span className="font-mono tabular-nums">Rp {grandTotal.toLocaleString('id-ID')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Catatan Part Tidak Jadi Dipakai / Batal (sch_pos.vw_spk_daily_report) */}
                     {spk.produk_belum_dipakai && (
@@ -1019,7 +1101,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
 
@@ -5676,7 +5759,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             {spk.sumber === 'kunjungan' ? (
                               <span className="text-xs text-ink-subtle">-</span>
                             ) : (
-                              <RupiahCell amount={spk.estimasi_biaya} />
+                              <RupiahCell amount={Number(spk.total_invoice || 0) > 0 ? spk.total_invoice : spk.estimasi_biaya} />
                             )}
                           </td>
                           <td className="px-4 py-3.5">

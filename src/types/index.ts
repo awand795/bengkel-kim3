@@ -468,6 +468,8 @@ export interface SpkItemPekerjaan {
   nama_pekerjaan: string;
   kategori?: string;
   estimasi_durasi_jam: number;
+  qty?: number;
+  harga_satuan?: number;
   biaya_jasa: number;
   nama_mekanik?: string;
   status_pekerjaan: 'Menunggu' | 'Dikerjakan' | 'Selesai';
