@@ -5759,7 +5759,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             {spk.sumber === 'kunjungan' ? (
                               <span className="text-xs text-ink-subtle">-</span>
                             ) : (
-                              <RupiahCell amount={Number(spk.total_invoice || 0) > 0 ? spk.total_invoice : spk.estimasi_biaya} />
+                              <RupiahCell amount={Number(spk.total_invoice || 0) > 0 ? Number(spk.total_invoice) : (spk.estimasi_biaya ?? 0)} />
                             )}
                           </td>
                           <td className="px-4 py-3.5">
@@ -5837,7 +5837,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           {spk.sumber === 'kunjungan' ? (
                             <span className="text-xs text-ink-subtle">-</span>
                           ) : (
-                            <RupiahCell amount={spk.estimasi_biaya} />
+                            <RupiahCell amount={Number(spk.total_invoice || 0) > 0 ? Number(spk.total_invoice) : (spk.estimasi_biaya ?? 0)} />
                           )}
                         </div>
                       </div>
