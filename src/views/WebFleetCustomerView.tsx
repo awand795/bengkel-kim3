@@ -1582,8 +1582,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [bookingServiceCategory, setBookingServiceCategory] = useState('Semua');
   const [showAllBookingServices, setShowAllBookingServices] = useState(false);
   const [bookingKendaraanSearch, setBookingKendaraanSearch] = useState('');
+  const [bookingKendaraanQuery, setBookingKendaraanQuery] = useState('');
   const [bookingKendaraanPage, setBookingKendaraanPage] = useState(1);
-  const [bookingKendaraanLimit, setBookingKendaraanLimit] = useState(5);
+  const bookingKendaraanLimit = 5;
   const [bookingForm, setBookingForm] = useState({
     no_polisi: '',
     jenis_layanan: 'Service Berkala (Ganti Oli & Filter)',
@@ -1656,7 +1657,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Modal lightbox preview foto armada / dokumen yang membesar
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
-  // Debounce input pencarian supaya tidak membanjiri server setiap ketikan
+  // Debounce pencarian kendaraan di modal booking (server-side)
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      setBookingKendaraanQuery(bookingKendaraanSearch.trim());
+      setBookingKendaraanPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [bookingKendaraanSearch]);
   React.useEffect(() => {
     const t = setTimeout(() => {
       setArmadaQuery(armadaSearch.trim());
@@ -1810,6 +1818,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       }),
     placeholderData: (prev) => prev,
     refetchInterval: 15000,
+  });
+
+  // Daftar kendaraan per halaman di modal Booking (server-side pagination + search, tanpa limit hardcoded)
+  const { data: bookingKendaraanPageData, isFetching: bookingKendaraanFetching } = useQuery({
+    queryKey: ['booking-kendaraan-page', bookingKendaraanPage, bookingKendaraanLimit, bookingKendaraanQuery],
+    queryFn: () => api.getKendaraanPage({ page: bookingKendaraanPage, limit: bookingKendaraanLimit, q: bookingKendaraanQuery }),
+    enabled: openBookingModal,
+    placeholderData: (prev) => prev,
+    refetchInterval: 30000,
   });
 
   // Daftar kendaraan per halaman (server-side pagination + search)
@@ -2020,28 +2037,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   );
 
   // Pilihan kendaraan di modal booking (Step 1): filter by plat nomor, merk, model + pagination
-  const filteredBookingKendaraanList = useMemo(() => {
-    const q = bookingKendaraanSearch.trim().toLowerCase().replace(/\s+/g, '');
-    if (!q) return myKendaraanList;
-    return myKendaraanList.filter((k) => {
-      const plat = (k.no_polisi || '').toLowerCase().replace(/\s+/g, '');
-      const merk = (k.merk || '').toLowerCase();
-      const model = (k.model || '').toLowerCase();
-      return plat.includes(q) || merk.includes(q) || model.includes(q);
-    });
-  }, [myKendaraanList, bookingKendaraanSearch]);
-
-  const bookingKendaraanTotalPages = Math.max(1, Math.ceil(filteredBookingKendaraanList.length / bookingKendaraanLimit));
-  const bookingKendaraanSafePage = Math.min(bookingKendaraanPage, bookingKendaraanTotalPages);
-  const bookingKendaraanPaginated = filteredBookingKendaraanList.slice(
-    (bookingKendaraanSafePage - 1) * bookingKendaraanLimit,
-    bookingKendaraanSafePage * bookingKendaraanLimit
+  const bookingKendaraanRows = useMemo(
+    () => (bookingKendaraanPageData?.rows || []).filter((k) => isMyKendaraan(k)),
+    [bookingKendaraanPageData?.rows, isMyKendaraan]
   );
+  const bookingKendaraanTotalRecords =
+    bookingKendaraanPageData?.pagination?.total_records ?? bookingKendaraanRows.length;
+  const bookingKendaraanTotalPages = Math.max(
+    1,
+    bookingKendaraanPageData?.pagination?.total_pages ?? Math.ceil(bookingKendaraanTotalRecords / bookingKendaraanLimit)
+  );
+  const bookingKendaraanSafePage = Math.min(bookingKendaraanPage, bookingKendaraanTotalPages);
 
   // Unit yang sedang terpilih di wizard booking (untuk menolak unit yang masih di bengkel)
   const selectedBookingKendaraan = useMemo(
-    () => myKendaraanList.find((k) => normalizePlat(k.no_polisi) === normalizePlat(bookingForm.no_polisi)),
-    [myKendaraanList, bookingForm.no_polisi]
+    () =>
+      bookingKendaraanRows.find((k) => normalizePlat(k.no_polisi) === normalizePlat(bookingForm.no_polisi)) ||
+      myKendaraanList.find((k) => normalizePlat(k.no_polisi) === normalizePlat(bookingForm.no_polisi)),
+    [bookingKendaraanRows, myKendaraanList, bookingForm.no_polisi]
   );
 
   // Bila data terbaru menyatakan unit terpilih baru saja masuk bengkel, lepaskan pilihannya
@@ -2057,20 +2070,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     );
   }, [openBookingModal, bookingForm.no_polisi, selectedBookingKendaraan, isUnitInWorkshop]);
 
-  // Otomatis sinkronkan halaman kendaraan di modal booking HANYA saat modal baru dibuka
+  // Reset ke halaman 1 saat modal booking baru dibuka
   const prevOpenBookingModalRef = React.useRef(false);
   React.useEffect(() => {
     const justOpened = openBookingModal && !prevOpenBookingModalRef.current;
     prevOpenBookingModalRef.current = openBookingModal;
-    if (justOpened && bookingForm.no_polisi) {
-      const idx = filteredBookingKendaraanList.findIndex(
-        (k) => normalizePlat(k.no_polisi) === normalizePlat(bookingForm.no_polisi)
-      );
-      if (idx !== -1) {
-        setBookingKendaraanPage(Math.floor(idx / bookingKendaraanLimit) + 1);
-      }
+    if (justOpened) {
+      setBookingKendaraanPage(1);
     }
-  }, [openBookingModal, bookingForm.no_polisi, bookingKendaraanLimit, filteredBookingKendaraanList]);
+  }, [openBookingModal]);
 
   // Filter SPK khusus kendaraan customer yang sedang login
   const isMySpk = (s: SpkService) => {
@@ -3765,13 +3773,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         )}
                       </div>
                         <span className="shrink-0 px-1 text-[11px] font-medium tabular-nums text-ink-subtle">
-                          {filteredBookingKendaraanList.length} kendaraan
+                          {bookingKendaraanTotalRecords} kendaraan
                         </span>
                       </div>
 
                       <div className="space-y-2">
-                        {filteredBookingKendaraanList.length > 0 ? (
-                          bookingKendaraanPaginated.map((k) => {
+                        {bookingKendaraanRows.length > 0 ? (
+                          bookingKendaraanRows.map((k) => {
                             const isSelected = bookingForm.no_polisi === k.no_polisi;
                             const inWorkshop = isUnitInWorkshop(k);
                             return (
@@ -3855,7 +3863,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               </label>
                             );
                           })
-                        ) : myKendaraanList.length > 0 ? (
+                        ) : bookingKendaraanSearch.trim().length > 0 ? (
                           <div className="space-y-2 rounded-xl border border-dashed border-border bg-[#F8FAFC] p-6 text-center dark:bg-surface">
                             <p className="text-xs text-ink-muted font-medium">
                               Tidak ada kendaraan dengan plat nomor atau nama <span className="font-semibold text-ink">"{bookingKendaraanSearch}"</span>.
@@ -3895,22 +3903,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         )}
                       </div>
 
-                      {/* Pagination Bar untuk Pilihan Kendaraan */}
+                      {/* Pagination Bar untuk Pilihan Kendaraan (server-side dinamis) */}
                       {bookingKendaraanTotalPages > 1 && (
                         <PaginationBar
                           page={bookingKendaraanSafePage}
                           totalPages={bookingKendaraanTotalPages}
-                          totalRecords={filteredBookingKendaraanList.length}
+                          totalRecords={bookingKendaraanTotalRecords}
                           limit={bookingKendaraanLimit}
-                          limitOptions={[5, 10, 20]}
+                          isLoading={bookingKendaraanFetching}
                           label="kendaraan"
                           className="border-t-0 bg-[#FAFBFD] px-3 py-2.5 dark:bg-surface"
                           onPageChange={(p) => { setBookingKendaraanPage(p); scrollToTopRef(modalKendaraanContainerRef); }}
-                          onLimitChange={(l) => {
-                            setBookingKendaraanLimit(l);
-                            setBookingKendaraanPage(1);
-                            scrollToTopRef(modalKendaraanContainerRef);
-                          }}
                         />
                       )}
                     </div>
