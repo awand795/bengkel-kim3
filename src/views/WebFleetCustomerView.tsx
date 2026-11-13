@@ -1967,7 +1967,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   });
 
   // Daftar kendaraan per halaman di modal Booking (server-side pagination + search, tanpa limit hardcoded)
-  const { data: bookingKendaraanPageData, isFetching: bookingKendaraanFetching } = useQuery({
+  const {
+    data: bookingKendaraanPageData,
+    isLoading: bookingKendaraanLoading,
+    isFetching: bookingKendaraanFetching,
+  } = useQuery({
     queryKey: ['booking-kendaraan-page', bookingKendaraanPage, bookingKendaraanLimit, bookingKendaraanQuery],
     queryFn: () => api.getKendaraanPage({ page: bookingKendaraanPage, limit: bookingKendaraanLimit, q: bookingKendaraanQuery }),
     enabled: openBookingModal,
@@ -3947,7 +3951,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </div>
                         )}
                       <div className={`space-y-2 transition-opacity duration-200 ${isChangingBookingKendaraanPage ? 'pointer-events-none opacity-40' : 'opacity-100'}`}>
-                        {bookingKendaraanRows.length > 0 ? (
+                        {bookingKendaraanLoading && !bookingKendaraanPageData ? (
+                          <div className="space-y-2">
+                            {[1, 2, 3, 4].map((n) => (
+                              <div
+                                key={n}
+                                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white p-3 dark:bg-surface-raised animate-pulse"
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="h-4 w-4 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                                  <div className="space-y-1.5">
+                                    <div className="h-4 w-28 rounded bg-slate-200 dark:bg-slate-800" />
+                                    <div className="h-3 w-40 rounded bg-slate-200 dark:bg-slate-800" />
+                                  </div>
+                                </div>
+                                <div className="h-5 w-16 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : bookingKendaraanRows.length > 0 ? (
                           bookingKendaraanRows.map((k) => {
                             const isSelected = bookingForm.no_polisi === k.no_polisi;
                             const inWorkshop = isUnitInWorkshop(k);
