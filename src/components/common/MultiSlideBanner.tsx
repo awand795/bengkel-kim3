@@ -92,7 +92,7 @@ export const MultiSlideBanner: React.FC<MultiSlideBannerProps> = ({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl bg-slate-950 shadow-lg border border-slate-800/80 aspect-[16/9] sm:aspect-[21/9] min-h-[220px] max-h-[380px] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl bg-[#cdeeff] shadow-lg border border-sky-200/80 aspect-[16/9] min-h-[220px] ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={() => setIsHovered(true)}
