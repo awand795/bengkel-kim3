@@ -21,10 +21,8 @@ import { useAppStore } from '../store/useAppStore';
 import { api } from '../api/client';
 import { PengaturanSitus, MediaIklan } from '../types';
 import { toast } from '../components/common/Toast';
-import { DashboardHtmlBanner } from '../components/common/DashboardHtmlBanner';
-import { DEFAULT_DASHBOARD_BANNER_HTML } from '../config/bannerTemplate';
 import { MediaGalleryTab } from '../components/admin/MediaGalleryTab';
-import { HtmlCodeEditor } from '../components/admin/HtmlCodeEditor';
+import { IklanSlideTab } from '../components/admin/IklanSlideTab';
 
 const fmtTanggal = (value?: string | null): string => {
   if (!value) return '-';
@@ -104,173 +102,6 @@ const ModalShell: React.FC<{
     </div>
   </div>
 );
-
-// ── Tab: Banner Iklan Dashboard ────────────────────────────────────────────
-interface BannerTabProps {
-  bannerHtml: string;
-  setBannerHtml: React.Dispatch<React.SetStateAction<string>>;
-  onOpenMediaGallery: () => void;
-  mediaList?: MediaIklan[];
-}
-
-const BannerTab: React.FC<BannerTabProps> = ({
-  bannerHtml,
-  setBannerHtml,
-  onOpenMediaGallery,
-  mediaList = [],
-}) => {
-  const queryClient = useQueryClient();
-  const [bannerAktif, setBannerAktif] = useState(true);
-  const [savingBanner, setSavingBanner] = useState(false);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-pengaturan'],
-    queryFn: api.getPengaturan,
-  });
-
-  const map = useMemo(() => {
-    return (data || []).reduce<Record<string, PengaturanSitus>>((acc, item) => {
-      acc[item.kunci] = item;
-      return acc;
-    }, {});
-  }, [data]);
-
-  useEffect(() => {
-    if (!data) return;
-    if (map.dashboard_banner_aktif?.nilai !== undefined) {
-      setBannerAktif(map.dashboard_banner_aktif.nilai !== 'false');
-    }
-    if (map.dashboard_banner_html?.nilai !== undefined) {
-      setBannerHtml(map.dashboard_banner_html.nilai || '');
-    }
-  }, [data]);
-
-  const handleSaveBanner = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setSavingBanner(true);
-    try {
-      await api.simpanPengaturan({
-        kunci: 'dashboard_banner_aktif',
-        nilai: bannerAktif ? 'true' : 'false',
-        keterangan: 'Status aktifasi banner iklan dashboard (true/false)',
-      });
-      await api.simpanPengaturan({
-        kunci: 'dashboard_banner_html',
-        nilai: bannerHtml.trim(),
-        keterangan: 'Kode HTML konten banner iklan dashboard customer',
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['admin-pengaturan'] }),
-        queryClient.invalidateQueries({ queryKey: ['pengaturan-publik'] }),
-      ]);
-      toast.success('Pengaturan Banner Disimpan', 'Banner iklan pada dashboard customer berhasil diperbarui.');
-    } catch (err) {
-      toast.error('Gagal menyimpan banner iklan', describeError(err, 'Coba beberapa saat lagi.'));
-    } finally {
-      setSavingBanner(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      <div className="rounded-xl bg-surface-raised border border-border overflow-hidden">
-        <div className="px-4 py-3.5 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-surface/50">
-          <div className="flex items-center gap-2">
-            <Layout className="w-4 h-4 text-[#1D4ED8]" />
-            <div>
-              <h2 className="text-xs font-bold text-ink">Banner Iklan Dashboard Customer (HTML)</h2>
-              <p className="text-[10px] text-ink-muted">
-                Atur konten promosi/banner HTML yang tampil di bagian paling bawah halaman dashboard customer.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={bannerAktif}
-                onChange={(e) => setBannerAktif(e.target.checked)}
-                className="w-4 h-4 rounded text-accent accent-[#1D4ED8] focus:ring-accent/30 cursor-pointer"
-              />
-              <span className={bannerAktif ? 'text-status-green font-bold' : 'text-ink-muted'}>
-                {bannerAktif ? 'Banner Aktif' : 'Banner Dinonaktifkan'}
-              </span>
-            </label>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-xs text-ink-muted">
-            <Loader2 className="w-4 h-4 animate-spin" /> Memuat banner...
-          </div>
-        ) : (
-          <form onSubmit={handleSaveBanner} className="p-4 space-y-4">
-            <HtmlCodeEditor
-              value={bannerHtml}
-              onChange={setBannerHtml}
-              onSave={() => handleSaveBanner()}
-              isSaving={savingBanner}
-              onResetTemplate={() => {
-                setBannerHtml(DEFAULT_DASHBOARD_BANNER_HTML);
-                toast.info('Template Dimuat', 'Template sample slider iklan 3 slide telah dimuat ke editor.');
-              }}
-              onClear={() => setBannerHtml('')}
-              mediaList={mediaList}
-              onOpenMediaTab={onOpenMediaGallery}
-              previewComponent={
-                bannerHtml.trim() ? (
-                  <div className="rounded-xl overflow-hidden border border-border shadow-xs bg-surface">
-                    <DashboardHtmlBanner html={bannerHtml} />
-                  </div>
-                ) : (
-                  <div className="p-6 text-center text-xs text-ink-muted border border-dashed border-border rounded-xl">
-                    Kode HTML masih kosong. Klik &quot;Pakai Template&quot; untuk mencoba template sample.
-                  </div>
-                )
-              }
-            />
-
-            {/* Live Interactive Preview Box */}
-            <div className="rounded-xl border border-border bg-surface/60 p-3.5 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold text-ink-muted uppercase tracking-wide flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5 text-accent" />
-                  Live Pratinjau Tampilan Dashboard
-                </p>
-                <span className="text-[10px] text-ink-subtle">
-                  {bannerAktif ? 'Tampil di dashboard pelanggan' : 'Disembunyikan dari dashboard pelanggan'}
-                </span>
-              </div>
-              {bannerHtml.trim() ? (
-                <div className="rounded-xl overflow-hidden border border-border shadow-xs bg-surface">
-                  <DashboardHtmlBanner html={bannerHtml} />
-                </div>
-              ) : (
-                <div className="p-6 text-center text-xs text-ink-muted border border-dashed border-border rounded-xl">
-                  Kode HTML masih kosong. Klik &quot;Pakai Template Sample Slider Truk&quot; di atas untuk mencoba template sample.
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <p className="text-[10px] text-ink-muted">
-                Terakhir diubah: {map.dashboard_banner_html?.update_dt ? fmtTanggal(map.dashboard_banner_html.update_dt) : '-'}
-              </p>
-              <button
-                type="submit"
-                disabled={savingBanner}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-xs"
-              >
-                {savingBanner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                Simpan Banner Iklan
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
-  );
-};
 
 // ── Tab: Kontak WhatsApp Layanan Pelanggan ──────────────────────────────────
 const WhatsAppTab: React.FC = () => {
@@ -442,7 +273,6 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
   const activeTab = useAppStore((s) => s.activeTab);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
 
-  const [bannerHtml, setBannerHtml] = useState(DEFAULT_DASHBOARD_BANNER_HTML);
   const [pwdOpen, setPwdOpen] = useState(false);
   const [pwdBaru, setPwdBaru] = useState('');
   const [pwdUlang, setPwdUlang] = useState('');
@@ -454,14 +284,6 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
     queryFn: () => api.getMediaIklan(),
     staleTime: 30000,
   });
-
-  const handleInsertToBannerHtml = (snippet: string) => {
-    setBannerHtml((prev) => {
-      if (!prev.trim()) return snippet.trim();
-      return prev + '\n' + snippet;
-    });
-    setActiveTab('admin-banner');
-  };
 
   const handleGantiPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -540,15 +362,17 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
         <WhatsAppTab />
       ) : activeTab === 'admin-media' ? (
         <MediaGalleryTab
-          onInsertToHtml={handleInsertToBannerHtml}
+          onInsertToHtml={(snippet) => {
+            navigator.clipboard.writeText(snippet);
+            toast.success('Tag Gambar Disalin', 'Tag gambar disalin ke clipboard. Tempelkan ke kode HTML slide.');
+            setActiveTab('admin-banner');
+          }}
           onGoToBannerEditor={() => setActiveTab('admin-banner')}
         />
       ) : (
-        <BannerTab
-          bannerHtml={bannerHtml}
-          setBannerHtml={setBannerHtml}
-          onOpenMediaGallery={() => setActiveTab('admin-media')}
+        <IklanSlideTab
           mediaList={mediaList}
+          onOpenMediaGallery={() => setActiveTab('admin-media')}
         />
       )}
 

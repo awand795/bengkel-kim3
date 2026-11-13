@@ -1,4 +1,107 @@
 /**
+ * Template Sample Standar 1 Slide Iklan (Widescreen 16:9 / 21:9 Iframe Berisolasi).
+ * Cocok untuk slide baru di tabel sch_fleet.iklan_slide.
+ */
+export const DEFAULT_SINGLE_SLIDE_TEMPLATE = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .slide-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      background-size: cover;
+      background-position: center;
+      background-image: url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1400&q=80');
+    }
+    .slide-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.82) 48%, rgba(15, 23, 42, 0.35) 100%);
+    }
+    .slide-content {
+      position: relative;
+      z-index: 10;
+      padding: 1.5rem 2rem;
+      max-width: 680px;
+      color: #ffffff;
+    }
+    @media (min-width: 640px) {
+      .slide-content { padding: 2.25rem 3rem; }
+    }
+    .badge-tag {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #38bdf8;
+      color: #0f172a;
+      margin-bottom: 0.65rem;
+    }
+    .slide-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 0.5rem;
+      color: #ffffff;
+    }
+    @media (min-width: 640px) {
+      .slide-title { font-size: 1.85rem; }
+    }
+    .slide-desc {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      margin-bottom: 1.2rem;
+      max-width: 580px;
+    }
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #0284c7;
+      color: #ffffff;
+      padding: 0.6rem 1.25rem;
+      border-radius: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    }
+    .btn-cta:hover {
+      background: #0369a1;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-wrapper">
+    <div class="slide-overlay"></div>
+    <div class="slide-content">
+      <span class="badge-tag">Heavy Duty Specialist</span>
+      <h3 class="slide-title">Perbaikan Rem, Tromol &amp; Kaki-Kaki</h3>
+      <p class="slide-desc">Jaminan keselamatan perjalanan armada dengan teknisi ahli bersertifikasi dan suku cadang asli bergaransi resmi.</p>
+      <button type="button" class="btn-cta" onclick="window.parent.dispatchEvent(new CustomEvent('open-booking-modal'))">
+        Jadwalkan Servis &rarr;
+      </button>
+    </div>
+  </div>
+</body>
+</html>`;
+
+/**
  * Template Sample Banner Iklan Dashboard Web Fleet Customer:
  * 1. Banner Iklan Utama (Hero Carousel / Slider Otomatis)
  * 2. Banner Iklan Produk & Paket Servis (Horizontal Scroll Cards ala MyTelkomsel)

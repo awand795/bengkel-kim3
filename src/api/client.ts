@@ -34,7 +34,8 @@ import {
   AdminUser,
   AdminUserPayload,
   PengaturanSitus,
-  MediaIklan
+  MediaIklan,
+  IklanSlide
 } from '../types';
 import { useAppStore, isSessionExpired } from '../store/useAppStore';
 
@@ -842,6 +843,34 @@ export const api = {
 
   gantiPasswordAdmin: async (password_baru: string): Promise<any> => {
     const res = await apiClient.post('/mastertruck/auth/ganti-password-admin', { password_baru });
+    return res.data;
+  },
+
+  // ── Multi-Slide Iklan Banner (sch_fleet.iklan_slide) ──────────────────────
+  getIklanSlides: async (): Promise<IklanSlide[]> => {
+    const res = await apiClient.get('/mastertruck/iklan-slide');
+    const raw = res.data?.value ?? res.data?.data ?? res.data;
+    return Array.isArray(raw) ? raw : raw ? [raw] : [];
+  },
+
+  getAdminIklanSlides: async (): Promise<IklanSlide[]> => {
+    const res = await apiClient.get('/mastertruck/admin/iklan-slide');
+    const raw = res.data?.value ?? res.data?.data ?? res.data;
+    return Array.isArray(raw) ? raw : raw ? [raw] : [];
+  },
+
+  simpanIklanSlide: async (payload: {
+    id?: number;
+    konten_html: string;
+    urutan: number;
+    is_aktif: boolean;
+  }): Promise<any> => {
+    const res = await apiClient.post('/mastertruck/admin/iklan-slide-simpan', payload);
+    return res.data;
+  },
+
+  hapusIklanSlide: async (id: number): Promise<any> => {
+    const res = await apiClient.post('/mastertruck/admin/iklan-slide-hapus', { id });
     return res.data;
   },
 

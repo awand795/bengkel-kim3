@@ -30,8 +30,7 @@ import { FilterChips } from '../components/common/FilterChips';
 import { PlateChip } from '../components/common/PlateChip';
 import { RupiahCell } from '../components/common/RupiahCell';
 import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
-import { DashboardHtmlBanner } from '../components/common/DashboardHtmlBanner';
-import { DEFAULT_DASHBOARD_BANNER_HTML } from '../config/bannerTemplate';
+import { MultiSlideBanner } from '../components/common/MultiSlideBanner';
 import { 
   Truck, 
   Calendar, 
@@ -1845,10 +1844,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   });
 
   const isBannerAktif = pengaturanPublik?.dashboard_banner_aktif !== 'false';
-  const bannerHtml =
-    pengaturanPublik?.dashboard_banner_html !== undefined
-      ? pengaturanPublik.dashboard_banner_html
-      : DEFAULT_DASHBOARD_BANNER_HTML;
+
+  // Multi-Slide Iklan Banner (sch_fleet.iklan_slide)
+  const { data: iklanSlideList = [] } = useQuery({
+    queryKey: ['iklan-slides'],
+    queryFn: api.getIklanSlides,
+    staleTime: 1000 * 60 * 3,
+  });
 
   // Kunjungan SERVICE yang sudah check-in gerbang tetapi belum ada WO/SPK.
   // Sumber ini membuat unit tetap terlihat di Riwayat Service dengan status
@@ -3486,10 +3488,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             />
           </div>
 
-          {/* Banner Iklan Dashboard (HTML / Carousel) di bagian paling bawah dashboard */}
-          {isBannerAktif && bannerHtml && bannerHtml.trim() !== '' && (
+          {/* Multi-Slide Iklan Banner (HTML berisolasi iframe widescreen 16:9) */}
+          {isBannerAktif && iklanSlideList.length > 0 && (
             <div className="pt-2">
-              <DashboardHtmlBanner html={bannerHtml} />
+              <MultiSlideBanner
+                slides={iklanSlideList}
+                onBookingClick={() => {
+                  if (!isVerifiedByAdmin) {
+                    toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                    return;
+                  }
+                  setOpenBookingModal(true);
+                }}
+              />
             </div>
           )}
         </div>

@@ -102,6 +102,15 @@ export interface PengaturanSitus {
   update_dt?: string | null;
 }
 
+export interface IklanSlide {
+  id: number;
+  konten_html: string;
+  urutan: number;
+  is_aktif: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface MediaIklan {
   id: number;
   referensi_id: string;
