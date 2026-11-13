@@ -5981,24 +5981,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           aria-label="Detail Riwayat Service"
           className="fixed inset-0 z-40 bg-surface overflow-y-auto app-fade-in"
         >
-          <header className="sticky top-0 z-20 border-b border-border bg-surface-raised shadow-2xs">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
+          <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6 pb-12">
+            <div className="flex items-center gap-3 mb-4">
               <button
                 type="button"
                 onClick={closeHistoryDetail}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink hover:bg-surface-raised hover:text-accent transition-colors cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-3 py-1.5 text-xs font-bold text-ink hover:border-accent/40 hover:text-accent transition-colors cursor-pointer shrink-0 shadow-2xs"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali</span>
               </button>
-              <span aria-hidden="true" className="h-5 w-px bg-border shrink-0" />
-              <h2 className="text-sm sm:text-base font-bold text-ink truncate">
+              <h2 className="text-base sm:text-lg font-bold text-ink truncate">
                 Detail Riwayat Service
               </h2>
             </div>
-          </header>
 
-          <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6 pb-12">
             <SpkTrackingDetail
               spk={historyDetail}
               isPreSpk={historyDetail.sumber === 'kunjungan'}
