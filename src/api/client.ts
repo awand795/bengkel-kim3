@@ -396,7 +396,7 @@ export const api = {
 
   // Kendaraan Saya
   getKendaraan: async (): Promise<Kendaraan[]> =>
-    (await fetchList<Kendaraan>('/mastertruck/kendaraan')).rows,
+    (await fetchList<Kendaraan>('/mastertruck/kendaraan', { limit: 1000 })).rows,
   getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
     fetchList<Kendaraan>('/mastertruck/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
@@ -564,7 +564,7 @@ export const api = {
 
   // Booking Service
   getBooking: async (): Promise<BookingService[]> =>
-    (await fetchList<BookingService>('/mastertruck/booking')).rows,
+    (await fetchList<BookingService>('/mastertruck/booking', { limit: 1000 })).rows,
   getBookingPage: (query: ListQuery = {}): Promise<PaginatedResult<BookingService>> =>
     fetchList<BookingService>('/mastertruck/booking', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahBooking: async (data: Partial<BookingService>): Promise<any> => {
