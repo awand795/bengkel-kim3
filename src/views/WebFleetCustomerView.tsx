@@ -6477,7 +6477,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <div className="flex items-start gap-2.5 rounded-xl border border-amber-300/70 bg-amber-50/90 px-3.5 py-3 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/35 dark:text-amber-200">
                       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                       <p className="leading-relaxed">
-                        Unit ini sudah memiliki riwayat transaksi. Data identitas &amp; teknis dikunci; hanya <strong>Masa Berlaku STNK</strong> dan <strong>Foto Unit</strong> yang dapat diperbarui.
+                        Kendaraan ini sudah pernah terdaftar dalam layanan servis atau booking bengkel. Demi menjaga keakuratan arsip dan dokumen kendaraan Anda, hanya <strong>Masa Berlaku STNK</strong> dan <strong>Foto Unit</strong> yang dapat diperbarui. Hubungi Admin Bengkel jika perlu mengubah data lainnya.
                       </p>
                     </div>
                   )}
