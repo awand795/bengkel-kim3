@@ -1876,7 +1876,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   } = useQuery({
     queryKey: ['spk-page', historyPage, historyLimit, effectiveSpkQuery],
     queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: effectiveSpkQuery }),
-    enabled: fleetMenu === 'history',
+    enabled: fleetMenu === 'dokumen' || fleetMenu === 'history',
     placeholderData: (prev) => prev,
     refetchInterval: 15000,
   });
@@ -1961,7 +1961,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         limit: fakturLimit,
         q: fakturSearch || (fakturFilterPlat ? normalizePlat(fakturFilterPlat) : undefined),
       }),
-    enabled: fleetMenu === 'history',
+    enabled: fleetMenu === 'dokumen' || fleetMenu === 'history',
     placeholderData: (prev) => prev,
     refetchInterval: 15000,
   });
@@ -5038,7 +5038,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               {/* Table Faktur */}
-              {fakturRows.length > 0 ? (
+              {fakturPageLoading && !fakturPageData ? (
+                <div className="divide-y divide-border px-5 bg-surface-raised">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <div key={n} className="flex items-center justify-between gap-4 py-3.5 animate-pulse">
+                      <div className="w-28 h-5 bg-slate-200 dark:bg-slate-800 rounded" />
+                      <div className="w-24 h-6 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                      <div className="w-28 h-5 bg-slate-200 dark:bg-slate-800 rounded" />
+                      <div className="w-28 h-8 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                    </div>
+                  ))}
+                </div>
+              ) : fakturRows.length > 0 ? (
                 <div ref={fakturContainerRef} className="overflow-hidden bg-surface-raised relative scroll-mt-20">
                   {isChangingFakturPage && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-[1px] dark:bg-slate-900/40">
@@ -5211,7 +5222,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 )}
               </div>
 
-              {dokumenRows.length > 0 ? (
+              {isLoadingDokumen && !dokumenList ? (
+                <div className="divide-y divide-border px-5 bg-surface-raised">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <div key={n} className="flex items-center justify-between gap-4 py-3.5 animate-pulse">
+                      <div className="w-44 h-5 bg-slate-200 dark:bg-slate-800 rounded" />
+                      <div className="w-20 h-6 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                      <div className="w-24 h-6 bg-slate-200 dark:bg-slate-800 rounded-md" />
+                      <div className="w-24 h-5 bg-slate-200 dark:bg-slate-800 rounded" />
+                      <div className="w-20 h-8 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+                    </div>
+                  ))}
+                </div>
+              ) : dokumenRows.length > 0 ? (
                 <div className="overflow-hidden bg-surface-raised">
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-xs">
