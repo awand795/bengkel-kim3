@@ -214,7 +214,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   onDecideEstimasi,
   kendaraanList,
 }) => {
-  const [subTab, setSubTab] = useState<'progress' | 'detail' | 'catatan' | 'dokumen'>('progress');
+  const [subTab, setSubTab] = useState<'progress' | 'detail'>('progress');
   const [spkFakturModalOpen, setSpkFakturModalOpen] = useState(false);
 
   // Tarif PPN DB untuk approval (tanpa fallback): angka approve = angka tagihan
@@ -266,7 +266,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   const activeParts = isPreSpk
     ? []
     : (partSpkList || []).filter(p => p.id_spk === spk?.id);
-  const activeArmadaDocs = (myDokumenList || []).filter(d => d.no_polisi === spk?.no_polisi);
 
   // Part yang benar-benar menunggu pengadaan (data LIVE dari spk-item-part).
   // Fallback: parse daftar [..] dari catatan PR bila baris part belum ada.
@@ -835,35 +834,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </span>
                     )}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setSubTab('catatan')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all border shrink-0 ${
-                      subTab === 'catatan'
-                        ? 'border-[#12388F]/25 bg-white dark:bg-slate-900 text-[#12388F] shadow-xs'
-                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/70 dark:hover:bg-slate-700/60'
-                    }`}
-                  >
-                    <FileCheck className="w-4 h-4" />
-                    Catatan SA & Mekanik
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSubTab('dokumen')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all border shrink-0 ${
-                      subTab === 'dokumen'
-                        ? 'border-[#12388F]/25 bg-white dark:bg-slate-900 text-[#12388F] shadow-xs'
-                        : 'border-transparent text-ink-muted hover:text-ink hover:bg-white/70 dark:hover:bg-slate-700/60'
-                    }`}
-                  >
-                    <FileText className="w-4 h-4" />
-                    Dokumen
-                    {(activeArmadaDocs.length > 0 || (activeInvoice || spk.no_invoice || spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed')) && (
-                      <span className="px-1.5 py-0.5 text-xs rounded-full bg-surface text-ink-muted">
-                        {activeArmadaDocs.length + ((activeInvoice || spk.no_invoice || spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed') ? 1 : 0)}
-                      </span>
-                    )}
-                  </button>
                 </div>
 
                 {/* TAB 1: Progress Pekerjaan */}
@@ -1048,127 +1018,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         )}
                       </div>
                     )}
-                  </div>
-                )}
-
-                {/* TAB 3: Catatan SA & Mekanik */}
-                {subTab === 'catatan' && (
-                  <div className="space-y-3 pt-1 text-xs">
-                    <div className="bg-status-amber-bg p-4 rounded-xl border border-status-amber/30 space-y-1.5">
-                      <div className="font-bold text-status-amber flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-status-amber" />
-                        Keluhan Awal Customer (Driver / PIC Kendaraan):
-                      </div>
-                      <p className="text-ink font-medium italic pl-6">
-                        "{spk.keluhan_customer || '-'}"
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-surface p-4 rounded-xl border border-border space-y-2">
-                        <div className="font-bold text-ink flex items-center gap-2">
-                          <FileCheck className="w-4 h-4 text-accent" />
-                          Catatan Service Advisor (SA):
-                        </div>
-                        <div className="text-ink-muted text-xs">
-                          {spk.catatan_sa || spk.catatan_kondisi_awal || '-'}
-                        </div>
-                        {spk.odometer_km ? (
-                          <div className="text-xs text-ink-muted pt-1.5 border-t border-border">
-                            Odometer tercatat: <strong>{spk.odometer_km.toLocaleString('id-ID')} KM</strong>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="bg-surface p-4 rounded-xl border border-border space-y-2">
-                        <div className="font-bold text-ink flex items-center gap-2">
-                          <Wrench className="w-4 h-4 text-ink-muted" />
-                          Catatan & Temuan Teknisi / Foreman:
-                        </div>
-                        <div className="text-ink-muted text-xs">
-                          {spk.catatan_foreman || '-'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-status-green-bg p-3 rounded-xl border border-status-green/30 text-ink-muted flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-status-green shrink-0" />
-                      <span>Garansi pekerjaan service KIM3 berlaku selama 14 hari kerja atau 1.000 KM sejak kendaraan keluar.</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 4: Dokumen Kendaraan */}
-                {subTab === 'dokumen' && (
-                  <div className="space-y-4 pt-1 text-xs">
-                    {/* Dokumen Terkait Kendaraan */}
-                    <div className="space-y-2">
-                      <span className="font-bold text-ink block">Berkas & Dokumen Kendaraan Ini:</span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* Kartu Faktur Resmi jika ada invoice / sudah selesai / FIR Closed */}
-                        {(activeInvoice || spk.no_invoice || spk.status_spk === 'Selesai' || spk.status_spk === 'FIR Closed') && (
-                          <div className="flex items-center justify-between p-3 rounded-xl border border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-500/60 transition-colors">
-                            <div className="flex items-center gap-2.5">
-                              <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                                <FileText className="w-4 h-4" />
-                              </span>
-                              <div>
-                                <div className="font-bold text-ink flex items-center gap-1.5">
-                                  <span>Faktur_{activeInvoice?.no_invoice || spk.no_invoice || spk.no_spk}.pdf</span>
-                                  {(() => {
-                                    const isRealLunas = activeInvoiceLunas || (spk as any).status_invoice === 'Lunas';
-                                    return (
-                                      <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${isRealLunas ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                        {isRealLunas ? 'LUNAS' : 'BELUM LUNAS'}
-                                      </span>
-                                    );
-                                  })()}
-                                </div>
-                                <div className="text-xs text-ink-subtle">
-                                  Faktur Servis Resmi • Rp {Number(activeInvoice?.grand_total || spk.total_invoice || spk.estimasi_biaya || 0).toLocaleString('id-ID')}
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setSpkFakturModalOpen(true)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
-                              title="Lihat & Cetak Faktur"
-                            >
-                              <Printer className="w-3.5 h-3.5" />
-                              <span>Cetak Faktur</span>
-                            </button>
-                          </div>
-                        )}
-
-                        {activeArmadaDocs.map((doc) => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface-raised hover:border-accent/30 transition-colors">
-                            <div className="flex items-center gap-2.5">
-                              <FileCheck className="w-5 h-5 text-status-green" />
-                              <div>
-                                <div className="font-semibold text-ink">{doc.nama_dokumen || doc.jenis_dokumen}</div>
-                                <div className="text-xs text-ink-subtle">Berlaku s/d: {doc.masa_berlaku || '-'}</div>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => toast.info('Mengunduh Berkas', `Dokumen ${doc.nama_dokumen} sedang diunduh.`)}
-                              className="p-1.5 text-ink-muted hover:bg-surface rounded-xl"
-                              title="Unduh Dokumen"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-
-                        {!activeInvoice && !spk.no_invoice && spk.status_spk !== 'Selesai' && spk.status_spk !== 'FIR Closed' && activeArmadaDocs.length === 0 && (
-                          <div className="col-span-full py-8 text-center text-ink-muted bg-surface-raised rounded-xl border border-dashed border-border">
-                            <FileText className="w-8 h-8 mx-auto mb-2 text-ink-subtle opacity-40" />
-                            <p className="font-medium text-xs">Belum ada berkas atau dokumen terlampir untuk service ini.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
