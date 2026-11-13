@@ -1976,7 +1976,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   });
 
   // Daftar kendaraan per halaman (server-side pagination + search)
-  const { data: armadaPageData, isFetching: armadaFetching } = useQuery({
+  const {
+    data: armadaPageData,
+    isLoading: armadaPageLoading,
+    isFetching: armadaFetching,
+  } = useQuery({
     queryKey: ['kendaraan-page', armadaPage, armadaLimit, armadaQuery],
     queryFn: () => api.getKendaraanPage({ page: armadaPage, limit: armadaLimit, q: armadaQuery }),
     enabled: fleetMenu === 'kendaraan',
@@ -4562,7 +4566,32 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
           </div>
 
-          {armadaRows.length > 0 ? (
+          {armadaPageLoading && !armadaPageData ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((n) => (
+                <div
+                  key={n}
+                  className="overflow-hidden rounded-2xl border border-border bg-white p-4 sm:p-5 shadow-sm dark:bg-surface-raised animate-pulse"
+                >
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex items-start gap-3.5">
+                      <div className="h-[76px] w-[76px] shrink-0 rounded-xl bg-slate-200 dark:bg-slate-800" />
+                      <div className="space-y-2.5 pt-1">
+                        <div className="h-5 w-32 rounded-md bg-slate-200 dark:bg-slate-800" />
+                        <div className="h-4 w-48 rounded bg-slate-200 dark:bg-slate-800" />
+                        <div className="h-5 w-24 rounded-full bg-slate-200 dark:bg-slate-800" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 xl:w-[420px]">
+                      <div className="h-10 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                      <div className="h-10 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                      <div className="h-10 rounded-lg bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : armadaRows.length > 0 ? (
             <>
               <div ref={armadaContainerRef} className="relative scroll-mt-20">
                 {isChangingArmadaPage && (
