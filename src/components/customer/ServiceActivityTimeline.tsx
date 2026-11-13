@@ -576,15 +576,6 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             time={fmtWaktuFull(spk.waktu_check_out) || '-'}
             rows={[
               { label: 'Petugas', value: 'Pos Security Master Truck' },
-              {
-                label: 'Gate Pass',
-                value:
-                  serviceTimeline.keluar === 'done' ? (
-                    <span className="text-status-green">Valid • Resmi Checkout</span>
-                  ) : (
-                    <span className="text-status-blue">Menunggu Verifikasi Security</span>
-                  ),
-              },
             ]}
           />
         )}
