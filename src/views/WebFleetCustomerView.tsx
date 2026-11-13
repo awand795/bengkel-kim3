@@ -1629,6 +1629,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [historyPage, setHistoryPage] = useState(1);
   const [isChangingHistoryPage, setIsChangingHistoryPage] = useState(false);
   const [isChangingArmadaPage, setIsChangingArmadaPage] = useState(false);
+  const [isChangingBookingKendaraanPage, setIsChangingBookingKendaraanPage] = useState(false);
   const [isChangingFakturPage, setIsChangingFakturPage] = useState(false);
   const historyContainerRef = React.useRef<HTMLDivElement>(null);
   const armadaContainerRef = React.useRef<HTMLDivElement>(null);
@@ -1845,6 +1846,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   React.useEffect(() => {
     if (!armadaFetching) setIsChangingArmadaPage(false);
   }, [armadaFetching]);
+
+  React.useEffect(() => {
+    if (!bookingKendaraanFetching) setIsChangingBookingKendaraanPage(false);
+  }, [bookingKendaraanFetching]);
 
   React.useEffect(() => {
     if (!fakturPageFetching) setIsChangingFakturPage(false);
@@ -3465,9 +3470,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </span>
             </div>
 
-            <div>
+            <div ref={bookingContainerRef} className="scroll-mt-20">
             {isLoadingBooking ? (
-              <div ref={modalKendaraanContainerRef} className="divide-y divide-border scroll-mt-10">
+              <div className="divide-y divide-border">
                 {[1, 2, 3, 4].map((n) => (
                   <div key={n} className="flex animate-pulse items-center gap-4 px-5 py-4">
                     <div className="h-9 w-24 rounded-md bg-slate-200 dark:bg-slate-800" />
@@ -3617,7 +3622,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   label="booking"
                   maxLimit={200}
                   className="px-4 py-3 sm:px-5"
-                  onPageChange={setBookingViewPage}
+                  onPageChange={(p) => {
+                    setBookingViewPage(p);
+                    scrollToTopRef(bookingContainerRef);
+                  }}
                   onLimitChange={setBookingViewLimit}
                 />
               </>
@@ -3777,7 +3785,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         </span>
                       </div>
 
-                      <div className="space-y-2">
+                      <div ref={modalKendaraanContainerRef} className="relative scroll-mt-4">
+                        {isChangingBookingKendaraanPage && (
+                          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/40 backdrop-blur-[1px] dark:bg-slate-900/40">
+                            <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-xs font-bold text-accent shadow-md dark:border-border dark:bg-surface-raised">
+                              <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                              <span>Memuat kendaraan halaman {bookingKendaraanPage}...</span>
+                            </div>
+                          </div>
+                        )}
+                      <div className={`space-y-2 transition-opacity duration-200 ${isChangingBookingKendaraanPage ? 'pointer-events-none opacity-40' : 'opacity-100'}`}>
                         {bookingKendaraanRows.length > 0 ? (
                           bookingKendaraanRows.map((k) => {
                             const isSelected = bookingForm.no_polisi === k.no_polisi;
@@ -3902,6 +3919,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           </div>
                         )}
                       </div>
+                      </div>
 
                       {/* Pagination Bar untuk Pilihan Kendaraan (server-side dinamis) */}
                       {bookingKendaraanTotalPages > 1 && (
@@ -3910,10 +3928,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           totalPages={bookingKendaraanTotalPages}
                           totalRecords={bookingKendaraanTotalRecords}
                           limit={bookingKendaraanLimit}
-                          isLoading={bookingKendaraanFetching}
+                          isLoading={bookingKendaraanFetching || isChangingBookingKendaraanPage}
                           label="kendaraan"
                           className="border-t-0 bg-[#FAFBFD] px-3 py-2.5 dark:bg-surface"
-                          onPageChange={(p) => { setBookingKendaraanPage(p); scrollToTopRef(modalKendaraanContainerRef); }}
+                          onPageChange={(p) => {
+                            if (p === bookingKendaraanSafePage) return;
+                            setIsChangingBookingKendaraanPage(true);
+                            setBookingKendaraanPage(p);
+                            scrollToTopRef(modalKendaraanContainerRef);
+                          }}
                         />
                       )}
                     </div>
