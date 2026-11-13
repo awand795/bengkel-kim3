@@ -140,12 +140,18 @@ const getDurasiAktual = (spk: SpkService): string | null => {
 };
 
 const getEstimasiSelesaiLabel = (spk: SpkService): string | null => {
+  const latestJam =
+    spk.jam_estimasi_selesai_t3 ||
+    spk.jam_estimasi_selesai_t2 ||
+    spk.jam_estimasi_selesai_t1 ||
+    spk.jam_estimasi_selesai_awal ||
+    null;
   const candidates: Array<[string | null | undefined, string | null | undefined]> = [
-    [spk.estimasi_selesai_ta, null],
-    [spk.estimasi_selesai_t3, spk.jam_estimasi_selesai_t3],
-    [spk.estimasi_selesai_t2, spk.jam_estimasi_selesai_t2],
-    [spk.estimasi_selesai_t1, spk.jam_estimasi_selesai_t1],
+    [spk.estimasi_selesai_t3, spk.jam_estimasi_selesai_t3 || latestJam],
+    [spk.estimasi_selesai_t2, spk.jam_estimasi_selesai_t2 || latestJam],
+    [spk.estimasi_selesai_t1, spk.jam_estimasi_selesai_t1 || latestJam],
     [spk.estimasi_selesai_awal, spk.jam_estimasi_selesai_awal],
+    [spk.estimasi_selesai_ta, latestJam],
   ];
   for (const [tgl, jam] of candidates) {
     if (!tgl) continue;
