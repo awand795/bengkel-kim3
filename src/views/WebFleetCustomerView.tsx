@@ -2484,14 +2484,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }
   }, [armadaPageData, armadaPage]);
 
-  // Filter Booking khusus customer yang sedang login
-  const myBookingList = (bookingList || []).filter((b) => {
-    if (myPelangganId && b.id_pelanggan === myPelangganId) return true;
-    if (b.no_polisi && myPlateSet.has(normalizePlat(b.no_polisi))) return true;
-    if (myCompanyName && b.nama_perusahaan && b.nama_perusahaan.toLowerCase().trim() === myCompanyName) return true;
-    return false;
-  });
-
   // Helper: Normalisasi format tanggal booking (mendukung string YYYY-MM-DD maupun epoch miliseconds integer)
   const formatBookingDate = useCallback((val?: string | number | null): string => {
     if (!val) return '';
@@ -2507,6 +2499,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }
     return str.slice(0, 10);
   }, []);
+
+  // Filter Booking khusus customer yang sedang login (dan belum lewat harinya)
+  const todayLocalDate = getLocalDateStr(0);
+  const myBookingList = (bookingList || []).filter((b) => {
+    const bDate = formatBookingDate(b.tanggal_booking);
+    if (bDate && bDate < todayLocalDate) return false;
+    if (myPelangganId && b.id_pelanggan === myPelangganId) return true;
+    if (b.no_polisi && myPlateSet.has(normalizePlat(b.no_polisi))) return true;
+    if (myCompanyName && b.nama_perusahaan && b.nama_perusahaan.toLowerCase().trim() === myCompanyName) return true;
+    return false;
+  });
 
   // Helper: Cek apakah kendaraan dari jadwal booking ini sudah di-check in atau terbit SPK
   const isBookingCheckedIn = useCallback((b: BookingService): boolean => {
@@ -2528,18 +2531,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     return hasSpk;
   }, [spkList, formatBookingDate]);
 
-  // Helper: Cek apakah jadwal booking sudah lewat dari sekarang (tanggal & jam)
+  // Helper: Cek apakah jadwal booking sudah lewat harinya (tanggal < hari ini)
+  // Booking pada hari yang sama tetap aktif meskipun jam booking-nya sudah lewat.
   const isBookingPast = useCallback((b: BookingService): boolean => {
     if (!b?.tanggal_booking) return false;
     const dateStr = formatBookingDate(b.tanggal_booking);
     if (!dateStr || dateStr.length < 10) return false;
-    const timeStr = String(b.jam_booking || '23:59');
-    const [h, m] = timeStr.split(':').map(Number);
-    const sched = new Date(
-      `${dateStr}T${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}:00`
-    );
-    if (isNaN(sched.getTime())) return false;
-    return Date.now() > sched.getTime();
+    return dateStr < getLocalDateStr(0);
   }, [formatBookingDate]);
 
   // Status operasional booking:
@@ -6496,11 +6494,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <input
                           id="edit-armada-no-polisi"
                           type="text"
-                          required={!isEditRestricted}
-                          disabled={isEditRestricted}
+                          disabled
                           placeholder="BK 1234 ABC"
                           value={editArmadaForm.no_polisi}
-                          onChange={(e) => setEditArmadaForm({ ...editArmadaForm, no_polisi: formatPlatInput(e.target.value) })}
                           className={`w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:outline-hidden focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-muted dark:disabled:bg-slate-800/70 ${
                             editArmadaForm.no_polisi.trim()
                               ? isValidPlatIndonesia(editArmadaForm.no_polisi)
@@ -6509,6 +6505,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               : 'border-border focus:ring-accent'
                           }`}
                         />
+                        <p className="mt-1 text-[11px] text-ink-subtle leading-tight">
+                          Nomor polisi terkunci permanen dan tidak dapat diubah.
+                        </p>
                         {editArmadaForm.no_polisi.trim().length > 0 && !isValidPlatIndonesia(editArmadaForm.no_polisi) && (
                           <p className="mt-1 text-[11px] text-rose-500 leading-tight">
                             Format belum sesuai. Contoh: BK 1234 ABC.

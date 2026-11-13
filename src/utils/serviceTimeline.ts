@@ -126,6 +126,21 @@ export const resolveServiceTimeline = (
   const status = normalizeSpkStatus(spk?.status_spk);
   const adaStatus = (list: string[]) => list.includes(status);
 
+  // Jika WO dibatalkan / di-void di POS
+  if (status === 'Dibatalkan') {
+    return {
+      booking,
+      masuk: ada(spk?.waktu_check_in) || ada(spk?.created_at) ? 'done' : 'pending',
+      penerimaan: 'pending',
+      wo: 'blocked',
+      pengerjaan: 'pending',
+      qc: 'pending',
+      fir: 'pending',
+      pembayaran: 'pending',
+      keluar: ada(spk?.waktu_check_out) ? 'done' : 'pending',
+    };
+  }
+
   // Bila unit sudah resmi check out dari gerbang atau berstatus Selesai, SEMUA tahap servis tuntas (done)
   if (ada(spk?.waktu_check_out) || status === 'Selesai') {
     return {

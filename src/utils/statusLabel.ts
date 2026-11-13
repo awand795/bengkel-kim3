@@ -21,6 +21,8 @@ const SPK_STATUS_LABEL: Record<string, string> = {
   'siap keluar (lunas)': 'Siap Keluar (Lunas)',
   'selesai & keluar': 'Selesai',
   'selesai': 'Selesai',
+  'dibatalkan': 'Dibatalkan',
+  'batal': 'Dibatalkan',
 };
 
 /** Label tampilan status SPK (sudah dinormalisasi). */
@@ -76,6 +78,12 @@ export interface DynamicStatusInput {
  */
 export const getSpkDynamicStatus = (item?: DynamicStatusInput | null): string => {
   if (!item) return '-';
+
+  const rawPre = String(item.status_spk || '').trim();
+  const normPre = normalizeSpkStatus(rawPre).toLowerCase();
+  if (normPre === 'dibatalkan' || rawPre.toLowerCase() === 'batal' || rawPre.toLowerCase() === 'void') {
+    return 'Dibatalkan';
+  }
 
   // 1. Truk sudah resmi checkout dan melintas keluar gerbang pos security
   if (item.waktu_check_out && String(item.waktu_check_out).trim() !== '') {
