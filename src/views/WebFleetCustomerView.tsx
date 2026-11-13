@@ -3514,12 +3514,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               tone="amber"
               isLoading={spkLoading || kunjunganLoading}
               onClick={() => {
-                if (activeHistoryEntry) {
-                  setHistoryDetail(activeHistoryEntry);
-                } else {
-                  setFleetMenu('history');
-                  setActiveTab('fleet-history');
-                }
+                setHistoryStatusFilter('sedang-diservis');
+                setHistoryPage(1);
+                setFleetMenu('history');
+                setActiveTab('fleet-history');
               }}
             />
             <StatCard
