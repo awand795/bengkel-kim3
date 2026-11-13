@@ -1041,7 +1041,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     {(activePekerjaan.length > 0 || activeParts.length > 0 || grandTotal > 0) && (
                       <div className="border border-border rounded-xl overflow-hidden bg-surface-raised">
                         <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center border-b border-border">
-                          <span>Ringkasan Biaya & Pajak (ERP)</span>
+                          <span>Ringkasan Biaya & Pajak</span>
                           <span className="text-[11px] font-medium text-ink-subtle">
                             {activeInvoice?.no_invoice || spk.no_invoice || 'Belum Terbit Faktur'}
                           </span>

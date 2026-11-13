@@ -421,6 +421,11 @@ export interface SpkService {
   lama_pengerjaan_hari?: number | null;
   waiting_time_hari?: number | null;
   semua_mekanik?: string | null;
+  nama_supir?: string | null;
+  jenis_pekerjaan?: string | null;
+  tanggal_mulai_dikerjakan?: string | null;
+  jam_mulai_dikerjakan?: string | null;
+  jasa_belum_dipakai?: string | null;
 }
 
 /**

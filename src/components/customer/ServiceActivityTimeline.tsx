@@ -114,9 +114,19 @@ export interface ServiceActivityTimelineProps {
  * Satu-satunya implementasi timeline Riwayat Aktivitas Service.
  * Dipakai oleh detail SPK maupun detail check-in gerbang (sebelum WO terbit).
  */
+const getMulaiDikerjakanIso = (spk: SpkService): string | null => {
+  if (spk.waktu_mulai_pekerjaan) return spk.waktu_mulai_pekerjaan;
+  if (spk.tanggal_mulai_dikerjakan) {
+    const jam = spk.jam_mulai_dikerjakan?.trim();
+    return jam ? `${spk.tanggal_mulai_dikerjakan}T${jam}:00` : spk.tanggal_mulai_dikerjakan;
+  }
+  return null;
+};
+
 const getDurasiAktual = (spk: SpkService): string | null => {
-  if (spk.waktu_selesai_pekerjaan && spk.waktu_mulai_pekerjaan) {
-    const ms = new Date(spk.waktu_selesai_pekerjaan).getTime() - new Date(spk.waktu_mulai_pekerjaan).getTime();
+  const mulaiIso = getMulaiDikerjakanIso(spk);
+  if (spk.waktu_selesai_pekerjaan && mulaiIso) {
+    const ms = new Date(spk.waktu_selesai_pekerjaan).getTime() - new Date(mulaiIso).getTime();
     if (!isNaN(ms) && ms >= 0) {
       const totalMinutes = Math.round(ms / 60000);
       const hours = Math.floor(totalMinutes / 60);
@@ -131,6 +141,7 @@ const getDurasiAktual = (spk: SpkService): string | null => {
 
 const getEstimasiSelesaiLabel = (spk: SpkService): string | null => {
   const candidates: Array<[string | null | undefined, string | null | undefined]> = [
+    [spk.estimasi_selesai_ta, null],
     [spk.estimasi_selesai_t3, spk.jam_estimasi_selesai_t3],
     [spk.estimasi_selesai_t2, spk.jam_estimasi_selesai_t2],
     [spk.estimasi_selesai_t1, spk.jam_estimasi_selesai_t1],
@@ -243,6 +254,9 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
           meta={
             <>
               Petugas: <strong className="font-bold text-ink">Pos Security Master Truck</strong>
+              {spk.nama_supir && spk.nama_supir.trim() !== '' && spk.nama_supir.trim() !== '-' && (
+                <> | Supir: <strong className="font-bold text-ink">{spk.nama_supir.trim()}</strong></>
+              )}
             </>
           }
         >
@@ -300,6 +314,9 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                 {spk.mulai_inspeksi ? (
                   <> | Mulai Inspeksi: <span className="font-semibold text-ink">{spk.mulai_inspeksi}</span></>
                 ) : null}
+                {spk.jenis_pekerjaan && spk.jenis_pekerjaan.trim() !== '' && spk.jenis_pekerjaan.trim() !== '-' ? (
+                  <> | Kategori: <span className="font-semibold text-ink">{spk.jenis_pekerjaan.trim()}</span></>
+                ) : null}
               </>
             }
           >
@@ -332,15 +349,16 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                 ? 'WO Terbit — Siap Dikerjakan Mekanik'
                 : 'Pengerjaan Sedang Dilakukan oleh Mekanik'
             }
-            time={
-              spk.waktu_selesai_pekerjaan ? (
-                <>Selesai {fmtWaktuFull(spk.waktu_selesai_pekerjaan)}</>
-              ) : spk.waktu_mulai_pekerjaan ? (
-                <>Mulai pengerjaan: {fmtWaktuFull(spk.waktu_mulai_pekerjaan)}</>
-              ) : (
-                <>Dijadwalkan di bay servis</>
-              )
-            }
+            time={(() => {
+              const mulaiIso = getMulaiDikerjakanIso(spk);
+              if (spk.waktu_selesai_pekerjaan) {
+                return <>Selesai {fmtWaktuFull(spk.waktu_selesai_pekerjaan)}</>;
+              }
+              if (mulaiIso) {
+                return <>Mulai pengerjaan: {fmtWaktuFull(mulaiIso)}</>;
+              }
+              return <>Dijadwalkan di bay servis</>;
+            })()}
             meta={
               (() => {
                 const mekanikList = (spk.semua_mekanik || spk.nama_mekanik || '')
@@ -351,11 +369,18 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                   mekanikList.length > 1
                     ? mekanikList.map((m, idx) => `Mekanik ${idx + 1}: ${m}`).join(', ')
                     : mekanikList[0] || '-';
+                const mulaiIso = getMulaiDikerjakanIso(spk);
                 const estimasiSelesai = getEstimasiSelesaiLabel(spk);
                 const durasiAktual = getDurasiAktual(spk);
                 return (
                   <>
                     Teknisi: <strong className="font-bold text-ink">{teknisiText}</strong>
+                    {mulaiIso && (
+                      <>
+                        {' '}| Mulai Dikerjakan:{' '}
+                        <span className="font-semibold text-ink">{fmtWaktuFull(mulaiIso)}</span>
+                      </>
+                    )}
                     {estimasiSelesai && (
                       <>
                         {' '}| Estimasi Selesai:{' '}
@@ -397,6 +422,21 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                 Catatan Penyesuaian: <span className="font-medium text-ink not-italic">"{spk.keterangan_estimasi}"</span>
               </div>
             )}
+            {((spk.produk_belum_dipakai && spk.produk_belum_dipakai.trim() !== '' && spk.produk_belum_dipakai.trim() !== '-') ||
+              (spk.jasa_belum_dipakai && spk.jasa_belum_dipakai.trim() !== '' && spk.jasa_belum_dipakai.trim() !== '-')) && (
+              <div className="pt-2 border-t border-border/60 text-[11px] text-ink-muted space-y-0.5">
+                {spk.produk_belum_dipakai && spk.produk_belum_dipakai.trim() !== '' && spk.produk_belum_dipakai.trim() !== '-' && (
+                  <div>
+                    Part Belum Dipakai: <span className="font-medium text-ink">{spk.produk_belum_dipakai}</span>
+                  </div>
+                )}
+                {spk.jasa_belum_dipakai && spk.jasa_belum_dipakai.trim() !== '' && spk.jasa_belum_dipakai.trim() !== '-' && (
+                  <div>
+                    Jasa Belum Dipakai: <span className="font-medium text-ink">{spk.jasa_belum_dipakai}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </ServiceTimelineItem>
         )}
 
@@ -415,8 +455,8 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                 ) : (
                   <span className="font-semibold text-status-blue">Sedang diuji</span>
                 )}
-                {spk.tanggal_uji_jalan_fir ? (
-                  <> | Uji Jalan (FIR): <span className="font-semibold text-ink">{spk.tanggal_uji_jalan_fir}</span></>
+                {(spk.waktu_qc || spk.tanggal_qc || spk.tanggal_uji_jalan_fir) ? (
+                  <> | Uji Jalan (FIR): <span className="font-semibold text-ink">{fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.tanggal_uji_jalan_fir)}</span></>
                 ) : null}
               </>
             }
