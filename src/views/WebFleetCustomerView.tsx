@@ -1797,9 +1797,21 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Kalau jumlah data menyusut (mis. filter aktif) sampai halaman aktif melewati
   // halaman terakhir, tarik kembali ke halaman terakhir yang valid.
   // Queries
-  const { data: kendaraanList, isLoading: isLoadingKendaraan } = useQuery({
+  const { data: dashboardSummary, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: api.getDashboardSummary,
+    refetchInterval: 15000,
+  });
+
+  const { data: kendaraanList } = useQuery({
     queryKey: ['kendaraan-list'],
     queryFn: api.getKendaraan,
+    enabled:
+      fleetMenu === 'booking' ||
+      fleetMenu === 'dokumen' ||
+      fleetMenu === 'history' ||
+      openBookingModal ||
+      !!historyDetail,
     // Segarkan agar status di_bengkel (dari pos gerbang) cepat ter-update
     refetchInterval: 30000,
   });
@@ -1841,12 +1853,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: bookingList, isLoading: isLoadingBooking } = useQuery({
     queryKey: ['booking-list'],
     queryFn: api.getBooking,
+    enabled: fleetMenu === 'booking' || openBookingModal,
     refetchInterval: 5000,
   });
 
-  const { data: spkList, isLoading: spkLoading } = useQuery({
+  const { data: spkList } = useQuery({
     queryKey: ['spk-list'],
     queryFn: api.getSpkList,
+    enabled: fleetMenu === 'history' || fleetMenu === 'dokumen' || !!historyDetail || !!fleetPendingSpkId,
     refetchInterval: 15000,
   });
 
@@ -1895,17 +1909,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: dokumenList, isLoading: isLoadingDokumen } = useQuery({
     queryKey: ['dokumen-list'],
     queryFn: api.getDokumen,
+    enabled: fleetMenu === 'dokumen' || !!historyDetail,
   });
 
   const { data: tambahanList } = useQuery({
     queryKey: ['tambahan-pekerjaan'],
     queryFn: api.getTambahanPekerjaan,
+    enabled: fleetMenu === 'history' || !!historyDetail,
     refetchInterval: 10000,
   });
 
   const { data: purchasingList } = useQuery({
     queryKey: ['purchasing-list'],
     queryFn: api.getPurchasingList,
+    enabled: fleetMenu === 'history' || !!historyDetail,
     refetchInterval: 8000,
   });
 
@@ -3484,11 +3501,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <StatCard
               title="Booking Aktif"
-              value={upcomingBookings.length}
+              value={dashboardSummary?.booking_aktif ?? upcomingBookings.length}
               subtitle="Antrian Masuk"
               icon={Calendar}
               tone="blue"
-              isLoading={isLoadingBooking}
+              isLoading={isLoadingSummary && !dashboardSummary}
               onClick={() => {
                 setFleetMenu('booking');
                 setActiveTab('fleet-booking');
@@ -3496,11 +3513,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             />
             <StatCard
               title="Total Kendaraan"
-              value={armadaPageData?.pagination?.total_records ?? myKendaraanList.length}
+              value={armadaPageData?.pagination?.total_records ?? dashboardSummary?.total_kendaraan ?? myKendaraanList.length}
               subtitle="Unit Terdaftar"
               icon={Truck}
               tone="accent"
-              isLoading={isLoadingKendaraan}
+              isLoading={isLoadingSummary && !dashboardSummary}
               onClick={() => {
                 setFleetMenu('kendaraan');
                 setActiveTab('fleet-kendaraan');
@@ -3508,12 +3525,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             />
             <StatCard
               title="Sedang Diservis"
-              value={activeHistoryCount}
+              value={(dashboardSummary?.sedang_diservis_spk ?? 0) + myKunjunganList.length}
               subtitle="Di Bengkel KIM 3"
               icon={Wrench}
-              badge={activeHistoryCount > 0 ? 'Aktif' : undefined}
+              badge={(dashboardSummary?.sedang_diservis_spk ?? 0) + myKunjunganList.length > 0 ? 'Aktif' : undefined}
               tone="amber"
-              isLoading={spkLoading || kunjunganLoading}
+              isLoading={(isLoadingSummary && !dashboardSummary) || kunjunganLoading}
               onClick={() => {
                 setHistoryStatusFilter('sedang-diservis');
                 setHistoryPage(1);
@@ -3523,11 +3540,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             />
             <StatCard
               title="Dokumen Digital"
-              value={myDokumenList.length}
+              value={dashboardSummary?.total_dokumen ?? myDokumenList.length}
               subtitle="STNK & KIR"
               icon={FileText}
               tone="teal"
-              isLoading={isLoadingDokumen}
+              isLoading={isLoadingSummary && !dashboardSummary}
               onClick={() => {
                 setFleetMenu('dokumen');
                 setActiveTab('fleet-dokumen');

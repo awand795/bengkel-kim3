@@ -581,6 +581,21 @@ export const api = {
   },
 
   // SPK Service (Pelacakan & Riwayat Service)
+  getDashboardSummary: async (): Promise<{
+    total_kendaraan: number;
+    booking_aktif: number;
+    sedang_diservis_spk: number;
+    total_dokumen: number;
+  }> => {
+    const res = await apiClient.get('/mastertruck/dashboard-summary');
+    const row = res.data?.value?.[0] ?? res.data?.data?.[0] ?? res.data ?? {};
+    return {
+      total_kendaraan: Number(row.total_kendaraan ?? 0),
+      booking_aktif: Number(row.booking_aktif ?? 0),
+      sedang_diservis_spk: Number(row.sedang_diservis_spk ?? 0),
+      total_dokumen: Number(row.total_dokumen ?? 0),
+    };
+  },
   getSpkList: async (): Promise<SpkService[]> =>
     (await fetchList<SpkService>('/mastertruck/spk', { limit: 1000 })).rows,
   getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
