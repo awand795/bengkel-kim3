@@ -44,7 +44,6 @@ import {
   Phone, 
   Mail, 
   User, 
-  ArrowLeft,
   ArrowRight,
   Search,
   ChevronRight,
@@ -1643,43 +1642,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     };
   }, [queryClient]);
 
-  // Sinkronkan Fullscreen Detail Riwayat Service dengan browser history agar tombol Back di HP menutup detail (bukan keluar app)
-  const historyDetailPushedRef = React.useRef(false);
-  const closeHistoryDetail = useCallback(() => {
-    if (historyDetailPushedRef.current && window.history.state?.kim3HistoryDetail) {
-      window.history.back();
-    } else {
-      historyDetailPushedRef.current = false;
-      setHistoryDetail(null);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (!historyDetail) {
-      historyDetailPushedRef.current = false;
-      return;
-    }
-
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    if (!historyDetailPushedRef.current) {
-      window.history.pushState({ ...(window.history.state || {}), kim3HistoryDetail: true }, '');
-      historyDetailPushedRef.current = true;
-    }
-
-    const onPopState = () => {
-      historyDetailPushedRef.current = false;
-      setHistoryDetail(null);
-    };
-    window.addEventListener('popstate', onPopState);
-
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener('popstate', onPopState);
-    };
-  }, [!!historyDetail]);
-
   // Booking Wizard Step (image5.png Mockup 1)
   const [openBookingModal, setOpenBookingModal] = useState<boolean>(false);
   const [bookingStep, setBookingStep] = useState<number>(1);
@@ -1775,6 +1737,43 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [fakturFilterPlat, setFakturFilterPlat] = useState('');
   // Halaman khusus detail riwayat SPK (tersembunyi dari sidebar)
   const [historyDetail, setHistoryDetail] = useState<HistoryRow | null>(null);
+
+  // Sinkronkan Fullscreen Detail Riwayat Service dengan browser history agar tombol Back di HP menutup detail (bukan keluar app)
+  const historyDetailPushedRef = React.useRef(false);
+  const closeHistoryDetail = useCallback(() => {
+    if (historyDetailPushedRef.current && window.history.state?.kim3HistoryDetail) {
+      window.history.back();
+    } else {
+      historyDetailPushedRef.current = false;
+      setHistoryDetail(null);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!historyDetail) {
+      historyDetailPushedRef.current = false;
+      return;
+    }
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    if (!historyDetailPushedRef.current) {
+      window.history.pushState({ ...(window.history.state || {}), kim3HistoryDetail: true }, '');
+      historyDetailPushedRef.current = true;
+    }
+
+    const onPopState = () => {
+      historyDetailPushedRef.current = false;
+      setHistoryDetail(null);
+    };
+    window.addEventListener('popstate', onPopState);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [!!historyDetail]);
   // Modal lightbox preview foto armada / dokumen yang membesar
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
