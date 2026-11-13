@@ -5981,29 +5981,20 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           aria-label="Detail Riwayat Service"
           className="fixed inset-0 z-40 bg-surface overflow-y-auto app-fade-in"
         >
-          <header className="sticky top-0 z-20 border-b border-border bg-surface-raised/95 backdrop-blur-md">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <button
-                  type="button"
-                  onClick={closeHistoryDetail}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink hover:bg-surface-raised hover:text-accent transition-colors cursor-pointer shrink-0"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Kembali</span>
-                </button>
-                <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                  <h2 className="text-sm sm:text-base font-bold text-ink truncate">
-                    Detail Riwayat Service
-                  </h2>
-                  <span className="hidden sm:inline-flex items-center rounded-md bg-surface px-2 py-0.5 font-mono text-xs font-bold text-ink-muted border border-border">
-                    {formatPlat(historyDetail.no_polisi)}
-                  </span>
-                </div>
-              </div>
-              <div className="shrink-0">
-                <StatusBadge status={historyDetail.status_spk} size="sm" />
-              </div>
+          <header className="sticky top-0 z-20 border-b border-border bg-surface-raised shadow-2xs">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={closeHistoryDetail}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink hover:bg-surface-raised hover:text-accent transition-colors cursor-pointer shrink-0"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Kembali</span>
+              </button>
+              <span aria-hidden="true" className="h-5 w-px bg-border shrink-0" />
+              <h2 className="text-sm sm:text-base font-bold text-ink truncate">
+                Detail Riwayat Service
+              </h2>
             </div>
           </header>
 
