@@ -588,7 +588,12 @@ export const api = {
     total_dokumen: number;
   }> => {
     const res = await apiClient.get('/mastertruck/dashboard-summary');
-    const row = res.data?.value?.[0] ?? res.data?.data?.[0] ?? res.data ?? {};
+    const payload = res.data;
+    const row = Array.isArray(payload)
+      ? (payload[0] ?? {})
+      : Array.isArray(payload?.data)
+        ? (payload.data[0] ?? {})
+        : (payload?.data ?? payload ?? {});
     return {
       total_kendaraan: Number(row.total_kendaraan ?? 0),
       booking_aktif: Number(row.booking_aktif ?? 0),
