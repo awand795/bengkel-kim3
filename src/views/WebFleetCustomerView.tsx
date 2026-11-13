@@ -16,7 +16,7 @@ import { PhotoUploader } from '../components/common/PhotoUploader';
 import { toast } from '../components/common/Toast';
 import { TimePickerInput } from '../components/common/TimePickerInput';
 import { etaSpk, labelSumberEta } from '../utils/eta';
-import { fmtWaktuFull } from '../utils/dateFormat';
+import { fmtWaktuFull, fmtTanggalSaja } from '../utils/dateFormat';
 import { resolveServiceTimeline, hasServiceBooking } from '../utils/serviceTimeline';
 import { spkStatusLabel, getSpkDynamicStatus } from '../utils/statusLabel';
 import { StepModal } from '../components/common/StepModal';
@@ -2908,7 +2908,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const fakturTotalPages = Math.max(1, fakturPageData?.pagination?.total_pages ?? 1);
   const fakturTotalRecords = fakturPageData?.pagination?.total_records ?? myInvoiceList.length;
   const fakturSafePage = Math.min(fakturPage, fakturTotalPages);
-  const fakturRows = fakturPageData?.rows ?? [];
+  const fakturRows = useMemo(() => {
+    const list = [...(fakturPageData?.rows ?? [])];
+    return list.sort((a, b) => {
+      const timeA = new Date(a.tanggal_invoice || a.tanggal_bayar || 0).getTime();
+      const timeB = new Date(b.tanggal_invoice || b.tanggal_bayar || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [fakturPageData?.rows]);
 
   React.useEffect(() => {
     setFakturPage(1);
@@ -4803,8 +4810,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     type="text"
                     value={fakturSearch}
                     onChange={(e) => setFakturSearch(e.target.value)}
-                    placeholder="Cari No. Faktur / Plat..."
-                    aria-label="Cari No. Faktur"
+                    placeholder="Cari tanggal, plat nomor..."
+                    aria-label="Cari Faktur"
                     className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-3 text-xs font-medium text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 dark:bg-surface-raised"
                   />
                 </div>
@@ -4854,9 +4861,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <table className="w-full text-left text-xs">
                       <thead className="border-b border-border bg-[#F8FAFC] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-subtle dark:bg-slate-900/40">
                         <tr>
-                          <th className="px-5 py-3 font-semibold">No. Faktur</th>
+                          <th className="px-5 py-3 font-semibold">Tanggal</th>
                           <th className="px-4 py-3 font-semibold">Kendaraan</th>
-                          <th className="px-4 py-3 font-semibold">Tanggal Terbit</th>
                           <th className="px-4 py-3 font-semibold text-right">Total Tagihan</th>
                           <th className="px-5 py-3 text-right font-semibold">Aksi</th>
                         </tr>
@@ -4868,18 +4874,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               <td className="px-5 py-3.5 font-bold text-ink">
                                 <div className="flex items-center gap-2">
                                   <span className="w-6 h-6 rounded-md bg-blue-50 dark:bg-blue-950/40 text-[#12388F] dark:text-blue-300 flex items-center justify-center shrink-0 border border-blue-200 dark:border-blue-800">
-                                    <FileText className="w-3.5 h-3.5" />
+                                    <Calendar className="w-3.5 h-3.5" />
                                   </span>
-                                  <span className="font-mono">{inv.no_invoice}</span>
+                                  <span>{fmtTanggalSaja(inv.tanggal_invoice || inv.tanggal_bayar)}</span>
                                 </div>
                               </td>
                               <td className="px-4 py-3.5">
                                 <span className="inline-flex rounded-md border border-border bg-white px-2.5 py-1 font-mono text-xs font-bold text-ink dark:bg-surface">
                                   {formatPlat(inv.no_polisi)}
                                 </span>
-                              </td>
-                              <td className="px-4 py-3.5 text-ink-muted">
-                                {fmtWaktuFull(inv.tanggal_invoice || inv.tanggal_bayar) || '-'}
                               </td>
                               <td className="px-4 py-3.5 text-right font-mono font-bold text-ink">
                                 Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}
@@ -4910,8 +4913,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <div key={`inv-m-${inv.id}`} className="rounded-xl border border-border bg-white p-3.5 dark:bg-surface space-y-2.5">
                           <div className="flex items-start justify-between gap-2">
                             <div>
-                              <div className="font-mono font-bold text-sm text-ink">{inv.no_invoice}</div>
-                              <div className="mt-1 flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 font-bold text-sm text-ink">
+                                <Calendar className="w-4 h-4 text-accent shrink-0" />
+                                <span>{fmtTanggalSaja(inv.tanggal_invoice || inv.tanggal_bayar)}</span>
+                              </div>
+                              <div className="mt-1.5 flex items-center gap-2">
                                 <span className="inline-flex rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-xs font-bold text-ink">
                                   {formatPlat(inv.no_polisi)}
                                 </span>
@@ -4924,11 +4930,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             <span className="font-mono font-bold text-ink">
                               Rp {Number(inv.grand_total || 0).toLocaleString('id-ID')}
                             </span>
-                          </div>
-
-                          <div className="flex items-center justify-between text-xs text-ink-subtle">
-                            <span>Waktu Terbit:</span>
-                            <span>{fmtWaktuFull(inv.tanggal_invoice || inv.tanggal_bayar) || '-'}</span>
                           </div>
 
                           <button
@@ -5218,9 +5219,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <h1 className="text-lg sm:text-xl font-black text-ink tracking-tight truncate">
                         {companyName}
                       </h1>
-                      <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-surface border border-border text-accent">
-                        {custIdFormatted}
-                      </span>
                     </div>
 
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -5238,15 +5236,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     </div>
 
                     <div className="text-xs text-ink-muted mt-2 flex items-center gap-2.5 flex-wrap">
-                      {isPerusahaanAccount && (
-                        <>
-                          <span className="inline-flex items-center gap-1">
-                            <User className="w-3.5 h-3.5 text-accent" />
-                            <span>PIC: <strong className="text-ink font-semibold">{authUser?.nama_pic || '-'}</strong></span>
-                          </span>
-                          <span className="text-border">•</span>
-                        </>
-                      )}
                       <span className="inline-flex items-center gap-1 font-mono text-[11px]">
                         <Mail className="w-3.5 h-3.5 text-ink-muted" />
                         <span>{authUser?.email || '-'}</span>
@@ -5276,29 +5265,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     <span>Edit Profil</span>
                   </button>
                 )}
-              </div>
-
-              {/* Quick Metrics Strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-border/80">
-                <div className="bg-surface p-3 rounded-xl border border-border/60">
-                  <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Unit Armada</span>
-                  <span className="text-lg font-black text-ink mt-0.5 block">{(armadaPageData?.pagination?.total_records ?? myKendaraanList.length).toLocaleString('id-ID')} Kendaraan</span>
-                </div>
-                <div className="bg-surface p-3 rounded-xl border border-border/60">
-                  <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Service Tercatat</span>
-                  <span className="text-lg font-black text-ink mt-0.5 block">{(spkPageData?.pagination?.total_records ?? historyAll.length).toLocaleString('id-ID')} Kali Servis</span>
-                </div>
-                <div className="bg-surface p-3 rounded-xl border border-border/60">
-                  <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Dokumen Digital</span>
-                  <span className="text-lg font-black text-ink mt-0.5 block">{myDokumenList.length.toLocaleString('id-ID')} Berkas</span>
-                </div>
-                <div className="bg-surface p-3 rounded-xl border border-border/60">
-                  <span className="text-[10px] uppercase font-bold text-ink-muted block tracking-wider">Status Akun</span>
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Aktif</span>
-                  </span>
-                </div>
               </div>
             </div>
 
