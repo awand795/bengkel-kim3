@@ -1760,7 +1760,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Kalau jumlah data menyusut (mis. filter aktif) sampai halaman aktif melewati
   // halaman terakhir, tarik kembali ke halaman terakhir yang valid.
   // Queries
-  const { data: kendaraanList } = useQuery({
+  const { data: kendaraanList, isLoading: isLoadingKendaraan } = useQuery({
     queryKey: ['kendaraan-list'],
     queryFn: api.getKendaraan,
     // Segarkan agar status di_bengkel (dari pos gerbang) cepat ter-update
@@ -1770,12 +1770,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: masterMerkList = [] } = useQuery({
     queryKey: ['master-merk-list'],
     queryFn: api.getMasterMerk,
+    enabled: fleetMenu === 'kendaraan' || !!editArmadaData,
     staleTime: 1000 * 60 * 30,
   });
 
   const { data: masterCabangList = [] } = useQuery({
     queryKey: ['master-cabang-list'],
     queryFn: api.getMasterCabang,
+    enabled: openBookingModal || fleetMenu === 'booking',
     staleTime: 1000 * 60 * 30,
   });
 
@@ -1795,6 +1797,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: masterTipeList = [] } = useQuery({
     queryKey: ['master-tipe-list'],
     queryFn: () => api.getMasterTipe(),
+    enabled: fleetMenu === 'kendaraan' || !!editArmadaData,
     staleTime: 1000 * 60 * 30,
   });
 
@@ -1822,6 +1825,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   } = useQuery({
     queryKey: ['spk-page', historyPage, historyLimit, effectiveSpkQuery],
     queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: effectiveSpkQuery }),
+    enabled: fleetMenu === 'history',
     placeholderData: (prev) => prev,
     refetchInterval: 15000,
   });
@@ -1851,7 +1855,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 8000,
   });
 
-  const { data: dokumenList } = useQuery({
+  const { data: dokumenList, isLoading: isLoadingDokumen } = useQuery({
     queryKey: ['dokumen-list'],
     queryFn: api.getDokumen,
   });
@@ -1871,12 +1875,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: pekerjaanList } = useQuery({
     queryKey: ['pekerjaan-spk-list'],
     queryFn: api.getPekerjaanSpk,
+    enabled: fleetMenu === 'history' || !!historyDetail,
     refetchInterval: 8000,
   });
 
   const { data: partSpkList } = useQuery({
     queryKey: ['part-spk-list'],
     queryFn: api.getPartSpk,
+    enabled: fleetMenu === 'history' || !!historyDetail,
     refetchInterval: 8000,
   });
 
@@ -1884,6 +1890,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: invoiceList } = useQuery({
     queryKey: ['invoice-list'],
     queryFn: api.getInvoiceList,
+    enabled: fleetMenu === 'history' || !!historyDetail,
     refetchInterval: 15000,
   });
 
@@ -1900,6 +1907,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         limit: fakturLimit,
         q: fakturSearch || (fakturFilterPlat ? normalizePlat(fakturFilterPlat) : undefined),
       }),
+    enabled: fleetMenu === 'history',
     placeholderData: (prev) => prev,
     refetchInterval: 15000,
   });
@@ -1917,6 +1925,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: armadaPageData, isFetching: armadaFetching } = useQuery({
     queryKey: ['kendaraan-page', armadaPage, armadaLimit, armadaQuery],
     queryFn: () => api.getKendaraanPage({ page: armadaPage, limit: armadaLimit, q: armadaQuery }),
+    enabled: fleetMenu === 'kendaraan',
     placeholderData: (prev) => prev,
     // Status di_bengkel bisa berubah kapan saja dari pos gerbang
     refetchInterval: 30000,
@@ -1942,6 +1951,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: masterLayananList = [] } = useQuery({
     queryKey: ['master-jenis-layanan'],
     queryFn: api.getMasterJenisLayanan,
+    enabled: openBookingModal || fleetMenu === 'booking',
     staleTime: 1000 * 60 * 30,
   });
 
@@ -2003,6 +2013,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: masterKeluhanList = [] } = useQuery({
     queryKey: ['master-keluhan-list'],
     queryFn: api.getMasterKeluhan,
+    enabled: openBookingModal || fleetMenu === 'booking',
     staleTime: 1000 * 60 * 30,
   });
 
@@ -3442,6 +3453,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               subtitle="Antrian Masuk"
               icon={Calendar}
               tone="blue"
+              isLoading={isLoadingBooking}
               onClick={() => {
                 setFleetMenu('booking');
                 setActiveTab('fleet-booking');
@@ -3453,6 +3465,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               subtitle="Unit Terdaftar"
               icon={Truck}
               tone="accent"
+              isLoading={isLoadingKendaraan}
               onClick={() => {
                 setFleetMenu('kendaraan');
                 setActiveTab('fleet-kendaraan');
@@ -3465,6 +3478,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               icon={Wrench}
               badge={activeHistoryCount > 0 ? 'Aktif' : undefined}
               tone="amber"
+              isLoading={spkLoading || kunjunganLoading}
               onClick={() => {
                 if (activeHistoryEntry) {
                   setHistoryDetail(activeHistoryEntry);
@@ -3480,6 +3494,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               subtitle="STNK & KIR"
               icon={FileText}
               tone="teal"
+              isLoading={isLoadingDokumen}
               onClick={() => {
                 setFleetMenu('dokumen');
                 setActiveTab('fleet-dokumen');

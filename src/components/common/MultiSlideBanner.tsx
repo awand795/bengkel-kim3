@@ -16,8 +16,13 @@ export const MultiSlideBanner: React.FC<MultiSlideBannerProps> = ({
   onBookingClick,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [mountedIndices, setMountedIndices] = useState<number[]>([0]);
   const [isHovered, setIsHovered] = useState(false);
   const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    setMountedIndices((prev) => (prev.includes(currentIndex) ? prev : [...prev, currentIndex]));
+  }, [currentIndex]);
 
   // Filter hanya slide yang aktif dan urutkan berdasarkan urutan ASC
   const activeSlides = React.useMemo(() => {
@@ -99,14 +104,17 @@ export const MultiSlideBanner: React.FC<MultiSlideBannerProps> = ({
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
         {activeSlides.map((slide, index) => (
-          <div key={`slide-${slide.id}`} className="min-w-full w-full h-full relative shrink-0">
-            <iframe
-              srcDoc={slide.konten_html}
-              title={`Iklan Slide ${index + 1}`}
-              sandbox="allow-scripts allow-same-origin allow-popups"
-              scrolling="no"
-              className="w-full h-full border-0 block bg-slate-900 pointer-events-auto"
-            />
+          <div key={`slide-${slide.id}`} className="min-w-full w-full h-full relative shrink-0 bg-slate-900">
+            {mountedIndices.includes(index) && (
+              <iframe
+                srcDoc={slide.konten_html}
+                title={`Iklan Slide ${index + 1}`}
+                sandbox="allow-scripts allow-same-origin allow-popups"
+                scrolling="no"
+                loading="lazy"
+                className="w-full h-full border-0 block bg-slate-900 pointer-events-auto"
+              />
+            )}
           </div>
         ))}
       </div>

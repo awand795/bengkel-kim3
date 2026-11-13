@@ -114,7 +114,7 @@ export interface ServiceActivityTimelineProps {
  * Satu-satunya implementasi timeline Riwayat Aktivitas Service.
  * Dipakai oleh detail SPK maupun detail check-in gerbang (sebelum WO terbit).
  */
-const getDurasiPengerjaan = (spk: SpkService): string | null => {
+const getDurasiAktual = (spk: SpkService): string | null => {
   if (spk.waktu_selesai_pekerjaan && spk.waktu_mulai_pekerjaan) {
     const ms = new Date(spk.waktu_selesai_pekerjaan).getTime() - new Date(spk.waktu_mulai_pekerjaan).getTime();
     if (!isNaN(ms) && ms >= 0) {
@@ -126,8 +126,26 @@ const getDurasiPengerjaan = (spk: SpkService): string | null => {
       return `${mins} Menit`;
     }
   }
-  if (spk.estimasi_waktu_jam && Number(spk.estimasi_waktu_jam) > 0) {
-    return `${spk.estimasi_waktu_jam} Jam (Estimasi)`;
+  return null;
+};
+
+const getEstimasiSelesaiLabel = (spk: SpkService): string | null => {
+  const candidates: Array<[string | null | undefined, string | null | undefined]> = [
+    [spk.estimasi_selesai_t3, spk.jam_estimasi_selesai_t3],
+    [spk.estimasi_selesai_t2, spk.jam_estimasi_selesai_t2],
+    [spk.estimasi_selesai_t1, spk.jam_estimasi_selesai_t1],
+    [spk.estimasi_selesai_awal, spk.jam_estimasi_selesai_awal],
+  ];
+  for (const [tgl, jam] of candidates) {
+    if (!tgl) continue;
+    const parsed = new Date(tgl);
+    if (isNaN(parsed.getTime())) continue;
+    const dateStr = parsed.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    return `${dateStr}${jam ? ` • ${jam} WIB` : ''}`;
   }
   return null;
 };
@@ -324,19 +342,35 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
               )
             }
             meta={
-              <>
-                Teknisi: <strong className="font-bold text-ink">{spk.semua_mekanik || spk.nama_mekanik || '-'}</strong>
-                {(() => {
-                  const durasi = getDurasiPengerjaan(spk);
-                  if (!durasi) return null;
-                  return (
-                    <>
-                      {' '}| Durasi Pengerjaan:{' '}
-                      <span className="font-semibold text-ink">{durasi}</span>
-                    </>
-                  );
-                })()}
-              </>
+              (() => {
+                const mekanikList = (spk.semua_mekanik || spk.nama_mekanik || '')
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                const teknisiText =
+                  mekanikList.length > 1
+                    ? mekanikList.map((m, idx) => `Mekanik ${idx + 1}: ${m}`).join(', ')
+                    : mekanikList[0] || '-';
+                const estimasiSelesai = getEstimasiSelesaiLabel(spk);
+                const durasiAktual = getDurasiAktual(spk);
+                return (
+                  <>
+                    Teknisi: <strong className="font-bold text-ink">{teknisiText}</strong>
+                    {estimasiSelesai && (
+                      <>
+                        {' '}| Estimasi Selesai:{' '}
+                        <span className="font-semibold text-ink">{estimasiSelesai}</span>
+                      </>
+                    )}
+                    {durasiAktual && (
+                      <>
+                        {' '}| Durasi Aktual:{' '}
+                        <span className="font-semibold text-ink">{durasiAktual}</span>
+                      </>
+                    )}
+                  </>
+                );
+              })()
             }
           >
             <div>
@@ -358,41 +392,11 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
               })()}
             </div>
 
-            {/* Riwayat Tim Mekanik & Pergantian */}
-            {(() => {
-              const mekanikList = (spk.semua_mekanik || spk.nama_mekanik || '')
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean);
-              if (mekanikList.length === 0 && !spk.keterangan_estimasi) return null;
-              return (
-                <div className="pt-2 border-t border-border/60 space-y-1.5 text-[11px]">
-                  {mekanikList.length > 0 && (
-                    <div className="space-y-1">
-                      <span className="font-semibold text-ink block">
-                        {mekanikList.length > 1 ? 'Tim Teknisi yang Menangani:' : 'Teknisi Pelaksana:'}
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {mekanikList.map((m, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-subtle text-accent border border-accent/20 font-medium"
-                          >
-                            <span className="text-[10px] font-bold text-accent/70">Mekanik {idx + 1}:</span>
-                            <strong>{m}</strong>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {spk.keterangan_estimasi && (
-                    <div className="text-ink-muted italic pt-0.5">
-                      Catatan Penyesuaian: <span className="font-medium text-ink not-italic">"{spk.keterangan_estimasi}"</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+            {spk.keterangan_estimasi && (
+              <div className="pt-2 border-t border-border/60 text-[11px] text-ink-muted italic">
+                Catatan Penyesuaian: <span className="font-medium text-ink not-italic">"{spk.keterangan_estimasi}"</span>
+              </div>
+            )}
           </ServiceTimelineItem>
         )}
 
