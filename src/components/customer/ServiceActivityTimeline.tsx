@@ -8,7 +8,6 @@ import {
   type ServiceStageKey,
   type ServiceStageState,
 } from '../../utils/serviceTimeline';
-import { spkStatusLabel } from '../../utils/statusLabel';
 import type {
   InvoicePembayaran,
   SpkItemPart,
@@ -49,12 +48,17 @@ const TIMELINE_TONE: Record<ServiceStageState, { dot: string; chip: string; labe
   },
 };
 
+interface TimelineMetaRow {
+  label: string;
+  value: React.ReactNode;
+}
+
 interface ServiceTimelineItemProps {
   state: ServiceStageState;
   isLast?: boolean;
   title: string;
-  time: React.ReactNode;
-  meta?: React.ReactNode;
+  time?: React.ReactNode;
+  rows?: TimelineMetaRow[];
   children?: React.ReactNode;
 }
 
@@ -63,39 +67,66 @@ const ServiceTimelineItem: React.FC<ServiceTimelineItemProps> = ({
   isLast,
   title,
   time,
-  meta,
+  rows,
   children,
 }) => {
   const tone = TIMELINE_TONE[state];
+  const validRows = (rows || []).filter(
+    (r) => r.value !== null && r.value !== undefined && r.value !== ''
+  );
+
   return (
-    <div className="relative space-y-1">
+    <div className="relative">
       {/* Rel progres: hanya tersambung hijau setelah tahap yang sudah selesai */}
       {!isLast && state === 'done' && (
         <span
           aria-hidden="true"
-          className="absolute -left-[18px] top-4 -bottom-4 w-[2px] rounded-full bg-status-green"
+          className="absolute -left-[18px] top-5 -bottom-4 w-[2px] rounded-full bg-status-green"
         />
       )}
       <span
         aria-hidden="true"
-        className={`absolute -left-[24px] top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-4 ${tone.dot}`}
+        className={`absolute -left-[24px] top-3.5 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-4 ${tone.dot}`}
         title={tone.label}
       >
         {state === 'done' && <Check className="h-2 w-2 text-white" strokeWidth={4} />}
       </span>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-bold text-ink">{title}</span>
-        <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${tone.chip}`}>
-          {tone.label}
-        </span>
-      </div>
-      <div className="text-xs font-semibold text-accent">{time}</div>
-      {meta && <div className="text-xs text-ink-muted">{meta}</div>}
-      {children && (
-        <div className="text-xs text-ink/80 bg-surface/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-border/60 leading-relaxed space-y-1">
-          {children}
+
+      <div className="rounded-xl border border-border/80 bg-white/95 dark:bg-slate-900/60 p-3.5 shadow-2xs space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <span className="text-sm font-bold text-ink">{title}</span>
+            <span
+              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none ${tone.chip}`}
+            >
+              {tone.label}
+            </span>
+          </div>
+          {time && (
+            <span className="text-xs font-semibold text-accent whitespace-nowrap">{time}</span>
+          )}
         </div>
-      )}
+
+        {validRows.length > 0 && (
+          <div className="divide-y divide-border/40 rounded-lg bg-surface/60 dark:bg-slate-800/40 px-3 py-1 border border-border/40">
+            {validRows.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-baseline justify-between gap-4 py-1.5 text-xs"
+              >
+                <span className="text-ink-muted shrink-0">{row.label}</span>
+                <span className="font-semibold text-ink text-right break-words">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {children && (
+          <div className="pt-2 border-t border-border/60 text-xs text-ink-muted space-y-1.5 leading-relaxed">
+            {children}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -110,10 +141,12 @@ export interface ServiceActivityTimelineProps {
   className?: string;
 }
 
-/**
- * Satu-satunya implementasi timeline Riwayat Aktivitas Service.
- * Dipakai oleh detail SPK maupun detail check-in gerbang (sebelum WO terbit).
- */
+const cleanText = (val?: string | null): string | null => {
+  const trimmed = val?.trim();
+  if (!trimmed || trimmed === '-') return null;
+  return trimmed;
+};
+
 const getMulaiDikerjakanIso = (spk: SpkService): string | null => {
   if (spk.waktu_mulai_pekerjaan) return spk.waktu_mulai_pekerjaan;
   if (spk.tanggal_mulai_dikerjakan) {
@@ -167,6 +200,10 @@ const getEstimasiSelesaiLabel = (spk: SpkService): string | null => {
   return null;
 };
 
+/**
+ * Satu-satunya implementasi timeline Riwayat Aktivitas Service.
+ * Dipakai oleh detail SPK maupun detail check-in gerbang (sebelum WO terbit).
+ */
 export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = ({
   spk,
   pekerjaanList,
@@ -190,6 +227,24 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
   const activePekerjaan = (pekerjaanList || []).filter((p) => p.id_spk === spk?.id);
   const activeParts = (partSpkList || []).filter((p) => p.id_spk === spk?.id);
 
+  const mulaiIso = getMulaiDikerjakanIso(spk);
+  const estimasiSelesai = getEstimasiSelesaiLabel(spk);
+  const durasiAktual = getDurasiAktual(spk);
+  const mekanikList = (spk.semua_mekanik || spk.nama_mekanik || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const teknisiText =
+    mekanikList.length > 1
+      ? mekanikList.map((m, idx) => `Mekanik ${idx + 1}: ${m}`).join(', ')
+      : mekanikList[0] || '-';
+
+  const namaSupir = cleanText(spk.nama_supir);
+  const jenisPekerjaan = cleanText(spk.jenis_pekerjaan);
+  const produkBelumDipakai = cleanText(spk.produk_belum_dipakai);
+  const jasaBelumDipakai = cleanText(spk.jasa_belum_dipakai);
+  const keteranganEstimasi = cleanText(spk.keterangan_estimasi);
+
   return (
     <div
       className={`space-y-3 p-4 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] to-surface-raised dark:from-slate-800/40 dark:to-transparent ${className || ''}`}
@@ -198,10 +253,11 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
         <span className="w-6 h-6 rounded-lg bg-accent text-white flex items-center justify-center shadow-2xs shrink-0">
           <Clock className="w-3.5 h-3.5" />
         </span>
-        Timeline Riwayat Aktivitas Service:
+        Timeline Riwayat Aktivitas Service
       </span>
-      <div className="space-y-4 relative pl-4 border-l-2 border-border ml-2">
-        {/* Step Booking: hanya tampil bila servis ini berasal dari Booking Service */}
+
+      <div className="space-y-3 relative pl-4 border-l-2 border-border ml-2">
+        {/* Step Booking */}
         {serviceTimeline.booking !== 'pending' && (
           <ServiceTimelineItem
             state={serviceTimeline.booking}
@@ -218,37 +274,19 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                 ? `${spk.tanggal_booking}${spk.jam_booking ? ` • ${spk.jam_booking} WIB` : ''}`
                 : '-')
             }
-            meta={
-              <>
-                No. Booking:{' '}
-                <span className="font-mono font-semibold text-ink">
-                  {spk.no_booking || (spk.booking_id ? `#${spk.booking_id}` : '-')}
-                </span>
-                {spk.tanggal_booking && (
-                  <>
-                    {' '}
-                    | Jadwal Kedatangan:{' '}
-                    <span className="font-medium text-ink">
-                      {spk.tanggal_booking}
-                      {spk.jam_booking ? ` (${spk.jam_booking} WIB)` : ''}
-                    </span>
-                  </>
-                )}
-              </>
-            }
-          >
-            <div>
-              Unit <span className="font-semibold text-ink">{formatPlat(spk.no_polisi)}</span> telah didaftarkan melalui layanan Booking Service sebelum kedatangan ke bengkel.
-            </div>
-            {(spk.jenis_layanan_booking || spk.jenis_layanan) && (
-              <div className="text-ink-muted">
-                Layanan Dibooking:{' '}
-                <span className="font-medium text-ink">
-                  {spk.jenis_layanan_booking || spk.jenis_layanan}
-                </span>
-              </div>
-            )}
-          </ServiceTimelineItem>
+            rows={[
+              { label: 'Unit', value: formatPlat(spk.no_polisi) },
+              {
+                label: 'Jadwal Kedatangan',
+                value: spk.tanggal_booking
+                  ? `${spk.tanggal_booking}${spk.jam_booking ? ` (${spk.jam_booking} WIB)` : ''}`
+                  : '-',
+              },
+              ...(spk.jenis_layanan_booking || spk.jenis_layanan
+                ? [{ label: 'Layanan', value: spk.jenis_layanan_booking || spk.jenis_layanan }]
+                : []),
+            ]}
+          />
         )}
 
         {/* Step 1: Kendaraan Masuk di Pos Security */}
@@ -257,17 +295,12 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
           isLast={isLastStage('masuk')}
           title="Kendaraan Masuk di Pos Security"
           time={fmtWaktuFull(spk.waktu_check_in || spk.created_at) || '-'}
-          meta={
-            <>
-              Petugas: <strong className="font-bold text-ink">Pos Security Master Truck</strong>
-              {spk.nama_supir && spk.nama_supir.trim() !== '' && spk.nama_supir.trim() !== '-' && (
-                <> | Supir: <strong className="font-bold text-ink">{spk.nama_supir.trim()}</strong></>
-              )}
-            </>
-          }
-        >
-          Kendaraan tiba di area gerbang Master Truck. Petugas security melakukan pemeriksaan kedatangan, validasi nomor polisi ({formatPlat(spk.no_polisi)}), dan pencatatan tiket masuk armada.
-        </ServiceTimelineItem>
+          rows={[
+            { label: 'Petugas', value: 'Pos Security Master Truck' },
+            ...(namaSupir ? [{ label: 'Supir', value: namaSupir }] : []),
+            { label: 'No. Polisi', value: formatPlat(spk.no_polisi) },
+          ]}
+        />
 
         {/* Step 2: Penerimaan & Cek Awal oleh SA */}
         {serviceTimeline.penerimaan !== 'pending' && (
@@ -275,175 +308,150 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             state={serviceTimeline.penerimaan}
             isLast={isLastStage('penerimaan')}
             title="Penerimaan & Cek Awal oleh SA"
-            time={(() => {
-              const tIn = spk.waktu_check_in ? new Date(spk.waktu_check_in).getTime() : NaN;
-              const tCr = spk.created_at ? new Date(spk.created_at).getTime() : NaN;
-              // Penerimaan SA tidak mungkin terjadi sebelum kendaraan masuk gerbang.
-              const t = !isNaN(tIn) && (isNaN(tCr) || tIn > tCr) ? spk.waktu_check_in : spk.created_at;
-              return fmtWaktuFull(t || spk.waktu_check_in) || '-';
-            })()}
-            meta={
-              <>
-                SA: <strong className="font-bold text-ink">{spk.nama_sa || '-'}</strong> | Odometer: <span className="font-semibold text-ink">{spk.odometer_km ? `${spk.odometer_km.toLocaleString('id-ID')} KM` : '-'}</span>
-              </>
-            }
+            time={fmtWaktuFull(spk.waktu_check_in || spk.created_at) || '-'}
+            rows={[
+              { label: 'Service Advisor', value: spk.nama_sa || '-' },
+              {
+                label: 'Status Penerimaan',
+                value: (
+                  <span
+                    className={
+                      serviceTimeline.penerimaan === 'done'
+                        ? 'text-status-green'
+                        : 'text-status-blue'
+                    }
+                  >
+                    {serviceTimeline.penerimaan === 'done' ? 'Diterima' : 'Dalam Proses'}
+                  </span>
+                ),
+              },
+            ]}
           >
-            {statusNote && (
-              <div className="font-semibold text-status-blue">{statusNote}</div>
-            )}
-            <div>
-              Pemeriksaan fisik awal (Walk-around check 4 titik): Bodi [{spk.cek_body || 'Belum Diperiksa'}], Mesin [{spk.cek_mesin || 'Belum Diperiksa'}], Kelistrikan [{spk.cek_kelistrikan || 'Belum Diperiksa'}], Kaki-kaki [{spk.cek_kaki_kaki || 'Belum Diperiksa'}].
+            {statusNote && <div className="font-semibold text-status-blue">{statusNote}</div>}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px]">
+              <div className="rounded-md bg-surface px-2 py-1 border border-border/50">
+                <span className="text-ink-subtle block">Bodi</span>
+                <span className="font-semibold text-ink">{spk.cek_body || 'Belum Diperiksa'}</span>
+              </div>
+              <div className="rounded-md bg-surface px-2 py-1 border border-border/50">
+                <span className="text-ink-subtle block">Mesin</span>
+                <span className="font-semibold text-ink">{spk.cek_mesin || 'Belum Diperiksa'}</span>
+              </div>
+              <div className="rounded-md bg-surface px-2 py-1 border border-border/50">
+                <span className="text-ink-subtle block">Kelistrikan</span>
+                <span className="font-semibold text-ink">
+                  {spk.cek_kelistrikan || 'Belum Diperiksa'}
+                </span>
+              </div>
+              <div className="rounded-md bg-surface px-2 py-1 border border-border/50">
+                <span className="text-ink-subtle block">Kaki-kaki</span>
+                <span className="font-semibold text-ink">
+                  {spk.cek_kaki_kaki || 'Belum Diperiksa'}
+                </span>
+              </div>
             </div>
-            <div className="text-ink-muted">
-              Keluhan: <span className="font-medium text-ink">"{spk.keluhan_customer || 'Perawatan berkala armada'}"</span>
+            <div>
+              Keluhan:{' '}
+              <span className="font-medium text-ink">
+                "{spk.keluhan_customer || 'Perawatan berkala armada'}"
+              </span>
             </div>
           </ServiceTimelineItem>
         )}
 
-        {/* Step 3: Pengecekan Mekanik & Penerbitan WO (SOP Langkah 4-6) */}
+        {/* Step 3: Pengecekan Mekanik & Penerbitan WO */}
         {serviceTimeline.wo !== 'pending' && (
           <ServiceTimelineItem
             state={serviceTimeline.wo}
             isLast={isLastStage('wo')}
             title="Pengecekan Mekanik & Penerbitan WO"
-            time={spk.waktu_mulai_pekerjaan ? fmtWaktuFull(spk.waktu_mulai_pekerjaan) : (spk.waktu_check_in ? fmtWaktuFull(spk.waktu_check_in) : '-')}
-            meta={
-              <>
-                Foreman & SA: <strong className="font-bold text-ink">{spk.nama_sa || '-'}</strong> | Status WO:{' '}
-                {serviceTimeline.wo === 'done' ? (
-                  <span className="font-semibold text-status-green">Disetujui</span>
-                ) : serviceTimeline.wo === 'attention' ? (
-                  <span className="font-semibold text-status-amber">Menunggu Persetujuan Anda</span>
-                ) : (
-                  <span className="font-semibold text-status-blue">Sedang Dicek</span>
-                )}
-                {spk.mulai_inspeksi ? (
-                  <> | Mulai Inspeksi: <span className="font-semibold text-ink">{spk.mulai_inspeksi}</span></>
-                ) : null}
-                {spk.jenis_pekerjaan && spk.jenis_pekerjaan.trim() !== '' && spk.jenis_pekerjaan.trim() !== '-' ? (
-                  <> | Kategori: <span className="font-semibold text-ink">{spk.jenis_pekerjaan.trim()}</span></>
-                ) : null}
-              </>
+            time={
+              spk.waktu_mulai_pekerjaan
+                ? fmtWaktuFull(spk.waktu_mulai_pekerjaan)
+                : spk.waktu_check_in
+                ? fmtWaktuFull(spk.waktu_check_in)
+                : '-'
             }
-          >
-            <div>
-              Foreman mendistribusikan penanganan ke teknisi <strong className="font-bold text-ink">{spk.nama_mekanik || 'Teknisi'}</strong> untuk inspeksi detail di stall servis.
-            </div>
-            <div className="text-ink-muted">
-              {serviceTimeline.wo === 'done'
-                ? 'Estimasi biaya dan durasi pengerjaan disetujui. Suku cadang diverifikasi siap pasang di gudang, dan Surat Perintah Kerja'
-                : serviceTimeline.wo === 'attention'
-                ? 'Estimasi biaya dan durasi sudah diajukan. Surat Perintah Kerja'
-                : 'Pengecekan kondisi unit dan penyusunan estimasi sedang berlangsung. Surat Perintah Kerja'}{' '}
-              (WO No. <span className="font-mono font-medium text-ink">{spk.no_wo || spk.no_spk}</span>)
-              {serviceTimeline.wo === 'done' ? ' resmi diterbitkan.' : ' akan diterbitkan setelah Anda menyetujui estimasi.'}
-            </div>
-          </ServiceTimelineItem>
+            rows={[
+              { label: 'Foreman & SA', value: spk.nama_sa || '-' },
+              {
+                label: 'Status WO',
+                value:
+                  serviceTimeline.wo === 'done' ? (
+                    <span className="text-status-green">Disetujui</span>
+                  ) : serviceTimeline.wo === 'attention' ? (
+                    <span className="text-status-amber">Menunggu Persetujuan Anda</span>
+                  ) : (
+                    <span className="text-status-blue">Sedang Dicek</span>
+                  ),
+              },
+              { label: 'Teknisi Ditugaskan', value: spk.nama_mekanik || 'Teknisi' },
+              ...(spk.mulai_inspeksi
+                ? [{ label: 'Mulai Inspeksi', value: spk.mulai_inspeksi }]
+                : []),
+              ...(jenisPekerjaan
+                ? [{ label: 'Kategori Pekerjaan', value: jenisPekerjaan }]
+                : []),
+            ]}
+          />
         )}
 
-        {/* Step 4: Pengerjaan Service Teknisi (SOP Langkah 7-10) */}
+        {/* Step 4: Pengerjaan Service Teknisi */}
         {serviceTimeline.pengerjaan !== 'pending' && (
           <ServiceTimelineItem
             state={serviceTimeline.pengerjaan}
             isLast={isLastStage('pengerjaan')}
             title={
               serviceTimeline.pengerjaan === 'blocked'
-                ? 'Menunggu Ketersediaan Sparepart (Pengerjaan Ditunda)'
+                ? 'Menunggu Ketersediaan Sparepart'
                 : serviceTimeline.pengerjaan === 'done'
                 ? 'Pengerjaan Service Teknisi Selesai'
                 : spk.status_spk === 'Estimasi Disetujui'
                 ? 'WO Terbit — Siap Dikerjakan Mekanik'
-                : 'Pengerjaan Sedang Dilakukan oleh Mekanik'
+                : 'Pengerjaan Sedang Dilakukan Mekanik'
             }
-            time={(() => {
-              const mulaiIso = getMulaiDikerjakanIso(spk);
-              if (spk.waktu_selesai_pekerjaan) {
-                return <>Selesai {fmtWaktuFull(spk.waktu_selesai_pekerjaan)}</>;
-              }
-              if (mulaiIso) {
-                return <>Mulai pengerjaan: {fmtWaktuFull(mulaiIso)}</>;
-              }
-              return <>Dijadwalkan di bay servis</>;
-            })()}
-            meta={
-              (() => {
-                const mekanikList = (spk.semua_mekanik || spk.nama_mekanik || '')
-                  .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                const teknisiText =
-                  mekanikList.length > 1
-                    ? mekanikList.map((m, idx) => `Mekanik ${idx + 1}: ${m}`).join(', ')
-                    : mekanikList[0] || '-';
-                const mulaiIso = getMulaiDikerjakanIso(spk);
-                const estimasiSelesai = getEstimasiSelesaiLabel(spk);
-                const durasiAktual = getDurasiAktual(spk);
-                return (
-                  <>
-                    Teknisi: <strong className="font-bold text-ink">{teknisiText}</strong>
-                    {mulaiIso && (
-                      <>
-                        {' '}| Mulai Dikerjakan:{' '}
-                        <span className="font-semibold text-ink">{fmtWaktuFull(mulaiIso)}</span>
-                      </>
-                    )}
-                    {estimasiSelesai && (
-                      <>
-                        {' '}| Estimasi Selesai:{' '}
-                        <span className="font-semibold text-ink">{estimasiSelesai}</span>
-                      </>
-                    )}
-                    {durasiAktual && (
-                      <>
-                        {' '}| Durasi Aktual:{' '}
-                        <span className="font-semibold text-ink">{durasiAktual}</span>
-                      </>
-                    )}
-                  </>
-                );
-              })()
+            time={
+              spk.waktu_selesai_pekerjaan
+                ? `Selesai ${fmtWaktuFull(spk.waktu_selesai_pekerjaan)}`
+                : mulaiIso
+                ? `Mulai ${fmtWaktuFull(mulaiIso)}`
+                : 'Dijadwalkan di bay servis'
             }
-          >
-            <div>
-              {(() => {
-                const jc = activePekerjaan.length;
-                const pc = activeParts.length;
-                const jText = jc > 0 ? `${jc} jasa perbaikan` : 'pekerjaan servis';
-                const pText = pc > 0 ? `${pc} item suku cadang` : 'pemeriksaan komponen';
-                if (spk.status_spk === 'Waiting Part') {
-                  return `Pengerjaan di stall servis ditunda sementara menunggu ketersediaan komponen/sparepart (${pc} part dibutuhkan).`;
-                }
-                if (spk.status_spk === 'QC Passed' || spk.status_spk === 'FIR Closed' || spk.status_spk === 'Selesai' || spk.status_spk === 'Siap Keluar' || spk.status_spk === 'Waiting QC') {
-                  return `Teknisi telah menyelesaikan seluruh instruksi pengerjaan pada unit (${jText} dan ${pText}). Unit diserahkan untuk inspeksi pengujian mutu.`;
-                }
-                if (spk.waktu_mulai_pekerjaan) {
-                  return `Teknisi sedang aktif melakukan tindakan perbaikan dan perawatan unit di stall servis (${jText}, ${pText}).`;
-                }
-                return `Unit telah didaftarkan dan dijadwalkan untuk penanganan oleh teknisi di stall servis bengkel.`;
-              })()}
-            </div>
-
-            {spk.keterangan_estimasi && (
-              <div className="pt-2 border-t border-border/60 text-[11px] text-ink-muted italic">
-                Catatan Penyesuaian: <span className="font-medium text-ink not-italic">"{spk.keterangan_estimasi}"</span>
-              </div>
-            )}
-            {((spk.produk_belum_dipakai && spk.produk_belum_dipakai.trim() !== '' && spk.produk_belum_dipakai.trim() !== '-') ||
-              (spk.jasa_belum_dipakai && spk.jasa_belum_dipakai.trim() !== '' && spk.jasa_belum_dipakai.trim() !== '-')) && (
-              <div className="pt-2 border-t border-border/60 text-[11px] text-ink-muted space-y-0.5">
-                {spk.produk_belum_dipakai && spk.produk_belum_dipakai.trim() !== '' && spk.produk_belum_dipakai.trim() !== '-' && (
-                  <div>
-                    Part Belum Dipakai: <span className="font-medium text-ink">{spk.produk_belum_dipakai}</span>
-                  </div>
-                )}
-                {spk.jasa_belum_dipakai && spk.jasa_belum_dipakai.trim() !== '' && spk.jasa_belum_dipakai.trim() !== '-' && (
-                  <div>
-                    Jasa Belum Dipakai: <span className="font-medium text-ink">{spk.jasa_belum_dipakai}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </ServiceTimelineItem>
+            rows={[
+              { label: 'Teknisi', value: teknisiText },
+              ...(mulaiIso ? [{ label: 'Mulai Dikerjakan', value: fmtWaktuFull(mulaiIso) }] : []),
+              ...(estimasiSelesai ? [{ label: 'Estimasi Selesai', value: estimasiSelesai }] : []),
+              ...(durasiAktual ? [{ label: 'Durasi Aktual', value: durasiAktual }] : []),
+              {
+                label: 'Lingkup Pekerjaan',
+                value: `${activePekerjaan.length} jasa perbaikan • ${activeParts.length} suku cadang`,
+              },
+            ]}
+            children={
+              keteranganEstimasi || produkBelumDipakai || jasaBelumDipakai ? (
+                <>
+                  {keteranganEstimasi && (
+                    <div>
+                      Catatan Penyesuaian:{' '}
+                      <span className="font-medium text-ink">"{keteranganEstimasi}"</span>
+                    </div>
+                  )}
+                  {produkBelumDipakai && (
+                    <div>
+                      Part Belum Dipakai:{' '}
+                      <span className="font-medium text-ink">{produkBelumDipakai}</span>
+                    </div>
+                  )}
+                  {jasaBelumDipakai && (
+                    <div>
+                      Jasa Belum Dipakai:{' '}
+                      <span className="font-medium text-ink">{jasaBelumDipakai}</span>
+                    </div>
+                  )}
+                </>
+              ) : undefined
+            }
+          />
         )}
 
         {/* Step 5: Quality Control (QC) */}
@@ -451,23 +459,44 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
           <ServiceTimelineItem
             state={serviceTimeline.qc}
             isLast={isLastStage('qc')}
-            title={serviceTimeline.qc === 'done' ? 'Quality Control (QC) Lulus' : 'Quality Control (QC) — Inspeksi Foreman'}
-            time={fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || (serviceTimeline.qc === 'done' ? 'Selesai (Otomatis Bersama WO)' : '-')}
-            meta={
-              <>
-                Foreman: <strong className="font-bold text-ink">{spk.nama_foreman || '-'}</strong> | Hasil Uji:{' '}
-                {serviceTimeline.qc === 'done' ? (
-                  <span className="font-semibold text-status-green">QC PASSED</span>
-                ) : (
-                  <span className="font-semibold text-status-blue">Sedang diuji</span>
-                )}
-                {(spk.waktu_qc || spk.tanggal_qc || spk.tanggal_uji_jalan_fir) ? (
-                  <> | Uji Jalan (FIR): <span className="font-semibold text-ink">{fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.tanggal_uji_jalan_fir)}</span></>
-                ) : null}
-              </>
+            title={
+              serviceTimeline.qc === 'done'
+                ? 'Quality Control (QC) Lulus'
+                : 'Quality Control (QC) — Inspeksi Foreman'
             }
+            time={
+              fmtWaktuFull(spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) ||
+              (serviceTimeline.qc === 'done' ? 'Selesai' : '-')
+            }
+            rows={[
+              { label: 'Foreman', value: spk.nama_foreman || '-' },
+              {
+                label: 'Hasil Uji',
+                value:
+                  serviceTimeline.qc === 'done' ? (
+                    <span className="text-status-green">QC PASSED</span>
+                  ) : (
+                    <span className="text-status-blue">Sedang Diuji</span>
+                  ),
+              },
+              ...(spk.waktu_qc || spk.tanggal_qc || spk.tanggal_uji_jalan_fir
+                ? [
+                    {
+                      label: 'Uji Jalan (FIR)',
+                      value: fmtWaktuFull(
+                        spk.waktu_qc || spk.tanggal_qc || spk.tanggal_uji_jalan_fir
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           >
-            {spk.catatan_foreman || null}
+            {cleanText(spk.catatan_foreman) ? (
+              <div>
+                Catatan Foreman:{' '}
+                <span className="font-medium text-ink">"{cleanText(spk.catatan_foreman)}"</span>
+              </div>
+            ) : undefined}
           </ServiceTimelineItem>
         )}
 
@@ -477,18 +506,33 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             state={serviceTimeline.fir}
             isLast={isLastStage('fir')}
             title="FIR Closed — Final Check SA"
-            time={fmtWaktuFull(spk.waktu_fir_closed || spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) || (serviceTimeline.fir === 'done' ? 'Selesai (Otomatis Bersama WO)' : '-')}
-            meta={
-              <>
-                SA: <strong className="font-bold text-ink">{spk.nama_sa || '-'}</strong> | Dokumen: Faktur Servis
-              </>
+            time={
+              fmtWaktuFull(
+                spk.waktu_fir_closed ||
+                  spk.waktu_qc ||
+                  spk.tanggal_qc ||
+                  spk.waktu_selesai_pekerjaan
+              ) || (serviceTimeline.fir === 'done' ? 'Selesai' : '-')
             }
+            rows={[
+              { label: 'Service Advisor', value: spk.nama_sa || '-' },
+              {
+                label: 'Status FIR',
+                value:
+                  serviceTimeline.fir === 'done' ? (
+                    <span className="text-status-green">Disetujui • Faktur Terbit</span>
+                  ) : (
+                    <span className="text-status-blue">Menunggu Final Check SA</span>
+                  ),
+              },
+            ]}
           >
-            {serviceTimeline.fir === 'done' ? (
-              <>{spk.catatan_sa ? `${spk.catatan_sa}. ` : ''}Pemeriksaan akhir (Final Inspection Report) disetujui Service Advisor dan faktur servis diterbitkan.</>
-            ) : (
-              <>Menunggu pemeriksaan akhir (Final Inspection Report) oleh Service Advisor sebelum faktur servis diterbitkan.</>
-            )}
+            {cleanText(spk.catatan_sa) ? (
+              <div>
+                Catatan SA:{' '}
+                <span className="font-medium text-ink">"{cleanText(spk.catatan_sa)}"</span>
+              </div>
+            ) : undefined}
           </ServiceTimelineItem>
         )}
 
@@ -498,23 +542,29 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             state={serviceTimeline.pembayaran}
             isLast={isLastStage('pembayaran')}
             title={serviceTimeline.pembayaran === 'done' ? 'Pembayaran Lunas' : 'Pembayaran'}
-            time={fmtWaktuFull(activeInvoice?.tanggal_bayar || activeInvoice?.tanggal_invoice || spk.waktu_fir_closed) || '-'}
-            meta={
-              <>
-                Kasir & Keuangan: <strong className="font-bold text-ink">{activeInvoice?.kasir_pic || '-'}</strong>
-                {activeInvoice ? <> | Metode: {activeInvoice.metode_pembayaran || 'Transfer'}</> : null}
-              </>
+            time={
+              fmtWaktuFull(
+                activeInvoice?.tanggal_bayar ||
+                  activeInvoice?.tanggal_invoice ||
+                  spk.waktu_fir_closed
+              ) || '-'
             }
-          >
-            {activeInvoice ? (
-              <>
-                Invoice No. {activeInvoice.no_invoice} senilai Rp {Number(activeInvoice.grand_total || 0).toLocaleString('id-ID')}{' '}
-                {serviceTimeline.pembayaran === 'done' ? 'telah diselesaikan lunas.' : 'menunggu pembayaran.'}
-              </>
-            ) : (
-              <>Menunggu penerbitan invoice oleh kasir bengkel.</>
-            )}
-          </ServiceTimelineItem>
+            rows={[
+              { label: 'Kasir & Keuangan', value: activeInvoice?.kasir_pic || '-' },
+              ...(activeInvoice
+                ? [
+                    {
+                      label: 'Metode Pembayaran',
+                      value: activeInvoice.metode_pembayaran || 'Transfer',
+                    },
+                    {
+                      label: 'Total Tagihan',
+                      value: `Rp ${Number(activeInvoice.grand_total || 0).toLocaleString('id-ID')}`,
+                    },
+                  ]
+                : [{ label: 'Status', value: 'Menunggu penerbitan invoice' }]),
+            ]}
+          />
         )}
 
         {/* Step 8: Kendaraan Keluar Bengkel */}
@@ -524,24 +574,19 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             isLast={isLastStage('keluar')}
             title="Kendaraan Keluar Bengkel"
             time={fmtWaktuFull(spk.waktu_check_out) || '-'}
-            meta={
-              serviceTimeline.keluar === 'done' ? (
-                <>Petugas: <strong className="font-bold text-ink">Pos Security Master Truck</strong> | Gate Pass: Valid</>
-              ) : (
-                <>Petugas: <strong className="font-bold text-ink">Pos Security Master Truck</strong> | Gate Pass: Menunggu Verifikasi</>
-              )
-            }
-          >
-            {serviceTimeline.keluar === 'done' ? (
-              spk.sumber === 'kunjungan' ? (
-                <>Verifikasi Gate Pass / Memo Keluar di Pos Security Master Truck selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel (tanpa pengerjaan servis bengkel).</>
-              ) : (
-                <>Verifikasi Gate Pass / Memo Keluar di Pos Security Master Truck selesai. Kendaraan telah resmi checkout dan meninggalkan area bengkel.</>
-              )
-            ) : (
-              <>Kendaraan menunggu diverifikasi dan dicatat keluar oleh Pos Security Master Truck.</>
-            )}
-          </ServiceTimelineItem>
+            rows={[
+              { label: 'Petugas', value: 'Pos Security Master Truck' },
+              {
+                label: 'Gate Pass',
+                value:
+                  serviceTimeline.keluar === 'done' ? (
+                    <span className="text-status-green">Valid • Resmi Checkout</span>
+                  ) : (
+                    <span className="text-status-blue">Menunggu Verifikasi Security</span>
+                  ),
+              },
+            ]}
+          />
         )}
       </div>
     </div>
