@@ -81,7 +81,6 @@ export const ApprovalAutoPopup: React.FC = () => {
     approvalModalOpen,
     fleetPendingSpkId,
     spkList,
-    kendaraanList,
   ]);
 
   return null;
