@@ -398,6 +398,25 @@ export interface SpkService {
   status_invoice?: string;
   created_at: string;
   sumber?: 'spk' | 'kunjungan';
+  // Complementary data dari sch_pos.vw_spk_daily_report
+  mulai_inspeksi?: string | null;
+  tanggal_uji_jalan_fir?: string | null;
+  estimasi_selesai_awal?: string | null;
+  jam_estimasi_selesai_awal?: string | null;
+  estimasi_selesai_t1?: string | null;
+  jam_estimasi_selesai_t1?: string | null;
+  estimasi_selesai_t2?: string | null;
+  jam_estimasi_selesai_t2?: string | null;
+  estimasi_selesai_t3?: string | null;
+  jam_estimasi_selesai_t3?: string | null;
+  estimasi_selesai_ta?: string | null;
+  keterangan_estimasi?: string | null;
+  produk_belum_dipakai?: string | null;
+  biaya_produk_belum_dipakai?: number | null;
+  total_biaya_akhir?: number | null;
+  lama_pengerjaan_hari?: number | null;
+  waiting_time_hari?: number | null;
+  semua_mekanik?: string | null;
 }
 
 /**

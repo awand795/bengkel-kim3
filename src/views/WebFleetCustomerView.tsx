@@ -878,60 +878,87 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     />
 
                     <div className="space-y-3 p-4 rounded-2xl border border-accent/20 bg-gradient-to-br from-accent-subtle to-transparent">
-                      <span className="font-black text-ink flex items-center gap-2">
-                        <Info className="w-4 h-4 text-accent" />
-                        Status Terkini & Petunjuk:
-                      </span>
-                      <p className="text-ink-muted leading-relaxed">
-                        Kendaraan <span className="font-semibold font-mono text-ink">{formatPlat(spk.no_polisi)}</span>{' '}
-                        {spk.waktu_check_out ? (
-                          isPreSpk ? (
-                            <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> melalui pos security pada {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB (tanpa pengerjaan servis). Terima kasih telah berkunjung di Bengkel KIM 3.</>
-                          ) : (
-                            <>sudah <span className="font-semibold text-status-green">keluar dari bengkel</span> pada {new Date(spk.waktu_check_out).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })} {new Date(spk.waktu_check_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB. Terima kasih telah menggunakan Bengkel KIM 3.</>
-                          )
-                        ) : isPreSpk ? (
-                          <>sudah tercatat masuk di Pos Security KIM 3 dan saat ini <span className="font-semibold text-accent">menunggu penerimaan awal oleh SA</span>. WO belum diterbitkan.</>
-                        ) : spk.status_spk === 'Waiting QC' ? (
-                          <>selesai dikerjakan dan <span className="font-semibold text-accent">sedang menunggu inspeksi QC oleh Foreman</span>. Tidak perlu tindakan apa pun.</>
-                        ) : spk.status_spk === 'QC Passed' ? (
-                          <>lulus inspeksi QC dan <span className="font-semibold text-accent">menunggu final check oleh SA</span>. Tidak perlu tindakan apa pun.</>
-                        ) : serviceTimeline.keluar === 'active' ? (
-                          <>sudah selesai dan <span className="font-semibold text-accent">menunggu penyerahan unit di Pos Security</span>.</>
-                        ) : serviceTimeline.pembayaran === 'active' ? (
-                          <>selesai dikerjakan dan <span className="font-semibold text-accent">menunggu pembayaran di kasir</span>.</>
-                        ) : serviceTimeline.pengerjaan === 'blocked' ? (
-                          <>tertahan karena <span className="font-semibold text-status-red">menunggu ketersediaan sparepart</span>. Kami akan menghubungi Anda begitu part siap.</>
-                        ) : (
-                          <>saat ini berada pada tahap <span className="font-semibold text-accent">{spkStatusLabel(spk.status_spk)}</span>.</>
-                        )}
-                      </p>
-                      <div className="bg-surface-raised p-3 rounded-xl border border-accent/30 text-ink-muted space-y-1">
-                        <div className="font-medium text-ink">
-                          {spk.waktu_check_out
-                            ? 'Selesai:'
-                            : isPreSpk
-                            ? 'Status Penerimaan:'
-                            : serviceTimeline.pengerjaan === 'blocked'
-                            ? 'Status Pengerjaan:'
-                            : 'Estimasi Selesai:'}
-                        </div>
-                        <div>
-                          {spk.waktu_check_out ? (
-                            <span className="font-semibold text-status-green">{fmtWaktuFull(spk.waktu_check_out)}</span>
-                          ) : isPreSpk ? (
-                            <span className="font-semibold text-accent">
-                              {statusNote || 'Menunggu Penerimaan Awal oleh SA'}
+                      {/* Box: Estimasi Jadwal (Langsung tanpa Status Terkini) */}
+                      <div className="bg-surface-raised p-4 rounded-xl border border-accent/30 text-ink-muted space-y-3">
+                        <div className="flex items-center justify-between border-b border-border pb-2.5">
+                          <div className="font-black text-ink flex items-center gap-2 text-xs sm:text-sm">
+                            <Calendar className="w-4 h-4 text-accent" />
+                            <span>Estimasi Jadwal</span>
+                          </div>
+                          {spk.estimasi_selesai_t1 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-status-amber-bg text-status-amber border border-status-amber/30">
+                              Ada Penyesuaian Jadwal
                             </span>
-                          ) : serviceTimeline.pengerjaan === 'blocked' ? (
-                            <span className="font-semibold text-status-red">Tertunda — menunggu ketersediaan sparepart</span>
-                          ) : (
-                            (() => {
-                              const e = etaSpk(spk);
-                              return e.jam != null ? `${e.jam} Jam kerja (${labelSumberEta(e.sumber)})` : 'Hari ini, estimasi 2-3 jam kerja';
-                            })()
                           )}
                         </div>
+
+                        {isPreSpk ? (
+                          <div className="text-xs font-semibold text-accent">
+                            {statusNote || 'Menunggu Penerimaan Awal oleh SA'}
+                          </div>
+                        ) : (
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between items-center text-ink-muted">
+                              <span>Target Selesai Awal:</span>
+                              <span className="font-bold text-ink">
+                                {spk.estimasi_selesai_awal
+                                  ? `${new Date(spk.estimasi_selesai_awal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}${spk.jam_estimasi_selesai_awal ? ` • ${spk.jam_estimasi_selesai_awal} WIB` : ''}`
+                                  : spk.waktu_selesai_pekerjaan
+                                  ? fmtWaktuFull(spk.waktu_selesai_pekerjaan)
+                                  : 'Belum ditentukan bengkel'}
+                              </span>
+                            </div>
+
+                            {spk.estimasi_selesai_t1 && (
+                              <div className="flex justify-between items-center text-ink-muted">
+                                <span>Revisi Jadwal (T1):</span>
+                                <span className="font-bold text-status-amber">
+                                  {new Date(spk.estimasi_selesai_t1).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  {spk.jam_estimasi_selesai_t1 ? ` • ${spk.jam_estimasi_selesai_t1} WIB` : ''}
+                                </span>
+                              </div>
+                            )}
+
+                            {spk.estimasi_selesai_t2 && (
+                              <div className="flex justify-between items-center text-ink-muted">
+                                <span>Revisi Jadwal (T2):</span>
+                                <span className="font-bold text-status-amber">
+                                  {new Date(spk.estimasi_selesai_t2).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  {spk.jam_estimasi_selesai_t2 ? ` • ${spk.jam_estimasi_selesai_t2} WIB` : ''}
+                                </span>
+                              </div>
+                            )}
+
+                            {spk.estimasi_selesai_t3 && (
+                              <div className="flex justify-between items-center text-ink-muted">
+                                <span>Revisi Jadwal (T3):</span>
+                                <span className="font-bold text-status-amber">
+                                  {new Date(spk.estimasi_selesai_t3).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  {spk.jam_estimasi_selesai_t3 ? ` • ${spk.jam_estimasi_selesai_t3} WIB` : ''}
+                                </span>
+                              </div>
+                            )}
+
+                            {spk.waktu_check_out && (
+                              <div className="flex justify-between items-center pt-2 border-t border-border/60 text-ink-muted">
+                                <span>Selesai Aktual (Keluar):</span>
+                                <span className="font-bold text-status-green">{fmtWaktuFull(spk.waktu_check_out)}</span>
+                              </div>
+                            )}
+
+                            {serviceTimeline.pengerjaan === 'blocked' && !spk.waktu_check_out && (
+                              <div className="pt-2 border-t border-border/60 font-semibold text-status-red">
+                                Tertunda — menunggu ketersediaan sparepart
+                              </div>
+                            )}
+
+                            {spk.keterangan_estimasi && (
+                              <div className="pt-2 border-t border-border/60 text-ink-muted italic">
+                                Alasan Penyesuaian: <span className="font-medium text-ink not-italic">"{spk.keterangan_estimasi}"</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -999,6 +1026,28 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         )}
                       </div>
                     </div>
+
+                    {/* Catatan Part Tidak Jadi Dipakai / Batal (sch_pos.vw_spk_daily_report) */}
+                    {spk.produk_belum_dipakai && (
+                      <div className="p-3.5 rounded-xl border border-status-amber/40 bg-status-amber-bg/30 text-ink space-y-1.5">
+                        <div className="flex items-center gap-1.5 font-bold text-status-amber text-xs">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Sparepart Tidak Terpakai / Batal Dipasang:</span>
+                        </div>
+                        <p className="text-ink-muted text-xs leading-relaxed">
+                          {spk.produk_belum_dipakai}
+                          {spk.biaya_produk_belum_dipakai ? (
+                            <> — <strong className="text-ink">Biaya dikurangi Rp {Number(spk.biaya_produk_belum_dipakai).toLocaleString('id-ID')}</strong></>
+                          ) : null}
+                        </p>
+                        {spk.total_biaya_akhir && (
+                          <div className="text-[11px] text-ink font-semibold pt-1.5 border-t border-status-amber/20 flex justify-between items-center">
+                            <span>Total Biaya Akhir Disesuaikan:</span>
+                            <span className="font-mono font-bold text-accent">Rp {Number(spk.total_biaya_akhir).toLocaleString('id-ID')}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

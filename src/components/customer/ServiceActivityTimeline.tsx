@@ -279,6 +279,9 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                 ) : (
                   <span className="font-semibold text-status-blue">Sedang Dicek</span>
                 )}
+                {spk.mulai_inspeksi ? (
+                  <> | Mulai Inspeksi: <span className="font-semibold text-ink">{spk.mulai_inspeksi}</span></>
+                ) : null}
               </>
             }
           >
@@ -322,7 +325,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             }
             meta={
               <>
-                Mekanik: <strong className="font-bold text-ink">{spk.nama_mekanik || '-'}</strong>
+                Teknisi: <strong className="font-bold text-ink">{spk.semua_mekanik || spk.nama_mekanik || '-'}</strong>
                 {(() => {
                   const durasi = getDurasiPengerjaan(spk);
                   if (!durasi) return null;
@@ -355,25 +358,41 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
               })()}
             </div>
 
-            {/* Rincian eksplisit jasa & part yang diganti (live dari sch_pos) */}
-            {(activePekerjaan.length > 0 || activeParts.length > 0) && (
-              <div className="pt-2 border-t border-border/60 space-y-1.5 text-[11px]">
-                {activePekerjaan.length > 0 && (
-                  <div className="flex items-start gap-1.5">
-                    <span className="font-semibold text-ink shrink-0">Tindakan Jasa:</span>
-                    <span className="text-accent font-medium">{activePekerjaan.map((p) => p.nama_pekerjaan).join(', ')}</span>
-                  </div>
-                )}
-                {activeParts.length > 0 && (
-                  <div className="flex items-start gap-1.5">
-                    <span className="font-semibold text-ink shrink-0">Part yang Diganti:</span>
-                    <span className="text-emerald-700 dark:text-emerald-400 font-medium">
-                      {activeParts.map((pt) => `${pt.nama_part}${pt.jumlah ? ` (${pt.jumlah} ${pt.satuan || 'Set'})` : ''}`).join(', ')}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Riwayat Tim Mekanik & Pergantian */}
+            {(() => {
+              const mekanikList = (spk.semua_mekanik || spk.nama_mekanik || '')
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean);
+              if (mekanikList.length === 0 && !spk.keterangan_estimasi) return null;
+              return (
+                <div className="pt-2 border-t border-border/60 space-y-1.5 text-[11px]">
+                  {mekanikList.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="font-semibold text-ink block">
+                        {mekanikList.length > 1 ? 'Tim Teknisi yang Menangani:' : 'Teknisi Pelaksana:'}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {mekanikList.map((m, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent-subtle text-accent border border-accent/20 font-medium"
+                          >
+                            <span className="text-[10px] font-bold text-accent/70">Mekanik {idx + 1}:</span>
+                            <strong>{m}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {spk.keterangan_estimasi && (
+                    <div className="text-ink-muted italic pt-0.5">
+                      Catatan Penyesuaian: <span className="font-medium text-ink not-italic">"{spk.keterangan_estimasi}"</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </ServiceTimelineItem>
         )}
 
@@ -392,6 +411,9 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
                 ) : (
                   <span className="font-semibold text-status-blue">Sedang diuji</span>
                 )}
+                {spk.tanggal_uji_jalan_fir ? (
+                  <> | Uji Jalan (FIR): <span className="font-semibold text-ink">{spk.tanggal_uji_jalan_fir}</span></>
+                ) : null}
               </>
             }
           >
