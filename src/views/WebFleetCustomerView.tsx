@@ -20,7 +20,6 @@ import { fmtWaktuFull, fmtTanggalSaja } from '../utils/dateFormat';
 import { resolveServiceTimeline, hasServiceBooking } from '../utils/serviceTimeline';
 import { spkStatusLabel, getSpkDynamicStatus } from '../utils/statusLabel';
 import { StepModal } from '../components/common/StepModal';
-import { DetailModal } from '../components/common/DetailModal';
 import { ServiceActivityTimeline } from '../components/customer/ServiceActivityTimeline';
 import { ListItemCard } from '../components/common/ListItemCard';
 import { StatCard } from '../components/common/StatCard';
@@ -45,6 +44,7 @@ import {
   Phone, 
   Mail, 
   User, 
+  ArrowLeft,
   ArrowRight,
   Search,
   ChevronRight,
@@ -1642,6 +1642,43 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       unsubscribe();
     };
   }, [queryClient]);
+
+  // Sinkronkan Fullscreen Detail Riwayat Service dengan browser history agar tombol Back di HP menutup detail (bukan keluar app)
+  const historyDetailPushedRef = React.useRef(false);
+  const closeHistoryDetail = useCallback(() => {
+    if (historyDetailPushedRef.current && window.history.state?.kim3HistoryDetail) {
+      window.history.back();
+    } else {
+      historyDetailPushedRef.current = false;
+      setHistoryDetail(null);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!historyDetail) {
+      historyDetailPushedRef.current = false;
+      return;
+    }
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    if (!historyDetailPushedRef.current) {
+      window.history.pushState({ ...(window.history.state || {}), kim3HistoryDetail: true }, '');
+      historyDetailPushedRef.current = true;
+    }
+
+    const onPopState = () => {
+      historyDetailPushedRef.current = false;
+      setHistoryDetail(null);
+    };
+    window.addEventListener('popstate', onPopState);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [!!historyDetail]);
 
   // Booking Wizard Step (image5.png Mockup 1)
   const [openBookingModal, setOpenBookingModal] = useState<boolean>(false);
@@ -5938,36 +5975,62 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </div>
       )}
 
-      {/* MODAL: Detail SPK Tracking (untuk Dashboard & History) */}
-      <DetailModal
-        open={!!historyDetail}
-        onClose={() => setHistoryDetail(null)}
-        title="Detail Riwayat Service"
-        badge={undefined}
-        size="xl"
-      >
-        {historyDetail ? (
-          <SpkTrackingDetail
-            spk={historyDetail}
-            isPreSpk={historyDetail.sumber === 'kunjungan'}
-            statusNote={historyDetail.status_keterangan}
-            kendaraanList={kendaraanList || armadaPageData?.rows || (armadaPageData as any)?.data}
-            pekerjaanList={pekerjaanList}
-            partSpkList={partSpkList}
-            myDokumenList={myDokumenList}
-            myInvoiceList={myInvoiceList}
-            tambahanList={tambahanList}
-            purchasingList={purchasingList}
-            ppnRate={ppnRateCustomer}
-            approvingTambahan={approvalTambahanMutation.isPending}
-            decidingEstimasi={approvalEstimasiMutation.isPending}
-            onApproveTambahan={(id, keputusan) =>
-              approvalTambahanMutation.mutate({ id, status_approval_customer: keputusan })
-            }
-            onDecideEstimasi={(s, setuju) => approvalEstimasiMutation.mutate({ setuju, spk: s })}
-          />
-        ) : null}
-      </DetailModal>
+      {/* FULLSCREEN VIEW: Detail SPK Tracking (untuk Dashboard & History) */}
+      {historyDetail && (
+        <div
+          role="region"
+          aria-label="Detail Riwayat Service"
+          className="fixed inset-0 z-40 bg-surface overflow-y-auto app-fade-in"
+        >
+          <header className="sticky top-0 z-20 border-b border-border bg-surface-raised/95 backdrop-blur-md">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={closeHistoryDetail}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold text-ink hover:bg-surface-raised hover:text-accent transition-colors cursor-pointer shrink-0"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Kembali</span>
+                </button>
+                <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-bold text-ink truncate">
+                    Detail Riwayat Service
+                  </h2>
+                  <span className="hidden sm:inline-flex items-center rounded-md bg-surface px-2 py-0.5 font-mono text-xs font-bold text-ink-muted border border-border">
+                    {formatPlat(historyDetail.no_polisi)}
+                  </span>
+                </div>
+              </div>
+              <div className="shrink-0">
+                <StatusBadge status={historyDetail.status_spk} size="sm" />
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6 pb-12">
+            <SpkTrackingDetail
+              spk={historyDetail}
+              isPreSpk={historyDetail.sumber === 'kunjungan'}
+              statusNote={historyDetail.status_keterangan}
+              kendaraanList={kendaraanList || armadaPageData?.rows || (armadaPageData as any)?.data}
+              pekerjaanList={pekerjaanList}
+              partSpkList={partSpkList}
+              myDokumenList={myDokumenList}
+              myInvoiceList={myInvoiceList}
+              tambahanList={tambahanList}
+              purchasingList={purchasingList}
+              ppnRate={ppnRateCustomer}
+              approvingTambahan={approvalTambahanMutation.isPending}
+              decidingEstimasi={approvalEstimasiMutation.isPending}
+              onApproveTambahan={(id, keputusan) =>
+                approvalTambahanMutation.mutate({ id, status_approval_customer: keputusan })
+              }
+              onDecideEstimasi={(s, setuju) => approvalEstimasiMutation.mutate({ setuju, spk: s })}
+            />
+          </main>
+        </div>
+      )}
 
 
 
