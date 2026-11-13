@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, normalizePlat, formatPlat, isValidPlatIndonesia, formatPlatIndonesia, formatPlatInput, getLocalDateStr, cleanField, formatMerkModel, formatNamaArmada, getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -5973,49 +5974,52 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       )}
 
       {/* FULLSCREEN VIEW: Detail SPK Tracking (untuk Dashboard & History) */}
-      {historyDetail && (
-        <div
-          role="region"
-          aria-label="Detail Riwayat Service"
-          className="fixed inset-0 z-40 bg-surface overflow-y-auto app-fade-in"
-        >
-          <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6 pb-12">
-            <div className="flex items-center gap-3 mb-4">
-              <button
-                type="button"
-                onClick={closeHistoryDetail}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-3 py-1.5 text-xs font-bold text-ink hover:border-accent/40 hover:text-accent transition-colors cursor-pointer shrink-0 shadow-2xs"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Kembali</span>
-              </button>
-              <h2 className="text-base sm:text-lg font-bold text-ink truncate">
-                Detail Riwayat Service
-              </h2>
-            </div>
+      {historyDetail &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            role="region"
+            aria-label="Detail Riwayat Service"
+            className="fixed inset-0 z-40 bg-surface overflow-y-auto app-fade-in"
+          >
+            <main className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-6 pb-12">
+              <div className="flex items-center gap-3 mb-4">
+                <button
+                  type="button"
+                  onClick={closeHistoryDetail}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-3 py-1.5 text-xs font-bold text-ink hover:border-accent/40 hover:text-accent transition-colors cursor-pointer shrink-0 shadow-2xs"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Kembali</span>
+                </button>
+                <h2 className="text-base sm:text-lg font-bold text-ink truncate">
+                  Detail Riwayat Service
+                </h2>
+              </div>
 
-            <SpkTrackingDetail
-              spk={historyDetail}
-              isPreSpk={historyDetail.sumber === 'kunjungan'}
-              statusNote={historyDetail.status_keterangan}
-              kendaraanList={kendaraanList || armadaPageData?.rows || (armadaPageData as any)?.data}
-              pekerjaanList={pekerjaanList}
-              partSpkList={partSpkList}
-              myDokumenList={myDokumenList}
-              myInvoiceList={myInvoiceList}
-              tambahanList={tambahanList}
-              purchasingList={purchasingList}
-              ppnRate={ppnRateCustomer}
-              approvingTambahan={approvalTambahanMutation.isPending}
-              decidingEstimasi={approvalEstimasiMutation.isPending}
-              onApproveTambahan={(id, keputusan) =>
-                approvalTambahanMutation.mutate({ id, status_approval_customer: keputusan })
-              }
-              onDecideEstimasi={(s, setuju) => approvalEstimasiMutation.mutate({ setuju, spk: s })}
-            />
-          </main>
-        </div>
-      )}
+              <SpkTrackingDetail
+                spk={historyDetail}
+                isPreSpk={historyDetail.sumber === 'kunjungan'}
+                statusNote={historyDetail.status_keterangan}
+                kendaraanList={kendaraanList || armadaPageData?.rows || (armadaPageData as any)?.data}
+                pekerjaanList={pekerjaanList}
+                partSpkList={partSpkList}
+                myDokumenList={myDokumenList}
+                myInvoiceList={myInvoiceList}
+                tambahanList={tambahanList}
+                purchasingList={purchasingList}
+                ppnRate={ppnRateCustomer}
+                approvingTambahan={approvalTambahanMutation.isPending}
+                decidingEstimasi={approvalEstimasiMutation.isPending}
+                onApproveTambahan={(id, keputusan) =>
+                  approvalTambahanMutation.mutate({ id, status_approval_customer: keputusan })
+                }
+                onDecideEstimasi={(s, setuju) => approvalEstimasiMutation.mutate({ setuju, spk: s })}
+              />
+            </main>
+          </div>,
+          document.body
+        )}
 
 
 
