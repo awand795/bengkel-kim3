@@ -3314,23 +3314,25 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         throw new Error('Format nomor polisi belum sesuai standar Indonesia (misal: BK 1234 ABC).');
       }
 
+      const isRestricted = Boolean(editArmadaData?.has_any_transaction);
+
       const merkUpper = cleanField(data.merk).toUpperCase();
-      if (!merkUpper) {
+      if (!isRestricted && !merkUpper) {
         throw new Error('Merk kendaraan wajib diisi.');
       }
 
       const modelUpper = cleanField(data.model).toUpperCase();
-      if (!modelUpper) {
+      if (!isRestricted && !modelUpper) {
         throw new Error('Model / seri kendaraan wajib diisi.');
       }
 
       const typeUpper = cleanField(data.type || data.jenis_armada).toUpperCase();
-      if (!typeUpper) {
+      if (!isRestricted && !typeUpper) {
         throw new Error('Tipe / bentuk kendaraan wajib diisi.');
       }
 
       const tahunNum = Number(data.tahun);
-      if (!tahunNum || tahunNum < 1970 || tahunNum > new Date().getFullYear() + 1) {
+      if (!isRestricted && (!tahunNum || tahunNum < 1970 || tahunNum > new Date().getFullYear() + 1)) {
         throw new Error('Tahun pembuatan kendaraan tidak valid.');
       }
 
@@ -3339,11 +3341,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         no_polisi: plat,
         no_inventaris: data.no_inventaris ? data.no_inventaris.trim().toUpperCase() : undefined,
         unit_name: data.unit_name ? data.unit_name.trim().toUpperCase() : undefined,
-        jenis_armada: typeUpper as any,
-        type: typeUpper,
-        merk: merkUpper,
-        model: modelUpper,
-        tahun: tahunNum,
+        jenis_armada: (typeUpper || undefined) as any,
+        type: typeUpper || undefined,
+        merk: merkUpper || undefined,
+        model: modelUpper || undefined,
+        tahun: tahunNum > 0 ? tahunNum : undefined,
         no_rangka: data.no_rangka ? data.no_rangka.trim().toUpperCase() : undefined,
         no_mesin: data.no_mesin ? data.no_mesin.trim().toUpperCase() : undefined,
         expired: data.expired || data.masa_berlaku_asuransi || undefined,
@@ -4688,25 +4690,43 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <Edit3 className="h-3.5 w-3.5" />
                         <span>Edit</span>
                       </button>
-                      <button
-                        type="button"
-                        disabled={!isVerifiedByAdmin}
-                        onClick={() => {
-                          if (!isVerifiedByAdmin) {
-                            toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
-                            return;
-                          }
-                          setHapusArmadaTarget(k);
-                        }}
-                        className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#F3C6C3] bg-[#FFF3F2] px-3 py-2 text-xs font-semibold text-[#B42318] transition-colors hover:border-[#E7A7A2] hover:bg-[#FDE8E6] dark:border-red-900/50 dark:bg-rose-950/30 dark:text-red-400 dark:hover:bg-rose-950/60 ${
-                          !isVerifiedByAdmin ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                        }`}
-                        aria-label={`Hapus unit ${k.no_polisi}`}
-                        title={!isVerifiedByAdmin ? 'Akun belum terverifikasi oleh admin' : 'Hapus unit kendaraan'}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span>Hapus</span>
-                      </button>
+                      {(() => {
+                        const hasActiveProgress = Boolean(k.has_active_progress || sedangDiBengkel);
+                        const deleteDisabled = !isVerifiedByAdmin || hasActiveProgress;
+                        const deleteTitle = !isVerifiedByAdmin
+                          ? 'Akun belum terverifikasi oleh admin'
+                          : hasActiveProgress
+                            ? 'Unit tidak dapat dihapus karena masih ada progress aktif (check-in / booking / request service / SPK berjalan)'
+                            : 'Hapus unit kendaraan';
+                        return (
+                          <button
+                            type="button"
+                            disabled={deleteDisabled}
+                            onClick={() => {
+                              if (!isVerifiedByAdmin) {
+                                toast.warning('Aksi Dibatasi', 'Akun belum terverifikasi oleh admin.');
+                                return;
+                              }
+                              if (hasActiveProgress) {
+                                toast.warning(
+                                  'Unit Masih Dalam Progress',
+                                  `Unit ${formatPlat(k.no_polisi)} masih memiliki proses check-in, booking, request service, atau SPK yang belum selesai.`
+                                );
+                                return;
+                              }
+                              setHapusArmadaTarget(k);
+                            }}
+                            className={`inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#F3C6C3] bg-[#FFF3F2] px-3 py-2 text-xs font-semibold text-[#B42318] transition-colors hover:border-[#E7A7A2] hover:bg-[#FDE8E6] dark:border-red-900/50 dark:bg-rose-950/30 dark:text-red-400 dark:hover:bg-rose-950/60 ${
+                              deleteDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                            }`}
+                            aria-label={`Hapus unit ${k.no_polisi}`}
+                            title={deleteTitle}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Hapus</span>
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                   </div>
@@ -6356,7 +6376,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       {/* ========================================================================= */}
       {/* MODAL 3: EDIT UNIT KENDARAAN                                                 */}
       {/* ========================================================================= */}
-      {editArmadaData && (
+      {editArmadaData && (() => {
+        const isEditRestricted = Boolean(editArmadaData.has_any_transaction);
+        return (
         <ModalPortal onClose={() => setEditArmadaData(null)}>
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm app-backdrop-in sm:p-6">
             <div className="my-auto flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-2xl app-modal-in">
@@ -6387,37 +6409,48 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!cleanField(editArmadaForm.no_polisi)) {
-                    toast.warning('Nomor polisi kendaraan wajib diisi.');
-                    return;
-                  }
-                  if (!isValidPlatIndonesia(editArmadaForm.no_polisi)) {
-                    toast.warning('Format nomor polisi belum sesuai standar Indonesia (misal: BK 1234 ABC).');
-                    return;
-                  }
-                  if (!cleanField(editArmadaForm.merk)) {
-                    toast.warning('Merk kendaraan wajib dipilih / diisi.');
-                    return;
-                  }
-                  if (!cleanField(editArmadaForm.model)) {
-                    toast.warning('Model / seri kendaraan wajib diisi.');
-                    return;
-                  }
-                  const tipeVal = cleanField(editArmadaForm.type || editArmadaForm.jenis_armada);
-                  if (!tipeVal) {
-                    toast.warning('Tipe / bentuk kendaraan wajib dipilih / diisi.');
-                    return;
-                  }
-                  const tahunVal = Number(editArmadaForm.tahun);
-                  if (!tahunVal || tahunVal < 1970 || tahunVal > new Date().getFullYear() + 1) {
-                    toast.warning('Tahun pembuatan kendaraan tidak valid.');
-                    return;
+                  if (!isEditRestricted) {
+                    if (!cleanField(editArmadaForm.no_polisi)) {
+                      toast.warning('Nomor polisi kendaraan wajib diisi.');
+                      return;
+                    }
+                    if (!isValidPlatIndonesia(editArmadaForm.no_polisi)) {
+                      toast.warning('Format nomor polisi belum sesuai standar Indonesia (misal: BK 1234 ABC).');
+                      return;
+                    }
+                    if (!cleanField(editArmadaForm.merk)) {
+                      toast.warning('Merk kendaraan wajib dipilih / diisi.');
+                      return;
+                    }
+                    if (!cleanField(editArmadaForm.model)) {
+                      toast.warning('Model / seri kendaraan wajib diisi.');
+                      return;
+                    }
+                    const tipeVal = cleanField(editArmadaForm.type || editArmadaForm.jenis_armada);
+                    if (!tipeVal) {
+                      toast.warning('Tipe / bentuk kendaraan wajib dipilih / diisi.');
+                      return;
+                    }
+                    const tahunVal = Number(editArmadaForm.tahun);
+                    if (!tahunVal || tahunVal < 1970 || tahunVal > new Date().getFullYear() + 1) {
+                      toast.warning('Tahun pembuatan kendaraan tidak valid.');
+                      return;
+                    }
                   }
                   editArmadaMutation.mutate(editArmadaForm);
                 }}
                 className="flex min-h-0 flex-1 flex-col"
               >
                 <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+                  {isEditRestricted && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-300/70 bg-amber-50/90 px-3.5 py-3 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/35 dark:text-amber-200">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <p className="leading-relaxed">
+                        Unit ini sudah memiliki riwayat transaksi. Data identitas &amp; teknis dikunci; hanya <strong>Masa Berlaku STNK</strong> dan <strong>Foto Unit</strong> yang dapat diperbarui.
+                      </p>
+                    </div>
+                  )}
+
                   <section aria-labelledby="edit-armada-identitas">
                     <div className="mb-3 border-b border-border pb-2">
                       <h4 id="edit-armada-identitas" className="text-xs font-bold text-ink">Identitas unit</h4>
@@ -6430,11 +6463,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <input
                           id="edit-armada-no-polisi"
                           type="text"
-                          required
+                          required={!isEditRestricted}
+                          disabled={isEditRestricted}
                           placeholder="BK 1234 ABC"
                           value={editArmadaForm.no_polisi}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, no_polisi: formatPlatInput(e.target.value) })}
-                          className={`w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:outline-hidden focus:ring-2 ${
+                          className={`w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm font-bold uppercase tracking-wide focus:outline-hidden focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-muted dark:disabled:bg-slate-800/70 ${
                             editArmadaForm.no_polisi.trim()
                               ? isValidPlatIndonesia(editArmadaForm.no_polisi)
                                 ? 'border-emerald-500/60 focus:border-emerald-500 focus:ring-emerald-500/30'
@@ -6458,10 +6492,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <input
                           id="edit-armada-unit-name"
                           type="text"
+                          disabled={isEditRestricted}
                           placeholder="Fuso Medan"
                           value={editArmadaForm.unit_name}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, unit_name: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-muted dark:disabled:bg-slate-800/70"
                         />
                       </div>
                       <div>
@@ -6474,6 +6509,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           onChange={(merk) => setEditArmadaForm({ ...editArmadaForm, merk })}
                           options={editArmadaMerkOptions}
                           placeholder="Pilih merk…"
+                          disabled={isEditRestricted}
                           searchable
                           searchPlaceholder="Cari merk…"
                           emptyMessage="Merk tidak ditemukan"
@@ -6486,11 +6522,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <input
                           id="edit-armada-model"
                           type="text"
-                          required
+                          required={!isEditRestricted}
+                          disabled={isEditRestricted}
                           placeholder="Dutro 130HD"
                           value={editArmadaForm.model}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, model: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-muted dark:disabled:bg-slate-800/70"
                         />
                       </div>
                       <div>
@@ -6503,6 +6540,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           onChange={(tipe) => setEditArmadaForm({ ...editArmadaForm, type: tipe, jenis_armada: tipe })}
                           options={editArmadaTipeOptions}
                           placeholder="Pilih tipe…"
+                          disabled={isEditRestricted}
                           searchable
                           searchPlaceholder="Cari tipe…"
                           emptyMessage="Tipe tidak ditemukan"
@@ -6515,13 +6553,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <input
                           id="edit-armada-tahun"
                           type="number"
-                          required
+                          required={!isEditRestricted}
+                          disabled={isEditRestricted}
                           min="1970"
                           max={new Date().getFullYear() + 1}
                           placeholder="Contoh: 2019"
                           value={editArmadaForm.tahun}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, tahun: Number(e.target.value) })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm focus:ring-2 focus:ring-accent focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-muted dark:disabled:bg-slate-800/70"
                         />
                       </div>
                     </div>
@@ -6537,10 +6576,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <input
                           id="edit-armada-no-rangka"
                           type="text"
+                          disabled={isEditRestricted}
                           placeholder="MHKHINO..."
                           value={editArmadaForm.no_rangka}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, no_rangka: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-muted dark:disabled:bg-slate-800/70"
                         />
                       </div>
                       <div>
@@ -6548,10 +6588,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         <input
                           id="edit-armada-no-mesin"
                           type="text"
+                          disabled={isEditRestricted}
                           placeholder="J08E-..."
                           value={editArmadaForm.no_mesin}
                           onChange={(e) => setEditArmadaForm({ ...editArmadaForm, no_mesin: e.target.value.toUpperCase() })}
-                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden"
+                          className="w-full rounded-lg border border-border px-3.5 py-2.5 font-mono text-sm uppercase focus:ring-2 focus:ring-accent focus:outline-hidden disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-ink-muted dark:disabled:bg-slate-800/70"
                         />
                       </div>
                       <div>
@@ -6593,10 +6634,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     width="responsive"
                     disabled={
                       editArmadaMutation.isPending ||
-                      !cleanField(editArmadaForm.merk) ||
-                      !cleanField(editArmadaForm.model) ||
-                      !cleanField(editArmadaForm.type || editArmadaForm.jenis_armada) ||
-                      !editArmadaForm.tahun
+                      (!isEditRestricted && (
+                        !cleanField(editArmadaForm.merk) ||
+                        !cleanField(editArmadaForm.model) ||
+                        !cleanField(editArmadaForm.type || editArmadaForm.jenis_armada) ||
+                        !editArmadaForm.tahun
+                      ))
                     }
                   >
                     <span>{editArmadaMutation.isPending ? 'Menyimpan...' : 'Simpan'}</span>
@@ -6606,7 +6649,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             </div>
           </div>
         </ModalPortal>
-      )}
+        );
+      })()}
 
       {/* Konfirmasi hapus unit kendaraan */}
       {hapusArmadaTarget && (

@@ -168,6 +168,10 @@ export interface Kendaraan {
   foto_kendaraan?: string;
   /** true bila unit sedang berada di bengkel (kunjungan gerbang status DI_DALAM) */
   di_bengkel?: boolean | null;
+  /** true bila unit sudah pernah memiliki transaksi (WO, Request Service, Check-in, atau Booking) */
+  has_any_transaction?: boolean | null;
+  /** true bila unit masih memiliki progress aktif (di bengkel, SPK belum selesai, Request Service aktif, atau Booking aktif) */
+  has_active_progress?: boolean | null;
 }
 
 export interface MasterBrand {
