@@ -122,7 +122,7 @@ apiClient.interceptors.response.use(
 
         try {
           const refreshRes = await axios.post(
-            `${API_BASE}/api/data/mastertruck/auth/refresh-token`,
+            `${API_BASE}/api/data/kim3/auth/refresh-token`,
             { refresh_token: storedRefreshToken },
             { headers: { 'x-api-key': KIM3_STATIC_TOKEN } }
           );
@@ -363,7 +363,7 @@ export const uploadFotoFile = async (
   const formData = new FormData();
   formData.append('foto', file, file.name || 'foto.jpg');
 
-  const res = await apiClient.post('/mastertruck/foto-upload', formData, {
+  const res = await apiClient.post('/kim3/foto-upload', formData, {
     transformRequest: [
       (data, headers) => {
         (headers as any)?.delete?.('Content-Type');
@@ -387,7 +387,7 @@ export const uploadFotoFile = async (
 };
 
 export const api = {
-  // Upload Foto ke Database (POST /mastertruck/foto-upload)
+  // Upload Foto ke Database (POST /kim3/foto-upload)
   uploadFoto: async (
     file: File
   ): Promise<{ dataUrl: string; mime: string; size: number; filename: string }> => {
@@ -396,9 +396,9 @@ export const api = {
 
   // Kendaraan Saya
   getKendaraan: async (): Promise<Kendaraan[]> =>
-    (await fetchList<Kendaraan>('/mastertruck/kendaraan', { limit: 1000 })).rows,
+    (await fetchList<Kendaraan>('/kim3/kendaraan', { limit: 1000 })).rows,
   getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
-    fetchList<Kendaraan>('/mastertruck/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+    fetchList<Kendaraan>('/kim3/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
     const rawPlat = String(data.no_polisi || '').trim().toUpperCase();
     if (!rawPlat) {
@@ -440,7 +440,7 @@ export const api = {
       description: data.description ? String(data.description).trim() : undefined,
       foto_kendaraan_base64_data: data.foto_kendaraan || undefined,
     };
-    const res = await apiClient.post('/mastertruck/kendaraan-tambah', payload);
+    const res = await apiClient.post('/kim3/kendaraan-tambah', payload);
     return res.data;
   },
   updateKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
@@ -460,18 +460,18 @@ export const api = {
       description: data.description !== undefined ? (data.description ? String(data.description).trim() : '') : undefined,
       foto_kendaraan_base64_data: data.foto_kendaraan || undefined,
     };
-    const res = await apiClient.post('/mastertruck/kendaraan-update', payload);
+    const res = await apiClient.post('/kim3/kendaraan-update', payload);
     return res.data;
   },
   hapusKendaraan: async (no_polisi: string): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/hapus-kendaraan', { no_polisi });
+    const res = await apiClient.post('/kim3/hapus-kendaraan', { no_polisi });
     return res.data;
   },
 
   // Lookup Kendaraan & Terhubung Pengguna Fleet (sch_pos.tbl_member_unit via sch_fleet.v_kendaraan_lookup)
   lookupKendaraanByNopol: async (nopol: string): Promise<KendaraanLookup[]> => {
     try {
-      const res = await apiClient.get('/mastertruck/kendaraan-lookup', {
+      const res = await apiClient.get('/kim3/kendaraan-lookup', {
         params: { nopol },
       });
       if (Array.isArray(res.data)) return res.data;
@@ -485,7 +485,7 @@ export const api = {
   // Master Merk Kendaraan (sch_pos.tbl_member_asset_brand via sch_fleet.v_pos_asset_brand)
   getMasterMerk: async (): Promise<MasterBrand[]> => {
     try {
-      const res = await apiClient.get('/mastertruck/master/merk');
+      const res = await apiClient.get('/kim3/master/merk');
       if (Array.isArray(res.data)) return res.data;
       if (Array.isArray(res.data?.data)) return res.data.data;
       return [];
@@ -497,7 +497,7 @@ export const api = {
   // Master Tipe Kendaraan (sch_pos.tbl_member_asset_type via sch_fleet.v_pos_asset_type)
   getMasterTipe: async (brand?: string): Promise<MasterType[]> => {
     try {
-      const res = await apiClient.get('/mastertruck/master/tipe', {
+      const res = await apiClient.get('/kim3/master/tipe', {
         params: brand ? { brand } : undefined,
       });
       if (Array.isArray(res.data)) return res.data;
@@ -511,7 +511,7 @@ export const api = {
   // Master Cabang / Store (sch_pos.tbl_store via sch_fleet.v_store)
   getMasterCabang: async (): Promise<MasterStore[]> => {
     try {
-      const res = await apiClient.get('/mastertruck/master/cabang');
+      const res = await apiClient.get('/kim3/master/cabang');
       if (Array.isArray(res.data)) return res.data;
       if (Array.isArray(res.data?.data)) return res.data.data;
       return [];
@@ -523,7 +523,7 @@ export const api = {
   // Master Jenis Layanan (sch_fleet.v_jenis_layanan)
   getMasterJenisLayanan: async (): Promise<MasterJenisLayanan[]> => {
     try {
-      const res = await apiClient.get('/mastertruck/master/layanan');
+      const res = await apiClient.get('/kim3/master/layanan');
       if (Array.isArray(res.data)) return res.data;
       if (Array.isArray(res.data?.data)) return res.data.data;
       return [];
@@ -535,7 +535,7 @@ export const api = {
   // Master Keluhan / Gejala Kendaraan (sch_fleet.v_master_keluhan)
   getMasterKeluhan: async (): Promise<MasterKeluhan[]> => {
     try {
-      const res = await apiClient.get('/mastertruck/master/keluhan');
+      const res = await apiClient.get('/kim3/master/keluhan');
       if (Array.isArray(res.data)) return res.data;
       if (Array.isArray(res.data?.data)) return res.data.data;
       return [];
@@ -546,7 +546,7 @@ export const api = {
 
   // Master PIC / Petugas / Karyawan (sch_pos.tbl_employee via sch_fleet.v_pos_employee)
   getMasterEmployee: async (params?: { department?: string; jobposition?: string }): Promise<MasterEmployee[]> => {
-    const res = await apiClient.get('/mastertruck/master/pic-employee', { params });
+    const res = await apiClient.get('/kim3/master/pic-employee', { params });
     if (Array.isArray(res.data)) return res.data;
     if (Array.isArray(res.data?.data)) return res.data.data;
     return [];
@@ -554,29 +554,29 @@ export const api = {
 
   // Dokumen Saya
   getDokumen: async (): Promise<DokumenKendaraan[]> =>
-    (await fetchList<DokumenKendaraan>('/mastertruck/dokumen')).rows,
+    (await fetchList<DokumenKendaraan>('/kim3/dokumen')).rows,
   getDokumenPage: (query: ListQuery = {}): Promise<PaginatedResult<DokumenKendaraan>> =>
-    fetchList<DokumenKendaraan>('/mastertruck/dokumen', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+    fetchList<DokumenKendaraan>('/kim3/dokumen', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahDokumen: async (data: Partial<DokumenKendaraan>): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/dokumen-tambah', data);
+    const res = await apiClient.post('/kim3/dokumen-tambah', data);
     return res.data;
   },
 
   // Booking Service
   getBooking: async (): Promise<BookingService[]> =>
-    (await fetchList<BookingService>('/mastertruck/booking', { limit: 1000 })).rows,
+    (await fetchList<BookingService>('/kim3/booking', { limit: 1000 })).rows,
   getBookingPage: (query: ListQuery = {}): Promise<PaginatedResult<BookingService>> =>
-    fetchList<BookingService>('/mastertruck/booking', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+    fetchList<BookingService>('/kim3/booking', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahBooking: async (data: Partial<BookingService>): Promise<any> => {
     const minBookingDate = getLocalDateStr(1);
     if (data.tanggal_booking && data.tanggal_booking < minBookingDate) {
       throw new Error(`Pemesanan jadwal booking service wajib minimal H+1 dari hari ini (mulai ${minBookingDate}).`);
     }
-    const res = await apiClient.post('/mastertruck/booking-tambah', data);
+    const res = await apiClient.post('/kim3/booking-tambah', data);
     return res.data;
   },
   batalkanBooking: async (data: { id: number }): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/booking-batal', data);
+    const res = await apiClient.post('/kim3/booking-batal', data);
     return res.data;
   },
 
@@ -587,7 +587,7 @@ export const api = {
     sedang_diservis_spk: number;
     total_dokumen: number;
   }> => {
-    const res = await apiClient.get('/mastertruck/dashboard-summary');
+    const res = await apiClient.get('/kim3/dashboard-summary');
     const payload = res.data;
     const row = Array.isArray(payload)
       ? (payload[0] ?? {})
@@ -602,43 +602,43 @@ export const api = {
     };
   },
   getSpkList: async (): Promise<SpkService[]> =>
-    (await fetchList<SpkService>('/mastertruck/spk', { limit: 1000 })).rows,
+    (await fetchList<SpkService>('/kim3/spk', { limit: 1000 })).rows,
   getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
-    fetchList<SpkService>('/mastertruck/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+    fetchList<SpkService>('/kim3/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   getKunjunganService: async (): Promise<KunjunganService[]> =>
-    (await fetchList<KunjunganService>('/mastertruck/kunjungan-service')).rows,
+    (await fetchList<KunjunganService>('/kim3/kunjungan-service')).rows,
   updateSpkStatus: async (data: { id: number; status_spk?: string; catatan_sa?: string }): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/spk-status', data);
+    const res = await apiClient.post('/kim3/spk-status', data);
     return res.data;
   },
 
   // Pekerjaan & Part SPK
   getPekerjaanSpk: async (): Promise<SpkItemPekerjaan[]> =>
-    (await fetchList<SpkItemPekerjaan>('/mastertruck/spk-pekerjaan')).rows,
+    (await fetchList<SpkItemPekerjaan>('/kim3/spk-pekerjaan')).rows,
   getPartSpk: async (): Promise<SpkItemPart[]> =>
-    (await fetchList<SpkItemPart>('/mastertruck/spk-part')).rows,
+    (await fetchList<SpkItemPart>('/kim3/spk-part')).rows,
 
   // Purchasing & ETA Part
   getPurchasingList: async (): Promise<PurchaseRequestPart[]> =>
-    (await fetchList<PurchaseRequestPart>('/mastertruck/purchasing')).rows,
+    (await fetchList<PurchaseRequestPart>('/kim3/purchasing')).rows,
 
   // Tambahan Pekerjaan & Persetujuan Customer
   getTambahanPekerjaan: async (): Promise<PekerjaanTambahan[]> =>
-    (await fetchList<PekerjaanTambahan>('/mastertruck/pekerjaan-tambahan')).rows,
+    (await fetchList<PekerjaanTambahan>('/kim3/pekerjaan-tambahan')).rows,
   approvalCustomer: async (data: { id: number; status_approval_customer: 'Disetujui' | 'Ditolak' }): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/approval-customer', data);
+    const res = await apiClient.post('/kim3/approval-customer', data);
     return res.data;
   },
 
   // Invoice & Pembayaran (Riwayat & Bukti Tagihan)
   getInvoiceList: async (): Promise<InvoicePembayaran[]> =>
-    (await fetchList<InvoicePembayaran>('/mastertruck/invoice')).rows,
+    (await fetchList<InvoicePembayaran>('/kim3/invoice')).rows,
   getInvoiceListPage: (query: ListQuery = {}): Promise<PaginatedResult<InvoicePembayaran>> =>
-    fetchList<InvoicePembayaran>('/mastertruck/invoice', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+    fetchList<InvoicePembayaran>('/kim3/invoice', { limit: DEFAULT_PAGE_LIMIT, ...query }),
 
   // Auth & Token (JWT Authentication)
   login: async (identifier: string, password: string = 'password123'): Promise<LoginResponse> => {
-    const res = await apiClient.post<LoginResponse>('/mastertruck/auth/login', { 
+    const res = await apiClient.post<LoginResponse>('/kim3/auth/login', { 
       email: identifier.trim(), 
       password 
     });
@@ -688,18 +688,18 @@ export const api = {
       email_verification_token: token,
     };
 
-    const res = await apiClient.post('/mastertruck/auth/register', payload);
+    const res = await apiClient.post('/kim3/auth/register', payload);
     return res.data;
   },
 
   resendVerification: async (email?: string): Promise<{ success: boolean; message: string; already_verified?: boolean }> => {
-    const res = await apiClient.post<{ success: boolean; message: string; already_verified?: boolean }>('/mastertruck/auth/resend-verification', { email });
+    const res = await apiClient.post<{ success: boolean; message: string; already_verified?: boolean }>('/kim3/auth/resend-verification', { email });
     return res.data;
   },
 
   forgotPassword: async (email: string): Promise<{ success: boolean; message: string; email?: string }> => {
     const res = await apiClient.post<{ success: boolean; message: string; email?: string }>(
-      '/mastertruck/auth/forgot-password',
+      '/kim3/auth/forgot-password',
       { email }
     );
     return res.data;
@@ -707,7 +707,7 @@ export const api = {
 
   verifyOtp: async (email: string, otp: string): Promise<{ success: boolean; message: string }> => {
     const res = await apiClient.post<{ success: boolean; message: string }>(
-      '/mastertruck/auth/verify-otp',
+      '/kim3/auth/verify-otp',
       { email, otp }
     );
     return res.data;
@@ -719,7 +719,7 @@ export const api = {
     password_baru: string;
   }): Promise<{ success: boolean; message: string }> => {
     const res = await apiClient.post<{ success: boolean; message: string }>(
-      '/mastertruck/auth/reset-password',
+      '/kim3/auth/reset-password',
       data
     );
     return res.data;
@@ -727,7 +727,7 @@ export const api = {
 
   refreshToken: async (token?: string): Promise<LoginResponse> => {
     const rToken = token || localStorage.getItem('bengkel_refresh_token');
-    const res = await apiClient.post<LoginResponse>('/mastertruck/auth/refresh-token', { refresh_token: rToken });
+    const res = await apiClient.post<LoginResponse>('/kim3/auth/refresh-token', { refresh_token: rToken });
     if (res.data?.access_token) {
       localStorage.setItem('bengkel_jwt_token', res.data.access_token);
       localStorage.setItem('bengkel_login_at', String(Date.now()));
@@ -747,7 +747,7 @@ export const api = {
 
   // Verifikasi Sesi & Identity User aktif dari Database
   getMe: async (): Promise<AuthUser> => {
-    const res = await apiClient.get<AuthUser[]>('/mastertruck/auth/me');
+    const res = await apiClient.get<AuthUser[]>('/kim3/auth/me');
     const data = Array.isArray(res.data) ? res.data[0] : res.data;
     if (!data || !data.id) {
       throw new Error('User not found or inactive in database');
@@ -798,45 +798,45 @@ export const api = {
     } else if ('foto_profil' in data && (data.foto_profil === '' || data.foto_profil === null)) {
       payload.hapus_foto = 'true';
     }
-    const res = await apiClient.post('/mastertruck/profil-simpan', payload);
+    const res = await apiClient.post('/kim3/profil-simpan', payload);
     return res.data;
   },
 
   gantiPassword: async (password_baru: string): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/auth/ganti-password', { password_baru });
+    const res = await apiClient.post('/kim3/auth/ganti-password', { password_baru });
     return res.data;
   },
 
   // ── Portal Admin: kelola akun & pengaturan situs ─────────────────────────
   getSecurityUsers: (query: ListQuery = {}): Promise<PaginatedResult<SecurityUser>> =>
-    fetchList<SecurityUser>('/mastertruck/admin/security-user', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+    fetchList<SecurityUser>('/kim3/admin/security-user', { limit: DEFAULT_PAGE_LIMIT, ...query }),
 
   simpanSecurityUser: async (payload: SecurityUserPayload): Promise<any> => {
     const path = payload.id
-      ? '/mastertruck/admin/security-user-update'
-      : '/mastertruck/admin/security-user-tambah';
+      ? '/kim3/admin/security-user-update'
+      : '/kim3/admin/security-user-tambah';
     const res = await apiClient.post(path, payload);
     return res.data;
   },
 
   setSecurityUserStatus: async (id: number, status_aktif: boolean): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/admin/security-user-status', { id, status_aktif });
+    const res = await apiClient.post('/kim3/admin/security-user-status', { id, status_aktif });
     return res.data;
   },
 
   getAdminUsers: (query: ListQuery = {}): Promise<PaginatedResult<AdminUser>> =>
-    fetchList<AdminUser>('/mastertruck/admin/akun-admin', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+    fetchList<AdminUser>('/kim3/admin/akun-admin', { limit: DEFAULT_PAGE_LIMIT, ...query }),
 
   simpanAdminUser: async (payload: AdminUserPayload): Promise<any> => {
     const path = payload.id
-      ? '/mastertruck/admin/akun-admin-update'
-      : '/mastertruck/admin/akun-admin-tambah';
+      ? '/kim3/admin/akun-admin-update'
+      : '/kim3/admin/akun-admin-tambah';
     const res = await apiClient.post(path, payload);
     return res.data;
   },
 
   getPengaturan: async (): Promise<PengaturanSitus[]> => {
-    const res = await apiClient.get('/mastertruck/admin/pengaturan');
+    const res = await apiClient.get('/kim3/admin/pengaturan');
     const raw = res.data?.value ?? res.data?.data ?? res.data;
     return Array.isArray(raw) ? raw : raw ? [raw] : [];
   },
@@ -846,13 +846,13 @@ export const api = {
     nilai: string;
     keterangan?: string;
   }): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/admin/pengaturan-simpan', payload);
+    const res = await apiClient.post('/kim3/admin/pengaturan-simpan', payload);
     return res.data;
   },
 
   /** Pengaturan publik (nomor WhatsApp & pesan) — dibaca sidebar semua portal. */
   getPengaturanPublik: async (): Promise<Record<string, string>> => {
-    const res = await apiClient.get('/mastertruck/pengaturan-publik');
+    const res = await apiClient.get('/kim3/pengaturan-publik');
     const raw = res.data?.value ?? res.data?.data ?? res.data;
     const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
     return list.reduce((acc: Record<string, string>, item: any) => {
@@ -862,19 +862,19 @@ export const api = {
   },
 
   gantiPasswordAdmin: async (password_baru: string): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/auth/ganti-password-admin', { password_baru });
+    const res = await apiClient.post('/kim3/auth/ganti-password-admin', { password_baru });
     return res.data;
   },
 
   // ── Multi-Slide Iklan Banner (sch_fleet.iklan_slide) ──────────────────────
   getIklanSlides: async (): Promise<IklanSlide[]> => {
-    const res = await apiClient.get('/mastertruck/iklan-slide');
+    const res = await apiClient.get('/kim3/iklan-slide');
     const raw = res.data?.value ?? res.data?.data ?? res.data;
     return Array.isArray(raw) ? raw : raw ? [raw] : [];
   },
 
   getAdminIklanSlides: async (): Promise<IklanSlide[]> => {
-    const res = await apiClient.get('/mastertruck/admin/iklan-slide');
+    const res = await apiClient.get('/kim3/admin/iklan-slide');
     const raw = res.data?.value ?? res.data?.data ?? res.data;
     return Array.isArray(raw) ? raw : raw ? [raw] : [];
   },
@@ -885,18 +885,18 @@ export const api = {
     urutan: number;
     is_aktif: boolean;
   }): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/admin/iklan-slide-simpan', payload);
+    const res = await apiClient.post('/kim3/admin/iklan-slide-simpan', payload);
     return res.data;
   },
 
   hapusIklanSlide: async (id: number): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/admin/iklan-slide-hapus', { id });
+    const res = await apiClient.post('/kim3/admin/iklan-slide-hapus', { id });
     return res.data;
   },
 
   // ── Galeri Media Iklan Banner ─────────────────────────────────────────────
   getMediaIklan: async (): Promise<MediaIklan[]> => {
-    const res = await apiClient.get('/mastertruck/admin/media-iklan');
+    const res = await apiClient.get('/kim3/admin/media-iklan');
     const raw = res.data?.value ?? res.data?.data ?? res.data;
     return Array.isArray(raw) ? raw : raw ? [raw] : [];
   },
@@ -906,7 +906,7 @@ export const api = {
     foto_data: string;
     keterangan?: string;
   }): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/admin/media-iklan/simpan', payload);
+    const res = await apiClient.post('/kim3/admin/media-iklan/simpan', payload);
     return res.data;
   },
 
@@ -914,31 +914,31 @@ export const api = {
     id?: number;
     referensi_id?: string;
   }): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/admin/media-iklan/hapus', payload);
+    const res = await apiClient.post('/kim3/admin/media-iklan/hapus', payload);
     return res.data;
   },
 
   // Notifikasi
   getNotifikasi: async (): Promise<Notifikasi[]> =>
-    (await fetchList<Notifikasi>('/mastertruck/notifikasi', { limit: 100 })).rows,
+    (await fetchList<Notifikasi>('/kim3/notifikasi', { limit: 100 })).rows,
 
   tandaiNotifikasiBaca: async (id: number): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/notifikasi-baca', { id });
+    const res = await apiClient.post('/kim3/notifikasi-baca', { id });
     return res.data;
   },
 
   hapusNotifikasi: async (id: number): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/notifikasi-hapus', { id });
+    const res = await apiClient.post('/kim3/notifikasi-hapus', { id });
     return res.data;
   },
 
   tandaiSemuaNotifikasiBaca: async (): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/notifikasi-baca-semua', {});
+    const res = await apiClient.post('/kim3/notifikasi-baca-semua', {});
     return res.data;
   },
 
   hapusSemuaNotifikasi: async (): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/notifikasi-hapus-semua', {});
+    const res = await apiClient.post('/kim3/notifikasi-hapus-semua', {});
     return res.data;
   },
 
@@ -949,7 +949,7 @@ export const api = {
     link_tab?: string;
     urgency?: 'urgent' | 'warning' | 'info' | 'success';
   }): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/notifikasi-kirim', data);
+    const res = await apiClient.post('/kim3/notifikasi-kirim', data);
     return res.data;
   },
 
@@ -960,7 +960,7 @@ export const api = {
   getSecurityDashboardStats: async (): Promise<SecurityDashboardStats> => {
     let statData: any = {};
     try {
-      const res = await apiClient.get('/mastertruck/security/dashboard');
+      const res = await apiClient.get('/kim3/security/dashboard');
       const raw = res.data?.data ?? res.data;
       statData = Array.isArray(raw) ? raw[0] : raw;
     } catch (err) {
@@ -983,7 +983,7 @@ export const api = {
     };
 
     try {
-      const res = await apiClient.get('/mastertruck/security/booking-list', { params });
+      const res = await apiClient.get('/kim3/security/booking-list', { params });
       const raw = res.data?.data ?? res.data;
       const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? [raw] : []);
       if (list.length > 0) {
@@ -997,7 +997,7 @@ export const api = {
         });
       }
     } catch (err) {
-      console.warn('API /mastertruck/security/booking-list failed, falling back to /mastertruck/booking:', err);
+      console.warn('API /kim3/security/booking-list failed, falling back to /kim3/booking:', err);
     }
     try {
       const allBookings = await api.getBooking();
@@ -1051,7 +1051,7 @@ export const api = {
   },
 
   getSecurityKunjungan: async (params?: { status_gerbang?: string; tipe_kunjungan?: string; search?: string }): Promise<KunjunganGerbang[]> => {
-    const res = await apiClient.get('/mastertruck/security/kunjungan', { params });
+    const res = await apiClient.get('/kim3/security/kunjungan', { params });
     const raw = res.data?.data ?? res.data;
     if (Array.isArray(raw)) return raw;
     if (raw && typeof raw === 'object') return [raw];
@@ -1059,18 +1059,18 @@ export const api = {
   },
 
   securityCheckIn: async (payload: CheckInPayload): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/security/check-in', payload);
+    const res = await apiClient.post('/kim3/security/check-in', payload);
     return res.data;
   },
 
   getSecurityOnProgress: async (): Promise<SecurityOnProgressItem[]> => {
     try {
-      const res = await apiClient.get('/mastertruck/security/on-progress');
+      const res = await apiClient.get('/kim3/security/on-progress');
       const raw = res.data?.data ?? res.data;
       const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? [raw] : []);
       if (list.length > 0) return list;
     } catch (e) {
-      console.warn('API /mastertruck/security/on-progress failed:', e);
+      console.warn('API /kim3/security/on-progress failed:', e);
     }
     // Fallback otomatis: sinkronkan dari data kunjungan_gerbang aktif dengan status 'DI_DALAM'
     try {
@@ -1096,23 +1096,23 @@ export const api = {
 
   getSecuritySiapCheckOut: async (): Promise<SecurityOnProgressItem[]> => {
     try {
-      const res = await apiClient.get('/mastertruck/security/siap-checkout');
+      const res = await apiClient.get('/kim3/security/siap-checkout');
       const raw = res.data?.data ?? res.data;
       const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? [raw] : []);
       return list;
     } catch (e) {
-      console.warn('API /mastertruck/security/siap-checkout failed:', e);
+      console.warn('API /kim3/security/siap-checkout failed:', e);
       return [];
     }
   },
 
   securityCheckOut: async (payload: CheckOutPayload): Promise<any> => {
-    const res = await apiClient.post('/mastertruck/security/check-out', payload);
+    const res = await apiClient.post('/kim3/security/check-out', payload);
     return res.data;
   },
 
   getSecurityMemoKeluar: async (search?: string): Promise<MemoKeluarItem[]> => {
-    const res = await apiClient.get('/mastertruck/security/memo-keluar', { params: { search } });
+    const res = await apiClient.get('/kim3/security/memo-keluar', { params: { search } });
     const raw = res.data?.data ?? res.data;
     if (Array.isArray(raw)) return raw;
     if (raw && typeof raw === 'object') return [raw];
@@ -1120,14 +1120,14 @@ export const api = {
   },
 
   getSecurityMemoDetail: async (params: { id?: number | string; nomor_memo?: string }): Promise<MemoKeluarItem | null> => {
-    const res = await apiClient.get('/mastertruck/security/memo-keluar-detail', { params });
+    const res = await apiClient.get('/kim3/security/memo-keluar-detail', { params });
     const raw = res.data?.data ?? res.data;
     const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? [raw] : []);
     return list.length > 0 ? list[0] : null;
   },
 
   getSecurityRiwayatKeluar: async (periode?: 'HARI_INI' | 'KEMARIN' | 'MINGGU_INI' | 'BULAN_INI' | 'SEMUA'): Promise<SecurityRiwayatKeluarItem[]> => {
-    const res = await apiClient.get('/mastertruck/security/riwayat-keluar', { params: { periode: periode || 'HARI_INI' } });
+    const res = await apiClient.get('/kim3/security/riwayat-keluar', { params: { periode: periode || 'HARI_INI' } });
     const raw = res.data?.data ?? res.data;
     if (Array.isArray(raw)) return raw;
     if (raw && typeof raw === 'object') return [raw];
