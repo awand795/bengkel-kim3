@@ -172,7 +172,7 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
         <!DOCTYPE html>
         <html lang="id">
           <head>
-            <title>${isProforma ? 'Proforma Invoice' : 'Faktur Penjualan'} - ${invoice.no_invoice}</title>
+            <title>${isProforma ? 'Proforma Invoice' : 'Faktur Penjualan'}</title>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             ${styles}
@@ -316,9 +316,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
                 {isProforma ? 'Estimasi Biaya / Proforma Invoice' : 'Invoice / Faktur Penjualan'}
               </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans tabular-nums">
-                {invoice.no_invoice}
-              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -390,9 +387,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
             <div className="text-right shrink-0">
               <div className="text-base font-black tracking-tight text-slate-900 uppercase">
                 {isProforma ? 'PROFORMA INVOICE' : 'INVOICE / FAKTUR PENJUALAN'}
-              </div>
-              <div className="text-xs font-bold text-slate-800 tabular-nums mt-0.5">
-                NO: {invoice.no_invoice}
               </div>
               <div className="text-[11px] text-slate-600 font-medium mt-0.5">
                 TGL: {formatTanggalSaja(invoice.tanggal_invoice)}
