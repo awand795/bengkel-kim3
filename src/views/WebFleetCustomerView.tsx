@@ -630,101 +630,174 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         ? `${spk.tanggal_booking}T${spk.jam_booking || '08:00'}:00`
                         : null))
                   : null;
+                const steps = [
+                  {
+                    step: 1,
+                    title: 'Booking',
+                    desc: isBooking ? (spk.no_booking || 'Terjadwal') : 'Non Booking',
+                    done: isBooking,
+                    current: false,
+                    isWaitingPart: false,
+                    isNonBooking: !isBooking,
+                    waktu: bookingTimeStr
+                  },
+                  {
+                    step: 2,
+                    title: 'Check In',
+                    desc: 'Diterima Security',
+                    done: true,
+                    current: false,
+                    isWaitingPart: false,
+                    isNonBooking: false,
+                    waktu: spk.waktu_check_in || spk.created_at
+                  },
+                  { 
+                    step: 3, 
+                    title: isPreSpk
+                      ? 'Penerimaan SA'
+                      : spk.status_spk === 'Waiting Part'
+                      ? 'Waiting Part'
+                      : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval')
+                      ? 'Menunggu Approval'
+                      : spk.status_spk === 'Waiting QC' || (spk.status_spk as any) === 'Menunggu QC'
+                      ? 'Menunggu QC'
+                      : 'Proses Pengerjaan',
+                    desc: isPreSpk
+                      ? (spk.waktu_check_out ? 'Dilewati (Tanpa SPK)' : 'Menunggu Penerimaan Awal')
+                      : spk.status_spk === 'Waiting Part'
+                      ? 'Menunggu Part (Pending)'
+                      : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval')
+                      ? 'Estimasi Diajukan'
+                      : spk.status_spk === 'Estimasi Disetujui'
+                      ? 'WO Terbit'
+                      : spk.status_spk === 'Waiting QC' || (spk.status_spk as any) === 'Menunggu QC'
+                      ? 'Inspeksi Foreman'
+                      : spk.status_spk === 'Dalam Pengerjaan' || spk.status_spk === 'Proses Pengerjaan'
+                      ? 'Mekanik Aktif'
+                      : 'Selesai Dikerjakan',
+                    done: isFullyFinished || serviceTimeline.pengerjaan === 'done',
+                    current: !isFullyFinished && (serviceTimeline.pengerjaan === 'active' || serviceTimeline.pengerjaan === 'blocked' || serviceTimeline.pengerjaan === 'attention'),
+                    isWaitingPart: !isFullyFinished && serviceTimeline.pengerjaan === 'blocked',
+                    isNonBooking: false,
+                    waktu: isPreSpk ? null : (spk.waktu_selesai_pekerjaan || spk.waktu_mulai_pekerjaan)
+                  },
+                  { 
+                    step: 4, 
+                    title: 'QC Passed', 
+                    desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Inspeksi Foreman', 
+                    done: isFullyFinished || serviceTimeline.qc === 'done', 
+                    current: !isFullyFinished && serviceTimeline.qc === 'active', 
+                    isWaitingPart: false,
+                    isNonBooking: false,
+                    waktu: isPreSpk ? null : (spk.waktu_qc || spk.tanggal_qc || (isFullyFinished ? (spk.waktu_selesai_pekerjaan || spk.waktu_check_in) : null)) 
+                  },
+                  { 
+                    step: 5, 
+                    title: 'FIR Closed', 
+                    desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Final Check SA', 
+                    done: isFullyFinished || serviceTimeline.fir === 'done', 
+                    current: !isFullyFinished && serviceTimeline.fir === 'active', 
+                    isWaitingPart: false,
+                    isNonBooking: false,
+                    waktu: isPreSpk ? null : (spk.waktu_fir_closed || (isFullyFinished ? (spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) : null)) 
+                  },
+                  { 
+                    step: 6, 
+                    title: 'Invoice', 
+                    desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Proses Kasir', 
+                    done: isFullyFinished || serviceTimeline.pembayaran === 'done', 
+                    current: !isFullyFinished && serviceTimeline.pembayaran === 'active', 
+                    isWaitingPart: false,
+                    isNonBooking: false,
+                    waktu: isPreSpk ? null : (activeInvoice?.tanggal_bayar || activeInvoice?.tanggal_invoice || (isFullyFinished ? (spk.waktu_check_out || spk.waktu_fir_closed) : null)) 
+                  },
+                  { 
+                    step: 7, 
+                    title: 'Check Out', 
+                    desc: isPreSpk ? 'Keluar Gerbang' : 'Kendaraan Keluar', 
+                    done: isFullyFinished || serviceTimeline.keluar === 'done', 
+                    current: !isFullyFinished && serviceTimeline.keluar === 'active', 
+                    isWaitingPart: false,
+                    isNonBooking: false,
+                    waktu: spk.waktu_check_out 
+                  },
+                ];
+
                 return (
-              <div className="py-6 px-4 sm:px-6 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] via-surface-raised to-surface-raised dark:from-slate-800/40 dark:to-surface-raised overflow-x-auto">
-                <div className="flex items-start justify-between min-w-[860px] relative">
-                  {[
-                    {
-                      step: 1,
-                      title: 'Booking',
-                      desc: isBooking ? (spk.no_booking || 'Terjadwal') : 'Non Booking',
-                      done: isBooking,
-                      current: false,
-                      isWaitingPart: false,
-                      isNonBooking: !isBooking,
-                      waktu: bookingTimeStr
-                    },
-                    {
-                      step: 2,
-                      title: 'Check In',
-                      desc: 'Diterima Security',
-                      done: true,
-                      current: false,
-                      isWaitingPart: false,
-                      isNonBooking: false,
-                      waktu: spk.waktu_check_in || spk.created_at
-                    },
-                    { 
-                      step: 3, 
-                      title: isPreSpk
-                        ? 'Penerimaan SA'
-                        : spk.status_spk === 'Waiting Part'
-                        ? 'Waiting Part'
-                        : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval')
-                        ? 'Menunggu Approval'
-                        : spk.status_spk === 'Waiting QC' || (spk.status_spk as any) === 'Menunggu QC'
-                        ? 'Menunggu QC'
-                        : 'Proses Pengerjaan',
-                      desc: isPreSpk
-                        ? (spk.waktu_check_out ? 'Dilewati (Tanpa SPK)' : 'Menunggu Penerimaan Awal')
-                        : spk.status_spk === 'Waiting Part'
-                        ? 'Menunggu Part (Pending)'
-                        : (spk.status_spk === 'Menunggu Approval Customer' || (spk.status_spk as string) === 'Waiting Approval')
-                        ? 'Estimasi Diajukan'
-                        : spk.status_spk === 'Estimasi Disetujui'
-                        ? 'WO Terbit'
-                        : spk.status_spk === 'Waiting QC' || (spk.status_spk as any) === 'Menunggu QC'
-                        ? 'Inspeksi Foreman'
-                        : spk.status_spk === 'Dalam Pengerjaan' || spk.status_spk === 'Proses Pengerjaan'
-                        ? 'Mekanik Aktif'
-                        : 'Selesai Dikerjakan',
-                      done: isFullyFinished || serviceTimeline.pengerjaan === 'done',
-                      current: !isFullyFinished && (serviceTimeline.pengerjaan === 'active' || serviceTimeline.pengerjaan === 'blocked' || serviceTimeline.pengerjaan === 'attention'),
-                      isWaitingPart: !isFullyFinished && serviceTimeline.pengerjaan === 'blocked',
-                      isNonBooking: false,
-                      waktu: isPreSpk ? null : (spk.waktu_selesai_pekerjaan || spk.waktu_mulai_pekerjaan)
-                    },
-                    { 
-                      step: 4, 
-                      title: 'QC Passed', 
-                      desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Inspeksi Foreman', 
-                      done: isFullyFinished || serviceTimeline.qc === 'done', 
-                      current: !isFullyFinished && serviceTimeline.qc === 'active', 
-                      isWaitingPart: false,
-                      isNonBooking: false,
-                      waktu: isPreSpk ? null : (spk.waktu_qc || spk.tanggal_qc || (isFullyFinished ? (spk.waktu_selesai_pekerjaan || spk.waktu_check_in) : null)) 
-                    },
-                    { 
-                      step: 5, 
-                      title: 'FIR Closed', 
-                      desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Final Check SA', 
-                      done: isFullyFinished || serviceTimeline.fir === 'done', 
-                      current: !isFullyFinished && serviceTimeline.fir === 'active', 
-                      isWaitingPart: false,
-                      isNonBooking: false,
-                      waktu: isPreSpk ? null : (spk.waktu_fir_closed || (isFullyFinished ? (spk.waktu_qc || spk.tanggal_qc || spk.waktu_selesai_pekerjaan) : null)) 
-                    },
-                    { 
-                      step: 6, 
-                      title: 'Invoice', 
-                      desc: isPreSpk && spk.waktu_check_out ? 'Dilewati' : 'Proses Kasir', 
-                      done: isFullyFinished || serviceTimeline.pembayaran === 'done', 
-                      current: !isFullyFinished && serviceTimeline.pembayaran === 'active', 
-                      isWaitingPart: false,
-                      isNonBooking: false,
-                      waktu: isPreSpk ? null : (activeInvoice?.tanggal_bayar || activeInvoice?.tanggal_invoice || (isFullyFinished ? (spk.waktu_check_out || spk.waktu_fir_closed) : null)) 
-                    },
-                    { 
-                      step: 7, 
-                      title: 'Check Out', 
-                      desc: isPreSpk ? 'Keluar Gerbang' : 'Kendaraan Keluar', 
-                      done: isFullyFinished || serviceTimeline.keluar === 'done', 
-                      current: !isFullyFinished && serviceTimeline.keluar === 'active', 
-                      isWaitingPart: false,
-                      isNonBooking: false,
-                      waktu: spk.waktu_check_out 
-                    },
-                  ].map((s, idx, arr) => {
+              <div className="py-5 px-4 sm:py-6 sm:px-6 rounded-2xl border border-border bg-gradient-to-b from-[#F8FAFF] via-surface-raised to-surface-raised dark:from-slate-800/40 dark:to-surface-raised">
+                {/* Mobile: Stepper Vertikal Ringkas (tanpa scroll horizontal) */}
+                <div className="flex flex-col md:hidden">
+                  {steps.map((s, idx, arr) => {
+                    const isLast = idx === arr.length - 1;
+                    const nextStep = !isLast ? arr[idx + 1] : null;
+                    const lineDone = s.done && (isFullyFinished || nextStep?.done || nextStep?.current);
+                    const wt = s.waktu ? fmtWaktuStep(s.waktu as string) : null;
+
+                    return (
+                      <div key={s.step} className="flex items-stretch gap-3">
+                        <div className="flex flex-col items-center shrink-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[11px] transition-all ring-4 ring-white dark:ring-slate-900 shadow-xs ${
+                            s.isWaitingPart
+                              ? 'bg-status-red text-white ring-status-red/20 shadow-sm'
+                              : s.current
+                              ? 'bg-gradient-to-br from-[#12388F] to-[#3B6FD4] text-white ring-[#12388F]/25 shadow-sm'
+                              : s.done
+                              ? 'bg-gradient-to-br from-[#16A34A] to-[#22C55E] text-white shadow-xs'
+                              : 'bg-white dark:bg-slate-900 text-ink-subtle border-2 border-dashed border-border'
+                          }`}>
+                            {s.done ? <CheckCircle2 className="w-4 h-4" /> : s.isNonBooking ? '—' : s.step}
+                          </div>
+                          {!isLast && (
+                            <div
+                              className={`w-[2px] flex-1 min-h-[18px] my-1 rounded-full ${
+                                lineDone
+                                  ? 'bg-gradient-to-b from-[#16A34A] to-[#22C55E]'
+                                  : s.done
+                                  ? 'bg-emerald-300/60 dark:bg-emerald-800/40'
+                                  : 'bg-slate-200 dark:bg-slate-700/60'
+                              }`}
+                            />
+                          )}
+                        </div>
+
+                        <div className={`flex-1 min-w-0 flex items-start justify-between gap-2 ${isLast ? 'pt-0.5' : 'pb-4 pt-0.5'}`}>
+                          <div className="min-w-0">
+                            <div className={`text-xs font-bold leading-snug ${
+                              s.isWaitingPart ? 'text-status-red' : s.current ? 'text-accent' : s.done ? 'text-status-green' : 'text-ink'
+                            }`}>
+                              {s.title}
+                            </div>
+                            <div className="text-[11px] text-ink-muted leading-snug mt-0.5">
+                              {s.desc}
+                            </div>
+                          </div>
+
+                          {wt ? (
+                            <div className={`shrink-0 px-2 py-1 rounded-lg border text-right leading-tight ${
+                              s.done
+                                ? 'bg-emerald-50/90 border-emerald-200/80 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-200'
+                                : s.current
+                                ? 'bg-blue-50/90 border-blue-200/80 text-blue-900 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-200'
+                                : 'bg-surface border-border text-ink-subtle'
+                            }`}>
+                              <div className="text-[10px] font-semibold">{wt.tanggal}</div>
+                              <div className="text-[10px] font-semibold mt-0.5">{wt.jam}</div>
+                            </div>
+                          ) : (
+                            <span className="shrink-0 px-2 py-1 rounded-lg border border-dashed border-border text-ink-subtle/50 text-[10px] font-mono">
+                              —
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop: Stepper Horizontal 7 Kolom */}
+                <div className="hidden md:block overflow-x-auto">
+                  <div className="flex items-start justify-between min-w-[860px] relative">
+                  {steps.map((s, idx, arr) => {
                     const isLast = idx === arr.length - 1;
                     const nextStep = !isLast ? arr[idx + 1] : null;
                     const lineDone = s.done && (isFullyFinished || nextStep?.done || nextStep?.current);
@@ -796,6 +869,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               </div>
                 );
