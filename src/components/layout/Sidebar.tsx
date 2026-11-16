@@ -138,7 +138,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         <div className="text-center text-[10px] text-[#94A3B8] pt-1 border-t border-[#E2E8F0] dark:border-border">
-          &copy; 2026 KIM3 Bengkel. All rights reserved.
+          &copy; 2026 MasterTruck. All rights reserved.
         </div>
       </div>
     </aside>
