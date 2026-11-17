@@ -2530,8 +2530,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }
 
     if (historySafePage === 1 && !historySearch.trim() && historyStatusFilter === 'semua' && activeUnits.length > 0) {
-      const rawIds = new Set(rawRows.map((r) => r.id));
-      const prependedUnits = activeUnits.filter((u) => !rawIds.has(u.id));
+      // Hanya prepend kunjungan pra-SPK (sumber === 'kunjungan') yang belum ada di paginasi SPK;
+      // SPK aktif (sumber === 'spk') tetap mengikuti paginasi server agar tidak duplikat di halaman 1 & 2.
+      const prependedUnits = activeUnits.filter((u) => u.sumber === 'kunjungan');
       return [...prependedUnits, ...rawRows];
     }
 

@@ -23,7 +23,7 @@ const faktaProfil: { label: string; nilai: React.ReactNode; Icon: LucideIcon }[]
     label: 'Kantor',
     nilai: (
       <>
-        Jl. Pulau Bunaken Komplek Warehouse KIM III No. 3A, Mabar, Kec. Medan Labuhan, Kota Medan, Sumatera Utara 20242
+        KIM 3, Jl. Pulau Pamagaran No.10, Tangkahan, Kec. Medan Labuhan, Kota Medan, Sumatera Utara 20251
       </>
     ),
     Icon: MapPin,
