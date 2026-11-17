@@ -624,7 +624,7 @@ export const NotificationDropdown: React.FC = () => {
           <div className="shrink-0 p-3 bg-surface border-t border-border flex items-center justify-between text-[11px] text-ink-subtle">
             <span className="font-mono flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-accent" />
-              KIM 3 Live Workshop Hub
+              Master Truck Live Workshop Hub
             </span>
             <span className="font-medium">
               {unreadCount > 0 ? `${unreadCount} belum dibaca` : 'Semua telah dibaca'}

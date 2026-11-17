@@ -55,7 +55,7 @@ export const Navbar: React.FC = () => {
     title: activeTab.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     subtitle:
       currentRole === 'Super Admin'
-        ? 'Portal Admin KIM 3'
+        ? 'Portal Admin Master Truck'
         : currentRole === 'Security'
           ? 'Pos Security Gerbang'
           : 'Web Fleet Customer',

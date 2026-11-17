@@ -83,3 +83,28 @@ npm run dev -- --port 3000
 # Jalankan Security Gate Portal (Port 3500):
 cd "../Bengkel-Kim3-Security"; npm run dev -- --port 3500
 ```
+
+---
+
+## 6. Pemisahan Environment (`main` Prod vs `develop` Dev) & Aturan Build/Deploy Docker
+
+> [!CAUTION]
+> **WAJIB DIIKUTI SETIAP KALI USER MEMINTA BUILD DOCKER, PUSH, DAN DEPLOY:**
+> - **Selalu pastikan berada di branch `main` (Production)** sebelum menjalankan `docker build`, `docker push`, dan deploy ke `52.77.133.95:3000`.
+> - **JANGAN PERNAH** build/deploy image production dari branch `develop`!
+
+| Environment | Branch Git | Prefix Endpoint Frontend (`src/api/client.ts`) | `connection_id` API Builder (`sch_sync.api_endpoints`) | Database Target |
+| :--- | :--- | :--- | :--- | :--- |
+| **Production** | `main` | `/mastertruck/*` | `1789369839047` | `bengkeldarkopos` (Prod) |
+| **Development** | `develop` | `/kim3/*` | `1790050800000` | `dba_dev_pos` (Dev) |
+
+### Checklist Wajib Sebelum Build/Deploy & Sinkronisasi Backend
+1. Pastikan branch aktif adalah `main` (`git branch --show-current` -> `main`) dan `src/api/client.ts` hanya memanggil `/mastertruck/*` (bukan `/kim3/*`).
+2. Jika ada perubahan SQL/endpoint baru di API Builder (`sch_sync.api_endpoints`), pastikan query, `parameters`, `enable_pagination`, dan `security_mode` identik antara `/mastertruck/*` dan `/kim3/*`, tetapi `connection_id` tetap terpisah (`1789369839047` untuk `/mastertruck/*`, `1790050800000` untuk `/kim3/*`).
+3. Perintah Build, Push & Deploy Production (`52.77.133.95:3000`):
+   ```powershell
+   npx tsc --noEmit
+   docker build -t awandadarkotech/webfleet-mastertruck:latest .
+   docker push awandadarkotech/webfleet-mastertruck:latest
+   ssh -i "C:\Users\awand\Downloads\awanda.pem" -p 8822 -o StrictHostKeyChecking=no awanda@52.77.133.95 "docker pull awandadarkotech/webfleet-mastertruck:latest && docker stop webfleet-mastertruck || true && docker rm webfleet-mastertruck || true && docker run -d --name webfleet-mastertruck --restart unless-stopped -p 3000:80 awandadarkotech/webfleet-mastertruck:latest && sleep 2 && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000"
+   ```

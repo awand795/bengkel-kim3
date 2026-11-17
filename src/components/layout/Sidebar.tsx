@@ -40,7 +40,7 @@ export const Sidebar: React.FC = () => {
     staleTime: 1000 * 60 * 5,
   });
   const waNumber = (pengaturan?.wa_cs || '6281234567890').replace(/\D/g, '');
-  const waMessage = pengaturan?.wa_cs_pesan || 'Halo Bengkel KIM3, saya butuh bantuan terkait Web Fleet';
+  const waMessage = pengaturan?.wa_cs_pesan || 'Halo Master Truck, saya butuh bantuan terkait Web Fleet';
   const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`;
   const waDisplay = waNumber.replace(/^62/, '0');
 
@@ -138,7 +138,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         <div className="text-center text-[10px] text-[#94A3B8] pt-1 border-t border-[#E2E8F0] dark:border-border">
-          &copy; 2026 KIM3 Bengkel. All rights reserved.
+          &copy; 2026 MasterTruck. All rights reserved.
         </div>
       </div>
     </aside>
