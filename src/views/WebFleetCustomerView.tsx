@@ -1931,12 +1931,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 5000,
   });
 
-  const { data: spkList } = useQuery({
-    queryKey: ['spk-list'],
-    queryFn: api.getSpkList,
+  const { data: spkActivePageData } = useQuery({
+    queryKey: ['spk-active-watch'],
+    queryFn: () => api.getSpkListPage({ status_filter: 'aktif' }),
     enabled: fleetMenu === 'history' || fleetMenu === 'dokumen' || !!historyDetail || !!fleetPendingSpkId,
     refetchInterval: 15000,
   });
+  const spkList = spkActivePageData?.rows;
+  const [cachedSemuaTotal, setCachedSemuaTotal] = useState<number | null>(null);
 
   // Server-Side Paginated SPK untuk Riwayat Service Penuh
   const {
@@ -1950,13 +1952,27 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         page: historyPage,
         limit: historyLimit,
         q: historySearch,
-        ...(historyStatusFilter === 'selesai' ? { status_filter: 'selesai' } : {}),
+        ...(historyStatusFilter === 'selesai'
+          ? { status_filter: 'selesai' }
+          : historyStatusFilter === 'sedang-diservis'
+            ? { status_filter: 'aktif' }
+            : {}),
       }),
     enabled: fleetMenu === 'dokumen' || fleetMenu === 'history',
     placeholderData: (prev, prevQuery) =>
       prevQuery?.queryKey?.[1] === historyStatusFilter ? prev : undefined,
     refetchInterval: 15000,
   });
+
+  React.useEffect(() => {
+    if (
+      historyStatusFilter === 'semua' &&
+      !historySearch.trim() &&
+      spkPageData?.pagination?.total_records != null
+    ) {
+      setCachedSemuaTotal(spkPageData.pagination.total_records);
+    }
+  }, [historyStatusFilter, historySearch, spkPageData?.pagination?.total_records]);
 
   // Pengaturan Publik (Banner Iklan Dashboard & Kontak WhatsApp)
   const { data: pengaturanPublik } = useQuery({
@@ -2505,28 +2521,36 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, [myKunjunganList, mySpkList, spkPageData, isServiceActive, isMySpk]);
 
   const spkTotalRecords = spkPageData?.pagination?.total_records ?? (spkPageData?.rows?.length ?? 0);
+  const allSpkTotalRecords =
+    historyStatusFilter === 'semua'
+      ? spkTotalRecords
+      : (cachedSemuaTotal ?? spkTotalRecords);
   const activeHistoryCount = activeUnits.length;
-  const completedHistoryCount = Math.max(0, spkTotalRecords - activeUnits.filter((u) => u.sumber === 'spk').length);
+  const completedHistoryCount =
+    historyStatusFilter === 'selesai'
+      ? spkTotalRecords
+      : Math.max(0, allSpkTotalRecords - activeUnits.filter((u) => u.sumber === 'spk').length);
   const historyTotalRecords = historyStatusFilter === 'sedang-diservis'
-    ? activeHistoryCount
-    : (historyStatusFilter === 'selesai' ? completedHistoryCount : spkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length);
-  const historyTotalPages = historyStatusFilter === 'sedang-diservis'
-    ? Math.max(1, Math.ceil(activeHistoryCount / historyLimit))
-    : Math.max(1, spkPageData?.pagination?.total_pages ?? 1);
+    ? (historySearch.trim() ? spkTotalRecords : activeHistoryCount)
+    : (historyStatusFilter === 'selesai' ? spkTotalRecords : allSpkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length);
+  const historyTotalPages = Math.max(1, spkPageData?.pagination?.total_pages ?? 1);
   const historySafePage = Math.min(Math.max(1, historyPage), historyTotalPages);
 
   // Riwayat Service baris halaman aktif (dari server-side pagination dengan status dinormalisasi)
   const historyRows: HistoryRow[] = React.useMemo(() => {
-    if (historyStatusFilter === 'sedang-diservis') {
-      const start = (historySafePage - 1) * historyLimit;
-      return activeUnits.slice(start, start + historyLimit);
-    }
-
     const rawRows: HistoryRow[] = (spkPageData?.rows || []).map((s) => ({
       ...s,
       status_spk: getSpkDynamicStatus(s) as any,
       sumber: 'spk' as const,
     }));
+
+    if (historyStatusFilter === 'sedang-diservis') {
+      if (historySafePage === 1 && !historySearch.trim()) {
+        const activeKunjungan = activeUnits.filter((u) => u.sumber === 'kunjungan');
+        return [...activeKunjungan, ...rawRows];
+      }
+      return rawRows;
+    }
 
     if (historyStatusFilter === 'selesai') {
       return rawRows;
@@ -2540,7 +2564,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }
 
     return rawRows;
-  }, [historyStatusFilter, activeUnits, spkPageData, historySafePage, historyLimit, historySearch, isServiceActive]);
+  }, [historyStatusFilter, activeUnits, spkPageData, historySafePage, historySearch]);
 
   React.useEffect(() => {
     setHistoryPage(1);
@@ -5854,7 +5878,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <FilterChips
                   variant="tabs"
                   options={[
-                    { id: 'semua', label: 'Semua', count: spkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length },
+                    { id: 'semua', label: 'Semua', count: allSpkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length },
                     { id: 'sedang-diservis', label: 'Sedang Diservis', count: activeHistoryCount },
                     { id: 'selesai', label: 'Selesai', count: completedHistoryCount },
                   ]}
