@@ -169,6 +169,7 @@ export interface ListQuery {
   page?: number;
   limit?: number;
   q?: string;
+  status_filter?: string;
 }
 
 export const DEFAULT_PAGE_LIMIT = 10;
@@ -191,6 +192,7 @@ const fetchList = async <T,>(url: string, query: ListQuery = {}): Promise<Pagina
   if (query.q !== undefined) params.q = query.q;
   if (query.page !== undefined) params.page = query.page;
   if (query.limit !== undefined) params.limit = query.limit;
+  if (query.status_filter !== undefined) params.status_filter = query.status_filter;
   const res = await apiClient.get(url, { params });
   return normalizeList<T>(res.data);
 };
