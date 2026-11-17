@@ -170,6 +170,7 @@ export interface ListQuery {
   limit?: number;
   q?: string;
   status_filter?: string;
+  id_spk?: number;
 }
 
 export const DEFAULT_PAGE_LIMIT = 10;
@@ -193,6 +194,7 @@ const fetchList = async <T,>(url: string, query: ListQuery = {}): Promise<Pagina
   if (query.page !== undefined) params.page = query.page;
   if (query.limit !== undefined) params.limit = query.limit;
   if (query.status_filter !== undefined) params.status_filter = query.status_filter;
+  if (query.id_spk !== undefined) params.id_spk = query.id_spk;
   const res = await apiClient.get(url, { params });
   return normalizeList<T>(res.data);
 };
@@ -587,6 +589,8 @@ export const api = {
     total_kendaraan: number;
     booking_aktif: number;
     sedang_diservis_spk: number;
+    selesai_spk: number;
+    total_spk: number;
     total_dokumen: number;
   }> => {
     const res = await apiClient.get('/mastertruck/dashboard-summary');
@@ -600,6 +604,8 @@ export const api = {
       total_kendaraan: Number(row.total_kendaraan ?? 0),
       booking_aktif: Number(row.booking_aktif ?? 0),
       sedang_diservis_spk: Number(row.sedang_diservis_spk ?? 0),
+      selesai_spk: Number(row.selesai_spk ?? 0),
+      total_spk: Number(row.total_spk ?? 0),
       total_dokumen: Number(row.total_dokumen ?? 0),
     };
   },
@@ -607,6 +613,10 @@ export const api = {
     (await fetchList<SpkService>('/mastertruck/spk')).rows,
   getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
     fetchList<SpkService>('/mastertruck/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
+  getSpkDetail: async (id: number): Promise<SpkService | null> => {
+    const res = await apiClient.get('/mastertruck/spk-detail', { params: { id } });
+    return normalizeList<SpkService>(res.data).rows[0] ?? null;
+  },
   getKunjunganService: async (): Promise<KunjunganService[]> =>
     (await fetchList<KunjunganService>('/mastertruck/kunjungan-service')).rows,
   updateSpkStatus: async (data: { id: number; status_spk?: string; catatan_sa?: string }): Promise<any> => {
@@ -615,18 +625,18 @@ export const api = {
   },
 
   // Pekerjaan & Part SPK
-  getPekerjaanSpk: async (): Promise<SpkItemPekerjaan[]> =>
-    (await fetchList<SpkItemPekerjaan>('/mastertruck/spk-pekerjaan')).rows,
-  getPartSpk: async (): Promise<SpkItemPart[]> =>
-    (await fetchList<SpkItemPart>('/mastertruck/spk-part')).rows,
+  getPekerjaanSpk: async (query: { id_spk?: number } = {}): Promise<SpkItemPekerjaan[]> =>
+    (await fetchList<SpkItemPekerjaan>('/mastertruck/spk-pekerjaan', query)).rows,
+  getPartSpk: async (query: { id_spk?: number } = {}): Promise<SpkItemPart[]> =>
+    (await fetchList<SpkItemPart>('/mastertruck/spk-part', query)).rows,
 
   // Purchasing & ETA Part
-  getPurchasingList: async (): Promise<PurchaseRequestPart[]> =>
-    (await fetchList<PurchaseRequestPart>('/mastertruck/purchasing')).rows,
+  getPurchasingList: async (query: { id_spk?: number } = {}): Promise<PurchaseRequestPart[]> =>
+    (await fetchList<PurchaseRequestPart>('/mastertruck/purchasing', query)).rows,
 
   // Tambahan Pekerjaan & Persetujuan Customer
-  getTambahanPekerjaan: async (): Promise<PekerjaanTambahan[]> =>
-    (await fetchList<PekerjaanTambahan>('/mastertruck/pekerjaan-tambahan')).rows,
+  getTambahanPekerjaan: async (query: { id_spk?: number } = {}): Promise<PekerjaanTambahan[]> =>
+    (await fetchList<PekerjaanTambahan>('/mastertruck/pekerjaan-tambahan', query)).rows,
   approvalCustomer: async (data: { id: number; status_approval_customer: 'Disetujui' | 'Ditolak' }): Promise<any> => {
     const res = await apiClient.post('/mastertruck/approval-customer', data);
     return res.data;
