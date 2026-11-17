@@ -1708,6 +1708,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     const unsubscribe = realtimeHub.subscribe((evt) => {
       queryClient.invalidateQueries({ queryKey: ['booking-list'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-active-watch'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-page'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
       queryClient.invalidateQueries({ queryKey: ['notifikasi-list'] });
     });
@@ -1812,6 +1816,8 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [fakturFilterPlat, setFakturFilterPlat] = useState('');
   // Halaman khusus detail riwayat SPK (tersembunyi dari sidebar)
   const [historyDetail, setHistoryDetail] = useState<HistoryRow | null>(null);
+  const [selectedFakturForPrint, setSelectedFakturForPrint] = useState<InvoicePembayaran | null>(null);
+  const [fakturModalOpen, setFakturModalOpen] = useState(false);
 
   // Sinkronkan Fullscreen Detail Riwayat Service dengan browser history agar tombol Back di HP menutup detail (bukan keluar app)
   const historyDetailPushedRef = React.useRef(false);
@@ -1883,7 +1889,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     enabled:
       fleetMenu === 'booking' ||
       fleetMenu === 'dokumen' ||
-      fleetMenu === 'history' ||
       openBookingModal ||
       !!historyDetail,
     // Segarkan agar status di_bengkel (dari pos gerbang) cepat ter-update
@@ -1931,14 +1936,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 5000,
   });
 
+  const activeDetailSpkId = historyDetail && historyDetail.sumber !== 'kunjungan' ? historyDetail.id : null;
+  const activeItemsSpkId =
+    activeDetailSpkId ?? (fakturModalOpen && selectedFakturForPrint?.id_spk ? selectedFakturForPrint.id_spk : null);
+
   const { data: spkActivePageData } = useQuery({
     queryKey: ['spk-active-watch'],
     queryFn: () => api.getSpkListPage({ status_filter: 'aktif' }),
-    enabled: fleetMenu === 'history' || fleetMenu === 'dokumen' || !!historyDetail || !!fleetPendingSpkId,
+    enabled:
+      fleetMenu === 'booking' ||
+      fleetMenu === 'kendaraan' ||
+      fleetMenu === 'dokumen' ||
+      !!fleetPendingSpkId,
     refetchInterval: 15000,
   });
   const spkList = spkActivePageData?.rows;
   const [cachedSemuaTotal, setCachedSemuaTotal] = useState<number | null>(null);
+  const [cachedAktifTotal, setCachedAktifTotal] = useState<number | null>(null);
+  const [cachedSelesaiTotal, setCachedSelesaiTotal] = useState<number | null>(null);
 
   // Server-Side Paginated SPK untuk Riwayat Service Penuh
   const {
@@ -1964,14 +1979,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 15000,
   });
 
+  // Detail lengkap 1 SPK (vw_spk_daily_report, foto, checklist, mekanik) hanya diambil saat modal Detail dibuka
+  const { data: spkDetailData } = useQuery({
+    queryKey: ['spk-detail', activeDetailSpkId],
+    queryFn: () => api.getSpkDetail(activeDetailSpkId!),
+    enabled: activeDetailSpkId != null,
+  });
+
   React.useEffect(() => {
-    if (
-      historyStatusFilter === 'semua' &&
-      !historySearch.trim() &&
-      spkPageData?.pagination?.total_records != null
-    ) {
-      setCachedSemuaTotal(spkPageData.pagination.total_records);
-    }
+    if (historySearch.trim() || spkPageData?.pagination?.total_records == null) return;
+    const total = spkPageData.pagination.total_records;
+    if (historyStatusFilter === 'semua') setCachedSemuaTotal(total);
+    else if (historyStatusFilter === 'sedang-diservis') setCachedAktifTotal(total);
+    else if (historyStatusFilter === 'selesai') setCachedSelesaiTotal(total);
   }, [historyStatusFilter, historySearch, spkPageData?.pagination?.total_records]);
 
   // Pengaturan Publik (Banner Iklan Dashboard & Kontak WhatsApp)
@@ -1996,6 +2016,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: kunjunganServiceList = [], isLoading: kunjunganLoading } = useQuery({
     queryKey: ['kunjungan-service-list'],
     queryFn: api.getKunjunganService,
+    enabled:
+      fleetMenu === 'dashboard' ||
+      fleetMenu === 'history' ||
+      fleetMenu === 'kendaraan' ||
+      fleetMenu === 'booking' ||
+      openBookingModal ||
+      !!historyDetail,
     refetchInterval: 8000,
   });
 
@@ -2006,40 +2033,41 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   });
 
   const { data: tambahanList } = useQuery({
-    queryKey: ['tambahan-pekerjaan'],
-    queryFn: api.getTambahanPekerjaan,
-    enabled: fleetMenu === 'history' || !!historyDetail,
-    refetchInterval: 10000,
+    queryKey: ['tambahan-pekerjaan', activeDetailSpkId],
+    queryFn: () => api.getTambahanPekerjaan({ id_spk: activeDetailSpkId! }),
+    enabled: activeDetailSpkId != null,
+    refetchInterval: activeDetailSpkId != null ? 10000 : false,
   });
 
   const { data: purchasingList } = useQuery({
-    queryKey: ['purchasing-list'],
-    queryFn: api.getPurchasingList,
-    enabled: fleetMenu === 'history' || !!historyDetail,
-    refetchInterval: 8000,
+    queryKey: ['purchasing-list', activeDetailSpkId],
+    queryFn: () => api.getPurchasingList({ id_spk: activeDetailSpkId! }),
+    enabled: activeDetailSpkId != null,
+    refetchInterval: activeDetailSpkId != null ? 10000 : false,
   });
 
   const { data: pekerjaanList } = useQuery({
-    queryKey: ['pekerjaan-spk-list'],
-    queryFn: api.getPekerjaanSpk,
-    enabled: fleetMenu === 'history' || !!historyDetail,
-    refetchInterval: 8000,
+    queryKey: ['pekerjaan-spk-list', activeItemsSpkId],
+    queryFn: () => api.getPekerjaanSpk({ id_spk: activeItemsSpkId! }),
+    enabled: activeItemsSpkId != null,
+    refetchInterval: activeItemsSpkId != null ? 10000 : false,
   });
 
   const { data: partSpkList } = useQuery({
-    queryKey: ['part-spk-list'],
-    queryFn: api.getPartSpk,
-    enabled: fleetMenu === 'history' || !!historyDetail,
-    refetchInterval: 8000,
+    queryKey: ['part-spk-list', activeItemsSpkId],
+    queryFn: () => api.getPartSpk({ id_spk: activeItemsSpkId! }),
+    enabled: activeItemsSpkId != null,
+    refetchInterval: activeItemsSpkId != null ? 10000 : false,
   });
 
-  // Faktur milik customer (untuk seksi Faktur & Pembayaran di History)
-  const { data: invoiceList } = useQuery({
-    queryKey: ['invoice-list'],
-    queryFn: api.getInvoiceList,
-    enabled: fleetMenu === 'history' || !!historyDetail,
-    refetchInterval: 15000,
+  // Faktur milik SPK yang sedang dibuka detailnya
+  const { data: invoiceDetailPageData } = useQuery({
+    queryKey: ['invoice-list', activeDetailSpkId],
+    queryFn: () => api.getInvoiceListPage({ id_spk: activeDetailSpkId! }),
+    enabled: activeDetailSpkId != null,
+    refetchInterval: activeDetailSpkId != null ? 15000 : false,
   });
+  const invoiceList = invoiceDetailPageData?.rows;
 
   // Server-Side Paginated Faktur / Invoice
   const {
@@ -2337,11 +2365,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Filter SPK khusus kendaraan customer yang sedang login
   const isMySpk = (s: SpkService) => {
     // 1. Relasi utama: ID pelanggan SPK cocok dengan akun customer yang sedang login
-    if (myPelangganId && s.id_pelanggan === myPelangganId) return true;
+    if (myPelangganId && s.id_pelanggan != null) return s.id_pelanggan === myPelangganId;
     // 2. Relasi plat armada: nomor polisi cocok dengan plat armada resmi customer
     if (s.no_polisi && myPlateSet.has(normalizePlat(s.no_polisi))) return true;
     // 3. Fallback nama perusahaan customer
     if (myCompanyName && s.nama_customer && s.nama_customer.toLowerCase().trim() === myCompanyName) return true;
+    // 4. Server sudah memfilter per tenant Customer_Fleet via JWT (:sys_user)
+    if (authUser?.role === 'Customer_Fleet') return true;
     return false;
   };
 
@@ -2353,9 +2383,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Kunjungan SERVICE yang sudah check-in tapi SA belum menerbitkan WO.
   // Endpoint sudah memfilter tenant; guard di sini memastikan relasi pelanggan atau armada valid.
   const myKunjunganList = (kunjunganServiceList || []).filter((k) => {
-    if (myPelangganId && k.id_pelanggan === myPelangganId) return true;
+    if (myPelangganId && k.id_pelanggan != null) return k.id_pelanggan === myPelangganId;
     if (k.no_polisi && myPlateSet.has(normalizePlat(k.no_polisi))) return true;
     if (myCompanyName && k.nama_customer && k.nama_customer.toLowerCase().trim() === myCompanyName) return true;
+    if (authUser?.role === 'Customer_Fleet') return true;
     return false;
   });
 
@@ -2521,18 +2552,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, [myKunjunganList, mySpkList, spkPageData, isServiceActive, isMySpk]);
 
   const spkTotalRecords = spkPageData?.pagination?.total_records ?? (spkPageData?.rows?.length ?? 0);
+  const preSpkKunjunganCount = activeUnits.filter((u) => u.sumber === 'kunjungan').length;
   const allSpkTotalRecords =
-    historyStatusFilter === 'semua'
+    historyStatusFilter === 'semua' && !historySearch.trim() && spkPageData?.pagination?.total_records != null
       ? spkTotalRecords
-      : (cachedSemuaTotal ?? spkTotalRecords);
-  const activeHistoryCount = activeUnits.length;
+      : (cachedSemuaTotal ?? dashboardSummary?.total_spk ?? spkTotalRecords);
+  const activeSpkCount =
+    historyStatusFilter === 'sedang-diservis' && !historySearch.trim() && spkPageData?.pagination?.total_records != null
+      ? spkTotalRecords
+      : (cachedAktifTotal ?? dashboardSummary?.sedang_diservis_spk ?? activeUnits.filter((u) => u.sumber === 'spk').length);
+  const activeHistoryCount = activeSpkCount + preSpkKunjunganCount;
   const completedHistoryCount =
-    historyStatusFilter === 'selesai'
+    historyStatusFilter === 'selesai' && !historySearch.trim() && spkPageData?.pagination?.total_records != null
       ? spkTotalRecords
-      : Math.max(0, allSpkTotalRecords - activeUnits.filter((u) => u.sumber === 'spk').length);
+      : (cachedSelesaiTotal ?? dashboardSummary?.selesai_spk ?? Math.max(0, allSpkTotalRecords - activeSpkCount));
   const historyTotalRecords = historyStatusFilter === 'sedang-diservis'
     ? (historySearch.trim() ? spkTotalRecords : activeHistoryCount)
-    : (historyStatusFilter === 'selesai' ? spkTotalRecords : allSpkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length);
+    : (historyStatusFilter === 'selesai' ? (historySearch.trim() ? spkTotalRecords : completedHistoryCount) : allSpkTotalRecords + preSpkKunjunganCount);
   const historyTotalPages = Math.max(1, spkPageData?.pagination?.total_pages ?? 1);
   const historySafePage = Math.min(Math.max(1, historyPage), historyTotalPages);
 
@@ -2577,13 +2613,26 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       setFleetMenu('history');
       return;
     }
-    if (spkList === undefined) return;
     const target = mySpkList.find((s) => s.id === fleetPendingSpkId);
     if (target) {
       setHistoryDetail({ ...target, status_spk: getSpkDynamicStatus(target) as any, sumber: 'spk' });
+      setFleetPendingSpkId(null);
+      return;
     }
-    setFleetPendingSpkId(null);
-  }, [fleetPendingSpkId, fleetMenu, spkList, mySpkList, setFleetMenu, setHistoryDetail, setFleetPendingSpkId]);
+    let cancelled = false;
+    api.getSpkDetail(fleetPendingSpkId)
+      .then((detail) => {
+        if (!cancelled && detail) {
+          setHistoryDetail({ ...detail, status_spk: getSpkDynamicStatus(detail) as any, sumber: 'spk' });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setFleetPendingSpkId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fleetPendingSpkId, fleetMenu, mySpkList, setFleetMenu, setHistoryDetail, setFleetPendingSpkId]);
 
   React.useEffect(() => {
     // Approval hanya relevan untuk SPK; entri check-in-only tidak punya transaksi.
@@ -3073,8 +3122,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // ── DOKUMEN SAYA: Faktur & Bukti Tagihan (dari POS) + Legalitas Armada ─────
   const [dokumenSubTab, setDokumenSubTab] = useState<'faktur' | 'legalitas'>('faktur');
-  const [selectedFakturForPrint, setSelectedFakturForPrint] = useState<InvoicePembayaran | null>(null);
-  const [fakturModalOpen, setFakturModalOpen] = useState(false);
 
   // Server-side paginated Faktur calculation
   const fakturTotalPages = Math.max(1, fakturPageData?.pagination?.total_pages ?? 1);
@@ -3122,6 +3169,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     onSuccess: (_res, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tambahan-pekerjaan'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-active-watch'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-page'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-active-watch'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-page'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       if (variables.status_approval_customer === 'Disetujui') {
         toast.success('Pekerjaan Tambahan Disetujui', 'Mekanik akan segera melanjutkan pengerjaan unit.');
       } else {
@@ -3152,6 +3207,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         old ? old.map((s) => (s.id === spk.id ? { ...s, status_spk: setuju ? 'Estimasi Disetujui' : 'Estimasi Dibuat' } : s)) : old
       );
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-active-watch'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-page'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       window.dispatchEvent(new CustomEvent('kim3:estimasi-decided'));
       if (setuju) {
         realtimeHub.publish({
@@ -3371,6 +3430,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       queryClient.invalidateQueries({ queryKey: ['kendaraan-list'] });
       queryClient.invalidateQueries({ queryKey: ['kendaraan-page'] });
       queryClient.invalidateQueries({ queryKey: ['spk-list'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-active-watch'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-page'] });
+      queryClient.invalidateQueries({ queryKey: ['spk-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['booking-list'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-list'] });
       toast.success('Unit Kendaraan Ditambahkan', `Kendaraan ${plat} berhasil didaftarkan ke sistem.`);
@@ -6181,7 +6244,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               <SpkTrackingDetail
-                spk={historyDetail}
+                spk={historyDetail.sumber === 'kunjungan' || !spkDetailData ? historyDetail : { ...historyDetail, ...spkDetailData, status_spk: historyDetail.status_spk }}
                 isPreSpk={historyDetail.sumber === 'kunjungan'}
                 statusNote={historyDetail.status_keterangan}
                 kendaraanList={kendaraanList || armadaPageData?.rows || (armadaPageData as any)?.data}
