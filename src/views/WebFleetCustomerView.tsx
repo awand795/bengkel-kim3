@@ -5024,7 +5024,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div>
                 <h2 className="text-base font-bold tracking-tight text-ink">Dokumen Saya</h2>
                 <p className="mt-0.5 text-xs text-ink-muted">
-                  Faktur resmi servis & suku cadang dari POS Master Truck, STNK, KIR, dan berkas legalitas armada
+                  Faktur resmi servis & suku cadang dari Master Truck, STNK, KIR, dan berkas legalitas armada
                 </p>
               </div>
               {dokumenSubTab === 'legalitas' && (
@@ -5277,7 +5277,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div>
                     <h3 className="text-sm font-bold text-ink">Belum Ada Faktur</h3>
                     <p className="text-xs text-ink-muted mt-1 max-w-sm mx-auto">
-                      Faktur tagihan servis resmi dari sistem POS Master Truck akan otomatis tercatat dan dapat dicetak di sini setelah pengerjaan servis atau pembelian suku cadang.
+                      Faktur tagihan servis resmi dari Master Truck akan otomatis tercatat dan dapat dicetak di sini setelah pengerjaan servis atau pembelian suku cadang.
                     </p>
                   </div>
                 </div>
