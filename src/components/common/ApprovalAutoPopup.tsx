@@ -25,7 +25,7 @@ export const ApprovalAutoPopup: React.FC = () => {
 
   const { data: spkPageData } = useQuery({
     queryKey: ['spk-approval-watch'],
-    queryFn: () => api.getSpkListPage({ page: 1, limit: 20 }),
+    queryFn: () => api.getSpkListPage({ status_filter: 'approval' }),
     refetchInterval: 8000,
     enabled: isLoggedIn,
   });

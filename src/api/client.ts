@@ -398,7 +398,7 @@ export const api = {
 
   // Kendaraan Saya
   getKendaraan: async (): Promise<Kendaraan[]> =>
-    (await fetchList<Kendaraan>('/mastertruck/kendaraan', { limit: 1000 })).rows,
+    (await fetchList<Kendaraan>('/mastertruck/kendaraan')).rows,
   getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
     fetchList<Kendaraan>('/mastertruck/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
@@ -566,7 +566,7 @@ export const api = {
 
   // Booking Service
   getBooking: async (): Promise<BookingService[]> =>
-    (await fetchList<BookingService>('/mastertruck/booking', { limit: 1000 })).rows,
+    (await fetchList<BookingService>('/mastertruck/booking')).rows,
   getBookingPage: (query: ListQuery = {}): Promise<PaginatedResult<BookingService>> =>
     fetchList<BookingService>('/mastertruck/booking', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahBooking: async (data: Partial<BookingService>): Promise<any> => {
@@ -604,7 +604,7 @@ export const api = {
     };
   },
   getSpkList: async (): Promise<SpkService[]> =>
-    (await fetchList<SpkService>('/mastertruck/spk', { limit: 1000 })).rows,
+    (await fetchList<SpkService>('/mastertruck/spk')).rows,
   getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
     fetchList<SpkService>('/mastertruck/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   getKunjunganService: async (): Promise<KunjunganService[]> =>
@@ -922,7 +922,7 @@ export const api = {
 
   // Notifikasi
   getNotifikasi: async (): Promise<Notifikasi[]> =>
-    (await fetchList<Notifikasi>('/mastertruck/notifikasi', { limit: 100 })).rows,
+    (await fetchList<Notifikasi>('/mastertruck/notifikasi')).rows,
 
   tandaiNotifikasiBaca: async (id: number): Promise<any> => {
     const res = await apiClient.post('/mastertruck/notifikasi-baca', { id });
