@@ -1931,12 +1931,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 5000,
   });
 
-  const { data: spkList } = useQuery({
-    queryKey: ['spk-list'],
-    queryFn: api.getSpkList,
+  const { data: spkActivePageData } = useQuery({
+    queryKey: ['spk-active-watch'],
+    queryFn: () => api.getSpkListPage({ page: 1, limit: 50 }),
     enabled: fleetMenu === 'history' || fleetMenu === 'dokumen' || !!historyDetail || !!fleetPendingSpkId,
     refetchInterval: 15000,
   });
+  const spkList = spkActivePageData?.rows;
 
   // Server-Side Paginated SPK untuk Riwayat Service Penuh
   const {
@@ -2505,11 +2506,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, [myKunjunganList, mySpkList, spkPageData, isServiceActive, isMySpk]);
 
   const spkTotalRecords = spkPageData?.pagination?.total_records ?? (spkPageData?.rows?.length ?? 0);
+  const allSpkTotalRecords =
+    historyStatusFilter === 'semua'
+      ? spkTotalRecords
+      : (spkActivePageData?.pagination?.total_records ?? spkTotalRecords);
   const activeHistoryCount = activeUnits.length;
-  const completedHistoryCount = Math.max(0, spkTotalRecords - activeUnits.filter((u) => u.sumber === 'spk').length);
+  const completedHistoryCount =
+    historyStatusFilter === 'selesai'
+      ? spkTotalRecords
+      : Math.max(0, allSpkTotalRecords - activeUnits.filter((u) => u.sumber === 'spk').length);
   const historyTotalRecords = historyStatusFilter === 'sedang-diservis'
     ? activeHistoryCount
-    : (historyStatusFilter === 'selesai' ? completedHistoryCount : spkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length);
+    : (historyStatusFilter === 'selesai' ? spkTotalRecords : allSpkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length);
   const historyTotalPages = historyStatusFilter === 'sedang-diservis'
     ? Math.max(1, Math.ceil(activeHistoryCount / historyLimit))
     : Math.max(1, spkPageData?.pagination?.total_pages ?? 1);
@@ -5854,7 +5862,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <FilterChips
                   variant="tabs"
                   options={[
-                    { id: 'semua', label: 'Semua', count: spkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length },
+                    { id: 'semua', label: 'Semua', count: allSpkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length },
                     { id: 'sedang-diservis', label: 'Sedang Diservis', count: activeHistoryCount },
                     { id: 'selesai', label: 'Selesai', count: completedHistoryCount },
                   ]}
