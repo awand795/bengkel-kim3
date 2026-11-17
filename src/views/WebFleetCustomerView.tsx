@@ -3550,7 +3550,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/25 text-white text-xs font-semibold mb-2 shadow-2xs">
                 <Truck className="w-3.5 h-3.5 text-white" />
-                Portal Monitoring Fleet KIM 3 Medan
+                Portal Monitoring Fleet Master Truck
               </div>
               <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">Selamat Datang, {currentUser || 'Pelanggan Fleet'}</h1>
               <p className="text-xs text-white/80 mt-1 max-w-xl leading-relaxed font-normal">
@@ -3608,7 +3608,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             <StatCard
               title="Sedang Diservis"
               value={(dashboardSummary?.sedang_diservis_spk ?? 0) + myKunjunganList.length}
-              subtitle="Di Bengkel KIM 3"
+              subtitle="Di Master Truck"
               icon={Wrench}
               badge={(dashboardSummary?.sedang_diservis_spk ?? 0) + myKunjunganList.length > 0 ? 'Aktif' : undefined}
               tone="amber"
@@ -3658,7 +3658,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-ink">Booking Service</h2>
-              <p className="text-xs text-ink-muted">Jadwalkan service kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3</p>
+              <p className="text-xs text-ink-muted">Jadwalkan service kendaraan Anda untuk mendapatkan antrian prioritas di Master Truck</p>
             </div>
             <button
               type="button"
@@ -3864,7 +3864,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 icon={Calendar}
                 variant="card"
                 title="Belum Ada Booking Aktif"
-                description="Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Bengkel KIM 3."
+                description="Jadwalkan kedatangan kendaraan Anda untuk mendapatkan antrian prioritas di Master Truck."
                 action={isVerifiedByAdmin ? {
                   label: '+ Buat Booking Baru',
                   onClick: () => {
@@ -4470,7 +4470,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-xs text-ink">
-                                  {bookingForm.nama_cabang || (masterCabangList[0]?.nama_cabang || 'BENGKEL MASTER TRUK KIM 3')}
+                                  {bookingForm.nama_cabang || (masterCabangList[0]?.nama_cabang || 'BENGKEL MASTER TRUCK')}
                                 </span>
                                 <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 bg-accent/15 text-accent rounded">
                                   {bookingForm.kode_cabang || (masterCabangList[0]?.kode_cabang || 'C01')}
@@ -4546,7 +4546,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             Cabang / Toko
                           </span>
                           <span className="block font-semibold leading-snug text-[#30363C] dark:text-slate-100">
-                            {bookingForm.nama_cabang || 'BENGKEL MASTER TRUK KIM 3'}
+                            {bookingForm.nama_cabang || 'BENGKEL MASTER TRUCK'}
                           </span>
                           <span className="mt-0.5 block text-[11px] font-mono text-accent">
                             Kode: {bookingForm.kode_cabang || 'C01'}
@@ -5024,7 +5024,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               <div>
                 <h2 className="text-base font-bold tracking-tight text-ink">Dokumen Saya</h2>
                 <p className="mt-0.5 text-xs text-ink-muted">
-                  Faktur resmi servis & suku cadang dari POS KIM 3, STNK, KIR, dan berkas legalitas armada
+                  Faktur resmi servis & suku cadang dari POS Master Truck, STNK, KIR, dan berkas legalitas armada
                 </p>
               </div>
               {dokumenSubTab === 'legalitas' && (
@@ -5277,7 +5277,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div>
                     <h3 className="text-sm font-bold text-ink">Belum Ada Faktur</h3>
                     <p className="text-xs text-ink-muted mt-1 max-w-sm mx-auto">
-                      Faktur tagihan servis resmi dari sistem POS KIM 3 akan otomatis tercatat dan dapat dicetak di sini setelah pengerjaan servis atau pembelian suku cadang.
+                      Faktur tagihan servis resmi dari sistem POS Master Truck akan otomatis tercatat dan dapat dicetak di sini setelah pengerjaan servis atau pembelian suku cadang.
                     </p>
                   </div>
                 </div>
@@ -5848,7 +5848,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         <div className="space-y-6">
           <div>
             <h2 className="text-base font-bold text-ink">Riwayat Service</h2>
-            <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Bengkel KIM 3</p>
+            <p className="text-xs text-ink-muted">Seluruh riwayat pengerjaan service unit kendaraan operasional Anda di Master Truck</p>
           </div>
 
           {/* Satu kartu tunggal */}
@@ -6129,7 +6129,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <p className="text-xs text-ink-muted mt-1 max-w-md mx-auto">
                     {historyStatusFilter === 'sedang-diservis'
                       ? 'Saat ini seluruh kendaraan Anda beroperasi prima dan tidak ada unit yang sedang dalam proses pengerjaan di bengkel.'
-                      : 'Seluruh riwayat pengerjaan service kendaraan Anda di Bengkel KIM 3 akan tercatat dan dapat ditinjau di sini.'}
+                      : 'Seluruh riwayat pengerjaan service kendaraan Anda di Master Truck akan tercatat dan dapat ditinjau di sini.'}
                   </p>
                 </div>
               </div>

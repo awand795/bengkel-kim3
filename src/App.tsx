@@ -122,7 +122,7 @@ export const App: React.FC = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-9 h-9 border-3 border-accent/20 border-t-accent rounded-full animate-spin" />
           <div className="text-xs font-semibold text-teal-100/80 tracking-wide">
-            Memverifikasi Sesi Web Fleet Bengkel KIM 3...
+            Memverifikasi Sesi Web Fleet Master Truck...
           </div>
         </div>
       </div>

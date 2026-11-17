@@ -320,7 +320,7 @@ export const AdminPortalView: React.FC<{ initialMenu?: string }> = () => {
       <div className="rounded-xl p-5 sm:p-6 shadow-sm border-0 bg-[#1D4ED8] text-white dark:bg-[#1B42B8]">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/25 text-white text-xs font-semibold mb-2 shadow-2xs">
           <SettingsIcon className="w-3.5 h-3.5 text-white" />
-          <span>Pengaturan Portal Web Fleet KIM 3</span>
+          <span>Pengaturan Portal Web Fleet Master Truck</span>
         </div>
         <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">
           Panel Administrator

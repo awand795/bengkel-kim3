@@ -596,7 +596,7 @@ export const DEFAULT_DASHBOARD_BANNER_HTML = `<div class="mt-fleet-banners-group
   <div class="mt-product-slider-card">
     <div class="slider-header">
       <div class="header-title-group">
-        <span class="header-badge">⭐ Rekomendasi Bengkel KIM 3</span>
+        <span class="header-badge">⭐ Rekomendasi Master Truck</span>
         <h4 class="slider-title">Paket Servis Hemat &amp; Sparepart Pilihan</h4>
         <p class="slider-subtitle">Geser ke kanan untuk menjelajahi promo paket armada &amp; suku cadang fast-moving</p>
       </div>
