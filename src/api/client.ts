@@ -398,11 +398,7 @@ export const api = {
 
   // Kendaraan Saya
   getKendaraan: async (): Promise<Kendaraan[]> =>
-<<<<<<< HEAD
-    (await fetchList<Kendaraan>('/kim3/kendaraan', { limit: 1000 })).rows,
-=======
     (await fetchList<Kendaraan>('/kim3/kendaraan')).rows,
->>>>>>> main
   getKendaraanPage: (query: ListQuery = {}): Promise<PaginatedResult<Kendaraan>> =>
     fetchList<Kendaraan>('/kim3/kendaraan', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahKendaraan: async (data: Partial<Kendaraan>): Promise<any> => {
@@ -570,11 +566,7 @@ export const api = {
 
   // Booking Service
   getBooking: async (): Promise<BookingService[]> =>
-<<<<<<< HEAD
-    (await fetchList<BookingService>('/kim3/booking', { limit: 1000 })).rows,
-=======
     (await fetchList<BookingService>('/kim3/booking')).rows,
->>>>>>> main
   getBookingPage: (query: ListQuery = {}): Promise<PaginatedResult<BookingService>> =>
     fetchList<BookingService>('/kim3/booking', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   tambahBooking: async (data: Partial<BookingService>): Promise<any> => {
@@ -612,11 +604,7 @@ export const api = {
     };
   },
   getSpkList: async (): Promise<SpkService[]> =>
-<<<<<<< HEAD
-    (await fetchList<SpkService>('/kim3/spk', { limit: 1000 })).rows,
-=======
     (await fetchList<SpkService>('/kim3/spk')).rows,
->>>>>>> main
   getSpkListPage: (query: ListQuery = {}): Promise<PaginatedResult<SpkService>> =>
     fetchList<SpkService>('/kim3/spk', { limit: DEFAULT_PAGE_LIMIT, ...query }),
   getKunjunganService: async (): Promise<KunjunganService[]> =>
@@ -934,11 +922,7 @@ export const api = {
 
   // Notifikasi
   getNotifikasi: async (): Promise<Notifikasi[]> =>
-<<<<<<< HEAD
-    (await fetchList<Notifikasi>('/kim3/notifikasi', { limit: 100 })).rows,
-=======
     (await fetchList<Notifikasi>('/kim3/notifikasi')).rows,
->>>>>>> main
 
   tandaiNotifikasiBaca: async (id: number): Promise<any> => {
     const res = await apiClient.post('/kim3/notifikasi-baca', { id });
