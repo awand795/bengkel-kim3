@@ -5487,7 +5487,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         const cleanName = companyName.replace(/^(PT|CV|UD|PT\.|CV\.|UD\.)\s+/i, '').trim();
         const parts = cleanName.split(' ').filter(Boolean);
         const companyInitials = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : cleanName.slice(0, 2).toUpperCase() || 'MF';
-        const custIdFormatted = `KIM3-CUST-${String(myPelangganId || authUser?.id_pelanggan || authUser?.id || 1).padStart(4, '0')}`;
 
         return (
           <div className="max-w-4xl mx-auto space-y-5">
@@ -5600,15 +5599,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                         {isPerusahaanAccount ? 'Nama Perusahaan / Entitas:' : 'Nama Lengkap:'}
                       </span>
                       <span className="text-sm font-bold text-ink block">{companyName}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-[11px] font-medium text-ink-muted block mb-0.5">
-                        {isPerusahaanAccount ? 'ID Pelanggan / Kemitraan:' : 'ID Pelanggan:'}
-                      </span>
-                      <span className="font-mono font-bold text-accent text-xs bg-accent-subtle/50 px-2 py-0.5 rounded border border-accent/20 inline-block">
-                        {custIdFormatted}
-                      </span>
                     </div>
 
                     <div>
