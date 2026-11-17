@@ -1938,20 +1938,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     refetchInterval: 15000,
   });
 
-  const effectiveSpkQuery = historyStatusFilter === 'selesai' && !historySearch.trim()
-    ? 'Selesai'
-    : historySearch;
-
   // Server-Side Paginated SPK untuk Riwayat Service Penuh
   const {
     data: spkPageData,
     isLoading: spkPageLoading,
     isFetching: spkPageFetching,
   } = useQuery({
-    queryKey: ['spk-page', historyPage, historyLimit, effectiveSpkQuery],
-    queryFn: () => api.getSpkListPage({ page: historyPage, limit: historyLimit, q: effectiveSpkQuery }),
+    queryKey: ['spk-page', historyStatusFilter, historyPage, historyLimit, historySearch],
+    queryFn: () =>
+      api.getSpkListPage({
+        page: historyPage,
+        limit: historyLimit,
+        q: historySearch,
+        ...(historyStatusFilter === 'selesai' ? { status_filter: 'selesai' } : {}),
+      }),
     enabled: fleetMenu === 'dokumen' || fleetMenu === 'history',
-    placeholderData: (prev) => prev,
+    placeholderData: (prev, prevQuery) =>
+      prevQuery?.queryKey?.[1] === historyStatusFilter ? prev : undefined,
     refetchInterval: 15000,
   });
 
@@ -2526,7 +2529,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }));
 
     if (historyStatusFilter === 'selesai') {
-      return rawRows.filter((r) => !isServiceActive(r));
+      return rawRows;
     }
 
     if (historySafePage === 1 && !historySearch.trim() && historyStatusFilter === 'semua' && activeUnits.length > 0) {
