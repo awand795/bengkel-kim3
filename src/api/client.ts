@@ -1015,8 +1015,13 @@ export const api = {
       const allBookings = await api.getBooking();
       return allBookings
         .filter((b) => {
-          // Hanya tampilkan reservasi yang CONFIRMED dari POS di daftar booking security
-          const isConfirmed = b.status === 'Confirmed' || b.status_pos === 'CONFIRMED' || Boolean(b.is_confirmed);
+          // Tampilkan reservasi yang CONFIRMED atau RESCHEDULED dari POS di daftar booking security
+          const isConfirmed =
+            b.status === 'Confirmed' ||
+            b.status === 'Rescheduled' ||
+            b.status_pos === 'CONFIRMED' ||
+            b.status_pos === 'RESCHEDULED' ||
+            Boolean(b.is_confirmed);
           if (!isConfirmed) return false;
           if (b.status === 'Dibatalkan' || b.status === 'Booking Canceled' || b.is_canceled) return false;
           // Booking yang sudah masuk/keluar gerbang tidak boleh muncul lagi di daftar booking.

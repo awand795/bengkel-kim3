@@ -2803,8 +2803,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN' || isBookingCheckedIn(b)) return 'Check In';
     // PENTING: Jika jadwal sudah lewat dari sekarang dan belum dikerjakan / check-in -> Otomatis Batal (Expired)
     if (isBookingPast(b)) return 'Booking Canceled';
+    const hasScheduleShift =
+      Boolean(b.tanggal_booking_awal) &&
+      (b.tanggal_booking_awal !== b.tanggal_booking || (Boolean(b.jam_booking_awal) && b.jam_booking_awal !== b.jam_booking));
+    if (rawStatus === 'Rescheduled' || b.status_pos === 'RESCHEDULED' || hasScheduleShift) return 'Rescheduled';
     if (rawStatus === 'Confirmed' || b.status_pos === 'CONFIRMED' || b.is_confirmed) return 'Confirmed';
-    if (rawStatus === 'Rescheduled' || b.status_pos === 'RESCHEDULED') return 'Rescheduled';
     if (rawStatus === 'Menunggu Konfirmasi' || (!b.is_confirmed && !b.status_pos)) return 'Menunggu Konfirmasi';
     return rawStatus || 'Booked';
   }, [isBookingCheckedIn, isBookingPast]);
