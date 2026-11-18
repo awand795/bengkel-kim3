@@ -308,7 +308,7 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             state={serviceTimeline.penerimaan}
             isLast={isLastStage('penerimaan')}
             title="Penerimaan & Cek Awal oleh SA"
-            time={fmtWaktuFull(spk.waktu_check_in || spk.created_at) || '-'}
+            time={fmtWaktuFull(spk.waktu_penerimaan_sa || spk.created_at || spk.waktu_check_in) || '-'}
             rows={[
               { label: 'Service Advisor', value: spk.nama_sa || '-' },
               {
@@ -366,7 +366,9 @@ export const ServiceActivityTimeline: React.FC<ServiceActivityTimelineProps> = (
             isLast={isLastStage('wo')}
             title="Pengecekan Mekanik & Penerbitan WO"
             time={
-              spk.waktu_mulai_pekerjaan
+              spk.created_at
+                ? fmtWaktuFull(spk.created_at)
+                : spk.waktu_mulai_pekerjaan
                 ? fmtWaktuFull(spk.waktu_mulai_pekerjaan)
                 : spk.waktu_check_in
                 ? fmtWaktuFull(spk.waktu_check_in)

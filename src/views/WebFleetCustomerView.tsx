@@ -31,6 +31,7 @@ import { PlateChip } from '../components/common/PlateChip';
 import { RupiahCell } from '../components/common/RupiahCell';
 import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
 import { MultiSlideBanner } from '../components/common/MultiSlideBanner';
+import { computeFakturCalculation, fmtRpExact, formatDiscDetail } from '../utils/fakturHelper';
 import { 
   Truck, 
   Calendar, 
@@ -1010,28 +1011,23 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
 
                 {/* TAB 2: Detail Pekerjaan & Sparepart */}
                 {subTab === 'detail' && (() => {
-                  const totalJasa = activePekerjaan.reduce((acc, p) => acc + Number(p.biaya_jasa || 0), 0);
-                  const totalParts = activeParts.reduce((acc, pt) => acc + Number(pt.subtotal || (Number(pt.harga_satuan || 0) * Number(pt.jumlah || 1)) || 0), 0);
-                  const subtotalItems = totalJasa + totalParts;
-                  const invSubtotal = activeInvoice ? Number(activeInvoice.subtotal || 0) : 0;
-                  const diskon = activeInvoice ? Number(activeInvoice.diskon || 0) : 0;
-                  const dppBase = invSubtotal > 0 ? Math.max(0, invSubtotal - diskon) : (subtotalItems > 0 ? subtotalItems : Number(spk.estimasi_biaya || 0));
-                  const tipePajak = String(activeInvoice?.tipe_pajak || '').toUpperCase();
-                  const hasTarif = activeInvoice?.tarif_ppn_persen != null && !isNaN(Number(activeInvoice.tarif_ppn_persen));
-                  const tarifPpn = hasTarif ? Number(activeInvoice!.tarif_ppn_persen) : 11;
-                  const ppnNominal = activeInvoice
-                    ? Number(activeInvoice.ppn_nominal || 0)
-                    : (Number(spk.total_invoice || 0) > dppBase ? Number(spk.total_invoice) - dppBase : 0);
-                  const grandTotal = activeInvoice && Number(activeInvoice.grand_total || 0) > 0
-                    ? Number(activeInvoice.grand_total)
-                    : Number(spk.total_invoice || 0) > 0
-                      ? Number(spk.total_invoice)
-                      : dppBase + ppnNominal;
-                  const ppnLabel = tipePajak === 'I'
-                    ? `PPN (${tarifPpn}%) (Include)`
-                    : tipePajak === 'N'
-                      ? 'PPN (Non-PKP)'
-                      : `PPN (${tarifPpn}%) (Exclude)`;
+                  const {
+                    jasaRows,
+                    partRows,
+                    subtotalJasaNetto,
+                    subtotalPartNetto,
+                    totalDiskonItemsInclPpn,
+                    totalHargaJualTampil,
+                    ekstraDiskon,
+                    grandTotal,
+                  } = computeFakturCalculation({
+                    invoice: activeInvoice,
+                    pekerjaanList: activePekerjaan,
+                    partList: activeParts,
+                    defaultPpnRate: ppnRate ?? 11,
+                    isProforma: !activeInvoice && !spk.no_invoice,
+                    fallbackEstimasiTotal: Number(spk.total_invoice || spk.estimasi_biaya || 0),
+                  });
 
                   return (
                   <div className="space-y-4 pt-1 text-xs">
@@ -1040,32 +1036,37 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
                         <span>Daftar Pekerjaan / Jasa Service</span>
                         <span className="text-xs text-ink-muted font-normal">
-                          {activePekerjaan.length > 0 ? `${activePekerjaan.length} Item Jasa` : 'Estimasi Paket'}
+                          {jasaRows.length > 0 ? `${jasaRows.length} Item Jasa` : 'Estimasi Paket'}
                         </span>
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
-                        {activePekerjaan.length > 0 ? (
-                          activePekerjaan.map((p, idx) => {
-                            const qty = Number(p.qty || 1);
-                            const hargaSatuan = Number(p.harga_satuan || 0) > 0
-                              ? Number(p.harga_satuan)
-                              : (qty > 0 ? Number(p.biaya_jasa || 0) / qty : Number(p.biaya_jasa || 0));
-                            const subtotalJasa = Number(p.biaya_jasa || 0);
-                            return (
-                              <div key={idx} className="p-3 flex justify-between items-center gap-3">
-                                <div className="min-w-0">
-                                  <div className="font-semibold text-ink">{p.nama_pekerjaan || p.kategori}</div>
-                                  <div className="text-xs text-ink-subtle tabular-nums">
-                                    {qty} × Rp {hargaSatuan.toLocaleString('id-ID')} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
+                        {jasaRows.length > 0 ? (
+                          jasaRows.map(({ item: p, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                            <div key={idx} className="p-3 flex justify-between items-center gap-3">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-ink">
+                                  {p.nama_pekerjaan || p.kategori}
+                                  {p.kode_pekerjaan && (
+                                    <span className="ml-1.5 text-[10px] text-ink-subtle font-mono">
+                                      ({p.kode_pekerjaan})
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-ink-subtle tabular-nums">
+                                  {qty} × Rp {fmtRpExact(hargaSatuanTampil)} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
+                                </div>
+                                {diskonInclPpn > 0 && (
+                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums">
+                                    Diskon: {formatDiscDetail(p.disc1, p.disc2, p.disc3, diskonInclPpn)}
                                   </div>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <div className="font-bold text-ink tabular-nums">Rp {subtotalJasa.toLocaleString('id-ID')}</div>
-                                  <span className="text-xs text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
-                                </div>
+                                )}
                               </div>
-                            );
-                          })
+                              <div className="text-right shrink-0">
+                                <div className="font-bold text-ink tabular-nums">Rp {fmtRpExact(nettoItem)}</div>
+                                <span className="text-xs text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
+                              </div>
+                            </div>
+                          ))
                         ) : (
                           <div className="p-4 text-center text-xs text-ink-subtle">
                             Belum ada rincian jasa pengerjaan untuk unit ini.
@@ -1079,30 +1080,37 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
                         <span>Daftar Sparepart & Material</span>
                         <span className="text-xs text-ink-muted font-normal">
-                          {activeParts.length > 0 ? `${activeParts.length} Item Part` : '0 Item Part'}
+                          {partRows.length > 0 ? `${partRows.length} Item Part` : '0 Item Part'}
                         </span>
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
-                        {activeParts.length > 0 ? (
-                          activeParts.map((pt, idx) => {
-                            const qty = Number(pt.jumlah || 1);
-                            const hargaSatuan = Number(pt.harga_satuan || 0);
-                            const subtotalPart = Number(pt.subtotal || (hargaSatuan * qty) || 0);
-                            return (
-                              <div key={idx} className="p-3 flex justify-between items-center gap-3">
-                                <div className="min-w-0">
-                                  <div className="font-semibold text-ink">{pt.nama_part}</div>
-                                  <div className="text-xs text-ink-subtle tabular-nums">
-                                    {qty} {pt.satuan || 'Pcs'} × Rp {hargaSatuan.toLocaleString('id-ID')}
+                        {partRows.length > 0 ? (
+                          partRows.map(({ part: pt, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                            <div key={idx} className="p-3 flex justify-between items-center gap-3">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-ink">
+                                  {pt.nama_part}
+                                  {pt.kode_part && (
+                                    <span className="ml-1.5 text-[10px] text-ink-subtle font-mono">
+                                      ({pt.kode_part})
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-ink-subtle tabular-nums">
+                                  {qty} {pt.satuan || 'Pcs'} × Rp {fmtRpExact(hargaSatuanTampil)}
+                                </div>
+                                {diskonInclPpn > 0 && (
+                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums">
+                                    Diskon: {formatDiscDetail(pt.disc1, pt.disc2, pt.disc3, diskonInclPpn)}
                                   </div>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <div className="font-bold text-ink tabular-nums">Rp {subtotalPart.toLocaleString('id-ID')}</div>
-                                  <span className="text-xs text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
-                                </div>
+                                )}
                               </div>
-                            );
-                          })
+                              <div className="text-right shrink-0">
+                                <div className="font-bold text-ink tabular-nums">Rp {fmtRpExact(nettoItem)}</div>
+                                <span className="text-xs text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
+                              </div>
+                            </div>
+                          ))
                         ) : (
                           <div className="p-4 text-center text-xs text-ink-subtle">
                             Belum ada rincian sparepart untuk unit ini.
@@ -1111,8 +1119,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                     </div>
 
-                    {/* Ringkasan Rincian Biaya & Pajak (Sesuai Faktur ERP) */}
-                    {(activePekerjaan.length > 0 || activeParts.length > 0 || grandTotal > 0) && (
+                    {/* Ringkasan Rincian Biaya & Pajak (Selaras Faktur POS) */}
+                    {(jasaRows.length > 0 || partRows.length > 0 || grandTotal > 0) && (
                       <div className="border border-border rounded-xl overflow-hidden bg-surface-raised">
                         <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center border-b border-border">
                           <span>Ringkasan Biaya & Pajak</span>
@@ -1123,31 +1131,34 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         <div className="p-4 space-y-2 text-xs">
                           <div className="flex justify-between text-ink-muted">
                             <span>Subtotal Pekerjaan / Jasa</span>
-                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {totalJasa.toLocaleString('id-ID')}</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {fmtRpExact(subtotalJasaNetto)}</span>
                           </div>
                           <div className="flex justify-between text-ink-muted">
                             <span>Subtotal Sparepart & Material</span>
-                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {totalParts.toLocaleString('id-ID')}</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {fmtRpExact(subtotalPartNetto)}</span>
                           </div>
-                          {diskon > 0 && (
-                            <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
-                              <span>Diskon</span>
-                              <span className="font-mono font-semibold tabular-nums">- Rp {diskon.toLocaleString('id-ID')}</span>
+                          <div className="flex justify-between text-ink-muted pt-1.5 border-t border-dashed border-border">
+                            <span>Total Harga Jual</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {fmtRpExact(totalHargaJualTampil)}</span>
+                          </div>
+                          {totalDiskonItemsInclPpn > 0 && (
+                            <div className="flex justify-between text-rose-600 dark:text-rose-400">
+                              <span>Diskon Item (Sudah Dipotong)</span>
+                              <span className="font-mono font-semibold tabular-nums">- Rp {fmtRpExact(totalDiskonItemsInclPpn)}</span>
                             </div>
                           )}
-                          <div className="flex justify-between text-ink-muted pt-1.5 border-t border-dashed border-border">
-                            <span>Subtotal (DPP)</span>
-                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {dppBase.toLocaleString('id-ID')}</span>
-                          </div>
-                          {(ppnNominal > 0 || activeInvoice) && (
-                            <div className="flex justify-between text-ink-muted">
-                              <span>{ppnLabel}</span>
-                              <span className="font-mono font-semibold text-ink tabular-nums">Rp {ppnNominal.toLocaleString('id-ID')}</span>
+                          {ekstraDiskon > 0 && (
+                            <div className="flex justify-between text-rose-600 dark:text-rose-400">
+                              <span>Ekstra Diskon</span>
+                              <span className="font-mono font-semibold tabular-nums">- Rp {fmtRpExact(ekstraDiskon)}</span>
                             </div>
                           )}
                           <div className="flex justify-between items-center pt-2 border-t border-border text-sm font-extrabold text-[#12388F] dark:text-blue-300">
                             <span>{activeInvoice || spk.no_invoice ? 'Total Tagihan (Grand Total)' : 'Total Estimasi'}</span>
-                            <span className="font-mono tabular-nums">Rp {grandTotal.toLocaleString('id-ID')}</span>
+                            <span className="font-mono tabular-nums">Rp {fmtRpExact(grandTotal)}</span>
+                          </div>
+                          <div className="text-[11px] text-ink-subtle text-right pt-1">
+                            <div className="italic font-medium">*Harga sudah termasuk PPN</div>
                           </div>
                         </div>
                       </div>
@@ -1525,8 +1536,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
           id: spk.id,
           no_invoice: spk.no_invoice || `EST-${spk.no_spk}`,
           id_spk: spk.id,
+          no_spk: spk.no_spk,
           no_polisi: spk.no_polisi,
           nama_customer: spk.nama_customer,
+          nama_mekanik: spk.nama_mekanik,
           tanggal_invoice: spk.waktu_invoice || spk.waktu_fir_closed || spk.created_at || new Date().toISOString(),
           subtotal: Number(spk.estimasi_biaya || 0),
           ppn_nominal: 0,
@@ -1822,13 +1835,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Sinkronkan Fullscreen Detail Riwayat Service dengan browser history agar tombol Back di HP menutup detail (bukan keluar app)
   const historyDetailPushedRef = React.useRef(false);
   const closeHistoryDetail = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['spk-page'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['kunjungan-service-list'] });
     if (historyDetailPushedRef.current && window.history.state?.kim3HistoryDetail) {
       window.history.back();
     } else {
       historyDetailPushedRef.current = false;
       setHistoryDetail(null);
     }
-  }, []);
+  }, [queryClient]);
 
   React.useEffect(() => {
     if (!historyDetail) {
@@ -1880,7 +1896,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const { data: dashboardSummary, isLoading: isLoadingSummary } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: api.getDashboardSummary,
-    refetchInterval: 15000,
+    enabled:
+      fleetMenu === 'dashboard' ||
+      fleetMenu === 'history' ||
+      fleetMenu === 'kendaraan',
+    refetchInterval:
+      !historyDetail && !fakturModalOpen && (fleetMenu === 'dashboard' || fleetMenu === 'history')
+        ? 15000
+        : false,
   });
 
   const { data: kendaraanList } = useQuery({
@@ -1891,8 +1914,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       fleetMenu === 'dokumen' ||
       openBookingModal ||
       !!historyDetail,
-    // Segarkan agar status di_bengkel (dari pos gerbang) cepat ter-update
-    refetchInterval: 30000,
+    // Segarkan on-demand agar status di_bengkel (dari pos gerbang) cepat ter-update
+    refetchInterval:
+      !historyDetail && !fakturModalOpen && (fleetMenu === 'booking' || openBookingModal)
+        ? 30000
+        : false,
   });
 
   const { data: masterMerkList = [] } = useQuery({
@@ -1933,7 +1959,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryKey: ['booking-list'],
     queryFn: api.getBooking,
     enabled: fleetMenu === 'booking' || openBookingModal,
-    refetchInterval: 5000,
+    refetchInterval:
+      !historyDetail && !fakturModalOpen && (fleetMenu === 'booking' || openBookingModal)
+        ? 5000
+        : false,
   });
 
   const activeDetailSpkId = historyDetail && historyDetail.sumber !== 'kunjungan' ? historyDetail.id : null;
@@ -1946,9 +1975,13 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     enabled:
       fleetMenu === 'booking' ||
       fleetMenu === 'kendaraan' ||
-      fleetMenu === 'dokumen' ||
       !!fleetPendingSpkId,
-    refetchInterval: 15000,
+    refetchInterval:
+      !historyDetail &&
+      !fakturModalOpen &&
+      (fleetMenu === 'booking' || fleetMenu === 'kendaraan' || !!fleetPendingSpkId)
+        ? 15000
+        : false,
   });
   const spkList = spkActivePageData?.rows;
   const [cachedSemuaTotal, setCachedSemuaTotal] = useState<number | null>(null);
@@ -1973,17 +2006,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
             ? { status_filter: 'aktif' }
             : {}),
       }),
-    enabled: fleetMenu === 'dokumen' || fleetMenu === 'history',
+    enabled: fleetMenu === 'history',
     placeholderData: (prev, prevQuery) =>
       prevQuery?.queryKey?.[1] === historyStatusFilter ? prev : undefined,
-    refetchInterval: 15000,
+    refetchInterval: !historyDetail && !fakturModalOpen && fleetMenu === 'history' ? 15000 : false,
   });
 
-  // Detail lengkap 1 SPK (vw_spk_daily_report, foto, checklist, mekanik) hanya diambil saat modal Detail dibuka
+  // Detail lengkap 1 SPK (vw_spk_daily_report, foto, checklist, mekanik) hanya diambil & dipolling saat modal Detail dibuka
   const { data: spkDetailData } = useQuery({
     queryKey: ['spk-detail', activeDetailSpkId],
     queryFn: () => api.getSpkDetail(activeDetailSpkId!),
     enabled: activeDetailSpkId != null,
+    refetchInterval: activeDetailSpkId != null && !fakturModalOpen ? 5000 : false,
   });
 
   React.useEffect(() => {
@@ -2023,7 +2057,18 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       fleetMenu === 'booking' ||
       openBookingModal ||
       !!historyDetail,
-    refetchInterval: 8000,
+    refetchInterval:
+      !fakturModalOpen && historyDetail?.sumber === 'kunjungan'
+        ? 5000
+        : !historyDetail &&
+            !fakturModalOpen &&
+            (fleetMenu === 'dashboard' ||
+              fleetMenu === 'history' ||
+              fleetMenu === 'kendaraan' ||
+              fleetMenu === 'booking' ||
+              openBookingModal)
+          ? 8000
+          : false,
   });
 
   const { data: dokumenList, isLoading: isLoadingDokumen } = useQuery({
@@ -2036,28 +2081,28 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryKey: ['tambahan-pekerjaan', activeDetailSpkId],
     queryFn: () => api.getTambahanPekerjaan({ id_spk: activeDetailSpkId! }),
     enabled: activeDetailSpkId != null,
-    refetchInterval: activeDetailSpkId != null ? 10000 : false,
+    refetchInterval: activeDetailSpkId != null && !fakturModalOpen ? 5000 : false,
   });
 
   const { data: purchasingList } = useQuery({
     queryKey: ['purchasing-list', activeDetailSpkId],
     queryFn: () => api.getPurchasingList({ id_spk: activeDetailSpkId! }),
     enabled: activeDetailSpkId != null,
-    refetchInterval: activeDetailSpkId != null ? 10000 : false,
+    refetchInterval: activeDetailSpkId != null && !fakturModalOpen ? 5000 : false,
   });
 
   const { data: pekerjaanList } = useQuery({
     queryKey: ['pekerjaan-spk-list', activeItemsSpkId],
     queryFn: () => api.getPekerjaanSpk({ id_spk: activeItemsSpkId! }),
     enabled: activeItemsSpkId != null,
-    refetchInterval: activeItemsSpkId != null ? 10000 : false,
+    refetchInterval: activeItemsSpkId != null && !fakturModalOpen ? 5000 : false,
   });
 
   const { data: partSpkList } = useQuery({
     queryKey: ['part-spk-list', activeItemsSpkId],
     queryFn: () => api.getPartSpk({ id_spk: activeItemsSpkId! }),
     enabled: activeItemsSpkId != null,
-    refetchInterval: activeItemsSpkId != null ? 10000 : false,
+    refetchInterval: activeItemsSpkId != null && !fakturModalOpen ? 5000 : false,
   });
 
   // Faktur milik SPK yang sedang dibuka detailnya
@@ -2065,7 +2110,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryKey: ['invoice-list', activeDetailSpkId],
     queryFn: () => api.getInvoiceListPage({ id_spk: activeDetailSpkId! }),
     enabled: activeDetailSpkId != null,
-    refetchInterval: activeDetailSpkId != null ? 15000 : false,
+    refetchInterval: activeDetailSpkId != null && !fakturModalOpen ? 5000 : false,
   });
   const invoiceList = invoiceDetailPageData?.rows;
 
@@ -2082,9 +2127,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         limit: fakturLimit,
         q: fakturSearch || (fakturFilterPlat ? normalizePlat(fakturFilterPlat) : undefined),
       }),
-    enabled: fleetMenu === 'dokumen' || fleetMenu === 'history',
+    enabled: fleetMenu === 'dokumen',
     placeholderData: (prev) => prev,
-    refetchInterval: 15000,
+    refetchInterval: !historyDetail && !fakturModalOpen && fleetMenu === 'dokumen' ? 15000 : false,
   });
 
   // Daftar kendaraan per halaman di modal Booking (server-side pagination + search, tanpa limit hardcoded)
@@ -2097,7 +2142,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     queryFn: () => api.getKendaraanPage({ page: bookingKendaraanPage, limit: bookingKendaraanLimit, q: bookingKendaraanQuery }),
     enabled: openBookingModal,
     placeholderData: (prev) => prev,
-    refetchInterval: 30000,
+    refetchInterval: !historyDetail && !fakturModalOpen && openBookingModal ? 30000 : false,
   });
 
   // Daftar kendaraan per halaman (server-side pagination + search)
@@ -2111,7 +2156,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     enabled: fleetMenu === 'kendaraan',
     placeholderData: (prev) => prev,
     // Status di_bengkel bisa berubah kapan saja dari pos gerbang
-    refetchInterval: 30000,
+    refetchInterval: !historyDetail && !fakturModalOpen && fleetMenu === 'kendaraan' ? 30000 : false,
   });
 
   React.useEffect(() => {
@@ -2769,8 +2814,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN' || isBookingCheckedIn(b)) return 'Check In';
     // PENTING: Jika jadwal sudah lewat dari sekarang dan belum dikerjakan / check-in -> Otomatis Batal (Expired)
     if (isBookingPast(b)) return 'Booking Canceled';
+    const hasScheduleShift =
+      Boolean(b.tanggal_booking_awal) &&
+      (b.tanggal_booking_awal !== b.tanggal_booking || (Boolean(b.jam_booking_awal) && b.jam_booking_awal !== b.jam_booking));
+    if (rawStatus === 'Rescheduled' || b.status_pos === 'RESCHEDULED' || hasScheduleShift) return 'Rescheduled';
     if (rawStatus === 'Confirmed' || b.status_pos === 'CONFIRMED' || b.is_confirmed) return 'Confirmed';
-    if (rawStatus === 'Rescheduled' || b.status_pos === 'RESCHEDULED') return 'Rescheduled';
     if (rawStatus === 'Menunggu Konfirmasi' || (!b.is_confirmed && !b.status_pos)) return 'Menunggu Konfirmasi';
     return rawStatus || 'Booked';
   }, [isBookingCheckedIn, isBookingPast]);
@@ -2811,10 +2859,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, []);
 
   // Aturan cancel booking:
-  // - Boleh dibatalkan customer kapan saja SELAMA belum dikonfirmasi admin bengkel (Confirmed) dan belum check-in.
-  // - Jika status Confirmed, tombol cancel terkunci permanen.
+  // - Boleh dibatalkan customer kapan saja SELAMA belum dikonfirmasi / dijadwalkan ulang admin bengkel dan belum check-in.
+  // - Jika status Confirmed atau Rescheduled, tombol cancel terkunci (disabled) dan customer diarahkan menghubungi Admin Bengkel.
   // - Jika sudah lewat tanggal sekarang dan belum dikerjakan, booking otomatis berstatus Batal.
-  const getCancelState = (b: BookingService): { allowed: boolean; reason: string } => {
+  const getCancelState = (b: BookingService): { allowed: boolean; reason: string; isLockedByAdmin?: boolean } => {
     if (b.status === 'Booking Canceled' || b.status === 'Dibatalkan' || b.is_canceled || b.status_pos === 'CANCELED') {
       return { allowed: false, reason: 'Booking sudah dibatalkan.' };
     }
@@ -2822,8 +2870,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (isCheckedIn) {
       return { allowed: false, reason: 'Kendaraan sudah di-check in / sedang dikerjakan di bengkel.' };
     }
-    if (b.status === 'Confirmed' || b.status_pos === 'CONFIRMED' || b.is_confirmed) {
-      return { allowed: false, reason: 'Booking telah dikonfirmasi oleh Admin Bengkel dan tidak dapat dibatalkan.' };
+    const effStatus = getBookingEffectiveStatus(b);
+    if (
+      effStatus === 'Confirmed' ||
+      effStatus === 'Rescheduled' ||
+      b.status === 'Confirmed' ||
+      b.status === 'Rescheduled' ||
+      b.status_pos === 'CONFIRMED' ||
+      b.status_pos === 'RESCHEDULED' ||
+      b.is_confirmed
+    ) {
+      return {
+        allowed: false,
+        isLockedByAdmin: true,
+        reason:
+          effStatus === 'Rescheduled' || b.status_pos === 'RESCHEDULED'
+            ? 'Jadwal telah dijadwalkan ulang oleh bengkel dan tidak dapat dibatalkan mandiri. Apabila jadwal belum sesuai, silakan hubungi Admin Bengkel.'
+            : 'Jadwal telah dikonfirmasi oleh bengkel dan tidak dapat dibatalkan mandiri. Apabila jadwal belum sesuai, silakan hubungi Admin Bengkel.',
+      };
     }
     if (isBookingPast(b)) {
       return { allowed: false, reason: 'Jadwal booking sudah lewat dari hari ini (batal otomatis).' };
@@ -2967,9 +3031,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Target konfirmasi pembatalan booking (pengganti window.confirm)
   const [cancelBookingTarget, setCancelBookingTarget] = useState<BookingService | null>(null);
 
-  // Tombol Batalkan Booking (dipakai di Dashboard & seksi Booking Saya).
-  // Terkunci bila aturan H-10 menit / status tidak memungkinkan.
-  const BookingCancelButton = ({ b, compact = false }: { b: BookingService; compact?: boolean }) => {
+  // Tombol Batalkan Booking (dipakai di seksi Booking Saya).
+  // Terkunci (disabled) bila sudah Confirmed / Rescheduled / check-in / kedaluwarsa.
+  const BookingCancelButton = ({
+    b,
+    compact = false,
+    alignRight = false,
+  }: {
+    b: BookingService;
+    compact?: boolean;
+    alignRight?: boolean;
+  }) => {
     const effStatus = getBookingEffectiveStatus(b);
     const isPast = isBookingPast(b) && !isBookingCheckedIn(b);
     if (effStatus === 'Booking Canceled' || effStatus === ('Dibatalkan' as any) || isPast) {
@@ -2989,35 +3061,35 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </span>
       );
     }
-    if (effStatus === 'Confirmed' || b.is_confirmed || b.status_pos === 'CONFIRMED') {
-      return (
-        <span
-          title="Booking telah dikonfirmasi oleh Admin Bengkel dan jadwal telah dikunci."
-          className="text-xs px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-bold inline-flex items-center gap-1"
-        >
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Dikonfirmasi</span>
-        </span>
-      );
-    }
     const st = getCancelState(b);
     const isDisabled = !st.allowed || batalkanBookingMutation.isPending;
     const tooltipText = st.allowed ? 'Batalkan booking ini' : st.reason;
 
     if (isDisabled) {
       return (
-        <span title={tooltipText} className="inline-block">
-          <button
-            type="button"
-            disabled
-            className={`${
-              compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'
-            } rounded-xl font-bold border border-[#E2E8F0] dark:border-slate-700 bg-surface dark:bg-slate-800 text-[#94A3B8] dark:text-slate-500 cursor-not-allowed inline-flex items-center gap-1.5`}
-          >
-            <Lock className="w-3 h-3 text-[#94A3B8] dark:text-slate-500" />
-            <span>Batalkan</span>
-          </button>
-        </span>
+        <div className={alignRight ? 'flex flex-col items-end' : 'flex flex-col items-start'}>
+          <span title={tooltipText} className="inline-block">
+            <button
+              type="button"
+              disabled
+              className={`${
+                compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'
+              } rounded-xl font-bold border border-[#E2E8F0] dark:border-slate-700 bg-surface dark:bg-slate-800 text-[#94A3B8] dark:text-slate-500 cursor-not-allowed inline-flex items-center gap-1.5 opacity-75`}
+            >
+              <Lock className="w-3 h-3 text-[#94A3B8] dark:text-slate-500" />
+              <span>Batalkan</span>
+            </button>
+          </span>
+          {st.isLockedByAdmin && (
+            <p
+              className={`mt-1.5 text-[11px] leading-snug text-ink-muted max-w-[220px] whitespace-normal ${
+                alignRight ? 'text-right' : 'text-left'
+              }`}
+            >
+              Apabila jadwal belum sesuai, silakan hubungi Admin Bengkel untuk penyesuaian.
+            </p>
+          )}
+        </div>
       );
     }
 
@@ -3858,6 +3930,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                       Confirmed Bengkel
                                     </div>
                                   )}
+                                  {!isRescheduled && !isConfirmed && (effStatus === 'Menunggu Konfirmasi' || effStatus === 'Booked') && (
+                                    <div className="mt-1.5 text-[11px] leading-snug text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 rounded-md px-2 py-1 max-w-[260px] whitespace-normal">
+                                      Jadwal ini masih berupa pengajuan dan dapat disesuaikan oleh Admin Bengkel mengikuti ketersediaan bengkel.
+                                    </div>
+                                  )}
                                   {b.memo_pos && (
                                     <div className="mt-1 text-[10px] text-ink-muted italic max-w-[220px] truncate" title={b.memo_pos}>
                                       Memo: {b.memo_pos}
@@ -3871,7 +3948,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             <StatusBadge status={getBookingEffectiveStatus(b)} size="sm" />
                           </td>
                           <td className="px-5 py-3.5 text-right">
-                            <BookingCancelButton b={b} compact />
+                            <BookingCancelButton b={b} compact alignRight />
                           </td>
                         </tr>
                       ))}
@@ -3916,6 +3993,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-900/50">
                                   <CheckCircle2 className="w-3 h-3" />
                                   Confirmed Bengkel
+                                </div>
+                              )}
+                              {!isRescheduled && !isConfirmed && (effStatus === 'Menunggu Konfirmasi' || effStatus === 'Booked') && (
+                                <div className="mt-1.5 text-[11px] leading-snug text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 rounded-md px-2 py-1">
+                                  Jadwal ini masih berupa pengajuan dan dapat disesuaikan oleh Admin Bengkel mengikuti ketersediaan bengkel.
                                 </div>
                               )}
                             </>
@@ -6244,7 +6326,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
               </div>
 
               <SpkTrackingDetail
-                spk={historyDetail.sumber === 'kunjungan' || !spkDetailData ? historyDetail : { ...historyDetail, ...spkDetailData, status_spk: historyDetail.status_spk }}
+                spk={historyDetail.sumber === 'kunjungan' || !spkDetailData ? historyDetail : { ...historyDetail, ...spkDetailData, status_spk: getSpkDynamicStatus(spkDetailData) as any }}
                 isPreSpk={historyDetail.sumber === 'kunjungan'}
                 statusNote={historyDetail.status_keterangan}
                 kendaraanList={kendaraanList || armadaPageData?.rows || (armadaPageData as any)?.data}
@@ -7085,6 +7167,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         invoice={selectedFakturForPrint}
         isOpen={fakturModalOpen}
         onClose={() => setFakturModalOpen(false)}
+        noSpk={selectedFakturForPrint?.no_spk}
         pekerjaanList={pekerjaanList}
         partList={partSpkList}
       />
