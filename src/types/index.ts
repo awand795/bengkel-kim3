@@ -295,6 +295,13 @@ export interface BookingService {
   cancelby?: string;
   prioritas: 'Normal' | 'Prioritas Booking';
   created_at: string;
+  nomor_tiket?: string | null;
+  waktu_check_in?: string | null;
+  waktu_check_out?: string | null;
+  no_spk?: string | null;
+  status_spk?: string | null;
+  nama_mekanik?: string | null;
+  nama_sa?: string | null;
 }
 
 export interface AntrianKunjungan {

@@ -2814,7 +2814,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const getBookingEffectiveStatus = useCallback((b: BookingService): string => {
     const rawStatus = (b.status as string) || '';
     if (rawStatus === 'Booking Canceled' || rawStatus === 'Dibatalkan' || b.is_canceled || b.status_pos === 'CANCELED') return 'Booking Canceled';
-    const bAny = b as any;
     if (b.waktu_check_out || rawStatus === 'Check Out') return 'Check Out';
     // Jika status dari API sudah menunjukkan tahapan pengerjaan POS bengkel atau gerbang
     if ([
@@ -2842,11 +2841,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       rawStatus === 'SELESAI_CHECKIN' ||
       b.sudah_kunjungan ||
       Boolean(b.waktu_check_in) ||
-      Boolean(bAny.no_spk) ||
-      Boolean(bAny.status_spk) ||
+      Boolean(b.no_spk) ||
+      Boolean(b.status_spk) ||
       isBookingCheckedIn(b)
     ) {
-      return (bAny.status_spk && String(bAny.status_spk)) || 'Check In';
+      return (b.status_spk && String(b.status_spk)) || 'Check In';
     }
     // PENTING: Jika jadwal sudah lewat dari sekarang dan belum dikerjakan / check-in -> Otomatis Batal (Expired)
     if (isBookingPast(b)) return 'Booking Canceled';
@@ -3000,8 +2999,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
   // ── Booking Saya: hanya menampilkan booking yang Aktif & BELUM Check-In / Diproses ─
   const bookingAktifList = myBookingSorted.filter((b) => {
-    const bAny = b as any;
-    if (b.sudah_kunjungan || b.waktu_check_in || b.waktu_check_out || bAny.no_spk || bAny.status_spk) return false;
+    if (b.sudah_kunjungan || b.waktu_check_in || b.waktu_check_out || b.no_spk || b.status_spk) return false;
     const eff = getBookingEffectiveStatus(b);
     return eff === 'Booked' || eff === 'Confirmed' || eff === 'Rescheduled' || eff === 'Menunggu Konfirmasi';
   });
