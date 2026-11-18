@@ -31,7 +31,7 @@ import { PlateChip } from '../components/common/PlateChip';
 import { RupiahCell } from '../components/common/RupiahCell';
 import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
 import { MultiSlideBanner } from '../components/common/MultiSlideBanner';
-import { computeFakturCalculation, fmtRpExact, formatDiscDetail } from '../utils/fakturHelper';
+import { computeFakturCalculation, fmtRpExact } from '../utils/fakturHelper';
 import { 
   Truck, 
   Calendar, 
@@ -1016,7 +1016,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     partRows,
                     subtotalJasaNetto,
                     subtotalPartNetto,
-                    totalDiskonItemsInclPpn,
                     totalHargaJualTampil,
                     ekstraDiskon,
                     grandTotal,
@@ -1041,7 +1040,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
                         {jasaRows.length > 0 ? (
-                          jasaRows.map(({ item: p, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                          jasaRows.map(({ item: p, qty, hargaSatuanTampil, discPercentLabel, addDiscNominal, hasPercentDisc, hasAddDisc, nettoItem }, idx) => (
                             <div key={idx} className="p-3 flex justify-between items-center gap-3">
                               <div className="min-w-0">
                                 <div className="font-semibold text-ink">
@@ -1055,9 +1054,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                 <div className="text-xs text-ink-subtle tabular-nums">
                                   {qty} × Rp {fmtRpExact(hargaSatuanTampil)} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
                                 </div>
-                                {diskonInclPpn > 0 && (
-                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums">
-                                    Diskon: {formatDiscDetail(p.disc1, p.disc2, p.disc3, diskonInclPpn)}
+                                {(hasPercentDisc || hasAddDisc) && (
+                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums flex flex-wrap gap-x-2.5">
+                                    {hasPercentDisc && <span>Disc: {discPercentLabel}</span>}
+                                    {hasAddDisc && <span>Add Disc: Rp {fmtRpExact(addDiscNominal)}</span>}
                                   </div>
                                 )}
                               </div>
@@ -1085,7 +1085,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
                         {partRows.length > 0 ? (
-                          partRows.map(({ part: pt, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                          partRows.map(({ part: pt, qty, hargaSatuanTampil, discPercentLabel, addDiscNominal, hasPercentDisc, hasAddDisc, nettoItem }, idx) => (
                             <div key={idx} className="p-3 flex justify-between items-center gap-3">
                               <div className="min-w-0">
                                 <div className="font-semibold text-ink">
@@ -1099,9 +1099,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                 <div className="text-xs text-ink-subtle tabular-nums">
                                   {qty} {pt.satuan || 'Pcs'} × Rp {fmtRpExact(hargaSatuanTampil)}
                                 </div>
-                                {diskonInclPpn > 0 && (
-                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums">
-                                    Diskon: {formatDiscDetail(pt.disc1, pt.disc2, pt.disc3, diskonInclPpn)}
+                                {(hasPercentDisc || hasAddDisc) && (
+                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums flex flex-wrap gap-x-2.5">
+                                    {hasPercentDisc && <span>Disc: {discPercentLabel}</span>}
+                                    {hasAddDisc && <span>Add Disc: Rp {fmtRpExact(addDiscNominal)}</span>}
                                   </div>
                                 )}
                               </div>
@@ -1141,12 +1142,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             <span>Total Harga Jual</span>
                             <span className="font-mono font-semibold text-ink tabular-nums">Rp {fmtRpExact(totalHargaJualTampil)}</span>
                           </div>
-                          {totalDiskonItemsInclPpn > 0 && (
-                            <div className="flex justify-between text-rose-600 dark:text-rose-400">
-                              <span>Diskon Item (Sudah Dipotong)</span>
-                              <span className="font-mono font-semibold tabular-nums">- Rp {fmtRpExact(totalDiskonItemsInclPpn)}</span>
-                            </div>
-                          )}
                           {ekstraDiskon > 0 && (
                             <div className="flex justify-between text-rose-600 dark:text-rose-400">
                               <span>Ekstra Diskon</span>

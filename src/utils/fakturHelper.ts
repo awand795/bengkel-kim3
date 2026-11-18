@@ -3,7 +3,10 @@ import { InvoicePembayaran, SpkItemPart, SpkItemPekerjaan } from '../types';
 export interface LineItemDisplay {
   qty: number;
   hargaSatuanTampil: number;
-  diskonInclPpn: number;
+  discPercentLabel: string;
+  addDiscNominal: number;
+  hasPercentDisc: boolean;
+  hasAddDisc: boolean;
   nettoItem: number;
 }
 
@@ -24,7 +27,6 @@ export interface FakturCalculationResult {
   hasItemDetails: boolean;
   subtotalJasaNetto: number;
   subtotalPartNetto: number;
-  totalDiskonItemsInclPpn: number;
   totalHargaJualTampil: number;
   ekstraDiskon: number;
   dpp: number;
@@ -35,25 +37,10 @@ export interface FakturCalculationResult {
 export const fmtRpExact = (val: number): string =>
   Number(val || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
-export const formatDiscDetail = (
-  d1?: number,
-  d2?: number,
-  d3?: number,
-  discInclPpn?: number
-): string => {
-  const pcts = [d1, d2, d3].filter((v) => Number(v || 0) > 0).map((v) => `${Number(v)}%`);
-  if (pcts.length > 0 && Number(discInclPpn || 0) > 0) {
-    return `${pcts.join('+')} (-Rp ${fmtRpExact(Number(discInclPpn))})`;
-  }
-  if (Number(discInclPpn || 0) > 0) {
-    return `-Rp ${fmtRpExact(Number(discInclPpn))}`;
-  }
-  return '-';
-};
-
 /**
- * Menghitung harga item (sudah termasuk PPN sesuai rumus cetak POS),
- * diskon bertingkat, subtotal seksi, DPP, PPN, dan Grand Total.
+ * Menghitung harga item (termasuk PPN sesuai cetakan faktur POS),
+ * memisahkan field diskon persen bertingkat (disc1..3) dan diskon nominal (Add Disc),
+ * serta menjaga Netto, Total Harga Jual, dan Grand Total identik dengan DB POS.
  */
 export function computeFakturCalculation(params: {
   invoice?: Partial<InvoicePembayaran> | null;
@@ -100,6 +87,7 @@ export function computeFakturCalculation(params: {
     disc1?: number;
     disc2?: number;
     disc3?: number;
+    diskonNominalRaw?: number;
     diskonTotalRaw?: number;
     totalNettoRaw?: number;
   }): LineItemDisplay => {
@@ -110,30 +98,44 @@ export function computeFakturCalculation(params: {
         ? Math.round(baseUnit) + Math.round(Math.round(baseUnit) * (tarifPpn / 100))
         : baseUnit;
 
+    const pctParts = [line.disc1, line.disc2, line.disc3]
+      .filter((v) => Number(v || 0) > 0)
+      .map((v) => `${Number(v)}%`);
+    const hasPercentDisc = pctParts.length > 0;
+    const discPercentLabel = hasPercentDisc ? pctParts.join('+') : '0%';
+
+    // Add Disc langsung mengambil diskon nominal item dari POS (tbl_pos_detail.discount / tbl_wo_product.discount)
+    const addDiscNominal = Number(line.diskonNominalRaw || 0);
+    const hasAddDisc = addDiscNominal > 0;
+
     let nettoItem: number;
     if (line.totalNettoRaw != null && !isNaN(Number(line.totalNettoRaw))) {
       nettoItem = Number(line.totalNettoRaw);
     } else {
-      const afterDisc = Math.max(
-        0,
-        Number(line.grossSubtotalRaw || baseUnit * qty) - Number(line.diskonTotalRaw || 0)
-      );
+      const gross = Number(line.grossSubtotalRaw || baseUnit * qty);
+      let discPct = 0;
+      for (const pct of [line.disc1, line.disc2, line.disc3]) {
+        const p = Number(pct || 0);
+        if (p !== 0) discPct += (gross - discPct) * (p / 100);
+      }
+      const totalDisc =
+        line.diskonTotalRaw != null ? Number(line.diskonTotalRaw) : discPct + addDiscNominal;
+      const afterDisc = Math.max(0, gross - totalDisc);
       nettoItem =
         tipePajak === 'E' && tarifPpn > 0
           ? Math.round(afterDisc) + Math.round(Math.round(afterDisc) * (tarifPpn / 100))
           : afterDisc;
     }
 
-    const hasDiscount =
-      Number(line.disc1 || 0) > 0 ||
-      Number(line.disc2 || 0) > 0 ||
-      Number(line.disc3 || 0) > 0 ||
-      Number(line.diskonTotalRaw || 0) > 0;
-    const diskonInclPpn = hasDiscount
-      ? Math.max(0, hargaSatuanTampil * qty - nettoItem)
-      : 0;
-
-    return { qty, hargaSatuanTampil, diskonInclPpn, nettoItem };
+    return {
+      qty,
+      hargaSatuanTampil,
+      discPercentLabel,
+      addDiscNominal,
+      hasPercentDisc,
+      hasAddDisc,
+      nettoItem,
+    };
   };
 
   const jasaRows: JasaLineRow[] = pekerjaanList.map((item) => {
@@ -151,6 +153,7 @@ export function computeFakturCalculation(params: {
         disc1: item.disc1,
         disc2: item.disc2,
         disc3: item.disc3,
+        diskonNominalRaw: item.diskon_nominal,
         diskonTotalRaw: item.diskon,
         totalNettoRaw: item.total_netto,
       }),
@@ -170,6 +173,7 @@ export function computeFakturCalculation(params: {
         disc1: part.disc1,
         disc2: part.disc2,
         disc3: part.disc3,
+        diskonNominalRaw: part.diskon_nominal,
         diskonTotalRaw: part.diskon,
         totalNettoRaw: part.total_netto,
       }),
@@ -179,9 +183,6 @@ export function computeFakturCalculation(params: {
   const hasItemDetails = jasaRows.length > 0 || partRows.length > 0;
   const subtotalJasaNetto = jasaRows.reduce((acc, r) => acc + r.nettoItem, 0);
   const subtotalPartNetto = partRows.reduce((acc, r) => acc + r.nettoItem, 0);
-  const totalDiskonItemsInclPpn =
-    jasaRows.reduce((acc, r) => acc + r.diskonInclPpn, 0) +
-    partRows.reduce((acc, r) => acc + r.diskonInclPpn, 0);
 
   const totalJasaRaw = pekerjaanList.reduce((acc, c) => acc + Number(c.biaya_jasa || 0), 0);
   const totalPartsRaw = partList.reduce(
@@ -284,7 +285,6 @@ export function computeFakturCalculation(params: {
     hasItemDetails,
     subtotalJasaNetto,
     subtotalPartNetto,
-    totalDiskonItemsInclPpn,
     totalHargaJualTampil,
     ekstraDiskon,
     dpp,

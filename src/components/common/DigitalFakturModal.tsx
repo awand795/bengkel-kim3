@@ -13,7 +13,7 @@ import { formatPlat } from '../../api/client';
 import { COMPANY_PROFILE, isValidCompanyField } from '../../config/company';
 import { terbilangRupiah } from '../../utils/terbilang';
 import { usePpnRate } from '../../hooks/usePpnRate';
-import { computeFakturCalculation, fmtRpExact as fmtRp, formatDiscDetail } from '../../utils/fakturHelper';
+import { computeFakturCalculation, fmtRpExact as fmtRp } from '../../utils/fakturHelper';
 
 export interface DigitalFakturModalProps {
   invoice: InvoicePembayaran | null;
@@ -76,7 +76,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
     hasItemDetails,
     subtotalJasaNetto,
     subtotalPartNetto,
-    totalDiskonItemsInclPpn,
     totalHargaJualTampil,
     ekstraDiskon,
     grandTotal,
@@ -396,12 +395,16 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300 uppercase text-[10px] tracking-wider">
                 <tr>
-                  <th className="px-2.5 py-2 w-9 text-center border-r border-slate-300">No</th>
-                  <th className="px-3 py-2 border-r border-slate-300">Deskripsi Barang / Jasa</th>
-                  <th className="px-2.5 py-2 text-center w-20 border-r border-slate-300">Qty</th>
-                  <th className="px-3 py-2 text-right w-28 border-r border-slate-300">Harga (Rp)</th>
-                  <th className="px-2.5 py-2 text-right w-24 border-r border-slate-300">Diskon</th>
-                  <th className="px-3 py-2 text-right w-28">Netto (Rp)</th>
+                  <th rowSpan={2} className="px-2 py-1.5 w-8 text-center border-r border-slate-300">No</th>
+                  <th rowSpan={2} className="px-3 py-1.5 border-r border-slate-300">Deskripsi Barang / Jasa</th>
+                  <th rowSpan={2} className="px-2 py-1.5 text-center w-16 border-r border-slate-300">Qty</th>
+                  <th rowSpan={2} className="px-2.5 py-1.5 text-right w-24 border-r border-slate-300">Harga (Rp)</th>
+                  <th colSpan={2} className="px-2 py-1 text-center border-b border-r border-slate-300">Disc Detail</th>
+                  <th rowSpan={2} className="px-2.5 py-1.5 text-right w-24">Netto (Rp)</th>
+                </tr>
+                <tr>
+                  <th className="px-2 py-1 text-right w-20 border-r border-slate-300">Disc.</th>
+                  <th className="px-2 py-1 text-right w-22 border-r border-slate-300">Add Disc.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -410,14 +413,14 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                     {/* Kelompok A: JASA PERBAIKAN */}
                     {jasaRows.length > 0 && (
                       <tr className="bg-slate-50 font-bold text-slate-800">
-                        <td colSpan={6} className="px-3 py-1.5 text-[11px] tracking-wide text-[#12388F]">
+                        <td colSpan={7} className="px-3 py-1.5 text-[11px] tracking-wide text-[#12388F]">
                           A. JASA PERBAIKAN & PERAWATAN
                         </td>
                       </tr>
                     )}
-                    {jasaRows.map(({ item, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                    {jasaRows.map(({ item, qty, hargaSatuanTampil, discPercentLabel, addDiscNominal, hasPercentDisc, hasAddDisc, nettoItem }, idx) => (
                       <tr key={`jasa-${item.id || idx}`} className="text-slate-800">
-                        <td className="px-2.5 py-1.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
+                        <td className="px-2 py-1.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
                           {idx + 1}
                         </td>
                         <td className="px-3 py-1.5 font-medium border-r border-slate-200">
@@ -428,26 +431,29 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                             </span>
                           )}
                         </td>
-                        <td className="px-2.5 py-1.5 text-center tabular-nums border-r border-slate-200">
+                        <td className="px-2 py-1.5 text-center tabular-nums border-r border-slate-200">
                           {qty} Jasa
                         </td>
-                        <td className="px-3 py-1.5 text-right tabular-nums border-r border-slate-200">
+                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-slate-200">
                           Rp {fmtRp(hargaSatuanTampil)}
                         </td>
-                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-slate-200 text-rose-600 text-[11px]">
-                          {formatDiscDetail(item.disc1, item.disc2, item.disc3, diskonInclPpn)}
+                        <td className={`px-2 py-1.5 text-right tabular-nums border-r border-slate-200 text-[11px] ${hasPercentDisc ? 'text-rose-600 font-semibold' : 'text-slate-500'}`}>
+                          {discPercentLabel}
                         </td>
-                        <td className="px-3 py-1.5 text-right tabular-nums font-medium">
+                        <td className={`px-2 py-1.5 text-right tabular-nums border-r border-slate-200 text-[11px] ${hasAddDisc ? 'text-rose-600 font-semibold' : 'text-slate-500'}`}>
+                          {hasAddDisc ? `Rp ${fmtRp(addDiscNominal)}` : '0'}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-right tabular-nums font-medium">
                           Rp {fmtRp(nettoItem)}
                         </td>
                       </tr>
                     ))}
                     {jasaRows.length > 0 && (
                       <tr className="bg-slate-50/70 font-semibold text-slate-800">
-                        <td colSpan={5} className="px-3 py-1.5 text-right text-[11px] border-r border-slate-200">
+                        <td colSpan={6} className="px-3 py-1.5 text-right text-[11px] border-r border-slate-200">
                           Subtotal Jasa
                         </td>
-                        <td className="px-3 py-1.5 text-right tabular-nums text-[11px] font-bold">
+                        <td className="px-2.5 py-1.5 text-right tabular-nums text-[11px] font-bold">
                           Rp {fmtRp(subtotalJasaNetto)}
                         </td>
                       </tr>
@@ -456,14 +462,14 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                     {/* Kelompok B: SPAREPART / SUKU CADANG */}
                     {partRows.length > 0 && (
                       <tr className="bg-slate-50 font-bold text-slate-800">
-                        <td colSpan={6} className="px-3 py-1.5 text-[11px] tracking-wide text-[#12388F]">
+                        <td colSpan={7} className="px-3 py-1.5 text-[11px] tracking-wide text-[#12388F]">
                           B. SUKU CADANG & BAHAN (SPAREPARTS)
                         </td>
                       </tr>
                     )}
-                    {partRows.map(({ part, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                    {partRows.map(({ part, qty, hargaSatuanTampil, discPercentLabel, addDiscNominal, hasPercentDisc, hasAddDisc, nettoItem }, idx) => (
                       <tr key={`part-${part.id || idx}`} className="text-slate-800">
-                        <td className="px-2.5 py-1.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
+                        <td className="px-2 py-1.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
                           {jasaRows.length + idx + 1}
                         </td>
                         <td className="px-3 py-1.5 border-r border-slate-200">
@@ -474,26 +480,29 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                             </span>
                           )}
                         </td>
-                        <td className="px-2.5 py-1.5 text-center tabular-nums border-r border-slate-200">
+                        <td className="px-2 py-1.5 text-center tabular-nums border-r border-slate-200">
                           {qty} {part.satuan || 'Pcs'}
                         </td>
-                        <td className="px-3 py-1.5 text-right tabular-nums border-r border-slate-200">
+                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-slate-200">
                           Rp {fmtRp(hargaSatuanTampil)}
                         </td>
-                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-slate-200 text-rose-600 text-[11px]">
-                          {formatDiscDetail(part.disc1, part.disc2, part.disc3, diskonInclPpn)}
+                        <td className={`px-2 py-1.5 text-right tabular-nums border-r border-slate-200 text-[11px] ${hasPercentDisc ? 'text-rose-600 font-semibold' : 'text-slate-500'}`}>
+                          {discPercentLabel}
                         </td>
-                        <td className="px-3 py-1.5 text-right tabular-nums font-medium">
+                        <td className={`px-2 py-1.5 text-right tabular-nums border-r border-slate-200 text-[11px] ${hasAddDisc ? 'text-rose-600 font-semibold' : 'text-slate-500'}`}>
+                          {hasAddDisc ? `Rp ${fmtRp(addDiscNominal)}` : '0'}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-right tabular-nums font-medium">
                           Rp {fmtRp(nettoItem)}
                         </td>
                       </tr>
                     ))}
                     {partRows.length > 0 && (
                       <tr className="bg-slate-50/70 font-semibold text-slate-800">
-                        <td colSpan={5} className="px-3 py-1.5 text-right text-[11px] border-r border-slate-200">
+                        <td colSpan={6} className="px-3 py-1.5 text-right text-[11px] border-r border-slate-200">
                           Subtotal Sparepart
                         </td>
-                        <td className="px-3 py-1.5 text-right tabular-nums text-[11px] font-bold">
+                        <td className="px-2.5 py-1.5 text-right tabular-nums text-[11px] font-bold">
                           Rp {fmtRp(subtotalPartNetto)}
                         </td>
                       </tr>
@@ -502,7 +511,7 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                 ) : (
                   /* Bila rincian item tidak ada di sistem, tampilkan 1 baris ringkasan tanpa mengarang item */
                   <tr className="text-slate-800">
-                    <td className="px-2.5 py-2.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
+                    <td className="px-2 py-2.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
                       1
                     </td>
                     <td className="px-3 py-2.5 border-r border-slate-200">
@@ -511,12 +520,13 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                         (Rincian paket perbaikan tertera pada Formulir Inspeksi / Surat Perintah Kerja)
                       </div>
                     </td>
-                    <td className="px-2.5 py-2.5 text-center tabular-nums border-r border-slate-200">1 Paket</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums border-r border-slate-200">
+                    <td className="px-2 py-2.5 text-center tabular-nums border-r border-slate-200">1 Paket</td>
+                    <td className="px-2.5 py-2.5 text-right tabular-nums border-r border-slate-200">
                       Rp {fmtRp(totalHargaJualTampil)}
                     </td>
-                    <td className="px-2.5 py-2.5 text-right tabular-nums border-r border-slate-200">-</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums font-medium">
+                    <td className="px-2 py-2.5 text-right tabular-nums border-r border-slate-200 text-slate-500">0%</td>
+                    <td className="px-2 py-2.5 text-right tabular-nums border-r border-slate-200 text-slate-500">0</td>
+                    <td className="px-2.5 py-2.5 text-right tabular-nums font-medium">
                       Rp {fmtRp(totalHargaJualTampil)}
                     </td>
                   </tr>
@@ -567,16 +577,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                           Rp {fmtRp(totalHargaJualTampil)}
                         </td>
                       </tr>
-                      {totalDiskonItemsInclPpn > 0 && (
-                        <tr>
-                          <td className="px-3 py-1.5 text-[11px] text-slate-500">
-                            Diskon Item (Sudah Dipotong)
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums text-[11px] text-rose-600">
-                            - Rp {fmtRp(totalDiskonItemsInclPpn)}
-                          </td>
-                        </tr>
-                      )}
                       <tr>
                         <td className="px-3 py-1.5 text-slate-700">Ekstra Diskon</td>
                         <td className="px-3 py-1.5 text-right tabular-nums text-rose-600">
