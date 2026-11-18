@@ -471,12 +471,16 @@ export interface KunjunganService {
 export interface SpkItemPekerjaan {
   id: number;
   id_spk: number;
+  kode_pekerjaan?: string;
   nama_pekerjaan: string;
   kategori?: string;
   estimasi_durasi_jam: number;
   qty?: number;
   harga_satuan?: number;
   disc1?: number;
+  disc2?: number;
+  disc3?: number;
+  diskon_nominal?: number;
   diskon?: number;
   biaya_jasa: number;
   total_dpp?: number;
@@ -497,6 +501,9 @@ export interface SpkItemPart {
   satuan: string;
   harga_satuan: number;
   disc1?: number;
+  disc2?: number;
+  disc3?: number;
+  diskon_nominal?: number;
   diskon?: number;
   subtotal: number;
   total_dpp?: number;
@@ -616,12 +623,15 @@ export interface InvoicePembayaran {
   id: number;
   no_invoice: string;
   id_spk?: number;
+  no_spk?: string;
   id_transaksi_beli_part?: number;
   id_pelanggan?: number;
+  kode_customer?: string;
   no_polisi: string;
   nama_customer?: string;
   alamat_customer?: string;
   npwp_customer?: string;
+  nama_mekanik?: string;
   jatuh_tempo?: string;
   tanggal_invoice: string;
   subtotal: number;

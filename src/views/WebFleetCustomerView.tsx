@@ -1525,8 +1525,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
           id: spk.id,
           no_invoice: spk.no_invoice || `EST-${spk.no_spk}`,
           id_spk: spk.id,
+          no_spk: spk.no_spk,
           no_polisi: spk.no_polisi,
           nama_customer: spk.nama_customer,
+          nama_mekanik: spk.nama_mekanik,
           tanggal_invoice: spk.waktu_invoice || spk.waktu_fir_closed || spk.created_at || new Date().toISOString(),
           subtotal: Number(spk.estimasi_biaya || 0),
           ppn_nominal: 0,
@@ -7117,6 +7119,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         invoice={selectedFakturForPrint}
         isOpen={fakturModalOpen}
         onClose={() => setFakturModalOpen(false)}
+        noSpk={selectedFakturForPrint?.no_spk}
         pekerjaanList={pekerjaanList}
         partList={partSpkList}
       />

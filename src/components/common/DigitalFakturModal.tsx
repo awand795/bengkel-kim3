@@ -73,16 +73,122 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
   const showBankAccounts = !isLunas && validBankAccounts.length > 0;
 
   // Tarif PPN: hanya tampilkan persentase jika invoice.tarif_ppn_persen valid
-  // TODO: Verifikasi tarif PPN dan DPP dengan akuntan jika tidak tercatat pada invoice
   const hasCustomTarifPpn =
     invoice.tarif_ppn_persen != null && !isNaN(Number(invoice.tarif_ppn_persen));
   const tarifPpn = hasCustomTarifPpn ? Number(invoice.tarif_ppn_persen) : defaultPpnRate;
 
-  const tipePajak = (invoice.tipe_pajak || 'E').toUpperCase(); // 'I' = Include, 'E' = Exclude
+  // Tentukan tipe pajak ('E' = Exclude, 'I' = Include); untuk proforma tanpa field tipe_pajak, deteksi dari item
+  const rawSubtotalFirstItem =
+    filteredJasa[0]?.biaya_jasa ?? filteredParts[0]?.subtotal ?? 0;
+  const rawDppFirstItem =
+    filteredJasa[0]?.total_dpp ?? filteredParts[0]?.total_dpp;
+  const rawNettoFirstItem =
+    filteredJasa[0]?.total_netto ?? filteredParts[0]?.total_netto;
+  const inferredExcludeFromItems =
+    !invoice.tipe_pajak &&
+    rawDppFirstItem != null &&
+    rawNettoFirstItem != null &&
+    Number(rawNettoFirstItem) > Number(rawDppFirstItem) + 0.5 &&
+    Math.abs(Number(rawSubtotalFirstItem) - Number(rawDppFirstItem)) < 1;
+
+  const tipePajak = (
+    invoice.tipe_pajak || (inferredExcludeFromItems ? 'E' : 'I')
+  ).toUpperCase();
   const fmtRp = (val: number) =>
     Number(val || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
 
-  // Hitung subtotal kotor item (sebelum diskon item, sesuai tbl_pos.total / tbl_wo_product.totalprice)
+  // Helper terpadu konversi item POS/WO menjadi angka tampil (harga termasuk PPN seperti cetakan Faktur POS)
+  const computeLineDisplay = (params: {
+    qty: number;
+    hargaSatuanRaw: number;
+    grossSubtotalRaw: number;
+    disc1?: number;
+    disc2?: number;
+    disc3?: number;
+    diskonTotalRaw?: number;
+    totalNettoRaw?: number;
+  }) => {
+    const qty = params.qty > 0 ? params.qty : 1;
+    const baseUnit = Number(params.hargaSatuanRaw || 0);
+    const hargaSatuanTampil =
+      tipePajak === 'E' && tarifPpn > 0
+        ? Math.round(baseUnit) + Math.round(Math.round(baseUnit) * (tarifPpn / 100))
+        : baseUnit;
+
+    let nettoItem: number;
+    if (params.totalNettoRaw != null && !isNaN(Number(params.totalNettoRaw))) {
+      nettoItem = Number(params.totalNettoRaw);
+    } else {
+      const afterDisc = Math.max(
+        0,
+        Number(params.grossSubtotalRaw || baseUnit * qty) - Number(params.diskonTotalRaw || 0)
+      );
+      nettoItem =
+        tipePajak === 'E' && tarifPpn > 0
+          ? Math.round(afterDisc) + Math.round(Math.round(afterDisc) * (tarifPpn / 100))
+          : afterDisc;
+    }
+
+    const hasDiscount =
+      Number(params.disc1 || 0) > 0 ||
+      Number(params.disc2 || 0) > 0 ||
+      Number(params.disc3 || 0) > 0 ||
+      Number(params.diskonTotalRaw || 0) > 0;
+    const diskonInclPpn = hasDiscount
+      ? Math.max(0, hargaSatuanTampil * qty - nettoItem)
+      : 0;
+
+    return {
+      qty,
+      hargaSatuanTampil,
+      diskonInclPpn,
+      nettoItem,
+    };
+  };
+
+  const jasaRows = filteredJasa.map((item) => {
+    const qty = Number(item.qty || 1);
+    const hargaSatuanRaw = Number(
+      item.harga_satuan ?? (qty > 0 ? Number(item.biaya_jasa || 0) / qty : item.biaya_jasa) ?? 0
+    );
+    const grossSubtotalRaw = Number(item.biaya_jasa || qty * hargaSatuanRaw || 0);
+    const display = computeLineDisplay({
+      qty,
+      hargaSatuanRaw,
+      grossSubtotalRaw,
+      disc1: item.disc1,
+      disc2: item.disc2,
+      disc3: item.disc3,
+      diskonTotalRaw: item.diskon,
+      totalNettoRaw: item.total_netto,
+    });
+    return { item, ...display };
+  });
+
+  const partRows = filteredParts.map((part) => {
+    const qty = Number(part.jumlah || 1);
+    const hargaSatuanRaw = Number(part.harga_satuan || 0);
+    const grossSubtotalRaw = Number(part.subtotal ?? qty * hargaSatuanRaw);
+    const display = computeLineDisplay({
+      qty,
+      hargaSatuanRaw,
+      grossSubtotalRaw,
+      disc1: part.disc1,
+      disc2: part.disc2,
+      disc3: part.disc3,
+      diskonTotalRaw: part.diskon,
+      totalNettoRaw: part.total_netto,
+    });
+    return { part, ...display };
+  });
+
+  const subtotalJasaNetto = jasaRows.reduce((acc, r) => acc + r.nettoItem, 0);
+  const subtotalPartNetto = partRows.reduce((acc, r) => acc + r.nettoItem, 0);
+  const totalDiskonItemsInclPpn =
+    jasaRows.reduce((acc, r) => acc + r.diskonInclPpn, 0) +
+    partRows.reduce((acc, r) => acc + r.diskonInclPpn, 0);
+
+  // Hitung subtotal kotor item (basis DPP sebelum PPN bila 'E')
   const totalJasa = filteredJasa.reduce((acc, curr) => acc + Number(curr.biaya_jasa || 0), 0);
   const totalParts = filteredParts.reduce(
     (acc, curr) => acc + Number(curr.subtotal ?? (Number(curr.jumlah || 0) * Number(curr.harga_satuan || 0))),
@@ -149,9 +255,7 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
     const sumPpn =
       filteredJasa.reduce((acc, c) => acc + Number(c.total_ppn ?? 0), 0) +
       filteredParts.reduce((acc, c) => acc + Number(c.total_ppn ?? 0), 0);
-    const sumNetto =
-      filteredJasa.reduce((acc, c) => acc + Number(c.total_netto ?? c.biaya_jasa ?? 0), 0) +
-      filteredParts.reduce((acc, c) => acc + Number(c.total_netto ?? c.subtotal ?? 0), 0);
+    const sumNetto = subtotalJasaNetto + subtotalPartNetto;
     dpp = sumDpp;
     ppnNominal = sumPpn;
     grandTotal = sumNetto > 0 ? sumNetto : subtotalSetelahDiskon;
@@ -173,16 +277,22 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
     grandTotal = dpp + ppnNominal;
   }
 
-  // Label PPN tanpa mengasumsikan 0% atau 11% bila tarif_ppn_persen kosong
-  let ppnLabel = hasCustomTarifPpn ? `PPN (${tarifPpn}%)` : 'PPN';
-  if (tipePajak === 'I') {
-    ppnLabel += ' (Include)';
-  } else if (tipePajak === 'E' && hasCustomTarifPpn) {
-    ppnLabel += ' (Exclude)';
-  }
+  // Total Harga Jual tampil (sudah termasuk PPN, identik dengan POS "Total Harga Jual")
+  const totalHargaJualTampil = hasItemDetails
+    ? subtotalJasaNetto + subtotalPartNetto
+    : grandTotal + ekstraDiskon;
 
-  // Baris DPP tampil jika ada diskon atau nilai PPN > 0
-  const showDppRow = diskon > 0 || ppnNominal > 0;
+  const displayNoSpk = noSpk || invoice.no_spk;
+  const formatDiscDetail = (d1?: number, d2?: number, d3?: number, discInclPpn?: number) => {
+    const pcts = [d1, d2, d3].filter((v) => Number(v || 0) > 0).map((v) => `${Number(v)}%`);
+    if (pcts.length > 0 && Number(discInclPpn || 0) > 0) {
+      return `${pcts.join('+')} (-Rp ${fmtRp(Number(discInclPpn))})`;
+    }
+    if (Number(discInclPpn || 0) > 0) {
+      return `-Rp ${fmtRp(Number(discInclPpn))}`;
+    }
+    return '-';
+  };
 
   const formatTanggalWaktu = (dateStr?: string | null) => {
     if (!dateStr || isNaN(new Date(dateStr).getTime())) return '-';
@@ -437,12 +547,22 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
             </div>
 
             {/* Sisi Kanan: Judul Tunggal + Nomor & Tanggal Dokumen */}
-            <div className="text-right shrink-0">
+            <div className="text-right shrink-0 space-y-0.5">
               <div className="text-base font-black tracking-tight text-slate-900 uppercase">
                 {isProforma ? 'PROFORMA INVOICE' : 'INVOICE / FAKTUR PENJUALAN'}
               </div>
-              <div className="text-[11px] text-slate-600 font-medium mt-0.5">
-                TGL: {formatTanggalSaja(invoice.tanggal_invoice)}
+              {invoice.no_invoice && (
+                <div className="text-xs font-bold text-[#12388F] font-mono">
+                  No. Faktur: {invoice.no_invoice}
+                </div>
+              )}
+              {displayNoSpk && (
+                <div className="text-[11px] text-slate-700 font-semibold font-mono">
+                  No. SPK: {displayNoSpk}
+                </div>
+              )}
+              <div className="text-[11px] text-slate-600 font-medium">
+                Tgl. Faktur: {formatTanggalSaja(invoice.tanggal_invoice)}
               </div>
               {invoice.jatuh_tempo && (
                 <div className="text-[11px] text-amber-700 font-medium">
@@ -464,6 +584,11 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                   {invoice.nama_customer}
                 </div>
               )}
+              {invoice.kode_customer && (
+                <div className="text-[11px] text-slate-600">
+                  <span className="font-semibold text-slate-700">Kode Customer:</span> {invoice.kode_customer}
+                </div>
+              )}
               {invoice.alamat_customer && (
                 <div className="text-[11px] text-slate-600 leading-snug">
                   {invoice.alamat_customer}
@@ -479,8 +604,8 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
               )}
             </div>
 
-            {/* Kolom Kanan: Detail Armada */}
-            <div className="space-y-1 text-right">
+            {/* Kolom Kanan: Detail Armada & Mekanik */}
+            <div className="space-y-1.5 text-right">
               <div>
                 <span className="text-[10px] text-slate-600 uppercase tracking-wider block font-bold">
                   No. Polisi Armada:
@@ -489,116 +614,133 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                   {formatPlat(invoice.no_polisi)}
                 </span>
               </div>
+              {invoice.nama_mekanik && (
+                <div className="text-[11px] text-slate-700">
+                  <span className="text-slate-500">Mekanik:</span>{' '}
+                  <span className="font-semibold text-slate-900">{invoice.nama_mekanik}</span>
+                </div>
+              )}
+              {!isProforma && invoice.kasir_pic && (
+                <div className="text-[11px] text-slate-700">
+                  <span className="text-slate-500">Kasir:</span>{' '}
+                  <span className="font-semibold text-slate-900">{invoice.kasir_pic}</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* 3. TABEL RINCIAN ITEM (JASA & SPAREPART) */}
-          <div className="border border-slate-300 rounded">
+          <div className="border border-slate-300 rounded overflow-hidden">
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300 uppercase text-[10px] tracking-wider">
                 <tr>
-                  <th className="px-3 py-2 w-10 text-center border-r border-slate-300">No</th>
+                  <th className="px-2.5 py-2 w-9 text-center border-r border-slate-300">No</th>
                   <th className="px-3 py-2 border-r border-slate-300">Deskripsi Barang / Jasa</th>
-                  <th className="px-3 py-2 text-center w-14 border-r border-slate-300">Qty</th>
-                  <th className="px-3 py-2 text-center w-16 border-r border-slate-300">Satuan</th>
-                  <th className="px-3 py-2 text-right w-28 border-r border-slate-300">Harga Satuan</th>
-                  <th className="px-3 py-2 text-right w-32">Jumlah (Rp)</th>
+                  <th className="px-2.5 py-2 text-center w-20 border-r border-slate-300">Qty</th>
+                  <th className="px-3 py-2 text-right w-28 border-r border-slate-300">Harga (Rp)</th>
+                  <th className="px-2.5 py-2 text-right w-24 border-r border-slate-300">Diskon</th>
+                  <th className="px-3 py-2 text-right w-28">Netto (Rp)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {hasItemDetails ? (
                   <>
                     {/* Kelompok A: JASA PERBAIKAN */}
-                    {filteredJasa.length > 0 && (
+                    {jasaRows.length > 0 && (
                       <tr className="bg-slate-50 font-bold text-slate-800">
                         <td colSpan={6} className="px-3 py-1.5 text-[11px] tracking-wide text-[#12388F]">
                           A. JASA PERBAIKAN & PERAWATAN
                         </td>
                       </tr>
                     )}
-                    {filteredJasa.map((item, idx) => {
-                      const itemQty = Number(item.qty || 1);
-                      const itemHarga = Number(
-                        item.harga_satuan ?? (itemQty > 0 ? Number(item.biaya_jasa || 0) / itemQty : item.biaya_jasa) ?? 0
-                      );
-                      const itemJumlah = Number(item.biaya_jasa || itemQty * itemHarga || 0);
-                      const itemDiskon = Number(item.diskon || 0);
-                      return (
-                        <tr key={`jasa-${item.id || idx}`} className="text-slate-800">
-                          <td className="px-3 py-1.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
-                            {idx + 1}
-                          </td>
-                          <td className="px-3 py-1.5 font-medium border-r border-slate-200">
-                            <div>{item.nama_pekerjaan}</div>
-                            {itemDiskon > 0 && (
-                              <div className="text-[10px] text-rose-600 font-normal">
-                                Diskon{item.disc1 && Number(item.disc1) > 0 ? ` (${item.disc1}%)` : ''}: - Rp {fmtRp(itemDiskon)}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-1.5 text-center tabular-nums border-r border-slate-200">{itemQty}</td>
-                          <td className="px-3 py-1.5 text-center text-slate-600 border-r border-slate-200">Jasa</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums border-r border-slate-200">
-                            Rp {fmtRp(itemHarga)}
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums font-medium">
-                            Rp {fmtRp(itemJumlah)}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {jasaRows.map(({ item, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                      <tr key={`jasa-${item.id || idx}`} className="text-slate-800">
+                        <td className="px-2.5 py-1.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
+                          {idx + 1}
+                        </td>
+                        <td className="px-3 py-1.5 font-medium border-r border-slate-200">
+                          <span>{item.nama_pekerjaan}</span>
+                          {item.kode_pekerjaan && (
+                            <span className="ml-1.5 text-[10px] text-slate-500 font-mono">
+                              ({item.kode_pekerjaan})
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-center tabular-nums border-r border-slate-200">
+                          {qty} Jasa
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums border-r border-slate-200">
+                          Rp {fmtRp(hargaSatuanTampil)}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-slate-200 text-rose-600 text-[11px]">
+                          {formatDiscDetail(item.disc1, item.disc2, item.disc3, diskonInclPpn)}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums font-medium">
+                          Rp {fmtRp(nettoItem)}
+                        </td>
+                      </tr>
+                    ))}
+                    {jasaRows.length > 0 && (
+                      <tr className="bg-slate-50/70 font-semibold text-slate-800">
+                        <td colSpan={5} className="px-3 py-1.5 text-right text-[11px] border-r border-slate-200">
+                          Subtotal Jasa
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-[11px] font-bold">
+                          Rp {fmtRp(subtotalJasaNetto)}
+                        </td>
+                      </tr>
+                    )}
 
                     {/* Kelompok B: SPAREPART / SUKU CADANG */}
-                    {filteredParts.length > 0 && (
+                    {partRows.length > 0 && (
                       <tr className="bg-slate-50 font-bold text-slate-800">
                         <td colSpan={6} className="px-3 py-1.5 text-[11px] tracking-wide text-[#12388F]">
                           B. SUKU CADANG & BAHAN (SPAREPARTS)
                         </td>
                       </tr>
                     )}
-                    {filteredParts.map((part, idx) => {
-                      const partDiskon = Number(part.diskon || 0);
-                      const partJumlah = Number(part.subtotal || (part.jumlah * part.harga_satuan) || 0);
-                      return (
-                        <tr key={`part-${part.id || idx}`} className="text-slate-800">
-                          <td className="px-3 py-1.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
-                            {filteredJasa.length + idx + 1}
-                          </td>
-                          <td className="px-3 py-1.5 border-r border-slate-200">
-                            <div>
-                              <span className="font-medium">{part.nama_part}</span>
-                              {part.kode_part && (
-                                <span className="ml-1.5 text-[10px] text-slate-600 font-mono">
-                                  ({part.kode_part})
-                                </span>
-                              )}
-                            </div>
-                            {partDiskon > 0 && (
-                              <div className="text-[10px] text-rose-600">
-                                Diskon{part.disc1 && Number(part.disc1) > 0 ? ` (${part.disc1}%)` : ''}: - Rp {fmtRp(partDiskon)}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-1.5 text-center tabular-nums border-r border-slate-200">
-                            {part.jumlah}
-                          </td>
-                          <td className="px-3 py-1.5 text-center text-slate-600 border-r border-slate-200">
-                            {part.satuan || 'Pcs'}
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums border-r border-slate-200">
-                            Rp {fmtRp(Number(part.harga_satuan || 0))}
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums font-medium">
-                            Rp {fmtRp(partJumlah)}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {partRows.map(({ part, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                      <tr key={`part-${part.id || idx}`} className="text-slate-800">
+                        <td className="px-2.5 py-1.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
+                          {jasaRows.length + idx + 1}
+                        </td>
+                        <td className="px-3 py-1.5 border-r border-slate-200">
+                          <span className="font-medium">{part.nama_part}</span>
+                          {part.kode_part && (
+                            <span className="ml-1.5 text-[10px] text-slate-500 font-mono">
+                              ({part.kode_part})
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-center tabular-nums border-r border-slate-200">
+                          {qty} {part.satuan || 'Pcs'}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums border-r border-slate-200">
+                          Rp {fmtRp(hargaSatuanTampil)}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-right tabular-nums border-r border-slate-200 text-rose-600 text-[11px]">
+                          {formatDiscDetail(part.disc1, part.disc2, part.disc3, diskonInclPpn)}
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums font-medium">
+                          Rp {fmtRp(nettoItem)}
+                        </td>
+                      </tr>
+                    ))}
+                    {partRows.length > 0 && (
+                      <tr className="bg-slate-50/70 font-semibold text-slate-800">
+                        <td colSpan={5} className="px-3 py-1.5 text-right text-[11px] border-r border-slate-200">
+                          Subtotal Sparepart
+                        </td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-[11px] font-bold">
+                          Rp {fmtRp(subtotalPartNetto)}
+                        </td>
+                      </tr>
+                    )}
                   </>
                 ) : (
                   /* Bila rincian item tidak ada di sistem, tampilkan 1 baris ringkasan tanpa mengarang item */
                   <tr className="text-slate-800">
-                    <td className="px-3 py-2.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
+                    <td className="px-2.5 py-2.5 text-center text-slate-600 tabular-nums border-r border-slate-200">
                       1
                     </td>
                     <td className="px-3 py-2.5 border-r border-slate-200">
@@ -607,13 +749,13 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                         (Rincian paket perbaikan tertera pada Formulir Inspeksi / Surat Perintah Kerja)
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-center tabular-nums border-r border-slate-200">1</td>
-                    <td className="px-3 py-2.5 text-center text-slate-600 border-r border-slate-200">Paket</td>
+                    <td className="px-2.5 py-2.5 text-center tabular-nums border-r border-slate-200">1 Paket</td>
                     <td className="px-3 py-2.5 text-right tabular-nums border-r border-slate-200">
-                      Rp {subtotalKotor.toLocaleString('id-ID')}
+                      Rp {fmtRp(totalHargaJualTampil)}
                     </td>
+                    <td className="px-2.5 py-2.5 text-right tabular-nums border-r border-slate-200">-</td>
                     <td className="px-3 py-2.5 text-right tabular-nums font-medium">
-                      Rp {subtotalKotor.toLocaleString('id-ID')}
+                      Rp {fmtRp(totalHargaJualTampil)}
                     </td>
                   </tr>
                 )}
@@ -652,53 +794,52 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                 )}
               </div>
 
-              {/* Sisi Kanan: Tabel Ringkasan Nilai (Subtotal -> Diskon -> DPP -> PPN -> Grand Total) */}
-              <div className="border border-slate-300 rounded overflow-hidden bg-white">
-                <table className="w-full text-xs font-medium">
-                  <tbody className="divide-y divide-slate-200">
-                    <tr>
-                      <td className="px-3 py-1.5 text-slate-700">Subtotal</td>
-                      <td className="px-3 py-1.5 text-right tabular-nums text-slate-800">
-                        Rp {fmtRp(subtotalKotor)}
-                      </td>
-                    </tr>
-                    {diskon > 0 && (
+              {/* Sisi Kanan: Tabel Ringkasan Nilai Selaras Faktur POS (Total Harga Jual -> Ekstra Diskon -> Grand Total + Catatan PPN) */}
+              <div className="space-y-1.5">
+                <div className="border border-slate-300 rounded overflow-hidden bg-white">
+                  <table className="w-full text-xs font-medium">
+                    <tbody className="divide-y divide-slate-200">
                       <tr>
-                        <td className="px-3 py-1.5 text-rose-600">Potongan / Diskon</td>
-                        <td className="px-3 py-1.5 text-right tabular-nums text-rose-600">
-                          - Rp {fmtRp(diskon)}
-                        </td>
-                      </tr>
-                    )}
-                    {/* Baris DPP hanya tampil jika ada diskon atau nilai PPN > 0 */}
-                    {showDppRow && (
-                      <tr>
-                        <td className="px-3 py-1.5 text-slate-700 font-semibold">
-                          DPP (Dasar Pengenaan Pajak)
-                        </td>
+                        <td className="px-3 py-1.5 text-slate-700">Total Harga Jual</td>
                         <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-slate-800">
-                          Rp {fmtRp(dpp)}
+                          Rp {fmtRp(totalHargaJualTampil)}
                         </td>
                       </tr>
-                    )}
-                    <tr>
-                      <td className="px-3 py-1.5 text-slate-700">
-                        {ppnLabel}
-                      </td>
-                      <td className="px-3 py-1.5 text-right tabular-nums text-slate-800">
-                        Rp {fmtRp(ppnNominal)}
-                      </td>
-                    </tr>
-                  </tbody>
-                  <tfoot className="border-t-2 border-slate-300 bg-slate-100 font-bold text-slate-900">
-                    <tr>
-                      <td className="px-3 py-2 text-sm uppercase">Grand Total</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-base text-[#12388F]">
-                        Rp {fmtRp(grandTotal)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                      {totalDiskonItemsInclPpn > 0 && (
+                        <tr>
+                          <td className="px-3 py-1.5 text-[11px] text-slate-500">
+                            Diskon Item (Sudah Dipotong)
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-[11px] text-rose-600">
+                            - Rp {fmtRp(totalDiskonItemsInclPpn)}
+                          </td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td className="px-3 py-1.5 text-slate-700">Ekstra Diskon</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-rose-600">
+                          {ekstraDiskon > 0 ? `- Rp ${fmtRp(ekstraDiskon)}` : 'Rp 0'}
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tfoot className="border-t-2 border-slate-300 bg-slate-100 font-bold text-slate-900">
+                      <tr>
+                        <td className="px-3 py-2 text-sm uppercase">Grand Total</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-base text-[#12388F]">
+                          Rp {fmtRp(grandTotal)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div className="text-[10px] text-slate-600 text-right leading-relaxed px-1">
+                  <div className="font-semibold italic text-slate-700">*Harga sudah termasuk PPN</div>
+                  {(dpp > 0 || ppnNominal > 0) && (
+                    <div className="tabular-nums">
+                      DPP: Rp {fmtRp(dpp)} • PPN{hasCustomTarifPpn ? ` (${tarifPpn}%)` : ''}: Rp {fmtRp(ppnNominal)}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
