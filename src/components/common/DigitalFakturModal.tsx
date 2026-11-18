@@ -441,7 +441,7 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                           {discPercentLabel}
                         </td>
                         <td className={`px-2 py-1.5 text-right tabular-nums border-r border-slate-200 text-[11px] ${hasAddDisc ? 'text-rose-600 font-semibold' : 'text-slate-500'}`}>
-                          {hasAddDisc ? `Rp ${fmtRp(addDiscNominal)}` : '0'}
+                          {hasAddDisc ? fmtRp(addDiscNominal) : '0'}
                         </td>
                         <td className="px-2.5 py-1.5 text-right tabular-nums font-medium">
                           Rp {fmtRp(nettoItem)}
@@ -490,7 +490,7 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                           {discPercentLabel}
                         </td>
                         <td className={`px-2 py-1.5 text-right tabular-nums border-r border-slate-200 text-[11px] ${hasAddDisc ? 'text-rose-600 font-semibold' : 'text-slate-500'}`}>
-                          {hasAddDisc ? `Rp ${fmtRp(addDiscNominal)}` : '0'}
+                          {hasAddDisc ? fmtRp(addDiscNominal) : '0'}
                         </td>
                         <td className="px-2.5 py-1.5 text-right tabular-nums font-medium">
                           Rp {fmtRp(nettoItem)}

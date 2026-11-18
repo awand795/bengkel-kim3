@@ -1057,7 +1057,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                 {(hasPercentDisc || hasAddDisc) && (
                                   <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums flex flex-wrap gap-x-2.5">
                                     {hasPercentDisc && <span>Disc: {discPercentLabel}</span>}
-                                    {hasAddDisc && <span>Add Disc: Rp {fmtRpExact(addDiscNominal)}</span>}
+                                    {hasAddDisc && <span>Add Disc: {fmtRpExact(addDiscNominal)}</span>}
                                   </div>
                                 )}
                               </div>
@@ -1102,7 +1102,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                 {(hasPercentDisc || hasAddDisc) && (
                                   <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums flex flex-wrap gap-x-2.5">
                                     {hasPercentDisc && <span>Disc: {discPercentLabel}</span>}
-                                    {hasAddDisc && <span>Add Disc: Rp {fmtRpExact(addDiscNominal)}</span>}
+                                    {hasAddDisc && <span>Add Disc: {fmtRpExact(addDiscNominal)}</span>}
                                   </div>
                                 )}
                               </div>
