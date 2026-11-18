@@ -2814,11 +2814,40 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const getBookingEffectiveStatus = useCallback((b: BookingService): string => {
     const rawStatus = (b.status as string) || '';
     if (rawStatus === 'Booking Canceled' || rawStatus === 'Dibatalkan' || b.is_canceled || b.status_pos === 'CANCELED') return 'Booking Canceled';
+    const bAny = b as any;
+    if (b.waktu_check_out || rawStatus === 'Check Out') return 'Check Out';
     // Jika status dari API sudah menunjukkan tahapan pengerjaan POS bengkel atau gerbang
-    if (['Check Out', 'Selesai', 'FIR Closed', 'QC Passed', 'Selesai Dikerjakan', 'Proses Pekerjaan', 'Dalam Pengerjaan', 'Waiting Part', 'Waiting QC', 'Estimasi Disetujui', 'Check In'].includes(rawStatus)) {
+    if ([
+      'Check Out',
+      'Selesai',
+      'Siap Keluar',
+      'Siap Keluar (Lunas)',
+      'FIR Closed',
+      'QC Passed',
+      'Selesai Dikerjakan',
+      'Proses Pekerjaan',
+      'Dalam Pengerjaan',
+      'Waiting Part',
+      'Menunggu Sparepart',
+      'Waiting QC',
+      'Menunggu Invoice/Kasir',
+      'Estimasi Disetujui',
+      'Menunggu',
+      'Check In',
+    ].includes(rawStatus)) {
       return rawStatus;
     }
-    if (rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN' || isBookingCheckedIn(b)) return 'Check In';
+    if (
+      rawStatus === 'Checked-In' ||
+      rawStatus === 'SELESAI_CHECKIN' ||
+      b.sudah_kunjungan ||
+      Boolean(b.waktu_check_in) ||
+      Boolean(bAny.no_spk) ||
+      Boolean(bAny.status_spk) ||
+      isBookingCheckedIn(b)
+    ) {
+      return (bAny.status_spk && String(bAny.status_spk)) || 'Check In';
+    }
     // PENTING: Jika jadwal sudah lewat dari sekarang dan belum dikerjakan / check-in -> Otomatis Batal (Expired)
     if (isBookingPast(b)) return 'Booking Canceled';
     const hasScheduleShift =
@@ -2969,8 +2998,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     );
   };
 
-  // ── Booking Saya: hanya menampilkan booking yang Aktif (Booked, Confirmed, Rescheduled, Menunggu Konfirmasi) ─
+  // ── Booking Saya: hanya menampilkan booking yang Aktif & BELUM Check-In / Diproses ─
   const bookingAktifList = myBookingSorted.filter((b) => {
+    const bAny = b as any;
+    if (b.sudah_kunjungan || b.waktu_check_in || b.waktu_check_out || bAny.no_spk || bAny.status_spk) return false;
     const eff = getBookingEffectiveStatus(b);
     return eff === 'Booked' || eff === 'Confirmed' || eff === 'Rescheduled' || eff === 'Menunggu Konfirmasi';
   });
