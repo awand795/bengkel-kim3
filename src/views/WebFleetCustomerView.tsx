@@ -1021,7 +1021,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     totalDiskonItemsInclPpn,
                     totalHargaJualTampil,
                     ekstraDiskon,
-                    dpp,
                     ppnNominal,
                     grandTotal,
                   } = computeFakturCalculation({
@@ -1163,9 +1162,9 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                           </div>
                           <div className="text-[11px] text-ink-subtle text-right pt-1 space-y-0.5 tabular-nums">
                             <div className="italic font-medium">*Harga sudah termasuk PPN</div>
-                            {(dpp > 0 || ppnNominal > 0) && (
+                            {ppnNominal > 0 && (
                               <div>
-                                DPP: Rp {fmtRpExact(dpp)} • PPN{hasCustomTarifPpn ? ` (${tarifPpn}%)` : ''}: Rp {fmtRpExact(ppnNominal)}
+                                PPN{hasCustomTarifPpn ? ` (${tarifPpn}%)` : ''}: Rp {fmtRpExact(ppnNominal)}
                               </div>
                             )}
                           </div>

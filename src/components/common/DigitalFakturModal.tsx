@@ -82,7 +82,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
     totalDiskonItemsInclPpn,
     totalHargaJualTampil,
     ekstraDiskon,
-    dpp,
     ppnNominal,
     grandTotal,
   } = computeFakturCalculation({
@@ -635,9 +634,9 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                 </div>
                 <div className="text-[10px] text-slate-600 text-right leading-relaxed px-1">
                   <div className="font-semibold italic text-slate-700">*Harga sudah termasuk PPN</div>
-                  {(dpp > 0 || ppnNominal > 0) && (
+                  {ppnNominal > 0 && (
                     <div className="tabular-nums">
-                      DPP: Rp {fmtRp(dpp)} • PPN{hasCustomTarifPpn ? ` (${tarifPpn}%)` : ''}: Rp {fmtRp(ppnNominal)}
+                      PPN{hasCustomTarifPpn ? ` (${tarifPpn}%)` : ''}: Rp {fmtRp(ppnNominal)}
                     </div>
                   )}
                 </div>
