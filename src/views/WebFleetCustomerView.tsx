@@ -2591,6 +2591,15 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     );
   }, [myKunjunganList, mySpkList, spkPageData, isServiceActive, isMySpk]);
 
+  // Kunjungan gerbang SERVICE yang sudah check-out tetapi tidak pernah diterbitkan WO/SPK.
+  // Tanpa ini unit tersebut hilang dari Riwayat Service setelah check-out.
+  const doneKunjunganRows: HistoryRow[] = React.useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    return historyAll
+      .filter((r) => r.sumber === 'kunjungan' && String(r.status_spk) === 'Selesai')
+      .filter((r) => !q || normalizePlat(r.no_polisi || '').toLowerCase().includes(normalizePlat(q).toLowerCase()) || String(r.no_spk || '').toLowerCase().includes(q));
+  }, [historyAll, historySearch]);
+
   const spkTotalRecords = spkPageData?.pagination?.total_records ?? (spkPageData?.rows?.length ?? 0);
   const preSpkKunjunganCount = activeUnits.filter((u) => u.sumber === 'kunjungan').length;
   const allSpkTotalRecords =
@@ -2608,7 +2617,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       : (cachedSelesaiTotal ?? dashboardSummary?.selesai_spk ?? Math.max(0, allSpkTotalRecords - activeSpkCount));
   const historyTotalRecords = historyStatusFilter === 'sedang-diservis'
     ? (historySearch.trim() ? spkTotalRecords : activeHistoryCount)
-    : (historyStatusFilter === 'selesai' ? (historySearch.trim() ? spkTotalRecords : completedHistoryCount) : allSpkTotalRecords + preSpkKunjunganCount);
+    : (historyStatusFilter === 'selesai' ? (historySearch.trim() ? spkTotalRecords + doneKunjunganRows.length : completedHistoryCount + doneKunjunganRows.length) : allSpkTotalRecords + preSpkKunjunganCount + doneKunjunganRows.length);
   const historyTotalPages = Math.max(1, spkPageData?.pagination?.total_pages ?? 1);
   const historySafePage = Math.min(Math.max(1, historyPage), historyTotalPages);
 
@@ -2629,18 +2638,22 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     }
 
     if (historyStatusFilter === 'selesai') {
-      return rawRows;
+      return historySafePage === 1 ? [...doneKunjunganRows, ...rawRows] : rawRows;
     }
 
-    if (historySafePage === 1 && !historySearch.trim() && historyStatusFilter === 'semua' && activeUnits.length > 0) {
-      // Hanya prepend kunjungan pra-SPK (sumber === 'kunjungan') yang belum ada di paginasi SPK;
-      // SPK aktif (sumber === 'spk') tetap mengikuti paginasi server agar tidak duplikat di halaman 1 & 2.
+    if (historySafePage === 1 && historyStatusFilter === 'semua' && (activeUnits.length > 0 || doneKunjunganRows.length > 0)) {
+      // Kunjungan pra-SPK aktif + kunjungan gerbang yang sudah check-out tanpa WO (tetap tercatat di riwayat).
       const prependedUnits = activeUnits.filter((u) => u.sumber === 'kunjungan');
-      return [...prependedUnits, ...rawRows];
+      const activeIds = new Set(prependedUnits.map((u) => u.id));
+      const doneOnly = doneKunjunganRows.filter((u) => !activeIds.has(u.id));
+      const merged = [...prependedUnits, ...doneOnly].sort((a, b) =>
+        String(b.waktu_check_in || b.created_at || '').localeCompare(String(a.waktu_check_in || a.created_at || ''))
+      );
+      return [...merged, ...rawRows];
     }
 
     return rawRows;
-  }, [historyStatusFilter, activeUnits, spkPageData, historySafePage, historySearch]);
+  }, [historyStatusFilter, activeUnits, doneKunjunganRows, spkPageData, historySafePage]);
 
   React.useEffect(() => {
     setHistoryPage(1);
@@ -6054,9 +6067,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                 <FilterChips
                   variant="tabs"
                   options={[
-                    { id: 'semua', label: 'Semua', count: allSpkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length },
+                    { id: 'semua', label: 'Semua', count: allSpkTotalRecords + activeUnits.filter((u) => u.sumber === 'kunjungan').length + doneKunjunganRows.length },
                     { id: 'sedang-diservis', label: 'Sedang Diservis', count: activeHistoryCount },
-                    { id: 'selesai', label: 'Selesai', count: completedHistoryCount },
+                    { id: 'selesai', label: 'Selesai', count: completedHistoryCount + doneKunjunganRows.length },
                   ]}
                   selectedId={historyStatusFilter}
                   onChange={(id) => {
