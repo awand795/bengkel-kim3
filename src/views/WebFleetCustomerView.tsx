@@ -2859,10 +2859,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   }, []);
 
   // Aturan cancel booking:
-  // - Boleh dibatalkan customer kapan saja SELAMA belum dikonfirmasi admin bengkel (Confirmed) dan belum check-in.
-  // - Jika status Confirmed, tombol cancel terkunci permanen.
+  // - Boleh dibatalkan customer kapan saja SELAMA belum dikonfirmasi / dijadwalkan ulang admin bengkel dan belum check-in.
+  // - Jika status Confirmed atau Rescheduled, tombol cancel terkunci (disabled) dan customer diarahkan menghubungi Admin Bengkel.
   // - Jika sudah lewat tanggal sekarang dan belum dikerjakan, booking otomatis berstatus Batal.
-  const getCancelState = (b: BookingService): { allowed: boolean; reason: string } => {
+  const getCancelState = (b: BookingService): { allowed: boolean; reason: string; isLockedByAdmin?: boolean } => {
     if (b.status === 'Booking Canceled' || b.status === 'Dibatalkan' || b.is_canceled || b.status_pos === 'CANCELED') {
       return { allowed: false, reason: 'Booking sudah dibatalkan.' };
     }
@@ -2870,8 +2870,24 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     if (isCheckedIn) {
       return { allowed: false, reason: 'Kendaraan sudah di-check in / sedang dikerjakan di bengkel.' };
     }
-    if (b.status === 'Confirmed' || b.status_pos === 'CONFIRMED' || b.is_confirmed) {
-      return { allowed: false, reason: 'Booking telah dikonfirmasi oleh Admin Bengkel dan tidak dapat dibatalkan.' };
+    const effStatus = getBookingEffectiveStatus(b);
+    if (
+      effStatus === 'Confirmed' ||
+      effStatus === 'Rescheduled' ||
+      b.status === 'Confirmed' ||
+      b.status === 'Rescheduled' ||
+      b.status_pos === 'CONFIRMED' ||
+      b.status_pos === 'RESCHEDULED' ||
+      b.is_confirmed
+    ) {
+      return {
+        allowed: false,
+        isLockedByAdmin: true,
+        reason:
+          effStatus === 'Rescheduled' || b.status_pos === 'RESCHEDULED'
+            ? 'Jadwal telah dijadwalkan ulang oleh bengkel dan tidak dapat dibatalkan mandiri. Apabila jadwal belum sesuai, silakan hubungi Admin Bengkel.'
+            : 'Jadwal telah dikonfirmasi oleh bengkel dan tidak dapat dibatalkan mandiri. Apabila jadwal belum sesuai, silakan hubungi Admin Bengkel.',
+      };
     }
     if (isBookingPast(b)) {
       return { allowed: false, reason: 'Jadwal booking sudah lewat dari hari ini (batal otomatis).' };
@@ -3015,9 +3031,17 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   // Target konfirmasi pembatalan booking (pengganti window.confirm)
   const [cancelBookingTarget, setCancelBookingTarget] = useState<BookingService | null>(null);
 
-  // Tombol Batalkan Booking (dipakai di Dashboard & seksi Booking Saya).
-  // Terkunci bila aturan H-10 menit / status tidak memungkinkan.
-  const BookingCancelButton = ({ b, compact = false }: { b: BookingService; compact?: boolean }) => {
+  // Tombol Batalkan Booking (dipakai di seksi Booking Saya).
+  // Terkunci (disabled) bila sudah Confirmed / Rescheduled / check-in / kedaluwarsa.
+  const BookingCancelButton = ({
+    b,
+    compact = false,
+    alignRight = false,
+  }: {
+    b: BookingService;
+    compact?: boolean;
+    alignRight?: boolean;
+  }) => {
     const effStatus = getBookingEffectiveStatus(b);
     const isPast = isBookingPast(b) && !isBookingCheckedIn(b);
     if (effStatus === 'Booking Canceled' || effStatus === ('Dibatalkan' as any) || isPast) {
@@ -3037,35 +3061,35 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
         </span>
       );
     }
-    if (effStatus === 'Confirmed' || b.is_confirmed || b.status_pos === 'CONFIRMED') {
-      return (
-        <span
-          title="Booking telah dikonfirmasi oleh Admin Bengkel dan jadwal telah dikunci."
-          className="text-xs px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50 font-bold inline-flex items-center gap-1"
-        >
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Dikonfirmasi</span>
-        </span>
-      );
-    }
     const st = getCancelState(b);
     const isDisabled = !st.allowed || batalkanBookingMutation.isPending;
     const tooltipText = st.allowed ? 'Batalkan booking ini' : st.reason;
 
     if (isDisabled) {
       return (
-        <span title={tooltipText} className="inline-block">
-          <button
-            type="button"
-            disabled
-            className={`${
-              compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'
-            } rounded-xl font-bold border border-[#E2E8F0] dark:border-slate-700 bg-surface dark:bg-slate-800 text-[#94A3B8] dark:text-slate-500 cursor-not-allowed inline-flex items-center gap-1.5`}
-          >
-            <Lock className="w-3 h-3 text-[#94A3B8] dark:text-slate-500" />
-            <span>Batalkan</span>
-          </button>
-        </span>
+        <div className={alignRight ? 'flex flex-col items-end' : 'flex flex-col items-start'}>
+          <span title={tooltipText} className="inline-block">
+            <button
+              type="button"
+              disabled
+              className={`${
+                compact ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'
+              } rounded-xl font-bold border border-[#E2E8F0] dark:border-slate-700 bg-surface dark:bg-slate-800 text-[#94A3B8] dark:text-slate-500 cursor-not-allowed inline-flex items-center gap-1.5 opacity-75`}
+            >
+              <Lock className="w-3 h-3 text-[#94A3B8] dark:text-slate-500" />
+              <span>Batalkan</span>
+            </button>
+          </span>
+          {st.isLockedByAdmin && (
+            <p
+              className={`mt-1.5 text-[11px] leading-snug text-ink-muted max-w-[220px] whitespace-normal ${
+                alignRight ? 'text-right' : 'text-left'
+              }`}
+            >
+              Apabila jadwal belum sesuai, silakan hubungi Admin Bengkel untuk penyesuaian.
+            </p>
+          )}
+        </div>
       );
     }
 
@@ -3906,6 +3930,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                       Confirmed Bengkel
                                     </div>
                                   )}
+                                  {!isRescheduled && !isConfirmed && (effStatus === 'Menunggu Konfirmasi' || effStatus === 'Booked') && (
+                                    <div className="mt-1.5 text-[11px] leading-snug text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 rounded-md px-2 py-1 max-w-[260px] whitespace-normal">
+                                      Jadwal ini masih berupa pengajuan dan dapat disesuaikan oleh Admin Bengkel mengikuti ketersediaan bengkel.
+                                    </div>
+                                  )}
                                   {b.memo_pos && (
                                     <div className="mt-1 text-[10px] text-ink-muted italic max-w-[220px] truncate" title={b.memo_pos}>
                                       Memo: {b.memo_pos}
@@ -3919,7 +3948,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             <StatusBadge status={getBookingEffectiveStatus(b)} size="sm" />
                           </td>
                           <td className="px-5 py-3.5 text-right">
-                            <BookingCancelButton b={b} compact />
+                            <BookingCancelButton b={b} compact alignRight />
                           </td>
                         </tr>
                       ))}
@@ -3964,6 +3993,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-900/50">
                                   <CheckCircle2 className="w-3 h-3" />
                                   Confirmed Bengkel
+                                </div>
+                              )}
+                              {!isRescheduled && !isConfirmed && (effStatus === 'Menunggu Konfirmasi' || effStatus === 'Booked') && (
+                                <div className="mt-1.5 text-[11px] leading-snug text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 rounded-md px-2 py-1">
+                                  Jadwal ini masih berupa pengajuan dan dapat disesuaikan oleh Admin Bengkel mengikuti ketersediaan bengkel.
                                 </div>
                               )}
                             </>

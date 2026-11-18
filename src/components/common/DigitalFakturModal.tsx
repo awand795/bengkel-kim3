@@ -28,7 +28,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
   invoice,
   isOpen,
   onClose,
-  noSpk,
   pekerjaanList = [],
   partList = [],
 }) => {
@@ -88,8 +87,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
     defaultPpnRate,
     isProforma,
   });
-
-  const displayNoSpk = noSpk || invoice.no_spk;
 
   const formatTanggalWaktu = (dateStr?: string | null) => {
     if (!dateStr || isNaN(new Date(dateStr).getTime())) return '-';
@@ -343,29 +340,14 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
               </div>
             </div>
 
-            {/* Sisi Kanan: Judul Tunggal + Nomor & Tanggal Dokumen */}
-            <div className="text-right shrink-0 space-y-0.5">
+            {/* Sisi Kanan: Judul Tunggal + Tanggal Dokumen */}
+            <div className="text-right shrink-0">
               <div className="text-base font-black tracking-tight text-slate-900 uppercase">
                 {isProforma ? 'PROFORMA INVOICE' : 'INVOICE / FAKTUR PENJUALAN'}
               </div>
-              {invoice.no_invoice && (
-                <div className="text-xs font-bold text-[#12388F] font-mono">
-                  No. Faktur: {invoice.no_invoice}
-                </div>
-              )}
-              {displayNoSpk && (
-                <div className="text-[11px] text-slate-700 font-semibold font-mono">
-                  No. SPK: {displayNoSpk}
-                </div>
-              )}
-              <div className="text-[11px] text-slate-600 font-medium">
-                Tgl. Faktur: {formatTanggalSaja(invoice.tanggal_invoice)}
+              <div className="text-[11px] text-slate-600 font-medium mt-0.5">
+                TGL: {formatTanggalSaja(invoice.tanggal_invoice)}
               </div>
-              {invoice.jatuh_tempo && (
-                <div className="text-[11px] text-amber-700 font-medium">
-                  Jatuh Tempo: {formatTanggalSaja(invoice.jatuh_tempo)}
-                </div>
-              )}
             </div>
           </div>
 
@@ -379,11 +361,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
               {invoice.nama_customer && (
                 <div className="font-bold text-slate-900 text-sm">
                   {invoice.nama_customer}
-                </div>
-              )}
-              {invoice.kode_customer && (
-                <div className="text-[11px] text-slate-600">
-                  <span className="font-semibold text-slate-700">Kode Customer:</span> {invoice.kode_customer}
                 </div>
               )}
               {invoice.alamat_customer && (
@@ -401,8 +378,8 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
               )}
             </div>
 
-            {/* Kolom Kanan: Detail Armada & Mekanik */}
-            <div className="space-y-1.5 text-right">
+            {/* Kolom Kanan: Detail Armada */}
+            <div className="space-y-1 text-right">
               <div>
                 <span className="text-[10px] text-slate-600 uppercase tracking-wider block font-bold">
                   No. Polisi Armada:
@@ -411,18 +388,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                   {formatPlat(invoice.no_polisi)}
                 </span>
               </div>
-              {invoice.nama_mekanik && (
-                <div className="text-[11px] text-slate-700">
-                  <span className="text-slate-500">Mekanik:</span>{' '}
-                  <span className="font-semibold text-slate-900">{invoice.nama_mekanik}</span>
-                </div>
-              )}
-              {!isProforma && invoice.kasir_pic && (
-                <div className="text-[11px] text-slate-700">
-                  <span className="text-slate-500">Kasir:</span>{' '}
-                  <span className="font-semibold text-slate-900">{invoice.kasir_pic}</span>
-                </div>
-              )}
             </div>
           </div>
 
