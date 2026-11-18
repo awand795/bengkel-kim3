@@ -383,6 +383,7 @@ export interface SpkService {
   estimasi_biaya: number;
   estimasi_waktu_jam: number;
   waktu_check_in?: string;
+  waktu_penerimaan_sa?: string;
   waktu_mulai_pekerjaan?: string;
   waktu_selesai_pekerjaan?: string;
   waktu_waiting_part?: string;
@@ -475,7 +476,12 @@ export interface SpkItemPekerjaan {
   estimasi_durasi_jam: number;
   qty?: number;
   harga_satuan?: number;
+  disc1?: number;
+  diskon?: number;
   biaya_jasa: number;
+  total_dpp?: number;
+  total_ppn?: number;
+  total_netto?: number;
   nama_mekanik?: string;
   status_pekerjaan: 'Menunggu' | 'Dikerjakan' | 'Selesai';
   waktu_mulai?: string;
@@ -490,7 +496,12 @@ export interface SpkItemPart {
   jumlah: number;
   satuan: string;
   harga_satuan: number;
+  disc1?: number;
+  diskon?: number;
   subtotal: number;
+  total_dpp?: number;
+  total_ppn?: number;
+  total_netto?: number;
   status_ketersediaan: 'Ready di Stock' | 'Tidak Ready di Stock';
   status_part?: 'Draft' | 'PR Diajukan' | 'PO Dibuat' | 'Menunggu Barang Datang' | 'Barang Ready' | 'Diambil Mekanik';
   /** Lokasi rak diinput Warehouse saat serah terima ke mekanik (boleh kosong). */
@@ -614,9 +625,12 @@ export interface InvoicePembayaran {
   jatuh_tempo?: string;
   tanggal_invoice: string;
   subtotal: number;
+  dpp_nominal?: number;
   ppn_nominal: number;
   tarif_ppn_persen?: number;
   tipe_pajak?: string;
+  diskon_item?: number;
+  ekstra_diskon?: number;
   diskon: number;
   grand_total: number;
   metode_pembayaran: 'Cash' | 'Transfer Bank' | 'QRIS' | 'EDC' | string;
