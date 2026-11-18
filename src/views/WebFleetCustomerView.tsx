@@ -2777,9 +2777,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
     const bPlate = normalizePlat(b.no_polisi);
     const hasSpk = (spkList || []).some((s) => {
-      if (s.id_booking != null && s.id_booking === b.id) return true;
+      if (bPlate && normalizePlat(s.no_polisi) !== bPlate) return false;
+      const sTime = String(s.waktu_check_in || s.created_at || '');
+      if (b.created_at && sTime) {
+        const sMs = new Date(sTime).getTime();
+        const bCreatedMs = new Date(b.created_at).getTime();
+        if (!isNaN(sMs) && !isNaN(bCreatedMs) && sMs < bCreatedMs - 15 * 60 * 1000) return false;
+      }
+      const sBookingId = s.id_booking ?? (s as any).booking_id;
+      if (sBookingId != null) return sBookingId === b.id;
       if (bPlate && normalizePlat(s.no_polisi) === bPlate) {
-        const sTime = String(s.waktu_check_in || s.created_at || '');
         const bDate = formatBookingDate(b.tanggal_booking);
         if (!bDate || !sTime || sTime.slice(0, 10) >= bDate) return true;
       }
