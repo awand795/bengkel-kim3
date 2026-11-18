@@ -72,8 +72,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
   const showBankAccounts = !isLunas && validBankAccounts.length > 0;
 
   const {
-    tarifPpn,
-    hasCustomTarifPpn,
     jasaRows,
     partRows,
     hasItemDetails,
@@ -82,7 +80,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
     totalDiskonItemsInclPpn,
     totalHargaJualTampil,
     ekstraDiskon,
-    ppnNominal,
     grandTotal,
   } = computeFakturCalculation({
     invoice,
@@ -634,11 +631,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                 </div>
                 <div className="text-[10px] text-slate-600 text-right leading-relaxed px-1">
                   <div className="font-semibold italic text-slate-700">*Harga sudah termasuk PPN</div>
-                  {ppnNominal > 0 && (
-                    <div className="tabular-nums">
-                      PPN{hasCustomTarifPpn ? ` (${tarifPpn}%)` : ''}: Rp {fmtRp(ppnNominal)}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

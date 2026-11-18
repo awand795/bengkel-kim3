@@ -1012,8 +1012,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                 {/* TAB 2: Detail Pekerjaan & Sparepart */}
                 {subTab === 'detail' && (() => {
                   const {
-                    tarifPpn,
-                    hasCustomTarifPpn,
                     jasaRows,
                     partRows,
                     subtotalJasaNetto,
@@ -1021,7 +1019,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     totalDiskonItemsInclPpn,
                     totalHargaJualTampil,
                     ekstraDiskon,
-                    ppnNominal,
                     grandTotal,
                   } = computeFakturCalculation({
                     invoice: activeInvoice,
@@ -1160,13 +1157,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             <span>{activeInvoice || spk.no_invoice ? 'Total Tagihan (Grand Total)' : 'Total Estimasi'}</span>
                             <span className="font-mono tabular-nums">Rp {fmtRpExact(grandTotal)}</span>
                           </div>
-                          <div className="text-[11px] text-ink-subtle text-right pt-1 space-y-0.5 tabular-nums">
+                          <div className="text-[11px] text-ink-subtle text-right pt-1">
                             <div className="italic font-medium">*Harga sudah termasuk PPN</div>
-                            {ppnNominal > 0 && (
-                              <div>
-                                PPN{hasCustomTarifPpn ? ` (${tarifPpn}%)` : ''}: Rp {fmtRpExact(ppnNominal)}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
