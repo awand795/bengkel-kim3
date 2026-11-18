@@ -13,6 +13,7 @@ import { formatPlat } from '../../api/client';
 import { COMPANY_PROFILE, isValidCompanyField } from '../../config/company';
 import { terbilangRupiah } from '../../utils/terbilang';
 import { usePpnRate } from '../../hooks/usePpnRate';
+import { computeFakturCalculation, fmtRpExact as fmtRp, formatDiscDetail } from '../../utils/fakturHelper';
 
 export interface DigitalFakturModalProps {
   invoice: InvoicePembayaran | null;
@@ -55,8 +56,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
     return (partList || []).filter((p) => p.id_spk === invoice.id_spk);
   }, [partList, invoice?.id_spk]);
 
-  const hasItemDetails = filteredJasa.length > 0 || filteredParts.length > 0;
-
   // Filter rekening bank yang valid dan bukan placeholder
   const validBankAccounts = useMemo(() => {
     return (COMPANY_PROFILE.bankAccounts || []).filter(
@@ -72,227 +71,29 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
   // Rekening tujuan transfer HANYA tampil jika invoice BELUM lunas dan ada rekening terdaftar
   const showBankAccounts = !isLunas && validBankAccounts.length > 0;
 
-  // Tarif PPN: hanya tampilkan persentase jika invoice.tarif_ppn_persen valid
-  const hasCustomTarifPpn =
-    invoice.tarif_ppn_persen != null && !isNaN(Number(invoice.tarif_ppn_persen));
-  const tarifPpn = hasCustomTarifPpn ? Number(invoice.tarif_ppn_persen) : defaultPpnRate;
-
-  // Tentukan tipe pajak ('E' = Exclude, 'I' = Include); untuk proforma tanpa field tipe_pajak, deteksi dari item
-  const rawSubtotalFirstItem =
-    filteredJasa[0]?.biaya_jasa ?? filteredParts[0]?.subtotal ?? 0;
-  const rawDppFirstItem =
-    filteredJasa[0]?.total_dpp ?? filteredParts[0]?.total_dpp;
-  const rawNettoFirstItem =
-    filteredJasa[0]?.total_netto ?? filteredParts[0]?.total_netto;
-  const inferredExcludeFromItems =
-    !invoice.tipe_pajak &&
-    rawDppFirstItem != null &&
-    rawNettoFirstItem != null &&
-    Number(rawNettoFirstItem) > Number(rawDppFirstItem) + 0.5 &&
-    Math.abs(Number(rawSubtotalFirstItem) - Number(rawDppFirstItem)) < 1;
-
-  const tipePajak = (
-    invoice.tipe_pajak || (inferredExcludeFromItems ? 'E' : 'I')
-  ).toUpperCase();
-  const fmtRp = (val: number) =>
-    Number(val || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });
-
-  // Helper terpadu konversi item POS/WO menjadi angka tampil (harga termasuk PPN seperti cetakan Faktur POS)
-  const computeLineDisplay = (params: {
-    qty: number;
-    hargaSatuanRaw: number;
-    grossSubtotalRaw: number;
-    disc1?: number;
-    disc2?: number;
-    disc3?: number;
-    diskonTotalRaw?: number;
-    totalNettoRaw?: number;
-  }) => {
-    const qty = params.qty > 0 ? params.qty : 1;
-    const baseUnit = Number(params.hargaSatuanRaw || 0);
-    const hargaSatuanTampil =
-      tipePajak === 'E' && tarifPpn > 0
-        ? Math.round(baseUnit) + Math.round(Math.round(baseUnit) * (tarifPpn / 100))
-        : baseUnit;
-
-    let nettoItem: number;
-    if (params.totalNettoRaw != null && !isNaN(Number(params.totalNettoRaw))) {
-      nettoItem = Number(params.totalNettoRaw);
-    } else {
-      const afterDisc = Math.max(
-        0,
-        Number(params.grossSubtotalRaw || baseUnit * qty) - Number(params.diskonTotalRaw || 0)
-      );
-      nettoItem =
-        tipePajak === 'E' && tarifPpn > 0
-          ? Math.round(afterDisc) + Math.round(Math.round(afterDisc) * (tarifPpn / 100))
-          : afterDisc;
-    }
-
-    const hasDiscount =
-      Number(params.disc1 || 0) > 0 ||
-      Number(params.disc2 || 0) > 0 ||
-      Number(params.disc3 || 0) > 0 ||
-      Number(params.diskonTotalRaw || 0) > 0;
-    const diskonInclPpn = hasDiscount
-      ? Math.max(0, hargaSatuanTampil * qty - nettoItem)
-      : 0;
-
-    return {
-      qty,
-      hargaSatuanTampil,
-      diskonInclPpn,
-      nettoItem,
-    };
-  };
-
-  const jasaRows = filteredJasa.map((item) => {
-    const qty = Number(item.qty || 1);
-    const hargaSatuanRaw = Number(
-      item.harga_satuan ?? (qty > 0 ? Number(item.biaya_jasa || 0) / qty : item.biaya_jasa) ?? 0
-    );
-    const grossSubtotalRaw = Number(item.biaya_jasa || qty * hargaSatuanRaw || 0);
-    const display = computeLineDisplay({
-      qty,
-      hargaSatuanRaw,
-      grossSubtotalRaw,
-      disc1: item.disc1,
-      disc2: item.disc2,
-      disc3: item.disc3,
-      diskonTotalRaw: item.diskon,
-      totalNettoRaw: item.total_netto,
-    });
-    return { item, ...display };
+  const {
+    tarifPpn,
+    hasCustomTarifPpn,
+    jasaRows,
+    partRows,
+    hasItemDetails,
+    subtotalJasaNetto,
+    subtotalPartNetto,
+    totalDiskonItemsInclPpn,
+    totalHargaJualTampil,
+    ekstraDiskon,
+    dpp,
+    ppnNominal,
+    grandTotal,
+  } = computeFakturCalculation({
+    invoice,
+    pekerjaanList: filteredJasa,
+    partList: filteredParts,
+    defaultPpnRate,
+    isProforma,
   });
-
-  const partRows = filteredParts.map((part) => {
-    const qty = Number(part.jumlah || 1);
-    const hargaSatuanRaw = Number(part.harga_satuan || 0);
-    const grossSubtotalRaw = Number(part.subtotal ?? qty * hargaSatuanRaw);
-    const display = computeLineDisplay({
-      qty,
-      hargaSatuanRaw,
-      grossSubtotalRaw,
-      disc1: part.disc1,
-      disc2: part.disc2,
-      disc3: part.disc3,
-      diskonTotalRaw: part.diskon,
-      totalNettoRaw: part.total_netto,
-    });
-    return { part, ...display };
-  });
-
-  const subtotalJasaNetto = jasaRows.reduce((acc, r) => acc + r.nettoItem, 0);
-  const subtotalPartNetto = partRows.reduce((acc, r) => acc + r.nettoItem, 0);
-  const totalDiskonItemsInclPpn =
-    jasaRows.reduce((acc, r) => acc + r.diskonInclPpn, 0) +
-    partRows.reduce((acc, r) => acc + r.diskonInclPpn, 0);
-
-  // Hitung subtotal kotor item (basis DPP sebelum PPN bila 'E')
-  const totalJasa = filteredJasa.reduce((acc, curr) => acc + Number(curr.biaya_jasa || 0), 0);
-  const totalParts = filteredParts.reduce(
-    (acc, curr) => acc + Number(curr.subtotal ?? (Number(curr.jumlah || 0) * Number(curr.harga_satuan || 0))),
-    0
-  );
-  const totalDiskonItems =
-    filteredJasa.reduce((acc, curr) => acc + Number(curr.diskon || 0), 0) +
-    filteredParts.reduce((acc, curr) => acc + Number(curr.diskon || 0), 0);
-
-  const hasDbInvoiceNumbers =
-    !isProforma &&
-    (Number(invoice.grand_total || 0) > 0 ||
-      invoice.dpp_nominal != null ||
-      Number(invoice.ppn_nominal || 0) > 0);
-
-  const subtotalKotor =
-    !isProforma && Number(invoice.subtotal || 0) > 0
-      ? Number(invoice.subtotal)
-      : hasItemDetails
-        ? totalJasa + totalParts
-        : Number(invoice.subtotal || invoice.grand_total || 0);
-
-  const diskonItem =
-    !isProforma && invoice.diskon_item != null ? Number(invoice.diskon_item) : totalDiskonItems;
-  const ekstraDiskon =
-    !isProforma && invoice.ekstra_diskon != null ? Number(invoice.ekstra_diskon) : 0;
-  const diskon =
-    !isProforma &&
-    (invoice.diskon != null || invoice.diskon_item != null || invoice.ekstra_diskon != null)
-      ? Math.max(Number(invoice.diskon ?? 0), diskonItem + ekstraDiskon)
-      : totalDiskonItems > 0
-        ? totalDiskonItems
-        : Number(invoice.diskon || 0);
-
-  const subtotalSetelahDiskon = Math.max(0, subtotalKotor - diskon);
-
-  // Gunakan bilangan exact dari POS (total_dpp, total_ppn, total_netto) tanpa pembulatan ulang
-  let dpp = subtotalSetelahDiskon;
-  let ppnNominal = Number(invoice.ppn_nominal || 0);
-  let grandTotal = Number(invoice.grand_total || 0);
-
-  if (hasDbInvoiceNumbers) {
-    dpp =
-      invoice.dpp_nominal != null && !isNaN(Number(invoice.dpp_nominal))
-        ? Number(invoice.dpp_nominal)
-        : tipePajak === 'I' && tarifPpn > 0
-          ? subtotalSetelahDiskon / (1 + tarifPpn / 100)
-          : subtotalSetelahDiskon;
-    ppnNominal = Number(invoice.ppn_nominal || 0);
-    grandTotal =
-      Number(invoice.grand_total || 0) > 0
-        ? Number(invoice.grand_total)
-        : tipePajak === 'I'
-          ? subtotalSetelahDiskon
-          : dpp + ppnNominal;
-  } else if (
-    hasItemDetails &&
-    (filteredJasa.some((j) => j.total_netto != null) ||
-      filteredParts.some((p) => p.total_netto != null))
-  ) {
-    const sumDpp =
-      filteredJasa.reduce((acc, c) => acc + Number(c.total_dpp ?? c.biaya_jasa ?? 0), 0) +
-      filteredParts.reduce((acc, c) => acc + Number(c.total_dpp ?? c.subtotal ?? 0), 0);
-    const sumPpn =
-      filteredJasa.reduce((acc, c) => acc + Number(c.total_ppn ?? 0), 0) +
-      filteredParts.reduce((acc, c) => acc + Number(c.total_ppn ?? 0), 0);
-    const sumNetto = subtotalJasaNetto + subtotalPartNetto;
-    dpp = sumDpp;
-    ppnNominal = sumPpn;
-    grandTotal = sumNetto > 0 ? sumNetto : subtotalSetelahDiskon;
-  } else if (tipePajak === 'I') {
-    if (tarifPpn > 0) {
-      dpp = subtotalSetelahDiskon * (100 / (100 + tarifPpn));
-      ppnNominal = subtotalSetelahDiskon - dpp;
-      grandTotal = subtotalSetelahDiskon;
-    } else {
-      dpp = subtotalSetelahDiskon;
-      ppnNominal = 0;
-      grandTotal = subtotalSetelahDiskon;
-    }
-  } else {
-    dpp = subtotalSetelahDiskon;
-    if (ppnNominal <= 0 && tarifPpn > 0) {
-      ppnNominal = dpp * (tarifPpn / 100);
-    }
-    grandTotal = dpp + ppnNominal;
-  }
-
-  // Total Harga Jual tampil (sudah termasuk PPN, identik dengan POS "Total Harga Jual")
-  const totalHargaJualTampil = hasItemDetails
-    ? subtotalJasaNetto + subtotalPartNetto
-    : grandTotal + ekstraDiskon;
 
   const displayNoSpk = noSpk || invoice.no_spk;
-  const formatDiscDetail = (d1?: number, d2?: number, d3?: number, discInclPpn?: number) => {
-    const pcts = [d1, d2, d3].filter((v) => Number(v || 0) > 0).map((v) => `${Number(v)}%`);
-    if (pcts.length > 0 && Number(discInclPpn || 0) > 0) {
-      return `${pcts.join('+')} (-Rp ${fmtRp(Number(discInclPpn))})`;
-    }
-    if (Number(discInclPpn || 0) > 0) {
-      return `-Rp ${fmtRp(Number(discInclPpn))}`;
-    }
-    return '-';
-  };
 
   const formatTanggalWaktu = (dateStr?: string | null) => {
     if (!dateStr || isNaN(new Date(dateStr).getTime())) return '-';

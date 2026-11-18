@@ -31,6 +31,7 @@ import { PlateChip } from '../components/common/PlateChip';
 import { RupiahCell } from '../components/common/RupiahCell';
 import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
 import { MultiSlideBanner } from '../components/common/MultiSlideBanner';
+import { computeFakturCalculation, fmtRpExact, formatDiscDetail } from '../utils/fakturHelper';
 import { 
   Truck, 
   Calendar, 
@@ -1010,28 +1011,27 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
 
                 {/* TAB 2: Detail Pekerjaan & Sparepart */}
                 {subTab === 'detail' && (() => {
-                  const totalJasa = activePekerjaan.reduce((acc, p) => acc + Number(p.biaya_jasa || 0), 0);
-                  const totalParts = activeParts.reduce((acc, pt) => acc + Number(pt.subtotal || (Number(pt.harga_satuan || 0) * Number(pt.jumlah || 1)) || 0), 0);
-                  const subtotalItems = totalJasa + totalParts;
-                  const invSubtotal = activeInvoice ? Number(activeInvoice.subtotal || 0) : 0;
-                  const diskon = activeInvoice ? Number(activeInvoice.diskon || 0) : 0;
-                  const dppBase = invSubtotal > 0 ? Math.max(0, invSubtotal - diskon) : (subtotalItems > 0 ? subtotalItems : Number(spk.estimasi_biaya || 0));
-                  const tipePajak = String(activeInvoice?.tipe_pajak || '').toUpperCase();
-                  const hasTarif = activeInvoice?.tarif_ppn_persen != null && !isNaN(Number(activeInvoice.tarif_ppn_persen));
-                  const tarifPpn = hasTarif ? Number(activeInvoice!.tarif_ppn_persen) : 11;
-                  const ppnNominal = activeInvoice
-                    ? Number(activeInvoice.ppn_nominal || 0)
-                    : (Number(spk.total_invoice || 0) > dppBase ? Number(spk.total_invoice) - dppBase : 0);
-                  const grandTotal = activeInvoice && Number(activeInvoice.grand_total || 0) > 0
-                    ? Number(activeInvoice.grand_total)
-                    : Number(spk.total_invoice || 0) > 0
-                      ? Number(spk.total_invoice)
-                      : dppBase + ppnNominal;
-                  const ppnLabel = tipePajak === 'I'
-                    ? `PPN (${tarifPpn}%) (Include)`
-                    : tipePajak === 'N'
-                      ? 'PPN (Non-PKP)'
-                      : `PPN (${tarifPpn}%) (Exclude)`;
+                  const {
+                    tarifPpn,
+                    hasCustomTarifPpn,
+                    jasaRows,
+                    partRows,
+                    subtotalJasaNetto,
+                    subtotalPartNetto,
+                    totalDiskonItemsInclPpn,
+                    totalHargaJualTampil,
+                    ekstraDiskon,
+                    dpp,
+                    ppnNominal,
+                    grandTotal,
+                  } = computeFakturCalculation({
+                    invoice: activeInvoice,
+                    pekerjaanList: activePekerjaan,
+                    partList: activeParts,
+                    defaultPpnRate: ppnRate ?? 11,
+                    isProforma: !activeInvoice && !spk.no_invoice,
+                    fallbackEstimasiTotal: Number(spk.total_invoice || spk.estimasi_biaya || 0),
+                  });
 
                   return (
                   <div className="space-y-4 pt-1 text-xs">
@@ -1040,32 +1040,37 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
                         <span>Daftar Pekerjaan / Jasa Service</span>
                         <span className="text-xs text-ink-muted font-normal">
-                          {activePekerjaan.length > 0 ? `${activePekerjaan.length} Item Jasa` : 'Estimasi Paket'}
+                          {jasaRows.length > 0 ? `${jasaRows.length} Item Jasa` : 'Estimasi Paket'}
                         </span>
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
-                        {activePekerjaan.length > 0 ? (
-                          activePekerjaan.map((p, idx) => {
-                            const qty = Number(p.qty || 1);
-                            const hargaSatuan = Number(p.harga_satuan || 0) > 0
-                              ? Number(p.harga_satuan)
-                              : (qty > 0 ? Number(p.biaya_jasa || 0) / qty : Number(p.biaya_jasa || 0));
-                            const subtotalJasa = Number(p.biaya_jasa || 0);
-                            return (
-                              <div key={idx} className="p-3 flex justify-between items-center gap-3">
-                                <div className="min-w-0">
-                                  <div className="font-semibold text-ink">{p.nama_pekerjaan || p.kategori}</div>
-                                  <div className="text-xs text-ink-subtle tabular-nums">
-                                    {qty} × Rp {hargaSatuan.toLocaleString('id-ID')} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
+                        {jasaRows.length > 0 ? (
+                          jasaRows.map(({ item: p, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                            <div key={idx} className="p-3 flex justify-between items-center gap-3">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-ink">
+                                  {p.nama_pekerjaan || p.kategori}
+                                  {p.kode_pekerjaan && (
+                                    <span className="ml-1.5 text-[10px] text-ink-subtle font-mono">
+                                      ({p.kode_pekerjaan})
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-ink-subtle tabular-nums">
+                                  {qty} × Rp {fmtRpExact(hargaSatuanTampil)} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
+                                </div>
+                                {diskonInclPpn > 0 && (
+                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums">
+                                    Diskon: {formatDiscDetail(p.disc1, p.disc2, p.disc3, diskonInclPpn)}
                                   </div>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <div className="font-bold text-ink tabular-nums">Rp {subtotalJasa.toLocaleString('id-ID')}</div>
-                                  <span className="text-xs text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
-                                </div>
+                                )}
                               </div>
-                            );
-                          })
+                              <div className="text-right shrink-0">
+                                <div className="font-bold text-ink tabular-nums">Rp {fmtRpExact(nettoItem)}</div>
+                                <span className="text-xs text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
+                              </div>
+                            </div>
+                          ))
                         ) : (
                           <div className="p-4 text-center text-xs text-ink-subtle">
                             Belum ada rincian jasa pengerjaan untuk unit ini.
@@ -1079,30 +1084,37 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center">
                         <span>Daftar Sparepart & Material</span>
                         <span className="text-xs text-ink-muted font-normal">
-                          {activeParts.length > 0 ? `${activeParts.length} Item Part` : '0 Item Part'}
+                          {partRows.length > 0 ? `${partRows.length} Item Part` : '0 Item Part'}
                         </span>
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
-                        {activeParts.length > 0 ? (
-                          activeParts.map((pt, idx) => {
-                            const qty = Number(pt.jumlah || 1);
-                            const hargaSatuan = Number(pt.harga_satuan || 0);
-                            const subtotalPart = Number(pt.subtotal || (hargaSatuan * qty) || 0);
-                            return (
-                              <div key={idx} className="p-3 flex justify-between items-center gap-3">
-                                <div className="min-w-0">
-                                  <div className="font-semibold text-ink">{pt.nama_part}</div>
-                                  <div className="text-xs text-ink-subtle tabular-nums">
-                                    {qty} {pt.satuan || 'Pcs'} × Rp {hargaSatuan.toLocaleString('id-ID')}
+                        {partRows.length > 0 ? (
+                          partRows.map(({ part: pt, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                            <div key={idx} className="p-3 flex justify-between items-center gap-3">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-ink">
+                                  {pt.nama_part}
+                                  {pt.kode_part && (
+                                    <span className="ml-1.5 text-[10px] text-ink-subtle font-mono">
+                                      ({pt.kode_part})
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-ink-subtle tabular-nums">
+                                  {qty} {pt.satuan || 'Pcs'} × Rp {fmtRpExact(hargaSatuanTampil)}
+                                </div>
+                                {diskonInclPpn > 0 && (
+                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums">
+                                    Diskon: {formatDiscDetail(pt.disc1, pt.disc2, pt.disc3, diskonInclPpn)}
                                   </div>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <div className="font-bold text-ink tabular-nums">Rp {subtotalPart.toLocaleString('id-ID')}</div>
-                                  <span className="text-xs text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
-                                </div>
+                                )}
                               </div>
-                            );
-                          })
+                              <div className="text-right shrink-0">
+                                <div className="font-bold text-ink tabular-nums">Rp {fmtRpExact(nettoItem)}</div>
+                                <span className="text-xs text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
+                              </div>
+                            </div>
+                          ))
                         ) : (
                           <div className="p-4 text-center text-xs text-ink-subtle">
                             Belum ada rincian sparepart untuk unit ini.
@@ -1111,8 +1123,8 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                     </div>
 
-                    {/* Ringkasan Rincian Biaya & Pajak (Sesuai Faktur ERP) */}
-                    {(activePekerjaan.length > 0 || activeParts.length > 0 || grandTotal > 0) && (
+                    {/* Ringkasan Rincian Biaya & Pajak (Selaras Faktur POS) */}
+                    {(jasaRows.length > 0 || partRows.length > 0 || grandTotal > 0) && (
                       <div className="border border-border rounded-xl overflow-hidden bg-surface-raised">
                         <div className="bg-surface px-4 py-2.5 font-bold text-ink flex justify-between items-center border-b border-border">
                           <span>Ringkasan Biaya & Pajak</span>
@@ -1123,31 +1135,39 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                         <div className="p-4 space-y-2 text-xs">
                           <div className="flex justify-between text-ink-muted">
                             <span>Subtotal Pekerjaan / Jasa</span>
-                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {totalJasa.toLocaleString('id-ID')}</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {fmtRpExact(subtotalJasaNetto)}</span>
                           </div>
                           <div className="flex justify-between text-ink-muted">
                             <span>Subtotal Sparepart & Material</span>
-                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {totalParts.toLocaleString('id-ID')}</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {fmtRpExact(subtotalPartNetto)}</span>
                           </div>
-                          {diskon > 0 && (
-                            <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
-                              <span>Diskon</span>
-                              <span className="font-mono font-semibold tabular-nums">- Rp {diskon.toLocaleString('id-ID')}</span>
+                          <div className="flex justify-between text-ink-muted pt-1.5 border-t border-dashed border-border">
+                            <span>Total Harga Jual</span>
+                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {fmtRpExact(totalHargaJualTampil)}</span>
+                          </div>
+                          {totalDiskonItemsInclPpn > 0 && (
+                            <div className="flex justify-between text-rose-600 dark:text-rose-400">
+                              <span>Diskon Item (Sudah Dipotong)</span>
+                              <span className="font-mono font-semibold tabular-nums">- Rp {fmtRpExact(totalDiskonItemsInclPpn)}</span>
                             </div>
                           )}
-                          <div className="flex justify-between text-ink-muted pt-1.5 border-t border-dashed border-border">
-                            <span>Subtotal (DPP)</span>
-                            <span className="font-mono font-semibold text-ink tabular-nums">Rp {dppBase.toLocaleString('id-ID')}</span>
-                          </div>
-                          {(ppnNominal > 0 || activeInvoice) && (
-                            <div className="flex justify-between text-ink-muted">
-                              <span>{ppnLabel}</span>
-                              <span className="font-mono font-semibold text-ink tabular-nums">Rp {ppnNominal.toLocaleString('id-ID')}</span>
+                          {ekstraDiskon > 0 && (
+                            <div className="flex justify-between text-rose-600 dark:text-rose-400">
+                              <span>Ekstra Diskon</span>
+                              <span className="font-mono font-semibold tabular-nums">- Rp {fmtRpExact(ekstraDiskon)}</span>
                             </div>
                           )}
                           <div className="flex justify-between items-center pt-2 border-t border-border text-sm font-extrabold text-[#12388F] dark:text-blue-300">
                             <span>{activeInvoice || spk.no_invoice ? 'Total Tagihan (Grand Total)' : 'Total Estimasi'}</span>
-                            <span className="font-mono tabular-nums">Rp {grandTotal.toLocaleString('id-ID')}</span>
+                            <span className="font-mono tabular-nums">Rp {fmtRpExact(grandTotal)}</span>
+                          </div>
+                          <div className="text-[11px] text-ink-subtle text-right pt-1 space-y-0.5 tabular-nums">
+                            <div className="italic font-medium">*Harga sudah termasuk PPN</div>
+                            {(dpp > 0 || ppnNominal > 0) && (
+                              <div>
+                                DPP: Rp {fmtRpExact(dpp)} • PPN{hasCustomTarifPpn ? ` (${tarifPpn}%)` : ''}: Rp {fmtRpExact(ppnNominal)}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
