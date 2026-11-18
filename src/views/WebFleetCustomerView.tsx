@@ -31,7 +31,7 @@ import { PlateChip } from '../components/common/PlateChip';
 import { RupiahCell } from '../components/common/RupiahCell';
 import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
 import { MultiSlideBanner } from '../components/common/MultiSlideBanner';
-import { computeFakturCalculation, fmtRpExact, formatDiscDetail } from '../utils/fakturHelper';
+import { computeFakturCalculation, fmtRpExact } from '../utils/fakturHelper';
 import { 
   Truck, 
   Calendar, 
@@ -1016,7 +1016,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                     partRows,
                     subtotalJasaNetto,
                     subtotalPartNetto,
-                    totalDiskonItemsInclPpn,
                     totalHargaJualTampil,
                     ekstraDiskon,
                     grandTotal,
@@ -1041,7 +1040,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
                         {jasaRows.length > 0 ? (
-                          jasaRows.map(({ item: p, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                          jasaRows.map(({ item: p, qty, hargaSatuanTampil, discPercentLabel, addDiscNominal, hasPercentDisc, hasAddDisc, nettoItem }, idx) => (
                             <div key={idx} className="p-3 flex justify-between items-center gap-3">
                               <div className="min-w-0">
                                 <div className="font-semibold text-ink">
@@ -1055,9 +1054,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                 <div className="text-xs text-ink-subtle tabular-nums">
                                   {qty} × Rp {fmtRpExact(hargaSatuanTampil)} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
                                 </div>
-                                {diskonInclPpn > 0 && (
-                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums">
-                                    Diskon: {formatDiscDetail(p.disc1, p.disc2, p.disc3, diskonInclPpn)}
+                                {(hasPercentDisc || hasAddDisc) && (
+                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums flex flex-wrap gap-x-2.5">
+                                    {hasPercentDisc && <span>Disc: {discPercentLabel}</span>}
+                                    {hasAddDisc && <span>Add Disc: {fmtRpExact(addDiscNominal)}</span>}
                                   </div>
                                 )}
                               </div>
@@ -1085,7 +1085,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       </div>
                       <div className="divide-y divide-border bg-surface-raised">
                         {partRows.length > 0 ? (
-                          partRows.map(({ part: pt, qty, hargaSatuanTampil, diskonInclPpn, nettoItem }, idx) => (
+                          partRows.map(({ part: pt, qty, hargaSatuanTampil, discPercentLabel, addDiscNominal, hasPercentDisc, hasAddDisc, nettoItem }, idx) => (
                             <div key={idx} className="p-3 flex justify-between items-center gap-3">
                               <div className="min-w-0">
                                 <div className="font-semibold text-ink">
@@ -1099,9 +1099,10 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                 <div className="text-xs text-ink-subtle tabular-nums">
                                   {qty} {pt.satuan || 'Pcs'} × Rp {fmtRpExact(hargaSatuanTampil)}
                                 </div>
-                                {diskonInclPpn > 0 && (
-                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums">
-                                    Diskon: {formatDiscDetail(pt.disc1, pt.disc2, pt.disc3, diskonInclPpn)}
+                                {(hasPercentDisc || hasAddDisc) && (
+                                  <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums flex flex-wrap gap-x-2.5">
+                                    {hasPercentDisc && <span>Disc: {discPercentLabel}</span>}
+                                    {hasAddDisc && <span>Add Disc: {fmtRpExact(addDiscNominal)}</span>}
                                   </div>
                                 )}
                               </div>
@@ -1141,12 +1142,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                             <span>Total Harga Jual</span>
                             <span className="font-mono font-semibold text-ink tabular-nums">Rp {fmtRpExact(totalHargaJualTampil)}</span>
                           </div>
-                          {totalDiskonItemsInclPpn > 0 && (
-                            <div className="flex justify-between text-rose-600 dark:text-rose-400">
-                              <span>Diskon Item (Sudah Dipotong)</span>
-                              <span className="font-mono font-semibold tabular-nums">- Rp {fmtRpExact(totalDiskonItemsInclPpn)}</span>
-                            </div>
-                          )}
                           {ekstraDiskon > 0 && (
                             <div className="flex justify-between text-rose-600 dark:text-rose-400">
                               <span>Ekstra Diskon</span>
@@ -2777,9 +2772,16 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
 
     const bPlate = normalizePlat(b.no_polisi);
     const hasSpk = (spkList || []).some((s) => {
-      if (s.id_booking != null && s.id_booking === b.id) return true;
+      if (bPlate && normalizePlat(s.no_polisi) !== bPlate) return false;
+      const sTime = String(s.waktu_check_in || s.created_at || '');
+      if (b.created_at && sTime) {
+        const sMs = new Date(sTime).getTime();
+        const bCreatedMs = new Date(b.created_at).getTime();
+        if (!isNaN(sMs) && !isNaN(bCreatedMs) && sMs < bCreatedMs - 15 * 60 * 1000) return false;
+      }
+      const sBookingId = s.id_booking ?? (s as any).booking_id;
+      if (sBookingId != null) return sBookingId === b.id;
       if (bPlate && normalizePlat(s.no_polisi) === bPlate) {
-        const sTime = String(s.waktu_check_in || s.created_at || '');
         const bDate = formatBookingDate(b.tanggal_booking);
         if (!bDate || !sTime || sTime.slice(0, 10) >= bDate) return true;
       }
@@ -2807,11 +2809,39 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const getBookingEffectiveStatus = useCallback((b: BookingService): string => {
     const rawStatus = (b.status as string) || '';
     if (rawStatus === 'Booking Canceled' || rawStatus === 'Dibatalkan' || b.is_canceled || b.status_pos === 'CANCELED') return 'Booking Canceled';
+    if (b.waktu_check_out || rawStatus === 'Check Out') return 'Check Out';
     // Jika status dari API sudah menunjukkan tahapan pengerjaan POS bengkel atau gerbang
-    if (['Check Out', 'Selesai', 'FIR Closed', 'QC Passed', 'Selesai Dikerjakan', 'Proses Pekerjaan', 'Dalam Pengerjaan', 'Waiting Part', 'Waiting QC', 'Estimasi Disetujui', 'Check In'].includes(rawStatus)) {
+    if ([
+      'Check Out',
+      'Selesai',
+      'Siap Keluar',
+      'Siap Keluar (Lunas)',
+      'FIR Closed',
+      'QC Passed',
+      'Selesai Dikerjakan',
+      'Proses Pekerjaan',
+      'Dalam Pengerjaan',
+      'Waiting Part',
+      'Menunggu Sparepart',
+      'Waiting QC',
+      'Menunggu Invoice/Kasir',
+      'Estimasi Disetujui',
+      'Menunggu',
+      'Check In',
+    ].includes(rawStatus)) {
       return rawStatus;
     }
-    if (rawStatus === 'Checked-In' || rawStatus === 'SELESAI_CHECKIN' || isBookingCheckedIn(b)) return 'Check In';
+    if (
+      rawStatus === 'Checked-In' ||
+      rawStatus === 'SELESAI_CHECKIN' ||
+      b.sudah_kunjungan ||
+      Boolean(b.waktu_check_in) ||
+      Boolean(b.no_spk) ||
+      Boolean(b.status_spk) ||
+      isBookingCheckedIn(b)
+    ) {
+      return (b.status_spk && String(b.status_spk)) || 'Check In';
+    }
     // PENTING: Jika jadwal sudah lewat dari sekarang dan belum dikerjakan / check-in -> Otomatis Batal (Expired)
     if (isBookingPast(b)) return 'Booking Canceled';
     const hasScheduleShift =
@@ -2962,8 +2992,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     );
   };
 
-  // ── Booking Saya: hanya menampilkan booking yang Aktif (Booked, Confirmed, Rescheduled, Menunggu Konfirmasi) ─
+  // ── Booking Saya: hanya menampilkan booking yang Aktif & BELUM Check-In / Diproses ─
   const bookingAktifList = myBookingSorted.filter((b) => {
+    if (b.sudah_kunjungan || b.waktu_check_in || b.waktu_check_out || b.no_spk || b.status_spk) return false;
     const eff = getBookingEffectiveStatus(b);
     return eff === 'Booked' || eff === 'Confirmed' || eff === 'Rescheduled' || eff === 'Menunggu Konfirmasi';
   });
