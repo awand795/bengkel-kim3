@@ -2268,15 +2268,19 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
     foto_profil: authUser?.foto_profil || '',
   });
   const simpanProfilMutation = useMutation({
-    mutationFn: () =>
-      api.updateProfil({
+    mutationFn: () => {
+      if (!profilForm.no_telepon.trim()) {
+        return Promise.reject(new Error('No. Telepon / WhatsApp wajib diisi.'));
+      }
+      return api.updateProfil({
         nama_lengkap: (profilForm.nama_perusahaan.trim() || authUser?.nama_lengkap || '').trim(),
         nama_pic: isPerusahaanAccount ? (profilForm.nama_pic.trim() || '-') : '-',
         alamat: profilForm.alamat.trim(),
         npwp: profilForm.npwp.trim(),
         no_telepon: profilForm.no_telepon.trim(),
         foto_profil: profilForm.foto_profil ?? '',
-      }),
+      });
+    },
     onSuccess: async () => {
       const me = await api.getMe();
       useAppStore.setState({ authUser: me, currentUser: me.nama_lengkap || '' });
@@ -5983,10 +5987,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                   <div>
                     <label className="block text-xs font-bold text-ink mb-1.5 flex items-center gap-1.5">
                       <Phone className="w-3.5 h-3.5 text-accent" />
-                      <span>No. Telepon / WhatsApp:</span>
+                      <span>No. Telepon / WhatsApp: <span className="text-red-500">*</span></span>
                     </label>
                     <input
                       type="tel"
+                      required
                       value={profilForm.no_telepon}
                       onChange={(e) => setProfilForm((p) => ({ ...p, no_telepon: e.target.value }))}
                       placeholder="Contoh: 0812-3456-7890"

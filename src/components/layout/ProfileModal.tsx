@@ -44,6 +44,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       toast.error('Nama Belum Diisi', 'Nama lengkap wajib diisi.');
       return;
     }
+    if (!telepon.trim()) {
+      toast.error('Validasi', 'No. WhatsApp / HP wajib diisi.');
+      return;
+    }
     setSaving(true);
     try {
       await api.updateProfil({
@@ -165,7 +169,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
             <div>
               <label className="block text-xs font-semibold text-ink mb-1.5" htmlFor="profil_telp">
-                No. WhatsApp / HP
+                No. WhatsApp / HP <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-subtle">
@@ -173,7 +177,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                 </div>
                 <input
                   id="profil_telp"
-                  type="text"
+                  type="tel"
+                  required
                   value={telepon}
                   onChange={(e) => setTelepon(e.target.value)}
                   placeholder="0812xxxxxxx"
