@@ -288,23 +288,25 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    let normalizedPhone = '';
-    if (cleanPhone) {
-      const digits = cleanPhone.replace(/[^0-9]/g, '');
-      normalizedPhone = digits;
-      if (normalizedPhone.startsWith('62')) {
-        normalizedPhone = '0' + normalizedPhone.substring(2);
-      }
+    if (!cleanPhone) {
+      setErrorMsg('Nomor HP/WhatsApp wajib diisi.');
+      return;
+    }
 
-      if (!normalizedPhone.startsWith('08')) {
-        setErrorMsg('Nomor HP/WhatsApp tidak valid. Jika diisi, harus diawali dengan 08 atau 628.');
-        return;
-      }
+    const digits = cleanPhone.replace(/[^0-9]/g, '');
+    let normalizedPhone = digits;
+    if (normalizedPhone.startsWith('62')) {
+      normalizedPhone = '0' + normalizedPhone.substring(2);
+    }
 
-      if (normalizedPhone.length < 11 || normalizedPhone.length > 13) {
-        setErrorMsg(`Nomor HP/WhatsApp jika diisi harus minimal 11 sampai 13 digit angka (saat ini ${normalizedPhone.length} digit).`);
-        return;
-      }
+    if (!normalizedPhone.startsWith('08')) {
+      setErrorMsg('Nomor HP/WhatsApp tidak valid. Harus diawali dengan 08 atau 628.');
+      return;
+    }
+
+    if (normalizedPhone.length < 11 || normalizedPhone.length > 13) {
+      setErrorMsg(`Nomor HP/WhatsApp minimal 11 sampai 13 digit angka (saat ini ${normalizedPhone.length} digit).`);
+      return;
     }
 
     const pwd = regForm.password;
@@ -725,7 +727,7 @@ export const LoginPage: React.FC = () => {
                 {/* No. WhatsApp / HP */}
                 <div>
                   <label className={LABEL_CLS} htmlFor="reg_phone">
-                    Nomor WhatsApp / HP
+                    Nomor WhatsApp / HP <span className="text-status-red">*</span>
                   </label>
                   <div className="relative group">
                     <div className={ICON_WRAP_CLS}>
@@ -734,6 +736,7 @@ export const LoginPage: React.FC = () => {
                     <input
                       id="reg_phone"
                       type="tel"
+                      required
                       maxLength={14}
                       value={regForm.no_telepon}
                       onChange={(e) => {
