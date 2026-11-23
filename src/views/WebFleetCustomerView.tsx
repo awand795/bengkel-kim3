@@ -4687,7 +4687,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                             />
                             <div className="mt-2 rounded-xl border border-border/70 bg-surface-raised/70 px-3 py-2 text-xs space-y-1">
                               <div className="font-semibold text-ink">
-                                {getBookingScheduleForDate(bookingForm.tanggal_booking).rangeLabel}
+                                Jam operasional
                               </div>
                               <div className="text-[11px] text-ink-muted space-y-0.5 pt-0.5 border-t border-border/50">
                                 <div className="flex items-center justify-between gap-2">
