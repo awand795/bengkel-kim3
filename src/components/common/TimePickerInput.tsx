@@ -76,7 +76,7 @@ interface TimePickerInputProps {
   selectedDate?: string; // YYYY-MM-DD
 }
 
-const MINUTE_OPTIONS = [0, 15, 30, 45];
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, i) => i);
 
 /**
  * TimePickerInput — Picker Jam & Menit yang terkunci ke jam operasional:
@@ -229,7 +229,7 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
               <div className="text-[11px] font-bold text-ink-muted uppercase tracking-wider mb-1.5 text-center">
                 Menit
               </div>
-              <div className="space-y-1">
+              <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
                 {MINUTE_OPTIONS.map((m) => {
                   const allowed = isTimeAllowed(selectedHour, m);
                   const active = m === selectedMinute && allowed;
