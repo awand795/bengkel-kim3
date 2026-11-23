@@ -4685,10 +4685,23 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               value={bookingForm.jam_booking}
                               onChange={(time) => setBookingForm({ ...bookingForm, jam_booking: time })}
                             />
-                            <div className="text-xs text-ink-muted mt-1.5 font-medium space-y-0.5">
-                              <div>{getBookingScheduleForDate(bookingForm.tanggal_booking).rangeLabel}</div>
-                              <div className="text-[11px] text-ink-subtle">
-                                Senin–Jumat: 08:30 - 16:30 · Sabtu: 08:30 - 13:00 · Minggu: Libur
+                            <div className="mt-2 rounded-xl border border-border/70 bg-surface-raised/70 px-3 py-2 text-xs space-y-1">
+                              <div className="font-semibold text-ink">
+                                {getBookingScheduleForDate(bookingForm.tanggal_booking).rangeLabel}
+                              </div>
+                              <div className="text-[11px] text-ink-muted space-y-0.5 pt-0.5 border-t border-border/50">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span>Senin – Jumat</span>
+                                  <span className="font-mono font-semibold text-ink">08:30 – 16:30 WIB</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span>Sabtu</span>
+                                  <span className="font-mono font-semibold text-ink">08:30 – 13:00 WIB</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span>Minggu</span>
+                                  <span className="font-semibold text-status-red">Libur</span>
+                                </div>
                               </div>
                             </div>
                           </div>
