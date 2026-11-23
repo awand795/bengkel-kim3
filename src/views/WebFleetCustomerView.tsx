@@ -15,7 +15,7 @@ import { ConfirmModal } from '../components/common/ConfirmModal';
 import { ModalActionButton } from '../components/common/ModalActionButton';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { toast } from '../components/common/Toast';
-import { TimePickerInput } from '../components/common/TimePickerInput';
+import { TimePickerInput, getBookingScheduleForDate, validateBookingDateTime } from '../components/common/TimePickerInput';
 import { etaSpk, labelSumberEta } from '../utils/eta';
 import { fmtWaktuFull, fmtTanggalSaja } from '../utils/dateFormat';
 import { resolveServiceTimeline, hasServiceBooking } from '../utils/serviceTimeline';
@@ -1757,7 +1757,9 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
   const [bookingForm, setBookingForm] = useState({
     no_polisi: '',
     jenis_layanan: 'Service Berkala (Ganti Oli & Filter)',
-    tanggal_booking: getLocalDateStr(1),
+    tanggal_booking: getBookingScheduleForDate(getLocalDateStr(1)).isSunday
+      ? getLocalDateStr(2)
+      : getLocalDateStr(1),
     jam_booking: '08:30',
     keluhan: '',
     catatan: '',
@@ -3381,6 +3383,10 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
       if (bookingForm.tanggal_booking < minBookingDate) {
         throw new Error(`Pemesanan jadwal booking service wajib minimal H+1 dari hari ini (mulai ${minBookingDate}).`);
       }
+      const scheduleErr = validateBookingDateTime(bookingForm.tanggal_booking, bookingForm.jam_booking);
+      if (scheduleErr) {
+        throw new Error(scheduleErr);
+      }
       if (isUnitInWorkshop(selectedBookingKendaraan || { no_polisi: bookingForm.no_polisi })) {
         throw new Error(
           `Unit ${formatPlat(bookingForm.no_polisi)} masih berada di bengkel. Booking bisa dibuat lagi setelah unit check out.`
@@ -4158,6 +4164,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                     );
                     return;
                   }
+                  const scheduleErr = validateBookingDateTime(bookingForm.tanggal_booking, bookingForm.jam_booking);
+                  if (scheduleErr) {
+                    toast.error('Jadwal Tidak Valid', scheduleErr);
+                    return;
+                  }
                   setBookingStep(4);
                 }
               }}
@@ -4636,12 +4647,29 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               value={bookingForm.tanggal_booking}
                               onChange={(e) => {
                                 const minDate = getLocalDateStr(1);
-                                if (e.target.value && e.target.value < minDate) {
+                                const nextDate = e.target.value;
+                                if (nextDate && nextDate < minDate) {
                                   toast.warning('Tanggal Tidak Valid', 'Pemesanan booking service wajib minimal H+1 dari hari ini (mulai besok).');
-                                  setBookingForm({ ...bookingForm, tanggal_booking: minDate });
+                                  const fallbackDate = getBookingScheduleForDate(minDate).isSunday ? getLocalDateStr(2) : minDate;
+                                  setBookingForm({ ...bookingForm, tanggal_booking: fallbackDate });
                                   return;
                                 }
-                                setBookingForm({ ...bookingForm, tanggal_booking: e.target.value });
+                                const nextSchedule = getBookingScheduleForDate(nextDate);
+                                if (nextSchedule.isSunday) {
+                                  toast.warning('Hari Minggu Libur', 'Bengkel tutup pada hari Minggu. Silakan pilih hari Senin - Sabtu.');
+                                  return;
+                                }
+                                let nextTime = bookingForm.jam_booking;
+                                if (nextTime && validateBookingDateTime(nextDate, nextTime)) {
+                                  nextTime = nextSchedule.isSaturday ? '13:00' : '08:30';
+                                  toast.info(
+                                    'Jam Disesuaikan',
+                                    nextSchedule.isSaturday
+                                      ? `Hari Sabtu buka 08:30–13:00 WIB. Jam disesuaikan ke ${nextTime} WIB.`
+                                      : `Jam disesuaikan ke ${nextTime} WIB.`
+                                  );
+                                }
+                                setBookingForm({ ...bookingForm, tanggal_booking: nextDate, jam_booking: nextTime });
                               }}
                               className="w-full px-3.5 py-2.5 rounded-xl border border-border font-mono text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
                             />
@@ -4657,8 +4685,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               value={bookingForm.jam_booking}
                               onChange={(time) => setBookingForm({ ...bookingForm, jam_booking: time })}
                             />
-                            <div className="text-xs text-ink-muted mt-1.5 font-medium">
-                              Jam operasional bengkel: 08:00 - 17:00 WIB
+                            <div className="text-xs text-ink-muted mt-1.5 font-medium space-y-0.5">
+                              <div>{getBookingScheduleForDate(bookingForm.tanggal_booking).rangeLabel}</div>
+                              <div className="text-[11px] text-ink-subtle">
+                                Senin–Jumat: 08:30 - 16:30 · Sabtu: 08:30 - 13:00 · Minggu: Libur
+                              </div>
                             </div>
                           </div>
                         </div>
