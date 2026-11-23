@@ -16,6 +16,7 @@ import { ModalActionButton } from '../components/common/ModalActionButton';
 import { PhotoUploader } from '../components/common/PhotoUploader';
 import { toast } from '../components/common/Toast';
 import { TimePickerInput, getBookingScheduleForDate, validateBookingDateTime } from '../components/common/TimePickerInput';
+import { DatePickerInput } from '../components/common/DatePickerInput';
 import { etaSpk, labelSumberEta } from '../utils/eta';
 import { fmtWaktuFull, fmtTanggalSaja } from '../utils/dateFormat';
 import { resolveServiceTimeline, hasServiceBooking } from '../utils/serviceTimeline';
@@ -4641,24 +4642,11 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                               <Calendar className="w-3.5 h-3.5 text-accent" />
                               Tanggal Rencana Masuk <span className="text-status-red">* (Minimal H+1)</span>
                             </label>
-                            <input
-                              type="date"
-                              min={getLocalDateStr(1)}
+                            <DatePickerInput
+                              minDate={getLocalDateStr(1)}
                               value={bookingForm.tanggal_booking}
-                              onChange={(e) => {
-                                const minDate = getLocalDateStr(1);
-                                const nextDate = e.target.value;
-                                if (nextDate && nextDate < minDate) {
-                                  toast.warning('Tanggal Tidak Valid', 'Pemesanan booking service wajib minimal H+1 dari hari ini (mulai besok).');
-                                  const fallbackDate = getBookingScheduleForDate(minDate).isSunday ? getLocalDateStr(2) : minDate;
-                                  setBookingForm({ ...bookingForm, tanggal_booking: fallbackDate });
-                                  return;
-                                }
+                              onChange={(nextDate) => {
                                 const nextSchedule = getBookingScheduleForDate(nextDate);
-                                if (nextSchedule.isSunday) {
-                                  toast.warning('Hari Minggu Libur', 'Bengkel tutup pada hari Minggu. Silakan pilih hari Senin - Sabtu.');
-                                  return;
-                                }
                                 let nextTime = bookingForm.jam_booking;
                                 if (nextTime && validateBookingDateTime(nextDate, nextTime)) {
                                   nextTime = nextSchedule.isSaturday ? '13:00' : '08:30';
@@ -4671,7 +4659,6 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 }
                                 setBookingForm({ ...bookingForm, tanggal_booking: nextDate, jam_booking: nextTime });
                               }}
-                              className="w-full px-3.5 py-2.5 rounded-xl border border-border font-mono text-xs focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden bg-surface-raised font-bold text-ink"
                             />
                             <div className="mt-2 rounded-lg bg-amber-500/10 border border-amber-500/25 p-2.5 text-[11px] leading-relaxed text-amber-900 dark:text-amber-200">
                               <span className="font-bold">Catatan:</span> Tanggal &amp; jam yang Anda pilih merupakan <strong>pengajuan jadwal ke bengkel</strong> (minimal H+1) dan menunggu konfirmasi pihak bengkel. Jadwal dapat disesuaikan sewaktu-waktu mengikuti ketersediaan stall, mekanik, dan kondisi antrean bengkel.

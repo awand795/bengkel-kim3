@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { Clock } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { Clock, ChevronDown } from 'lucide-react';
 import { toast } from './Toast';
 
 export interface BookingScheduleInfo {
@@ -76,9 +76,10 @@ interface TimePickerInputProps {
   selectedDate?: string; // YYYY-MM-DD
 }
 
+const MINUTE_OPTIONS = [0, 15, 30, 45];
+
 /**
- * TimePickerInput — ketik bebas (JJ:MM), validasi saat commit
- * mengikuti jam operasional hari pada selectedDate:
+ * TimePickerInput — Picker Jam & Menit yang terkunci ke jam operasional:
  * - Senin - Jumat: 08:30 - 16:30 WIB
  * - Sabtu: 08:30 - 13:00 WIB
  * - Minggu: Libur (terkunci)
@@ -92,130 +93,179 @@ export const TimePickerInput: React.FC<TimePickerInputProps> = ({
   selectedDate,
 }) => {
   const schedule = useMemo(() => getBookingScheduleForDate(selectedDate), [selectedDate]);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Check if selectedDate is today
-  const isToday = useMemo(() => {
-    if (!selectedDate) return false;
-    const today = new Date().toISOString().slice(0, 10);
-    return selectedDate === today;
-  }, [selectedDate]);
-
-  // Current system time
-  const now = new Date();
-  const currentHour24 = now.getHours();
-  const currentMinutes = now.getMinutes();
-  const nowLabel = `${String(currentHour24).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
-
-  // Draft ketikan bebas (tidak divalidasi selama mengetik)
-  const [draft, setDraft] = useState(value);
   useEffect(() => {
-    setDraft(value);
+    if (!open) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open]);
+
+  const [selectedHour, selectedMinute] = useMemo(() => {
+    const match = /^(\d{1,2}):(\d{2})$/.exec((value || '08:30').trim());
+    if (!match) return [8, 30];
+    return [Number(match[1]), Number(match[2])];
   }, [value]);
 
-  const handleType = (raw: string) => {
-    if (schedule.isSunday) return;
-    const cleaned = raw.replace(/[^0-9:]/g, '').slice(0, 5);
-    if (cleaned.includes(':')) {
-      const [hPart = '', ...rest] = cleaned.split(':');
-      const mPart = rest.join('').slice(0, 2);
-      setDraft(`${hPart.slice(0, 2)}:${mPart}`);
+  const hours = useMemo(() => {
+    const maxH = schedule.isSaturday ? 13 : 16;
+    const list: number[] = [];
+    for (let h = 8; h <= maxH; h++) {
+      list.push(h);
+    }
+    return list;
+  }, [schedule.isSaturday]);
+
+  const isTimeAllowed = (h: number, m: number) => {
+    const total = h * 60 + m;
+    return total >= schedule.openMinutes && total <= schedule.closeMinutes;
+  };
+
+  const handleSelectHour = (h: number) => {
+    if (isTimeAllowed(h, selectedMinute)) {
+      onChange(`${String(h).padStart(2, '0')}:${String(selectedMinute).padStart(2, '0')}`);
       return;
     }
-    const digits = cleaned.slice(0, 4);
-    if (digits.length <= 2) {
-      setDraft(digits);
-    } else {
-      setDraft(`${digits.slice(0, 2)}:${digits.slice(2)}`);
+    const firstValidMinute = MINUTE_OPTIONS.find((m) => isTimeAllowed(h, m));
+    if (firstValidMinute !== undefined) {
+      onChange(`${String(h).padStart(2, '0')}:${String(firstValidMinute).padStart(2, '0')}`);
     }
   };
 
-  const parseTime = (text: string): [number, number] | null => {
-    const t = text.trim();
-    if (t.includes(':')) {
-      const [hStr = '', mStr = ''] = t.split(':');
-      if (!/^\d{1,2}$/.test(hStr) || !/^\d{1,2}$/.test(mStr)) return null;
-      return [Number(hStr), Number(mStr)];
-    }
-    if (!/^\d{3,4}$/.test(t)) return null;
-    return [Number(t.slice(0, -2)), Number(t.slice(-2))];
-  };
-
-  const commit = () => {
-    if (schedule.isSunday) {
-      toast.warning('Hari Minggu Libur', 'Bengkel libur pada hari Minggu. Pilih hari Senin - Sabtu.');
-      setDraft(value);
-      return;
-    }
-    const parsed = parseTime(draft);
-    if (!parsed) {
-      toast.warning('Format Jam Salah', 'Ketik jam format JJ:MM, contoh 08:30.');
-      setDraft(value);
-      return;
-    }
-    const [h, min] = parsed;
-    if (h < 0 || h > 23 || min < 0 || min > 59) {
-      toast.warning('Jam Tidak Valid', 'Jam 00–23 dan menit 00–59. Contoh valid: 08:30.');
-      setDraft(value);
-      return;
-    }
-    const total = h * 60 + min;
-    if (total < schedule.openMinutes || total > schedule.closeMinutes) {
+  const handleSelectMinute = (m: number) => {
+    if (!isTimeAllowed(selectedHour, m)) {
       toast.warning(
         'Di Luar Jam Operasional',
         schedule.isSaturday
-          ? 'Hari Sabtu bengkel buka pukul 08:30–13:00 WIB. Pilih jam di rentang tersebut.'
-          : 'Hari Senin–Jumat bengkel buka pukul 08:30–16:30 WIB. Pilih jam di rentang tersebut.'
+          ? 'Hari Sabtu bengkel buka pukul 08:30–13:00 WIB.'
+          : 'Hari Senin–Jumat bengkel buka pukul 08:30–16:30 WIB.'
       );
-      setDraft(value);
       return;
     }
-    if (isToday && (h < currentHour24 || (h === currentHour24 && min <= currentMinutes))) {
-      toast.warning(
-        'Jam Sudah Lewat Hari Ini',
-        `Sekarang ${nowLabel} WIB — booking ${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')} tetap disimpan, pastikan jadwalnya.`
-      );
-    }
-    onChange(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
+    onChange(`${String(selectedHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    setOpen(false);
   };
 
   return (
-    <div className={`${className}`}>
+    <div ref={containerRef} className={`relative ${className}`}>
       {label && (
         <label className="block text-xs font-bold text-ink-muted mb-1.5">
           {label} {required && <span className="text-status-red">*</span>}
         </label>
       )}
 
-      <div className="relative flex items-center">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#12388F] dark:text-blue-400 pointer-events-none">
-          <Clock className="w-4 h-4" />
-        </div>
-        <input
-          type="text"
-          inputMode="numeric"
-          disabled={schedule.isSunday}
-          value={schedule.isSunday ? 'Libur' : draft}
-          onChange={(e) => handleType(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              commit();
-              (e.target as HTMLInputElement).blur();
-            }
-          }}
-          placeholder="JJ:MM (contoh 08:30)"
-          aria-label={label}
-          className={`w-full pl-9 pr-14 py-2.5 rounded-xl border font-mono text-sm font-bold tracking-wider transition-all ${
-            schedule.isSunday
-              ? 'border-status-red/40 bg-status-red/5 text-status-red cursor-not-allowed'
-              : 'border-border bg-surface-raised text-ink focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden'
-          }`}
-        />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-ink-subtle bg-surface-sunken px-1.5 py-0.5 rounded pointer-events-none">
-          WIB
+      <button
+        type="button"
+        disabled={schedule.isSunday}
+        onClick={() => {
+          if (schedule.isSunday) {
+            toast.warning('Hari Minggu Libur', 'Bengkel libur pada hari Minggu. Pilih hari Senin - Sabtu.');
+            return;
+          }
+          setOpen((prev) => !prev);
+        }}
+        aria-label={label}
+        className={`w-full flex items-center justify-between pl-3 pr-3 py-2.5 rounded-xl border font-mono text-sm font-bold tracking-wider transition-all ${
+          schedule.isSunday
+            ? 'border-status-red/40 bg-status-red/5 text-status-red cursor-not-allowed'
+            : 'border-border bg-surface-raised text-ink hover:border-accent/60 focus:ring-2 focus:ring-accent focus:border-accent focus:outline-hidden'
+        }`}
+      >
+        <span className="flex items-center gap-2.5">
+          <Clock className="w-4 h-4 text-[#12388F] dark:text-blue-400 shrink-0" />
+          <span>{schedule.isSunday ? 'Libur' : value || '08:30'}</span>
         </span>
-      </div>
+        <span className="flex items-center gap-1.5">
+          <span className="text-[10px] font-bold text-ink-subtle bg-surface-sunken px-1.5 py-0.5 rounded">
+            WIB
+          </span>
+          {!schedule.isSunday && (
+            <ChevronDown
+              className={`w-4 h-4 text-ink-muted transition-transform ${open ? 'rotate-180' : ''}`}
+            />
+          )}
+        </span>
+      </button>
+
+      {open && !schedule.isSunday && (
+        <div className="absolute z-50 mt-2 w-full min-w-[240px] rounded-2xl border border-border bg-surface-raised shadow-xl p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-[11px] font-bold text-ink-muted uppercase tracking-wider mb-1.5 text-center">
+                Jam
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                {hours.map((h) => {
+                  const hasAnyValid = MINUTE_OPTIONS.some((m) => isTimeAllowed(h, m));
+                  const active = h === selectedHour;
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      disabled={!hasAnyValid}
+                      onClick={() => handleSelectHour(h)}
+                      className={`w-full py-1.5 rounded-lg font-mono text-xs font-bold transition-colors ${
+                        active
+                          ? 'bg-accent text-white shadow-xs'
+                          : hasAnyValid
+                            ? 'hover:bg-surface-sunken text-ink'
+                            : 'text-ink-subtle/40 cursor-not-allowed'
+                      }`}
+                    >
+                      {String(h).padStart(2, '0')}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-bold text-ink-muted uppercase tracking-wider mb-1.5 text-center">
+                Menit
+              </div>
+              <div className="space-y-1">
+                {MINUTE_OPTIONS.map((m) => {
+                  const allowed = isTimeAllowed(selectedHour, m);
+                  const active = m === selectedMinute && allowed;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      disabled={!allowed}
+                      onClick={() => handleSelectMinute(m)}
+                      className={`w-full py-1.5 rounded-lg font-mono text-xs font-bold transition-colors ${
+                        active
+                          ? 'bg-accent text-white shadow-xs'
+                          : allowed
+                            ? 'hover:bg-surface-sunken text-ink'
+                            : 'text-ink-subtle/35 line-through cursor-not-allowed'
+                      }`}
+                    >
+                      {String(m).padStart(2, '0')}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="mt-2.5 pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-ink-muted">
+            <span>Terpilih: <strong className="font-mono text-ink">{value} WIB</strong></span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="font-bold text-accent hover:underline"
+            >
+              Selesai
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
