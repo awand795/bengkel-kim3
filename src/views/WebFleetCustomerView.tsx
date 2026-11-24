@@ -1048,7 +1048,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                                   {p.nama_pekerjaan || p.kategori}
                                 </div>
                                 <div className="text-xs text-ink-subtle tabular-nums">
-                                  {qty} × Rp {fmtRpExact(hargaSatuanTampil)} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
+                                  {qty} × Rp {fmtRpExact(hargaSatuanTampil)}
                                 </div>
                                 {(hasPercentDisc || hasAddDisc) && (
                                   <div className="text-[11px] text-rose-600 dark:text-rose-400 tabular-nums flex flex-wrap gap-x-2.5">
@@ -1059,7 +1059,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               </div>
                               <div className="text-right shrink-0">
                                 <div className="font-bold text-ink tabular-nums">Rp {fmtRpExact(nettoItem)}</div>
-                                <span className="text-xs text-status-green bg-status-green-bg px-2 py-0.5 rounded-full font-medium">{p.status_pekerjaan || 'Disetujui'}</span>
                               </div>
                             </div>
                           ))
@@ -1099,7 +1098,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               </div>
                               <div className="text-right shrink-0">
                                 <div className="font-bold text-ink tabular-nums">Rp {fmtRpExact(nettoItem)}</div>
-                                <span className="text-xs text-ink-muted bg-surface px-2 py-0.5 rounded-full font-medium">{pt.status_ketersediaan || 'Ready di Stock'}</span>
                               </div>
                             </div>
                           ))
