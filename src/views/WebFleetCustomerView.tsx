@@ -1046,11 +1046,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               <div className="min-w-0">
                                 <div className="font-semibold text-ink">
                                   {p.nama_pekerjaan || p.kategori}
-                                  {p.kode_pekerjaan && (
-                                    <span className="ml-1.5 text-[10px] text-ink-subtle font-mono">
-                                      ({p.kode_pekerjaan})
-                                    </span>
-                                  )}
                                 </div>
                                 <div className="text-xs text-ink-subtle tabular-nums">
                                   {qty} × Rp {fmtRpExact(hargaSatuanTampil)} • Durasi: {p.estimasi_durasi_jam ? `${p.estimasi_durasi_jam} Jam` : '60 Menit'}
@@ -1091,11 +1086,6 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                               <div className="min-w-0">
                                 <div className="font-semibold text-ink">
                                   {pt.nama_part}
-                                  {pt.kode_part && (
-                                    <span className="ml-1.5 text-[10px] text-ink-subtle font-mono">
-                                      ({pt.kode_part})
-                                    </span>
-                                  )}
                                 </div>
                                 <div className="text-xs text-ink-subtle tabular-nums">
                                   {qty} {pt.satuan || 'Pcs'} × Rp {fmtRpExact(hargaSatuanTampil)}
