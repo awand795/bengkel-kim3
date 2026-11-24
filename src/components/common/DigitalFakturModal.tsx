@@ -425,11 +425,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                         </td>
                         <td className="px-3 py-1.5 font-medium border-r border-slate-200">
                           <span>{item.nama_pekerjaan}</span>
-                          {item.kode_pekerjaan && (
-                            <span className="ml-1.5 text-[10px] text-slate-500 font-mono">
-                              ({item.kode_pekerjaan})
-                            </span>
-                          )}
                         </td>
                         <td className="px-2 py-1.5 text-center tabular-nums border-r border-slate-200">
                           {qty} Jasa
@@ -474,11 +469,6 @@ export const DigitalFakturModal: React.FC<DigitalFakturModalProps> = ({
                         </td>
                         <td className="px-3 py-1.5 border-r border-slate-200">
                           <span className="font-medium">{part.nama_part}</span>
-                          {part.kode_part && (
-                            <span className="ml-1.5 text-[10px] text-slate-500 font-mono">
-                              ({part.kode_part})
-                            </span>
-                          )}
                         </td>
                         <td className="px-2 py-1.5 text-center tabular-nums border-r border-slate-200">
                           {qty} {part.satuan || 'Pcs'}
