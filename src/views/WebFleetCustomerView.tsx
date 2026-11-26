@@ -33,6 +33,55 @@ import { RupiahCell } from '../components/common/RupiahCell';
 import { DigitalFakturModal } from '../components/common/DigitalFakturModal';
 import { MultiSlideBanner } from '../components/common/MultiSlideBanner';
 import { computeFakturCalculation, fmtRpExact } from '../utils/fakturHelper';
+
+/**
+ * Mengubah nilai foto kendaraan dari DB (URL, data URI, base64 polos, atau hex bytea Postgres `\x...` / `0x...`)
+ * menjadi URL gambar yang valid untuk elemen `<img>`.
+ */
+function resolveVehicleImageSrc(raw?: string | null): string | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('/')
+  ) {
+    return trimmed;
+  }
+
+  let hexBody = trimmed;
+  const hasHexPrefix =
+    hexBody.startsWith('\\x') || hexBody.startsWith('0x') || hexBody.startsWith('0X');
+  if (hasHexPrefix) {
+    hexBody = hexBody.slice(2);
+  }
+  const head = hexBody.slice(0, 16);
+  if (
+    head.length > 0 &&
+    hexBody.length % 2 === 0 &&
+    /^[0-9a-fA-F]+$/.test(head)
+  ) {
+    try {
+      const len = hexBody.length / 2;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = parseInt(hexBody.substr(i * 2, 2), 16);
+      }
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      return `data:image/jpeg;base64,${btoa(binary)}`;
+    } catch {
+      return null;
+    }
+  }
+
+  return `data:image/jpeg;base64,${trimmed}`;
+}
 import { 
   Truck, 
   Calendar, 
@@ -303,6 +352,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
   const [targetTambahanWizard, setTargetTambahanWizard] = useState<PekerjaanTambahan | null>(null);
   const [tambahanWizardStep, setTambahanWizardStep] = useState(0);
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
+  const [imgLoadError, setImgLoadError] = useState(false);
 
   // Cari data armada kendaraan pengguna yang cocok dengan nomor polisi SPK
   const matchingKendaraan = useMemo(() => {
@@ -326,20 +376,17 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
 
   const rawFotoKendaraan =
     matchingKendaraan?.foto_kendaraan ||
-    spk.foto_kendaraan ||
-    (spk as any).foto_kendaraan_masuk ||
     armadaFotoDokumen ||
     null;
 
-  const fotoKendaraan = (() => {
-    if (!rawFotoKendaraan || typeof rawFotoKendaraan !== 'string') return null;
-    const trimmed = rawFotoKendaraan.trim();
-    if (!trimmed) return null;
-    if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
-      return trimmed;
-    }
-    return `data:image/jpeg;base64,${trimmed}`;
-  })();
+  const fotoKendaraan = useMemo(
+    () => resolveVehicleImageSrc(rawFotoKendaraan),
+    [rawFotoKendaraan]
+  );
+
+  React.useEffect(() => {
+    setImgLoadError(false);
+  }, [fotoKendaraan]);
 
   const unitDesc = matchingKendaraan
     ? `${formatMerkModel(matchingKendaraan.merk, matchingKendaraan.model, matchingKendaraan.unit_name || matchingKendaraan.jenis_armada || 'Truk')}${cleanField(matchingKendaraan.tahun) ? ` (${cleanField(matchingKendaraan.tahun)})` : ''}`
@@ -363,7 +410,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                 {/* Sisi Kiri: Profil Kendaraan */}
                 <div className="flex items-center gap-4 sm:gap-5 min-w-0 lg:max-w-xs shrink-0">
                   {/* Foto Kendaraan Asli Pengguna atau Fallback Icon */}
-                  {fotoKendaraan ? (
+                  {fotoKendaraan && !imgLoadError ? (
                     <div
                       className="group/thumb relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-slate-200/90 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-2xs"
                       onClick={() =>
@@ -378,6 +425,7 @@ export const SpkTrackingDetail: React.FC<SpkTrackingDetailProps> = ({
                       <img
                         src={fotoKendaraan}
                         alt={formatPlat(spk.no_polisi)}
+                        onError={() => setImgLoadError(true)}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/25 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
@@ -4289,14 +4337,14 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                                 }`}
                               >
                                 <div className="flex min-w-0 flex-1 items-center gap-3">
-                                  {k.foto_kendaraan ? (
+                                  {resolveVehicleImageSrc(k.foto_kendaraan) ? (
                                     <img
-                                      src={k.foto_kendaraan}
+                                      src={resolveVehicleImageSrc(k.foto_kendaraan)!}
                                       alt=""
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setPreviewImage({
-                                          url: k.foto_kendaraan!,
+                                          url: resolveVehicleImageSrc(k.foto_kendaraan)!,
                                           title: formatPlat(k.no_polisi),
                                           subtitle: `${formatMerkModel(k.merk, k.model, k.unit_name || k.jenis_armada || 'Truk')}${cleanField(k.tahun) ? ` (${cleanField(k.tahun)})` : ''}`,
                                         });
@@ -4949,12 +4997,12 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                       <div className="flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-stretch xl:gap-5">
                         {/* Identitas utama */}
                         <div className="flex min-w-0 items-start gap-3.5 xl:w-[285px] xl:shrink-0">
-                        {k.foto_kendaraan ? (
+                        {resolveVehicleImageSrc(k.foto_kendaraan) ? (
                           <div
                             className="group/thumb relative h-[76px] w-[76px] shrink-0 cursor-pointer overflow-hidden rounded-xl border border-border bg-slate-100 dark:bg-slate-800"
                           onClick={() =>
                             setPreviewImage({
-                              url: k.foto_kendaraan!,
+                              url: resolveVehicleImageSrc(k.foto_kendaraan)!,
                               title: formatPlat(k.no_polisi),
                               subtitle: `${formatNamaArmada(k)} • ${cleanField(k.jenis_armada) || cleanField(k.type) || 'Truk'}${cleanField(k.tahun) ? ` (${cleanField(k.tahun)})` : ''}`,
                             })
@@ -4962,7 +5010,7 @@ export const WebFleetCustomerView: React.FC<WebFleetCustomerViewProps> = ({ init
                           title="Klik untuk memperbesar foto unit"
                         >
                           <img
-                            src={k.foto_kendaraan}
+                            src={resolveVehicleImageSrc(k.foto_kendaraan)!}
                             alt={formatPlat(k.no_polisi)}
                             className="h-full w-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
                             loading="lazy"
